@@ -226,6 +226,9 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 		}
 		requested = append(requested, domain.Line{SKUID: k, Quantity: q})
 	}
+	if typ == "refund" && !wholeOrder(normalized, purchased) {
+		return nil, status.Error(codes.FailedPrecondition, "partial refund before shipment requires partial warehouse cancellation; only whole-order refund is supported")
+	}
 	sort.Slice(requested, func(i, j int) bool { return requested[i].SKUID < requested[j].SKUID })
 	payable := platform.Int(o, "payable_cents")
 	var weight int64
@@ -303,6 +306,34 @@ func (s *Service) refund(ctx context.Context, r *domain.Record) (platform.Result
 	if r.Status == "COMPLETED" || r.Status == "REFUNDING" {
 		return platform.Map(r), nil
 	}
+	if r.Type == "refund" {
+		// Revalidate stored applications too: earlier versions accepted partial
+		// refund-only requests, while the warehouse cancellation is order-wide.
+		o, err := s.RPC.Call(ctx, "order", platform.Command{Action: "get", ID: r.OrderID, UserID: r.UserID, Role: "system"})
+		if err != nil {
+			return nil, err
+		}
+		var items []orderLine
+		encoded, _ := json.Marshal(o["items"])
+		if err = json.Unmarshal(encoded, &items); err != nil || len(items) == 0 {
+			return nil, status.Error(codes.FailedPrecondition, "order lines unavailable")
+		}
+		purchased := map[string]int64{}
+		for _, item := range items {
+			purchased[item.SKUID] += item.Quantity
+		}
+		var lines []domain.Line
+		if err = json.Unmarshal([]byte(r.LinesJSON), &lines); err != nil {
+			return nil, err
+		}
+		requested := map[string]int64{}
+		for _, line := range lines {
+			requested[line.SKUID] += line.Quantity
+		}
+		if !wholeOrder(requested, purchased) {
+			return nil, status.Error(codes.FailedPrecondition, "partial refund before shipment requires partial warehouse cancellation; only whole-order refund is supported")
+		}
+	}
 	allowed := []string{"INSPECTED"}
 	if r.Type == "refund" {
 		allowed = []string{"APPROVED"}
@@ -327,6 +358,19 @@ func (s *Service) refund(ctx context.Context, r *domain.Record) (platform.Result
 	r, err = s.Repo.Transition(ctx, r.ID, []string{"REFUND_REQUESTED"}, "REFUNDING", map[string]any{"refund_id": refundID}, nil)
 	return platform.Map(r), err
 }
+
+func wholeOrder(requested, purchased map[string]int64) bool {
+	if len(requested) != len(purchased) || len(purchased) == 0 {
+		return false
+	}
+	for sku, qty := range purchased {
+		if qty <= 0 || requested[sku] != qty {
+			return false
+		}
+	}
+	return true
+}
+
 func (s *Service) exchange(ctx context.Context, r *domain.Record) (platform.Result, error) {
 	if r.Type != "exchange" {
 		return nil, status.Error(codes.FailedPrecondition, "not an exchange application")

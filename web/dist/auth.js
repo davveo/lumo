@@ -74,6 +74,7 @@
         verified = true; ui.checking = false; ui.error = '';
         return user();
       } catch (error) {
+        if (!session || session.token !== token) return null;
         verified = false; ui.checking = false;
         if (error.status === 401) clearSession('登录状态已失效，请重新登录');
         else ui.error = error.message;

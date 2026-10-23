@@ -21,7 +21,7 @@ Docker 网关直接提供这些文件和 `/api/v1/`，因此本地访问 `http:/
 
 ```sh
 sh scripts/test-frontend.sh
-go test ./tests -run TestHTTPStorefrontEndToEnd -count=1 -v
+GOWORK=off go test ./tests -run TestHTTPStorefrontEndToEnd -count=1 -v
 ```
 
 前一个命令在项目根目录执行，要求 Go、C 编译器、Node.js 22+ 和 curl。测试会创建临时数据库，启动真正的 TCP gRPC 服务及 HTTP 网关，按独立测试进程清理数据。它使用本地持久化事件派发器；完整 Docker 环境仍使用 RabbitMQ、MySQL、Redis、MinIO、Collector 和 Jaeger。

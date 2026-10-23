@@ -3,6 +3,9 @@
 set -eu
 PROJECT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$PROJECT_DIR"
+# Run this module independently unless the caller explicitly selected a workspace.
+GOWORK=${GOWORK:-off}
+export GOWORK
 command -v go >/dev/null || { echo '需要 Go 1.26+ 和 C 编译器（开发测试使用 SQLite）' >&2; exit 1; }
 command -v node >/dev/null || { echo '需要 Node.js 22+ 运行前端测试' >&2; exit 1; }
 command -v curl >/dev/null || { echo '需要 curl 检查开发服务就绪状态' >&2; exit 1; }

@@ -92,3 +92,61 @@ func TestRewardSpentBeforeRefundCreatesDebt(t *testing.T) {
 		t.Fatal(v)
 	}
 }
+
+func TestCompletionRewardsFollowRefundProgressRegardlessOfEventOrder(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		totals   []int64
+		want     int64
+		spent    int64
+		wantHold string
+	}{
+		{name: "full refund precedes completion", totals: []int64{10000}, want: 5000},
+		{name: "partial refund precedes completion", totals: []int64{2500}, want: 5075},
+		{name: "older partial event follows full refund", totals: []int64{10000, 2500}, want: 5000, spent: 1000, wantHold: "REFUNDED"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db, m := setup(t, nil)
+			ctx := context.Background()
+			if tc.spent > 0 {
+				must(t, m, "reserve", "reordered-order", "demo", "system", map[string]any{"amount": tc.spent})
+				must(t, m, "confirm", "reordered-order", "demo", "system", nil)
+			}
+			for i, total := range tc.totals {
+				event := platform.Event{Type: "RefundSucceeded", AggregateID: fmt.Sprintf("reordered-refund-%d", i), UserID: "demo", Data: map[string]any{"order_id": "reordered-order", "payable_cents": 10000, "refunded_total_cents": total}}
+				for repeat := 0; repeat < 2; repeat++ {
+					if err := m.OnEvent(ctx, event); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+			completion := platform.Event{Type: "OrderCompleted", AggregateID: "reordered-order", UserID: "demo", Data: map[string]any{"payable_cents": 10000}}
+			for repeat := 0; repeat < 2; repeat++ {
+				if err := m.OnEvent(ctx, completion); err != nil {
+					t.Fatal(err)
+				}
+			}
+			credit := must(t, m, "reward", "reordered-order", "demo", "system", map[string]any{"amount": 100})
+			if platform.Int(credit, "credited") != 100 {
+				t.Fatal("replayed response must retain the gross reward amount", credit)
+			}
+			v := must(t, m, "get", "", "demo", "user", nil)
+			if platform.Int(v, "available") != tc.want || platform.Int(v, "debt") != 0 {
+				t.Fatalf("unexpected balance after reordered/duplicate events: %v", v)
+			}
+			if tc.wantHold != "" {
+				var hold struct{ State string }
+				if err := db.Table("holds").Where("id = ?", "reordered-order").First(&hold).Error; err != nil || hold.State != tc.wantHold {
+					t.Fatalf("refund state regressed: %+v, %v", hold, err)
+				}
+			}
+			if tc.totals[0] < 10000 {
+				must(t, m, "refund", "remaining-refund", "demo", "system", map[string]any{"order_id": "reordered-order", "payable_cents": 10000, "refunded_total_cents": 10000})
+				v = must(t, m, "get", "", "demo", "user", nil)
+				if platform.Int(v, "available") != 5000 {
+					t.Fatal("later refund failed to reverse the remaining reward", v)
+				}
+			}
+		})
+	}
+}

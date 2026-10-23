@@ -44,14 +44,42 @@ func targets() map[string]string {
 	return out
 }
 
+func healthcheckURL(addr string) (string, error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return "", fmt.Errorf("invalid HTTP_ADDR: %w", err)
+	}
+	if host == "" || host == "0.0.0.0" {
+		host = "127.0.0.1"
+	} else if host == "::" {
+		host = "::1"
+	}
+	return "http://" + net.JoinHostPort(host, port) + "/readyz", nil
+}
+
+func healthcheck() error {
+	target, err := healthcheckURL(env("HTTP_ADDR", ":8080"))
+	if err != nil {
+		return err
+	}
+	client := &http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Get(target)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("gateway not ready: %s", resp.Status)
+	}
+	return nil
+}
+
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
-		client := &http.Client{Timeout: 3 * time.Second}
-		resp, err := client.Get("http://127.0.0.1" + env("HTTP_ADDR", ":8080") + "/readyz")
-		if err != nil || resp.StatusCode != 200 {
+		if err := healthcheck(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		_ = resp.Body.Close()
 		return
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

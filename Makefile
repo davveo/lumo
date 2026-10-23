@@ -1,3 +1,6 @@
+GOWORK ?= off
+export GOWORK
+
 .PHONY: up down test test-web build smoke proto
 up:
 	sh start.sh

@@ -100,8 +100,8 @@ RPC、业务层、仓储层、SQL 都沿传入的 `context.Context` 关联。MQ 
 ## 验证与当前边界
 
 ```sh
-go test ./...
-go build -buildvcs=false ./cmd/server ./cmd/gateway
+GOWORK=off go test ./...
+GOWORK=off go build -buildvcs=false ./cmd/server ./cmd/gateway
 sh scripts/test-frontend.sh
 sh scripts/smoke.sh
 docker compose ps

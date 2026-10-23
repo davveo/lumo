@@ -3,6 +3,7 @@ package aftersale
 import (
 	"context"
 	"github.com/davveo/lumo/internal/platform"
+	"github.com/davveo/lumo/services/aftersale/internal/domain"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -155,5 +156,43 @@ func TestExchangeCreatesSeparateFulfillmentAndWaitsForDelivery(t *testing.T) {
 		if call == "refund.create" {
 			t.Fatal("exchange must not create a money refund")
 		}
+	}
+}
+
+func TestPartialUnshippedRefundIsRejectedWithoutSideEffects(t *testing.T) {
+	writes := 0
+	rpc := &fakeCaller{fn: func(ctx context.Context, svc string, c platform.Command) (platform.Result, error) {
+		if svc == "order" {
+			return platform.Result{"id": "partial-order", "user_id": "demo", "status": "READY_TO_FULFILL", "payment_id": "partial-payment", "payable_cents": int64(20000), "items": []map[string]any{{"sku_id": "sku-phone", "quantity": 2, "unit_price_cents": 10000}}}, nil
+		}
+		writes++
+		return platform.Result{}, nil
+	}}
+	m, db := setup(t, rpc)
+	_, err := m.Handle(context.Background(), platform.Command{Action: "create", UserID: "demo", IdempotencyKey: "partial-refund", Data: map[string]any{"order_id": "partial-order", "type": "refund", "reason": "cancel one only", "lines": []map[string]any{{"sku_id": "sku-phone", "quantity": 1}}}})
+	expectCode(t, err, codes.FailedPrecondition)
+	var count int64
+	if err = db.Model(&domain.Record{}).Count(&count).Error; err != nil || count != 0 || writes != 0 {
+		t.Fatal("rejected request changed aftersale/warehouse/refund state", count, writes, err)
+	}
+	// Existing applications accepted by earlier versions must also be stopped
+	// before they change state or send an order-wide warehouse cancellation.
+	legacy := domain.Record{ID: "legacy-partial", UserID: "demo", OrderID: "partial-order", PaymentID: "partial-payment", Type: "refund", Status: "APPROVED", LinesJSON: `[{"sku_id":"sku-phone","quantity":1}]`, AmountCents: 10000}
+	if err = db.Create(&legacy).Error; err != nil {
+		t.Fatal(err)
+	}
+	_, err = m.Handle(context.Background(), platform.Command{Action: "refund", ID: legacy.ID, UserID: "demo"})
+	expectCode(t, err, codes.FailedPrecondition)
+	row := run(t, m, platform.Command{Action: "get", ID: legacy.ID, UserID: "demo"})
+	if row["status"] != "APPROVED" || writes != 0 {
+		t.Fatal("legacy request changed state before rejection", row, writes)
+	}
+	// Whole-order cancellation remains supported by the existing warehouse.
+	row = run(t, m, platform.Command{Action: "create", UserID: "demo", IdempotencyKey: "whole-refund", Data: map[string]any{"order_id": "whole-order", "type": "refund", "reason": "cancel whole order"}})
+	id := platform.Text(row, "id")
+	run(t, m, platform.Command{Action: "approve", ID: id, UserID: "admin", Role: "admin"})
+	row = run(t, m, platform.Command{Action: "refund", ID: id, UserID: "demo"})
+	if row["status"] != "REFUNDING" || writes != 2 {
+		t.Fatal("whole-order refund no longer works", row, writes)
 	}
 }

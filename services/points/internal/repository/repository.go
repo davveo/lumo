@@ -16,7 +16,7 @@ import (
 type Repository struct{ DB *gorm.DB }
 
 func (r *Repository) Migrate(ctx context.Context) error {
-	return r.DB.WithContext(ctx).AutoMigrate(&domain.Account{}, &domain.Hold{}, &domain.Ledger{}, &domain.Reward{})
+	return r.DB.WithContext(ctx).AutoMigrate(&domain.Account{}, &domain.Hold{}, &domain.Ledger{}, &domain.Reward{}, &domain.RefundProgress{})
 }
 func (r *Repository) Seed(ctx context.Context) error {
 	return r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&domain.Account{UserID: "demo", Available: 5000}).Error
@@ -174,20 +174,42 @@ func (r *Repository) Credit(ctx context.Context, c platform.Command, checkin boo
 		if !errors.Is(er, gorm.ErrRecordNotFound) {
 			return er
 		}
+		reversed := int64(0)
+		if !checkin {
+			var progress domain.RefundProgress
+			er = tx.WithContext(ctx).First(&progress, "order_id = ?", order).Error
+			if er == nil {
+				if progress.UserID != c.UserID {
+					return status.Error(codes.PermissionDenied, "refund progress owner mismatch")
+				}
+				reversed = portion(n, progress.Refunded, progress.Payable)
+			} else if !errors.Is(er, gorm.ErrRecordNotFound) {
+				return er
+			}
+		}
 		if er = tx.WithContext(ctx).Create(&domain.Ledger{ID: id, UserID: c.UserID, OrderID: order, Amount: n, Kind: kind}).Error; er != nil {
 			return er
 		}
 		if !checkin {
-			if er = tx.WithContext(ctx).Create(&domain.Reward{OrderID: order, UserID: c.UserID, Amount: n}).Error; er != nil {
+			if er = tx.WithContext(ctx).Create(&domain.Reward{OrderID: order, UserID: c.UserID, Amount: n, Reversed: reversed}).Error; er != nil {
 				return er
 			}
+			if reversed > 0 {
+				if er = tx.WithContext(ctx).Create(&domain.Ledger{ID: "reversal:reward:" + order, UserID: c.UserID, OrderID: order, Amount: -reversed, Kind: "REWARD_REVERSAL"}).Error; er != nil {
+					return er
+				}
+			}
 		}
-		debtPaid := n
+		net := n - reversed
+		// Keep credited as the gross award for both first delivery and replay;
+		// reward_reversed records the portion removed by preceding refunds.
+		result["reward_reversed"] = reversed
+		debtPaid := net
 		if debtPaid > a.Debt {
 			debtPaid = a.Debt
 		}
 		result["debt_repaid"] = debtPaid
-		return tx.WithContext(ctx).Model(&a).Updates(map[string]any{"available": gorm.Expr("available + ?", n-debtPaid), "debt": gorm.Expr("debt - ?", debtPaid)}).Error
+		return tx.WithContext(ctx).Model(&a).Updates(map[string]any{"available": gorm.Expr("available + ?", net-debtPaid), "debt": gorm.Expr("debt - ?", debtPaid)}).Error
 	})
 	return result, e
 }
@@ -216,6 +238,23 @@ func (r *Repository) Refund(ctx context.Context, c platform.Command) (platform.R
 			return nil
 		}
 		if !errors.Is(er, gorm.ErrRecordNotFound) {
+			return er
+		}
+		progress := domain.RefundProgress{OrderID: order, UserID: c.UserID, Payable: payable, Refunded: total}
+		var existing domain.RefundProgress
+		er = tx.WithContext(ctx).First(&existing, "order_id = ?", order).Error
+		if er == nil {
+			if existing.UserID != c.UserID || existing.Payable != payable {
+				return status.Error(codes.AlreadyExists, "refund progress differs")
+			}
+			if existing.Refunded > total {
+				total = existing.Refunded
+			}
+			progress.Refunded = total
+		} else if !errors.Is(er, gorm.ErrRecordNotFound) {
+			return er
+		}
+		if er = tx.WithContext(ctx).Save(&progress).Error; er != nil {
 			return er
 		}
 		returned := int64(0)

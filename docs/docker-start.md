@@ -68,6 +68,8 @@ sh scripts/down.sh
 
 默认保留已有 `.env`，由Compose解析，不作为shell执行。中间件配置变化不会自动应用到运行中的中间件；需要应用时使用 `--update-infra`。持久化MySQL的账号密码变化仍需按数据库管理流程执行，重建容器不会重新初始化已有数据卷。
 
+停止脚本与启动脚本固定使用本工程的 `compose.yaml` 和 `.env`，不受外部 `COMPOSE_FILE` 或 `COMPOSE_ENV_FILES` 干扰。停止前需要保留可读取的 `.env`，确保使用启动时的项目配置。
+
 ## 默认地址
 
 | 入口 | 地址 |

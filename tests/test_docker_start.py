@@ -389,5 +389,42 @@ class DockerStartupTests(unittest.TestCase):
             with self.subTest(failure=failure):
                 self.clear_calls();result=self.run_start("order",fail=failure);self.assertNotEqual(result.returncode,0);self.assertEqual(self.builds(),[]);self.assertEqual(self.actual_ups(),[])
 
+class DockerShutdownTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="lumo shutdown ")
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.project = self.root / "project with spaces"
+        (self.project / "scripts").mkdir(parents=True)
+        shutil.copy2(PROJECT / "scripts/down.sh", self.project / "scripts/down.sh")
+        (self.project / "compose.yaml").write_text("name: lumo-mall\nservices: {}\n")
+        self.record = self.root / "docker calls.json"
+        docker = self.root / "docker"
+        docker.write_text("#!" + sys.executable + "\nimport json,os,sys\nfrom pathlib import Path\n"
+                          "Path(os.environ['TEST_DOCKER_RECORD']).write_text(json.dumps(sys.argv[1:]))\n")
+        docker.chmod(0o755)
+        self.env = dict(os.environ, PATH=str(self.root) + os.pathsep + os.environ.get("PATH", ""),
+                        TEST_DOCKER_RECORD=str(self.record), COMPOSE_FILE=str(self.root / "other project.yaml"),
+                        COMPOSE_ENV_FILES=str(self.root / "other.env"))
+
+    def run_down(self):
+        return subprocess.run(["sh", str(self.project / "scripts/down.sh")], cwd=self.root, env=self.env,
+                              text=True, capture_output=True, timeout=10)
+
+    def test_shutdown_uses_startup_project_and_env_despite_external_compose_files(self):
+        (self.project / ".env").write_text("COMPOSE_PROJECT_NAME=custom-lumo\n")
+        result = self.run_down()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(self.record.read_text()),
+                         ["compose", "--project-directory", str(self.project), "--env-file", str(self.project / ".env"),
+                          "-f", str(self.project / "compose.yaml"), "down"])
+
+    def test_missing_startup_env_fails_without_stopping_any_containers(self):
+        result = self.run_down()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(".env", result.stderr)
+        self.assertFalse(self.record.exists())
+
+
 if __name__ == "__main__":unittest.main()
 

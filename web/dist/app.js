@@ -248,7 +248,7 @@ async function ensureCommerceQuote(force=false){
  catch(error){if(seq===commerceQuoteSequence){commerceState.quoteError=error.message;commerceState.quoteErrorKey=key;}throw error;}
  finally{if(seq===commerceQuoteSequence){commerceState.quoteLoadingKey='';if(location.hash==='#/checkout')renderKeepScroll();}}
 }
-function submitStorageKey(){return 'lumo-submit-v2::'+String(window.LumoAuth?.user()?.id||window.LumoAuth?.user()?.user_id||'guest');}
+function submitStorageKey(){return 'lumo-submit-v3::'+JSON.stringify([window.LumoAPI.getBase()||location.origin,String(window.LumoAuth?.user()?.id||window.LumoAuth?.user()?.user_id||'guest')]);}
 function readSubmitAttempt(){try{return JSON.parse(sessionStorage.getItem(submitStorageKey())||'null');}catch{return null;}}
 function storeSubmitAttempt(attempt){sessionStorage.setItem(submitStorageKey(),JSON.stringify(attempt));}
 function clearSubmitAttempt(){sessionStorage.removeItem(submitStorageKey());}

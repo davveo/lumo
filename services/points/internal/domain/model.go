@@ -31,3 +31,12 @@ type Reward struct {
 	Amount   int64  `json:"amount"`
 	Reversed int64  `json:"reversed"`
 }
+
+// RefundProgress preserves refund information when its event overtakes the
+// completion event that grants the order reward.
+type RefundProgress struct {
+	OrderID  string `gorm:"primaryKey;size:120"`
+	UserID   string `gorm:"size:80"`
+	Payable  int64
+	Refunded int64
+}

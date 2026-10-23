@@ -28,10 +28,12 @@ MySQL 初始化在数据卷为空时创建30个 schema 和独立用户。以后�
 
 ## 本机 Go 调试
 
+使用 Go 1.26 或更新版本。`make test`、`make build` 和前端测试脚本默认独立运行本模块，避免误用上级目录的 `go.work`；直接执行 Go 命令时，可加 `GOWORK=off`，或将本项目加入自己选择的工作区。
+
 ```sh
-go test ./...
-go build -buildvcs=false -o bin/server ./cmd/server
-go build -buildvcs=false -o bin/gateway ./cmd/gateway
+GOWORK=off go test ./...
+GOWORK=off go build -buildvcs=false -o bin/server ./cmd/server
+GOWORK=off go build -buildvcs=false -o bin/gateway ./cmd/gateway
 ```
 
 单服务主要配置：`SERVICE_NAME`、`RPC_ADDR`、`DB_DRIVER`、`DB_DSN`、`REDIS_ADDR`、`AMQP_URL`、`OTEL_EXPORTER_OTLP_ENDPOINT`、`INTERNAL_RPC_TOKEN`、`DEMO_MODE`。Gateway 的 `RPC_TARGETS` 可使用 `catalog=127.0.0.1:9101,inventory=127.0.0.1:9102` 覆盖本机调试地址；业务服务使用 `CATALOG_RPC_ADDR`、`INVENTORY_RPC_ADDR` 等对应服务名环境变量。

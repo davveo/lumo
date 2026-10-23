@@ -111,3 +111,49 @@ func TestAdminReadListsCannotBeReadByCustomer(t *testing.T) {
 		}
 	}
 }
+
+func TestHealthcheckURLUsesConfiguredListener(t *testing.T) {
+	for _, tc := range []struct{ addr, want string }{
+		{":8080", "http://127.0.0.1:8080/readyz"},
+		{"127.0.0.1:18080", "http://127.0.0.1:18080/readyz"},
+		{"0.0.0.0:8080", "http://127.0.0.1:8080/readyz"},
+		{"localhost:8080", "http://localhost:8080/readyz"},
+		{"[::]:8080", "http://[::1]:8080/readyz"},
+		{"[::1]:18080", "http://[::1]:18080/readyz"},
+	} {
+		t.Run(tc.addr, func(t *testing.T) {
+			got, err := healthcheckURL(tc.addr)
+			if err != nil || got != tc.want {
+				t.Fatalf("healthcheckURL(%q) = %q, %v; want %q", tc.addr, got, err, tc.want)
+			}
+		})
+	}
+	if _, err := healthcheckURL("invalid-address"); err == nil {
+		t.Fatal("invalid listener address was accepted")
+	}
+}
+
+func TestHealthcheckRequiresReadyResponse(t *testing.T) {
+	for _, code := range []int{http.StatusOK, http.StatusServiceUnavailable} {
+		t.Run(http.StatusText(code), func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/readyz" {
+					t.Errorf("unexpected healthcheck path %q", r.URL.Path)
+				}
+				w.WriteHeader(code)
+			}))
+			defer srv.Close()
+			t.Setenv("HTTP_ADDR", strings.TrimPrefix(srv.URL, "http://"))
+			err := healthcheck()
+			if (err == nil) != (code == http.StatusOK) {
+				t.Fatalf("status %d: got %v", code, err)
+			}
+		})
+	}
+	srv := httptest.NewServer(http.NotFoundHandler())
+	srv.Close()
+	t.Setenv("HTTP_ADDR", strings.TrimPrefix(srv.URL, "http://"))
+	if err := healthcheck(); err == nil {
+		t.Fatal("healthcheck succeeded with no listener")
+	}
+}
