@@ -1,0 +1,212 @@
+[
+  {
+    "id": "phone",
+    "path": "assets/phone.jpg",
+    "description": "智能手机 / 浅色背景",
+    "size": [
+      1000,
+      1250
+    ],
+    "source": "https://images.unsplash.com/photo-1605236453806-6ff36851218e?w=1000&q=85&fit=crop",
+    "bytes": 123873
+  },
+  {
+    "id": "laptop",
+    "path": "assets/laptop.jpg",
+    "description": "MacBook 笔记本电脑",
+    "size": [
+      1000,
+      800
+    ],
+    "source": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=1000&q=85&fit=crop",
+    "bytes": 84214
+  },
+  {
+    "id": "headphones",
+    "path": "assets/headphones.jpg",
+    "description": "黑色头戴耳机",
+    "size": [
+      1000,
+      671
+    ],
+    "source": "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=1000&q=85&fit=crop",
+    "bytes": 42958
+  },
+  {
+    "id": "watch",
+    "path": "assets/watch.jpg",
+    "description": "腕表 / 浅色背景",
+    "size": [
+      1000,
+      726
+    ],
+    "source": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1000&q=85&fit=crop",
+    "bytes": 32740
+  },
+  {
+    "id": "sneakers",
+    "path": "assets/sneakers.jpg",
+    "description": "运动鞋",
+    "size": [
+      1000,
+      714
+    ],
+    "source": "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=1000&q=85&fit=crop",
+    "bytes": 187229
+  },
+  {
+    "id": "perfume",
+    "path": "assets/perfume.jpg",
+    "description": "香水",
+    "size": [
+      1000,
+      1437
+    ],
+    "source": "https://images.unsplash.com/photo-1541643600914-78b084683601?w=1000&q=85&fit=crop",
+    "bytes": 112207
+  },
+  {
+    "id": "coffee",
+    "path": "assets/coffee.jpg",
+    "description": "咖啡生活场景",
+    "size": [
+      1000,
+      662
+    ],
+    "source": "https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?w=1000&q=85&fit=crop",
+    "bytes": 106361
+  },
+  {
+    "id": "speaker",
+    "path": "assets/speaker.jpg",
+    "description": "智能音箱",
+    "size": [
+      1000,
+      563
+    ],
+    "source": "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=1000&q=85&fit=crop",
+    "bytes": 95804
+  },
+  {
+    "id": "camera",
+    "path": "assets/camera.jpg",
+    "description": "相机",
+    "size": [
+      1000,
+      1250
+    ],
+    "source": "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=1000&q=85&fit=crop",
+    "bytes": 126708
+  },
+  {
+    "id": "hero",
+    "path": "assets/hero.jpg",
+    "description": "数码生活桌面横幅",
+    "size": [
+      1600,
+      1067
+    ],
+    "source": "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=1600&q=85&fit=crop",
+    "bytes": 84415
+  },
+  {
+    "id": "iphone-black",
+    "path": "assets/iphone-black.png",
+    "description": "Apple 官方 iPhone 15 Pro 黑色钛金属，正背双机透明底",
+    "size": [
+      1000,
+      1000
+    ],
+    "source": "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-pro-finish-select-202309-6-1inch-blacktitanium?wid=1000&hei=1000&fmt=png-alpha&qlt=90"
+  },
+  {
+    "id": "iphone-black-alt",
+    "path": "assets/iphone-black-alt.png",
+    "description": "Apple 官方 iPhone 15 Pro Max 黑色钛金属，正背双机透明底",
+    "size": [
+      1000,
+      1000
+    ],
+    "source": "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-pro-finish-select-202309-6-7inch-blacktitanium?wid=1000&hei=1000&fmt=png-alpha&qlt=90"
+  },
+  {
+    "id": "phone-pro",
+    "path": "assets/phone-pro.jpg",
+    "description": "iPhone 15 正面黑背景",
+    "size": [
+      1000,
+      667
+    ],
+    "source": "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=1000&q=85&fit=crop"
+  },
+  {
+    "id": "sneakers-white",
+    "path": "assets/sneakers-white.jpg",
+    "description": "Nike 白色 Air Force 1",
+    "size": [
+      1000,
+      1250
+    ],
+    "source": "https://images.unsplash.com/photo-1600269452121-4f2416e55c28?w=1000&q=85&fit=crop"
+  },
+  {
+    "id": "iphone-blue",
+    "path": "assets/iphone-blue.png",
+    "description": "Apple iPhone 15 Pro 蓝色钛金属",
+    "size": [
+      1000,
+      1000
+    ],
+    "source": "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-pro-finish-select-202309-6-1inch-bluetitanium?wid=1000&hei=1000&fmt=png-alpha&qlt=90"
+  },
+  {
+    "id": "iphone-white",
+    "path": "assets/iphone-white.png",
+    "description": "Apple iPhone 15 Pro 白色钛金属",
+    "size": [
+      1000,
+      1000
+    ],
+    "source": "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-pro-finish-select-202309-6-1inch-whitetitanium?wid=1000&hei=1000&fmt=png-alpha&qlt=90"
+  },
+  {
+    "id": "macbook-midnight",
+    "path": "assets/macbook-midnight.png",
+    "description": "Apple MacBook Air 午夜色",
+    "size": [
+      1000,
+      1000
+    ],
+    "source": "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-midnight-select-202402?wid=1000&hei=1000&fmt=png-alpha&qlt=90"
+  },
+  {
+    "id": "sofa",
+    "path": "assets/sofa.jpg",
+    "description": "家居绿色沙发",
+    "size": [
+      1000,
+      667
+    ],
+    "source": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1000&q=85&fit=crop"
+  },
+  {
+    "id": "bag",
+    "path": "assets/bag.jpg",
+    "description": "简约背包",
+    "size": [
+      1000,
+      1500
+    ],
+    "source": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=1000&q=85&fit=crop"
+  },
+  {
+    "id": "appliance",
+    "path": "assets/appliance.jpg",
+    "description": "冰箱厨房家电",
+    "size": [
+      1000,
+      1500
+    ],
+    "source": "https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=1000&q=85&fit=crop"
+  }
+]

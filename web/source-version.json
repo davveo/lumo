@@ -1,0 +1,7 @@
+{
+  "site_project_id": "appgprj_6ad88fdefe2081919d73a4bfc1a15b1d",
+  "frontend_commit_sha": "b8149518c6b185dc349edaaa2a6641d0eebb3516",
+  "frontend_url": "https://lumo-mall-studio.tatjobomfhqlc.chatgpt.site",
+  "backend_delivery_version": "0.2.1",
+  "api_mode": "same-origin gateway; separate hosting requires HTTPS gateway configuration"
+}

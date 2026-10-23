@@ -1,0 +1,12 @@
+.git
+.env
+bin
+data
+tmp
+*.zip
+*.tar.gz
+**/*_test.go
+toolchains
+coverage.out
+
+.local

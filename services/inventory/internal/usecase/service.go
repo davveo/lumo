@@ -1,0 +1,47 @@
+package usecase
+
+import (
+	"context"
+	"github.com/davveo/lumo/internal/platform"
+	"github.com/davveo/lumo/services/inventory/internal/domain"
+	"github.com/davveo/lumo/services/inventory/internal/repository"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+type Service struct{ Repo *repository.Repository }
+
+func (s *Service) Execute(ctx context.Context, c platform.Command) (platform.Result, error) {
+	ctx, sp := platform.Start(ctx, "usecase.inventory."+c.Action)
+	defer sp.End()
+	if c.Action == "get" {
+		return s.Repo.Get(ctx, c.ID)
+	}
+	if e := platform.RequireUser(c); e != nil {
+		return nil, e
+	}
+	if c.Role != "admin" && c.Role != "system" {
+		return nil, status.Error(codes.PermissionDenied, "internal inventory command required")
+	}
+	switch c.Action {
+	case "reserve":
+		var v struct {
+			OrderID string        `json:"order_id"`
+			Lines   []domain.Line `json:"lines"`
+		}
+		if e := platform.Decode(c.Data, &v); e != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid reservation")
+		}
+		return s.Repo.Reserve(ctx, c, v.OrderID, v.Lines)
+	case "confirm", "cancel", "dispatch":
+		return s.Repo.Transition(ctx, c)
+	case "restock":
+		return s.Repo.Restock(ctx, c)
+	case "adjust":
+		if e := platform.RequireAdmin(c); e != nil {
+			return nil, e
+		}
+		return s.Repo.Adjust(ctx, c)
+	}
+	return nil, status.Error(codes.Unimplemented, "unsupported action")
+}

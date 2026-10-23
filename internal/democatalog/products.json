@@ -1,0 +1,440 @@
+[
+  {
+    "id": "iphone",
+    "name": "Apple iPhone 15 Pro",
+    "sub": "钛金属设计 · Pro 级影像",
+    "category": "手机数码",
+    "image": "iphone-black.png",
+    "price": 7999,
+    "old": 8999,
+    "sales": 21800,
+    "label": "人气爆款",
+    "colors": [
+      "黑色钛金属",
+      "蓝色钛金属",
+      "白色钛金属"
+    ],
+    "options": [
+      "128GB",
+      "256GB",
+      "512GB",
+      "1TB"
+    ],
+    "defaultOption": "256GB",
+    "prices": [
+      7499,
+      7999,
+      9999,
+      11999
+    ],
+    "highlights": [
+      "A17 Pro",
+      "4800 万",
+      "钛金属",
+      "iOS 17"
+    ],
+    "highSubs": [
+      "强劲芯片",
+      "超清主摄",
+      "轻盈坚固",
+      "流畅体验"
+    ],
+    "specs": [
+      [
+        "商品名称",
+        "Apple iPhone 15 Pro"
+      ],
+      [
+        "屏幕尺寸",
+        "6.1 英寸"
+      ],
+      [
+        "处理器",
+        "A17 Pro 芯片"
+      ],
+      [
+        "存储容量",
+        "128GB / 256GB / 512GB / 1TB"
+      ],
+      [
+        "包装清单",
+        "手机、USB-C 充电线、资料"
+      ]
+    ],
+    "brand": "Apple",
+    "stock": 50
+  },
+  {
+    "id": "macbook",
+    "name": "MacBook Air 13 英寸",
+    "sub": "M3 芯片 · 轻盈，更有力量",
+    "category": "电脑办公",
+    "image": "macbook-midnight.png",
+    "price": 8999,
+    "old": 9999,
+    "sales": 12600,
+    "label": "精选好物",
+    "colors": [
+      "午夜色",
+      "银色"
+    ],
+    "options": [
+      "256GB",
+      "512GB"
+    ],
+    "defaultOption": "256GB",
+    "prices": [
+      8999,
+      10499
+    ],
+    "highlights": [
+      "M3 芯片",
+      "13.6 英寸",
+      "轻至 1.24kg",
+      "18 小时"
+    ],
+    "highSubs": [
+      "澎湃性能",
+      "绚丽显示屏",
+      "轻装出行",
+      "持久续航"
+    ],
+    "brand": "Apple",
+    "stock": 50
+  },
+  {
+    "id": "headphones",
+    "name": "索尼 WH-1000XM5 无线降噪耳机",
+    "sub": "沉浸聆听，让世界安静下来",
+    "category": "手机数码",
+    "image": "headphones.jpg",
+    "price": 2299,
+    "old": 2799,
+    "sales": 18200,
+    "label": "品质之选",
+    "colors": [
+      "黑色",
+      "铂金银"
+    ],
+    "options": [
+      "标准版"
+    ],
+    "defaultOption": "标准版",
+    "highlights": [
+      "智能降噪",
+      "30 小时",
+      "轻盈佩戴",
+      "清晰通话"
+    ],
+    "highSubs": [
+      "专注每一刻",
+      "长久陪伴",
+      "舒适聆听",
+      "连接自如"
+    ],
+    "brand": "Sony",
+    "stock": 50
+  },
+  {
+    "id": "watch",
+    "name": "LUMO 简约智能腕表",
+    "sub": "简约设计，记录每一刻",
+    "category": "服饰箱包",
+    "image": "watch.jpg",
+    "price": 1299,
+    "old": 1699,
+    "sales": 6300,
+    "colors": [
+      "银白色",
+      "经典黑"
+    ],
+    "options": [
+      "38mm",
+      "42mm"
+    ],
+    "defaultOption": "38mm",
+    "highlights": [
+      "极简表盘",
+      "日常记录",
+      "轻盈设计",
+      "舒适佩戴"
+    ],
+    "highSubs": [
+      "纯粹美学",
+      "陪伴生活",
+      "轻装出行",
+      "自在随行"
+    ],
+    "brand": "LUMO",
+    "stock": 50
+  },
+  {
+    "id": "speaker",
+    "name": "便携蓝牙音箱",
+    "sub": "好声音，随时在身边",
+    "category": "家用电器",
+    "image": "speaker.jpg",
+    "price": 699,
+    "old": 899,
+    "sales": 9200,
+    "label": "限时好价",
+    "colors": [
+      "曜石黑"
+    ],
+    "options": [
+      "标准版"
+    ],
+    "defaultOption": "标准版",
+    "highlights": [
+      "蓝牙连接",
+      "立体声",
+      "轻巧便携",
+      "长效续航"
+    ],
+    "highSubs": [
+      "即刻连接",
+      "饱满音质",
+      "随心出行",
+      "尽兴聆听"
+    ],
+    "brand": "LUMO",
+    "stock": 50
+  },
+  {
+    "id": "sneakers",
+    "name": "Nike Air Force 1 运动鞋",
+    "sub": "经典白色，轻松穿搭",
+    "category": "运动户外",
+    "image": "sneakers-white.jpg",
+    "price": 899,
+    "old": 1099,
+    "sales": 15600,
+    "colors": [
+      "经典白"
+    ],
+    "options": [
+      "39码",
+      "40码",
+      "41码",
+      "42码",
+      "43码"
+    ],
+    "defaultOption": "42码",
+    "highlights": [
+      "经典设计",
+      "舒适脚感",
+      "耐磨鞋底",
+      "日常百搭"
+    ],
+    "highSubs": [
+      "简约耐看",
+      "轻松迈步",
+      "安心出行",
+      "自在表达"
+    ],
+    "brand": "Nike",
+    "stock": 50
+  },
+  {
+    "id": "perfume",
+    "name": "CHANEL N°5 经典香水",
+    "sub": "经典花香，留住心动瞬间",
+    "category": "美妆个护",
+    "image": "perfume.jpg",
+    "price": 1080,
+    "old": 1280,
+    "sales": 7800,
+    "colors": [
+      "经典款"
+    ],
+    "options": [
+      "50ml",
+      "100ml"
+    ],
+    "defaultOption": "50ml",
+    "prices": [
+      1080,
+      1580
+    ],
+    "highlights": [
+      "经典花香",
+      "精致瓶身",
+      "细腻香调",
+      "礼赠之选"
+    ],
+    "highSubs": [
+      "优雅随行",
+      "简约美学",
+      "悠然绽放",
+      "心意相伴"
+    ],
+    "brand": "CHANEL",
+    "stock": 50
+  },
+  {
+    "id": "camera",
+    "name": "复古微单数码相机",
+    "sub": "留住生活中的每一帧",
+    "category": "手机数码",
+    "image": "camera.jpg",
+    "price": 5999,
+    "old": 6499,
+    "sales": 3800,
+    "colors": [
+      "经典黑"
+    ],
+    "options": [
+      "单机身",
+      "镜头套装"
+    ],
+    "defaultOption": "单机身",
+    "prices": [
+      5999,
+      6999
+    ],
+    "highlights": [
+      "清晰成像",
+      "快速对焦",
+      "轻巧机身",
+      "随心创作"
+    ],
+    "highSubs": [
+      "记录细节",
+      "捕捉精彩",
+      "自在出行",
+      "表达自我"
+    ],
+    "brand": "LUMO",
+    "stock": 50
+  },
+  {
+    "id": "sofa",
+    "name": "云朵模块布艺沙发",
+    "sub": "给日常留一处柔软",
+    "category": "家居生活",
+    "image": "sofa.jpg",
+    "price": 1899,
+    "old": 2399,
+    "sales": 2400,
+    "colors": [
+      "森林绿"
+    ],
+    "options": [
+      "三人位"
+    ],
+    "defaultOption": "三人位",
+    "highlights": [
+      "柔软坐感",
+      "简约造型",
+      "舒适靠背",
+      "自在组合"
+    ],
+    "highSubs": [
+      "放松身心",
+      "融入日常",
+      "温柔支撑",
+      "随心搭配"
+    ],
+    "brand": "LUMO",
+    "stock": 50
+  },
+  {
+    "id": "bag",
+    "name": "城市轻行通勤背包",
+    "sub": "装下日常，轻松出发",
+    "category": "服饰箱包",
+    "image": "bag.jpg",
+    "price": 299,
+    "old": 399,
+    "sales": 8600,
+    "colors": [
+      "经典款"
+    ],
+    "options": [
+      "标准版"
+    ],
+    "defaultOption": "标准版",
+    "highlights": [
+      "轻量设计",
+      "合理分区",
+      "日常百搭",
+      "耐用面料"
+    ],
+    "highSubs": [
+      "轻松出行",
+      "有序收纳",
+      "简洁美观",
+      "长久相伴"
+    ],
+    "brand": "LUMO",
+    "stock": 50
+  },
+  {
+    "id": "coffee",
+    "name": "精选中度烘焙咖啡豆",
+    "sub": "从一杯香醇开始，唤醒日常",
+    "category": "食品生鲜",
+    "image": "coffee.jpg",
+    "price": 99,
+    "old": 129,
+    "sales": 11900,
+    "label": "日常精选",
+    "colors": [
+      "经典拼配"
+    ],
+    "options": [
+      "250g",
+      "500g"
+    ],
+    "defaultOption": "250g",
+    "prices": [
+      99,
+      179
+    ],
+    "highlights": [
+      "中度烘焙",
+      "香醇口感",
+      "精选拼配",
+      "新鲜风味"
+    ],
+    "highSubs": [
+      "均衡风味",
+      "细腻回甘",
+      "美好日常",
+      "用心冲煮"
+    ],
+    "brand": "LUMO",
+    "stock": 50
+  },
+  {
+    "id": "appliance",
+    "name": "复古迷你冰箱",
+    "sub": "为日常鲜活，留一点空间",
+    "category": "家用电器",
+    "image": "appliance.jpg",
+    "price": 1299,
+    "old": 1599,
+    "sales": 4700,
+    "colors": [
+      "薄荷绿"
+    ],
+    "options": [
+      "标准版"
+    ],
+    "defaultOption": "标准版",
+    "highlights": [
+      "复古设计",
+      "精巧机身",
+      "分区收纳",
+      "日常好用"
+    ],
+    "highSubs": [
+      "简约美学",
+      "节省空间",
+      "有序储鲜",
+      "陪伴每一天"
+    ],
+    "brand": "LUMO",
+    "stock": 50
+  }
+]

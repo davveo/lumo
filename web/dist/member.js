@@ -1,0 +1,186 @@
+(function () {
+  'use strict';
+  const now = () => Date.now();
+  const clone = value => JSON.parse(JSON.stringify(value));
+  const text = (value, max = 100) => typeof value === 'string' ? value.trim().slice(0, max) : '';
+  const uid = prefix => prefix + '-' + (crypto.randomUUID?.() || now().toString(36) + Math.random().toString(36).slice(2));
+  const dayKey = () => new Date().toISOString().slice(0, 10); // check-in uses the server's UTC day
+  const date = value => new Date(value).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
+  const phoneMasked = phone => phone ? phone.slice(0, 3) + '****' + phone.slice(-4) : '未设置';
+  const findProduct = id => products.find(p => p.id === id || p.sku_id === id || p.skuId === id || (p.variants || []).some(v => (v.sku_id || v.id) === id));
+  const skuFor = item => window.LumoCommerce?.skuForItem?.(item) || window.LumoCommerce?.skuFor?.(item) || item?.sku_id || findProduct(item?.id || item)?.skuId || findProduct(item?.id || item)?.sku_id || item?.id || item;
+  const viewId = sku => findProduct(sku)?.id || sku;
+  const call = (service, action, command = {}) => window.LumoAPI.call(service, action, command);
+  const loggedIn = () => !!window.LumoAuth?.isLoggedIn();
+  const principal = () => window.LumoAuth?.user()?.id || window.LumoAuth?.user()?.user_id || '';
+  const redraw = () => typeof renderKeepScroll === 'function' && renderKeepScroll();
+  function emptyMemory() { return { profile: { nickname: 'LUMO 生活家', phone: '', gender: '保密', birthday: '' }, addresses: [], selectedAddressId: null, coupons: [], couponTemplates: [], selectedCouponId: null, claimedCoupon: false, points: 0, frozenPoints: 0, debtPoints: 0, pointLog: [], history: [], reviews: [], aftersales: [], notifications: { order: true, promotion: false }, signInDates: [], orderStates: {}, growth: 0, level: '生活会员' }; }
+  let memory = emptyMemory();
+  let lastTracked = null;
+  let refreshVersion = 0;
+  let inFlight=null;
+  function reset() { refreshVersion++; inFlight=null; memory = emptyMemory(); lastTracked = null; state.address = null; state.favorites = []; }
+  const timestamp = value => value ? Date.parse(value) || Number(value) || 0 : 0;
+  function mapAddress(a) { return { id: a.id, name: a.recipient || '', phone: a.phone || '', region: [a.province, a.city, a.district].filter(Boolean).join(' '), detail: a.address || '', label: '', isDefault: a.is_default === true }; }
+  function mapCoupon(c) { return { id: c.id, templateId: c.template_id || '', value: Number(c.amount_cents || 0) / 100, min: Number(c.min_cents || 0) / 100, title: memory.couponTemplates.find(t => t.id === c.template_id)?.name || '品质生活优惠券', expiresAt: timestamp(c.expires_at), backendStatus: c.status, status: c.status === 'AVAILABLE' ? (timestamp(c.expires_at) <= now() ? 'expired' : 'available') : ['USED','CONFIRMED'].includes(c.status) ? 'used' : ['RESERVED','HELD'].includes(c.status) ? 'frozen' : 'expired' }; }
+  const aftersaleNames = { REQUESTED: 'processing', APPROVED: 'approved', RETURNING: 'returning', INSPECTING: 'returning', INSPECTED: 'returning', REFUND_REQUESTED: 'returning', REFUNDING: 'returning', EXCHANGING: 'returning', COMPLETED: 'completed', REJECTED: 'rejected', CANCELLED: 'cancelled' };
+  function mapAftersale(a) { const at = timestamp(a.created_at), updated = timestamp(a.updated_at); return { ...a, orderId: a.order_id, type: { refund: '仅退款', return: '退货退款', exchange: '换货' }[a.type] || a.type, status: aftersaleNames[a.status] || 'processing', backendStatus: a.status, at, updatedAt: updated, approvedAt: null, returningAt: null, completedAt: a.status === 'COMPLETED' ? updated : null, rejectedAt: a.status === 'REJECTED' ? updated : null, cancelledAt: a.status === 'CANCELLED' ? updated : null, refundAmount: Number(a.amount_cents || 0) / 100 }; }
+  async function refresh(force=false) {
+    if (!loggedIn()) { reset(); return model(); }
+    if(inFlight){if(!force)return inFlight.promise;await inFlight.promise.catch(()=>{});}
+    const version = refreshVersion, owner = principal(),pending={};inFlight=pending;
+    pending.promise = (async () => {
+      const [profile, address, coupon, templates, points, history, reviews, aftersales, favorites] = await Promise.all([
+        call('member','get'), call('address','list',{data:{limit:100}}), call('coupon','list'), call('coupon','templates'), call('points','get'),
+        call('engagement','list',{data:{kind:'history',limit:100}}), call('interaction','list',{data:{kind:'review',mine:true,limit:100}}), call('aftersale','list'), call('engagement','list',{data:{kind:'favorite',limit:100}})
+      ]);
+      if (version !== refreshVersion || owner !== principal() || !loggedIn()) return model();
+      const p = profile.preferences || {}, selected = memory.selectedAddressId;
+      memory.profile = { nickname: profile.display_name || owner || 'LUMO 生活家', phone: p.phone || '', gender: p.gender || '保密', birthday: p.birthday || '', avatar: profile.avatar || '' };
+      memory.notifications = { order: p.notifications?.order !== false, promotion: p.notifications?.promotion === true };
+      memory.growth = Number(profile.growth || 0); memory.level = profile.level === 'gold' ? '金卡会员' : '生活会员';
+      memory.addresses = (address.items || []).map(mapAddress);
+      memory.selectedAddressId = memory.addresses.some(a => a.id === selected) ? selected : memory.addresses.find(a => a.isDefault)?.id || memory.addresses[0]?.id || null;
+      memory.couponTemplates = templates.items || []; memory.coupons = (coupon.items || []).map(mapCoupon);
+      if (!memory.coupons.some(c => c.id === memory.selectedCouponId && c.status === 'available')) memory.selectedCouponId = null;
+      memory.claimedCoupon = memory.coupons.some(c => c.templateId === memory.couponTemplates[0]?.id);
+      memory.points = Number(points.available || 0); memory.frozenPoints = Number(points.frozen || 0); memory.debtPoints = Number(points.debt || 0);
+      memory.pointLog = (points.ledger || []).map(l => ({ id:l.id, title:({CHECKIN:'每日签到',FREEZE:'下单冻结积分',CONFIRMED:'积分已抵扣',CANCELLED:'取消订单释放积分',REWARD:'订单完成奖励',REFUND:'退款返还抵扣积分',REWARD_REVERSAL:'退款收回奖励积分'})[l.kind] || l.kind, delta:['CONFIRMED'].includes(l.kind) ? 0 : Number(l.amount || 0), at:timestamp(l.created_at), orderId:l.order_id, kind:l.kind }));
+      memory.signInDates = [...new Set((points.ledger || []).filter(l => l.kind === 'CHECKIN').map(l => (l.created_at || '').slice(0,10)))];
+      memory.history = (history.items || []).map(h => ({ id:viewId(h.sku_id), recordId:h.id, at:timestamp(h.created_at) }));
+      memory.reviews = (reviews.items || []).map(r => ({ id:r.id, orderId:r.order_id, productId:viewId(r.sku_id), sku_id:r.sku_id, rating:Number(r.rating || 5), text:r.body || '', at:timestamp(r.created_at), status:r.status }));
+      memory.aftersales = (aftersales.items || []).map(mapAftersale);
+      state.favorites = (favorites.items || []).map(f => viewId(f.sku_id));
+      mirrorAddress(); return model();
+    })().finally(() => { if(inFlight===pending)inFlight=null; });
+    return pending.promise;
+  }
+  function mirrorAddress() { const a = memory.addresses.find(row => row.id === memory.selectedAddressId); state.address = a ? {...a} : null; }
+  function addresses() { return clone(memory.addresses); }
+  function selectedAddress() { return clone(memory.addresses.find(a => a.id === memory.selectedAddressId) || null); }
+  function coupons() { return memory.coupons.map(c => ({...c,selected:c.id === memory.selectedCouponId})); }
+  const restricted = items => (items || []).some(x => ['flash','group'].includes(x.promotion?.type));
+  const ordinaryAmount = items => (items || []).filter(x => !x.promotion).reduce((sum,x) => sum + itemPrice(x) * Math.max(0,Number(x.qty)||0),0);
+  function couponValue(items) { if (restricted(items)) return 0; const c = coupons().find(c => c.selected && c.status === 'available'); return c && ordinaryAmount(items) >= c.min ? Math.min(c.value,ordinaryAmount(items)) : 0; }
+  function selectCoupon(id) { if (!id || id === '0') { memory.selectedCouponId = null; state.coupon = 0; return true; } const c = coupons().find(c => (c.id === id || c.value === Number(id)) && c.status === 'available'); if (!c) { toast('优惠券不可用，请刷新后重试'); return false; } memory.selectedCouponId = c.id; state.coupon = c.value; return true; }
+  const pointBalance = () => memory.points;
+  function pointsUsed(items) { return state.points && !restricted(items) && !memory.debtPoints ? Math.max(0,Math.min(memory.points,Math.floor(ordinaryAmount(items)*10))) : 0; }
+  function pointsDiscount(items) { return pointsUsed(items) / 100; }
+  function checkoutMeta(items) { return { couponId: couponValue(items) ? memory.selectedCouponId : null, pointsUsed: pointsUsed(items), addressId:memory.selectedAddressId }; }
+  function validateCheckout() { return null; } // authoritative validation is performed by pricing and checkout services
+  function onPaid() { return refresh(true); }
+  function orderState(order) { const s = order?.backendStatus || order?.status || ''; if (['CLOSED','CLOSING','TERMINATED','CREATE_FAILED'].includes(s)) return 'closed'; if (s === 'REFUNDED' || isRefunded(order?.id)) return 'refunded'; if (['PENDING_PAYMENT','AWAITING_PAYMENT','CREATED','CREATING'].includes(s)) return 'pending'; if (s === 'PAID_WAIT_GROUP') return 'group'; if (s === 'COMPLETED') return order.items?.every(item=>memory.reviews.some(r=>r.orderId===order.id && r.sku_id===skuFor(item))) ? 'completed' : 'review'; if (s === 'SHIPPED') return 'receiving'; if (s === 'DELIVERED') return 'review'; return 'shipping'; }
+  function orderLabel(order) { if ((order?.backendStatus || order?.status) === 'PAID_CONFIRMING') return '支付已确认 · 资源处理中'; return ({pending:'待付款',shipping:'待发货',receiving:'待收货',review:'待评价',completed:'已完成',refunded:'退款完成',group:'待成团',closed:'已关闭'})[orderState(order)] || '处理中'; }
+  function listOrders(filter='all') { const source = window.LumoCommerce?.allOrders?.() || [...(state.pending?[state.pending]:[]),...state.orders]; return source.filter((o,i,a)=>a.findIndex(x=>x.id===o.id)===i).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).filter(o=>filter==='all'||(filter==='aftersale'?!!activeAftersale(o.id):orderState(o)===filter)).map(o=>({...clone(o),memberState:orderState(o),memberLabel:orderLabel(o),lifecycle:clone(o.lifecycle||{})})); }
+  function counts() { const result={all:0,pending:0,shipping:0,receiving:0,review:0,completed:0,refunded:0,group:0,closed:0,aftersale:memory.aftersales.filter(a=>!['completed','cancelled','rejected'].includes(a.status)).length,favorites:state.favorites.length,history:memory.history.length,coupons:coupons().filter(c=>c.status==='available').length}; listOrders().forEach(o=>{result.all++; result[o.memberState]=(result[o.memberState]||0)+1;}); return result; }
+  function model() { const nextAt=memory.growth<1000?1000:5000; return {...clone(memory),coupons:coupons(),ledger:clone(memory.pointLog),preferences:clone(memory.notifications),profile:{...clone(memory.profile),level:memory.level},signedToday:memory.signInDates.includes(dayKey()),signInDays:memory.signInDates.length,membership:{level:memory.level,growth:memory.growth,nextAt,progress:Math.min(100,Math.round(memory.growth/nextAt*100))},totalSaved:listOrders().filter(o=>o.paidAt&&!isRefunded(o.id)).reduce((sum,o)=>sum+(o.totals?.coupon||0)+(o.totals?.points||0)+(o.totals?.activitySavings||0),0)}; }
+  function renderAddress(id = null, options = {}) {
+    const a = memory.addresses.find(row => row.id === id) || { name: '', phone: '', region: '', detail: '', label: '家', isDefault: !memory.addresses.length };
+    if (!id && memory.addresses.length >= 10) { toast('最多保存 10 个地址，请先整理现有地址'); return; }
+    modal(id ? '编辑收货地址' : '添加收货地址', `<p class="modal-desc">管理常用地址，下次购物更轻松。演示请使用示例信息。</p><form id="member-address-form" data-id="${esc(a.id || '')}" data-checkout="${options.checkout === true}"><div class="form-row"><label class="field">收货人<input name="name" required maxlength="20" value="${esc(a.name)}" placeholder="请输入收货人姓名"></label><label class="field">手机号码<input name="phone" type="tel" required pattern="1[3-9][0-9]{9}" maxlength="11" value="${esc(a.phone)}" placeholder="11 位手机号码"></label></div><label class="field">省 / 市 / 区<input name="region" required maxlength="60" value="${esc(a.region)}" placeholder="如：广东省 深圳市 南山区"></label><label class="field">详细地址<textarea name="detail" required rows="2" maxlength="100" placeholder="街道、楼栋、门牌号等">${esc(a.detail)}</textarea></label><label class="field">地址标签<select name="label">${['家', '公司', '学校', '其他'].map(label => `<option ${a.label === label ? 'selected' : ''}>${label}</option>`).join('')}</select></label><label class="check" style="margin:14px 0 22px"><input name="isDefault" type="checkbox" ${a.isDefault ? 'checked' : ''}>设为默认收货地址</label><button class="primary" type="submit">${options.checkout ? '保存并使用' : '保存地址'}</button></form>`);
+  }
+  async function openAddress(id=null,options={}) {
+    try { if(id){const raw=await call('address','get',{id});const fresh=mapAddress(raw),index=memory.addresses.findIndex(a=>a.id===id);if(index>=0)memory.addresses[index]=fresh;else memory.addresses.push(fresh);}renderAddress(id,options); }catch(error){showError(error);}
+  }
+  function chooseAddress() {
+    modal('选择收货地址', `<p class="modal-desc">选择本次订单的收货地址，已提交订单不受影响。</p><div class="mem-address-picker">${memory.addresses.map(a => `<button class="mem-address-pick ${memory.selectedAddressId === a.id ? 'is-selected' : ''}" data-member-action="select-address" data-id="${esc(a.id)}"><strong>${esc(a.name)} <span>${esc(phoneMasked(a.phone))}</span> <small>${esc(a.label)}${a.isDefault ? ' · 默认' : ''}</small></strong><p>${esc(a.region + ' ' + a.detail)}</p><span>${memory.selectedAddressId === a.id ? '当前使用' : '使用此地址'}</span></button>`).join('') || '<p class="modal-desc">还没有收货地址，先添加一个吧。</p>'}</div><button class="outline" data-member-action="add-address" data-checkout="true" style="margin-top:18px">${icon('plus')}添加新地址</button>`);
+  }
+  function showCoupons() {
+    if (!/^#\/(checkout|payment|cart)(?:\/|$)/.test(location.hash)) { go('member/coupons'); return; }
+    const items = /^#\/(checkout|payment)/.test(location.hash) ? selectedItems() : state.cart.filter(x => x.selected);
+    const amount = ordinaryAmount(items); const blocked = restricted(items);
+    modal('选择优惠券', `<p class="modal-desc">每单限用一张，按普通商品优惠前金额判断门槛。${blocked ? '秒杀、拼团订单不叠加券与积分。' : `本单参与门槛金额 ¥${money(amount)}。`}</p>${coupons().map(c => `<div class="coupon-card"><span class="price"><small>¥</small>${money(c.value)}</span><div><strong>${esc(c.title)}</strong><p>满 ¥${money(c.min)} 可用 · ${date(c.expiresAt)} 到期</p></div><button data-member-action="select-coupon" data-id="${esc(c.id)}" ${blocked || c.status !== 'available' || amount < c.min ? 'disabled' : ''}>${c.status === 'used' ? '已使用' : c.status === 'expired' ? '已过期' : blocked ? '不可叠加' : amount < c.min ? '未满门槛' : c.selected ? '已选择' : '使用此券'}</button></div>`).join('')}<button class="text-button" data-member-action="select-coupon" data-id="0" style="display:block;margin:16px auto 0">本单不使用优惠券</button><a class="text-button" href="#/member/coupons" style="display:block;text-align:center;margin-top:14px">查看我的优惠券 ${icon('chevron')}</a>`);
+  }
+  function showProfile() {
+    const p = memory.profile;
+    modal('编辑个人资料', `<form id="member-profile-form"><div class="form-row"><label class="field">昵称<input name="nickname" required maxlength="30" value="${esc(p.nickname)}" placeholder="你希望大家如何称呼你"></label><label class="field">手机号码（选填）<input name="phone" type="tel" pattern="1[3-9][0-9]{9}" maxlength="11" value="${esc(p.phone)}" placeholder="联系手机"></label></div><div class="form-row"><label class="field">生日（选填）<input name="birthday" type="date" max="${dayKey()}" value="${esc(p.birthday)}"></label><label class="field">性别<select name="gender">${['保密', '女', '男'].map(g => `<option ${p.gender === g ? 'selected' : ''}>${g}</option>`).join('')}</select></label></div><p class="modal-desc">资料保存到账户；联系信息不改变登录凭据。</p><button class="primary" type="submit">保存资料</button></form>`);
+  }
+  function orderById(id) { return listOrders().find(o => o.id === id); }
+  function reviewOrder(id) {
+    const reviewedOrder = orderById(id); const existing = reviewedOrder?.items?.every(item=>memory.reviews.some(r=>r.orderId===id&&r.sku_id===skuFor(item))) ? memory.reviews.find(row=>row.orderId===id) : null;
+    if (existing) { modal('我的评价', `<p class="modal-desc">订单 ${esc(id)} · ${date(existing.at)}</p><p style="color:var(--red);font-size:22px;letter-spacing:5px" aria-label="${existing.rating} 星评价">${'★'.repeat(existing.rating)}${'☆'.repeat(5 - existing.rating)}</p><p class="modal-desc" style="white-space:pre-wrap;line-height:1.9">${esc(existing.text)}</p><button class="outline" data-action="close-modal">关闭</button>`); return; }
+    const order = orderById(id); if (!order || orderState(order) !== 'review' || activeAftersale(id)) { toast('确认收货且售后结束后才可以评价'); return; }
+    modal('分享你的购物体验', `<p class="modal-desc">${esc(order.id)} · 评价提交后由商家审核展示。</p><form id="member-review-form" data-id="${esc(id)}"><label class="field">满意度<select name="rating">${[[5, '5 星 · 非常满意'], [4, '4 星 · 满意'], [3, '3 星 · 一般'], [2, '2 星 · 有待改善'], [1, '1 星 · 不满意']].map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}</select></label><label class="field">评价内容<textarea name="text" rows="4" maxlength="300" required placeholder="商品、包装或购物体验，有什么想分享的？"></textarea></label><button class="primary" type="submit">提交评价</button></form>`);
+  }
+  function aftersale(id) {
+    const eligible = listOrders().filter(o => o.paidAt && !['group','closed','refunded'].includes(orderState(o)) && !activeAftersale(o.id));
+    const order = eligible.find(o => o.id === id);
+    if (!order) {
+      modal('选择售后订单', `<p class="modal-desc">请选择需要申请售后的已支付订单。售后由服务端记录，并由商家审核处理。</p>${eligible.map(o => `<button class="mem-address-pick" data-member-action="aftersale" data-id="${esc(o.id)}"><strong>${esc(o.items[0]?.name || findProduct(o.items[0]?.id)?.name || '商城订单')}</strong><p>${esc(o.id)} · 实付 ¥${money(o.totals.total)}</p><span>申请售后 ${icon('chevron')}</span></button>`).join('') || '<p class="modal-desc">暂无可申请的订单。完成购买后，可在这里申请售后。</p>'}`); return;
+    }
+    modal('申请售后', `<p class="modal-desc">订单 ${esc(id)} · 售后状态、退款和寄回流程以服务端处理结果为准。</p><form id="member-aftersale-form" data-id="${esc(id)}"><label class="field">服务类型<select name="type">${(orderState(order) === 'shipping' ? ['仅退款'] : ['退货退款', '换货', '仅退款']).map(v => `<option>${v}</option>`).join('')}</select></label><fieldset class="field"><legend>申请商品与数量</legend>${order.items.map((item,index)=>`<label>${esc(item.name||findProduct(item.id)?.name||item.id)}<input type="number" name="line-${index}" min="0" max="${item.qty}" value="${item.qty}" step="1" aria-label="${esc(item.name||item.id)} 售后数量"></label>`).join('')}</fieldset><label class="field">申请原因<select name="reason"><option>不喜欢 / 不想要</option><option>商品与描述不符</option><option>质量问题</option><option>商品破损 / 少件</option><option>其他原因</option></select></label><label class="field">补充说明<textarea name="note" rows="3" maxlength="300" placeholder="选填，描述你的问题"></textarea></label><button class="primary" type="submit">提交售后申请</button></form>`);
+  }
+
+  function activeAftersale(orderId) { const a=memory.aftersales.find(a=>a.orderId===orderId&&!['completed','rejected','cancelled'].includes(a.status)); return a?clone(a):null; }
+  function isRefunded(orderId) { const o=(window.LumoCommerce?.allOrders?.()||state.orders).find(o=>o.id===orderId); return (o?.backendStatus||o?.status)==='REFUNDED' || Number(o?.payable_cents||0)>0 && Number(o?.refunded_total_cents||0)>=Number(o?.payable_cents||0); }
+  function aftersaleProgress(a) { if(!a)return []; const rows=[{label:'申请已提交',at:a.at,done:true}]; if(['rejected','cancelled'].includes(a.status)){rows.push({label:a.status==='rejected'?'审核未通过':'申请已撤销',at:a.updatedAt,done:true});return rows;} rows.push({label:'商家审核',done:!['REQUESTED','REJECTED','CANCELLED'].includes(a.backendStatus)}); if(a.type!=='仅退款') rows.push({label:a.return_tracking?'已寄回 · '+a.return_tracking:'寄回商品与验收',done:!!a.return_tracking}); rows.push({label:a.type==='换货'?'换货配送完成':'退款完成',at:a.completedAt,done:a.status==='completed'}); return rows; }
+  async function track(productId) { if(!loggedIn()||!findProduct(productId))return; await call('engagement','put',{data:{kind:'history',sku_id:skuFor({id:productId})}}); await refresh(true); }
+  function afterRender() { const route=(location.hash||'#/').slice(2).split('/'),id=route[0]==='product'?route[1]:null; if(id&&id!==lastTracked&&loggedIn()){lastTracked=id;track(id).catch(showError);} else if(!id)lastTracked=null; }
+  function showError(error) { toast(error?.message || '请求未完成，请重试'); }
+  async function cancelAftersale(id) { await call('aftersale','cancel',{id}); await refresh(true); return null; }
+  function advanceAftersale() { return '请在商家管理台处理审核、验收或退款'; }
+  function rejectAftersale() { return '请在商家管理台处理售后审核'; }
+  async function serviceHelp(value,id) { if(value==='invoice'){go('member/invoices');return;} if(value==='support'){go('member/support');return;} if(value==='logistics'&&id){ const [row,fulfillment]=await Promise.all([call('logistics','get',{id}),call('fulfillment','get',{id})]); modal('物流详情',`<p class="modal-desc">订单 ${esc(id)}<br>履约状态：${esc(fulfillment.status)}<br>物流状态：${esc(row.status)}<br>运单号：${esc(row.tracking_id || '尚未生成')}<br>配送渠道：${esc(row.provider || '')}<br>更新时间：${esc(new Date(row.updated_at).toLocaleString('zh-CN'))}</p>`);return;} modal('购物帮助','<div class="help-list"><p>积分按 1 分抵 ¥0.01，最多抵扣商品金额的 10%。优惠与可用金额以结算报价为准。退款、退货、换货由商家审核，状态同步到售后中心。</p><a class="outline" href="#/member/support">进入帮助中心</a></div>'); }
+  async function mutate(service,action,command) { await call(service,action,command); await refresh(true); redraw(); }
+  document.addEventListener('click', async event => {
+    const b=event.target.closest('[data-member-action]'); if(!b||b.disabled)return;
+    event.preventDefault(); const action=b.dataset.memberAction,id=b.dataset.id,value=b.dataset.value;
+    if(!window.LumoAuth?.requireLogin(location.hash))return;
+    b.disabled=true;
+    try {
+      switch(action){
+      case 'signin': await mutate('points','checkin',{}); toast('签到结果已同步'); break;
+      case 'edit-profile': showProfile(); break;
+      case 'add-address': await openAddress(null,{checkout:b.dataset.checkout==='true'}); break;
+      case 'edit-address': await openAddress(id); break;
+      case 'delete-address': modal('删除这个收货地址？',`<p class="modal-desc">删除后，历史订单仍保留原收货快照。</p><div class="modal-actions"><button class="outline" data-action="close-modal">保留地址</button><button class="primary" data-member-action="confirm-delete-address" data-id="${esc(id)}">确认删除</button></div>`); break;
+      case 'confirm-delete-address': await mutate('address','delete',{id});closeModal();toast('地址已删除');break;
+      case 'default-address': await mutate('address','default',{id});toast('已设为默认地址');break;
+      case 'select-address': if(memory.addresses.some(a=>a.id===id)){memory.selectedAddressId=id;mirrorAddress();closeModal();redraw();}break;
+      case 'claim-coupon': { const t=memory.couponTemplates.find(t=>t.id===id)||memory.couponTemplates.find(t=>t.active&&t.remaining>0);if(!t)throw Error('暂无可领取的优惠券');await mutate('coupon','claim',{data:{template_id:t.id}});toast('优惠券已到账');break; }
+      case 'use-coupon': if(selectCoupon(id)){closeModal();go('cart');}break;
+      case 'select-coupon': if(selectCoupon(id)){closeModal();redraw();}break;
+      case 'coupon-rules': await serviceHelp('faq');break;
+      case 'remove-favorite': await mutate('engagement','delete',{data:{kind:'favorite',sku_id:skuFor({id})}});break;
+      case 'remove-history': await mutate('engagement','delete',{id:memory.history.find(h=>h.id===id)?.recordId,data:{kind:'history',sku_id:skuFor({id})}});break;
+      case 'clear-history': modal('清空浏览足迹？','<p class="modal-desc">清空账户中的浏览记录。</p><button class="primary" data-member-action="confirm-clear-history">确认清空</button>');break;
+      case 'confirm-clear-history': for(const h of memory.history)await call('engagement','delete',{id:h.recordId,data:{kind:'history'}});await refresh(true);closeModal();redraw();break;
+      case 'cancel-pending': modal('取消这笔订单？',`<p class="modal-desc">服务端会关闭支付并释放预占库存、券和积分。</p><div class="modal-actions"><button class="outline" data-action="close-modal">继续保留</button><button class="primary" data-member-action="confirm-cancel-pending" data-id="${esc(id)}">取消订单</button></div>`);break;
+      case 'confirm-cancel-pending': await call('checkout','cancel',{id});await window.LumoCommerce?.refreshOrders?.();await refresh(true);closeModal();redraw();toast('订单取消状态已同步');break;
+      case 'resume-payment': { const o=orderById(id);if(o){state.pending=o;go('payment');}break; }
+      case 'receive-order': await call('order','complete',{id});await window.LumoCommerce?.refreshOrders?.();await refresh(true);redraw();toast('收货结果已同步');break;
+      case 'review-order': reviewOrder(id);break;
+      case 'buy-again': {const o=orderById(id);if(!o)break;await window.LumoCommerce?.addItems?.(o.items.map(item=>({...item,promotion:undefined})));go('cart');break;}
+      case 'aftersale': aftersale(id);break;
+      case 'aftersale-details': {const raw=await call('aftersale','get',{id}),a=mapAftersale(raw),index=memory.aftersales.findIndex(x=>x.id===id);if(index>=0)memory.aftersales[index]=a;modal('售后详情',`<p class="modal-desc">售后单 ${esc(a.id)}<br>订单 ${esc(a.orderId)}<br>类型 ${esc(a.type)}<br>状态 ${esc(a.backendStatus)}<br>申请金额 ¥${money(a.refundAmount)}<br>寄回单号 ${esc(a.return_tracking||'尚未提交')}<br>换货履约单 ${esc(a.replacement_id||'尚未生成')}</p>`);break;}
+      case 'cancel-aftersale': await cancelAftersale(id);redraw();toast('售后申请已撤销');break;
+      case 'return-aftersale': modal('填写寄回单号',`<form id="member-return-form" data-id="${esc(id)}"><label class="field">快递运单号<input name="tracking" required maxlength="100"></label><button class="primary">提交寄回信息</button></form>`);break;
+      case 'refund-status': {const a=memory.aftersales.find(a=>a.id===id);if(!a?.refund_id)throw Error('退款尚未创建');const r=await call('refund','get',{id:a.refund_id});modal('退款进度',`<p class="modal-desc">退款单 ${esc(r.id)}<br>状态：${esc(r.status)}<br>金额 ¥${money(Number(r.amount_cents||0)/100)}</p>`);break;}
+      case 'toggle-notification': {if(!['order','promotion'].includes(value))break;const notifications={...memory.notifications,[value]:!memory.notifications[value]};await mutate('member','update',{data:{preferences:{phone:memory.profile.phone,gender:memory.profile.gender,birthday:memory.profile.birthday,notifications}}});toast('偏好已保存');break;}
+      case 'service-help': await serviceHelp(value,id);break;
+      case 'membership': modal('我的会员权益','<p class="modal-desc">积分与成长值均由服务端记录。每日签到获得 20 积分；积分按 1 分抵 ¥0.01，订单最多抵扣 10%。订单完成后发放积分奖励，退款后按服务端规则返还或回收。</p>');break;
+      }
+    }catch(error){showError(error);}finally{b.disabled=false;}
+  });
+  document.addEventListener('submit',async event=>{
+    const form=event.target;if(!['member-address-form','member-profile-form','member-review-form','member-aftersale-form','member-return-form'].includes(form.id))return;
+    event.preventDefault();if(!window.LumoAuth?.requireLogin(location.hash))return;const data=Object.fromEntries(new FormData(form));const submit=form.querySelector('[type=submit],button');if(submit)submit.disabled=true;
+    try{
+      if(form.id==='member-address-form'){
+        const region=text(data.region,60).split(/\s+/),id=form.dataset.id;const result=await call('address',id?'update':'create',{id:id||undefined,data:{recipient:text(data.name,20),phone:text(data.phone,30),address:text(data.detail,1000),province:region[0]||'',city:region[1]||'',district:region.slice(2).join(' '),is_default:data.isDefault==='on'}});if(form.dataset.checkout==='true'||!memory.selectedAddressId)memory.selectedAddressId=result.id;await refresh(true);closeModal();redraw();toast('收货地址已保存');
+      }
+      if(form.id==='member-profile-form'){
+        const p={nickname:text(data.nickname,30),phone:text(data.phone,30),gender:text(data.gender,10),birthday:text(data.birthday,10)};if(!p.nickname)throw Error('请填写昵称');await mutate('member','update',{data:{display_name:p.nickname,preferences:{phone:p.phone,gender:p.gender,birthday:p.birthday,notifications:memory.notifications}}});closeModal();redraw();toast('个人资料已保存');
+      }
+      if(form.id==='member-review-form'){
+        const order=orderById(form.dataset.id);if(!order)throw Error('订单不存在');const body=text(data.text,300);if(!body)throw Error('请填写评价内容');for(const item of order.items)await call('interaction','create',{data:{kind:'review',sku_id:skuFor(item),order_id:order.id,rating:Math.max(1,Math.min(5,Number(data.rating)||5)),body}});await refresh(true);await window.LumoProductExtras?.refresh?.();closeModal();redraw();toast('评价已提交，等待审核');
+      }
+      if(form.id==='member-aftersale-form'){
+        const order=orderById(form.dataset.id);if(!order)throw Error('订单不存在');const lines=order.items.map((item,index)=>({sku_id:skuFor(item),quantity:Number(data['line-'+index]??item.qty)})).filter(line=>line.quantity>0);if(!lines.length)throw Error('请至少选择一件售后商品');form.dataset.requestKey ||= uid('aftersale');await call('aftersale','create',{idempotency_key:form.dataset.requestKey,data:{order_id:form.dataset.id,lines,type:{'仅退款':'refund','退货退款':'return','换货':'exchange'}[data.type],reason:[text(data.reason,60),text(data.note,300)].filter(Boolean).join('：')}});await refresh(true);closeModal();go('member/aftersales');toast('售后申请已提交');
+      }
+      if(form.id==='member-return-form'){await mutate('aftersale','return',{id:form.dataset.id,data:{tracking:text(data.tracking,100)}});closeModal();redraw();toast('寄回信息已提交');}
+    }catch(error){showError(error);}finally{if(submit)submit.disabled=false;}
+  });
+  window.LumoMember={model,refresh,reset,addresses,selectedAddress,openAddress,chooseAddress,coupons,couponValue,selectCoupon,showCoupons,pointBalance,pointsDiscount,checkoutMeta,validateCheckout,onPaid,track,afterRender,orderState,orderLabel,listOrders,counts,activeAftersale,advanceAftersale,rejectAftersale,cancelAftersale,isRefunded,aftersaleProgress,skuFor};
+  window.addEventListener('lumo:logout',reset);
+})();

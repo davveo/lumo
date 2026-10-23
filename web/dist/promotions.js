@@ -1,0 +1,257 @@
+(function () {
+  'use strict';
+  // Business state comes from campaign/group/flash. Only checkout selection is local.
+  let activities = [], sessions = [], groupRows = [], selectedExchange = null;
+  const sessionProducts = new Map();
+  let loaded = false, loadError = '', refreshPromise, timer, busy = false;
+  const api = (service, action, command = {}, options = {}) => window.LumoAPI.call(service, action, command, options);
+  const sku = product => String(product?.skuId || product?.sku_id || product?.id || '');
+  const legacyProductIDs={'sku-phone':'iphone','sku-headphones':'headphones','sku-watch':'watch','sku-coffee':'coffee'};
+  const findProduct = id => products.find(p => p.id === id || sku(p) === id) || products.find(p => p.id === legacyProductIDs[id]);
+  const nowUser = () => window.LumoAuth?.user()?.id || window.LumoAuth?.user()?.user_id || '';
+  const count = n => Math.max(0, Math.floor(Number(n) || 0));
+  const activityFor = id => activities.find(a => a.id === id);
+  const catalogPrice = item => {
+    const p = findProduct(item?.id || item?.sku_id);
+    return Math.max(0, Number(p?.price) || 0);
+  };
+  const regularPrice = item => Number.isFinite(item?.regularUnitPrice) ? item.regularUnitPrice : catalogPrice(item);
+  const redraw = () => typeof renderKeepScroll === 'function' && renderKeepScroll();
+  const report = e => { toast((e?.message || '活动服务暂不可用') + (e?.traceID ? ' · ' + e.traceID.slice(0, 8) : '')); };
+
+  async function refresh() {
+    if (refreshPromise) return refreshPromise;
+    refreshPromise = (async () => {
+      const results = await Promise.allSettled([
+        api('campaign', 'list', {}, {auth:false}),
+        api('flash', 'list', {}, {auth:false}),
+        api('group', 'list', {}, {auth:false})
+      ]);
+      const fields = [v => { activities = v.items || []; }, v => { sessions = v.items || []; }, v => { groupRows = v.items || []; }];
+      let failure;
+      results.forEach((result, i) => { if (result.status === 'fulfilled') fields[i](result.value); else failure = result.reason; });
+      if (results[1].status === 'fulfilled') {
+        const detailResults = await Promise.allSettled(sessions.map(async session => {
+          const detail = await api('catalog','get',{id:session.sku_id},{auth:false});
+          sessionProducts.set(session.sku_id,detail);
+          if(window.LumoInventory?.refreshOne)await window.LumoInventory.refreshOne(session.sku_id);
+        }));
+        for(const detailResult of detailResults)if(detailResult.status==='rejected')failure=detailResult.reason;
+      }
+      loaded = results.every(result => result.status === 'fulfilled') && !failure;
+      loadError = failure?.message || '';
+      if (failure) throw failure;
+      return {activities, sessions, groups:groupRows};
+    })().finally(() => { refreshPromise = null; });
+    return refreshPromise;
+  }
+  function offer(type, activity, p, extra = {}) {
+    if (!activity || !p) return null;
+    const remainingQuota = Math.max(0, count(activity.quota) - count(activity.held) - count(activity.used));
+    const available = window.LumoInventory ? window.LumoInventory.stockFor(p) : 0;
+    const regular = Number(p.price) || 0, discount = Math.min(regular, Number(activity.discount_cents || 0) / 100);
+    return {id:activity.id + ':' + sku(p), activityId:activity.id, type, productId:p.id, skuId:sku(p), product:p,
+      regularPrice:regular, price:Math.max(0, regular - discount), discount,
+      stock:count(activity.quota), remaining:Math.min(remainingQuota, available), used:count(activity.used),
+      threshold:Number(activity.threshold_cents || 0) / 100, limit:1, limitReached:false,
+      status:activity.active && p.visible !== false && remainingQuota > 0 && available > 0 ? 'active' : 'ended',
+      startAt:0, endAt:0, teamSize:2, ...extra};
+  }
+  function flashOffers(session = 'today') {
+    if (session === 'tomorrow') return []; // No forecast exists in the backend contract.
+    return sessions.filter(s => s.active).map(s => {
+      const raw=sessionProducts.get(s.sku_id),p=findProduct(raw?.product_id || raw?.attributes?.product_id || s.sku_id);
+      if(!raw||!p)return null;
+      const unit=Number(raw.price_cents || 0)/100,activity=activityFor(s.activity_id);
+      const row=offer('flash',activity,p,{sessionId:s.id,skuId:s.sku_id,regularPrice:unit,price:Math.max(0,unit-Number(activity?.discount_cents||0)/100)});
+      if(row&&window.LumoInventory){row.remaining=Math.min(Math.max(0,count(activity?.quota)-count(activity?.held)-count(activity?.used)),window.LumoInventory.stockFor(s.sku_id));row.status=activity?.active&&row.remaining>0?'active':'ended';}
+      return row;
+    }).filter(Boolean);
+  }
+  function groupOffers() {
+    const activity = activities.find(a => a.kind === 'group' && a.active);
+    if (!activity) return [];
+    // The current policy allows any active catalogue SKU. Existing teams come first.
+    const teamSKUs = new Set(groupRows.map(g => g.sku_id));
+    return products.filter(p => p.visible !== false).slice().sort((a,b) => Number(teamSKUs.has(sku(b))) - Number(teamSKUs.has(sku(a))))
+      .map(p => offer('group', activity, p)).filter(Boolean);
+  }
+  function exchangeOffers(items = baseItems()) {
+    const eligibility = exchangeState(items);
+    return activities.filter(a => a.kind === 'addon' && a.active).map(a => {
+      // This SKU is part of the current versioned campaign contract.
+      const p = findProduct(a.addon_sku_id || (a.id === 'addon-coffee' ? (findProduct('coffee') ? 'coffee' : 'sku-coffee') : ''));
+      const result = offer('exchange', a, p);
+      return result ? {...result, eligible:eligibility.eligible, selected:eligibility.selectedId === result.id} : null;
+    }).filter(Boolean);
+  }
+  function allOffers() { return [...flashOffers(), ...groupOffers(), ...exchangeOffers([])]; }
+  function offerFor(type, productId) {
+    return (type === 'flash' ? flashOffers() : type === 'group' ? groupOffers() : exchangeOffers()).find(row => row.productId === productId) || null;
+  }
+  function offerByID(id) { return allOffers().find(row => row.id === id); }
+  function getPrice(item, basePrice) {
+    if (!item?.promotion) return basePrice;
+    const row = offerByID(item.promotion.offerId);
+    return row && row.productId === item.id ? row.price : basePrice;
+  }
+  function baseItems() {
+    return /^#\/(checkout|payment)(?:\/|$)/.test(location.hash) && checkoutMode === 'direct' && directItem ? [directItem] : (state.cart || []).filter(i => i.selected);
+  }
+  const contextKey = items => JSON.stringify((items || []).filter(i => i.promotion?.type !== 'exchange').map(i => [i.id,i.color,i.option,count(i.qty),i.promotion?.type || '']).sort());
+  function eligibleAmount(items) { return (items || []).filter(i => !i.promotion).reduce((sum, i) => sum + regularPrice(i) * count(i.qty), 0); }
+  function exchangeState(items = baseItems()) {
+    const activity = activities.find(a => a.kind === 'addon' && a.active);
+    const threshold = Number(activity?.threshold_cents || 0) / 100;
+    const baseAmount = eligibleAmount(items), hasRestricted = items.some(i => ['flash','group'].includes(i.promotion?.type));
+    const eligible = !!activity && !hasRestricted && baseAmount >= threshold;
+    const row = selectedExchange && selectedExchange.context === contextKey(items) && eligible ? offerByRawID(selectedExchange.offerId) : null;
+    const selectedId = row && row.status === 'active' ? row.id : null;
+    return {threshold,baseAmount,eligible,remaining:Math.max(0,threshold-baseAmount),hasRestricted,selectedId,selectedProductId:selectedId ? row.productId : null};
+  }
+  // Avoid a cycle between exchangeOffers() and exchangeState().
+  function offerByRawID(id) {
+    for (const a of activities.filter(a => a.kind === 'addon')) {
+      const p = findProduct(a.addon_sku_id || (a.id === 'addon-coffee' ? (findProduct('coffee') ? 'coffee' : 'sku-coffee') : ''));
+      const result = offer('exchange', a, p);
+      if (result?.id === id) return result;
+    }
+    return null;
+  }
+  function augmentItems(items) {
+    const base = (items || []).filter(i => i.promotion?.type !== 'exchange');
+    const chosen = exchangeState(base);
+    const row = chosen.selectedId && offerByRawID(chosen.selectedId);
+    return !row ? base : [...base, {id:row.productId,color:row.product.colors[0],option:row.product.defaultOption,qty:1,selected:true,promotion:{type:'exchange',offerId:row.id,activityId:row.activityId}}];
+  }
+  function clearExchange() { selectedExchange = null; }
+  function groupView(raw) {
+    if (!raw) return null;
+    const product = findProduct(raw.sku_id), user = nowUser();
+    const orders = state.orders || [];
+    const ownOrder = orders.find(o => (o.groupId || o.group_id || o.raw?.group_id) === raw.id);
+    return {id:raw.id,product,productId:product?.id || raw.sku_id,offerId:'group-demo:' + raw.sku_id,
+      leader:raw.creator_id === user && user ? '我的拼团' : '商城用户',joined:count(raw.paid),occupied:count(raw.occupied),required:count(raw.required),
+      endAt:Date.parse(raw.expires_at) || 0,createdAt:Date.parse(raw.created_at) || 0,
+      status:raw.status === 'FORMED' ? 'formed' : ['EXPIRED','FAILED','CANCELLED'].includes(raw.status) ? 'expired' : 'waiting',
+      mine:!!user && (raw.creator_id === user || !!ownOrder),orderId:ownOrder?.id || null,serverStatus:raw.status};
+  }
+  const teams = offerId => groupRows.map(groupView).filter(row => row.offerId === offerId);
+  const myGroups = () => groupRows.map(groupView).filter(row => row.mine);
+  function groupForOrder(order) {
+    const id = order?.groupId || order?.group_id || order?.raw?.group_id || order?.items?.find(i => i.promotion?.type === 'group')?.promotion?.teamId;
+    return groupView(groupRows.find(g => g.id === id));
+  }
+  function orderStatus(order) {
+    const group = groupForOrder(order);
+    return group ? group.status === 'formed' ? '已成团' : group.status === 'expired' ? '拼团已结束' : '等待成团' : '支付状态以订单为准';
+  }
+  function quoteData(items) {
+    const event = (items || []).find(i => ['flash','group'].includes(i.promotion?.type));
+    if (event) {
+      const row = offerByID(event.promotion.offerId);
+      return {activity_id:row?.activityId || event.promotion.activityId || (event.promotion.type === 'flash' ? 'flash-demo' : 'group-demo'),
+        ...(event.promotion.type === 'group' ? {group_id:event.promotion.teamId} : {})};
+    }
+    const addon = (items || []).find(i => i.promotion?.type === 'exchange');
+    return addon ? {addon_sku_id:addon.id === 'coffee' ? 'coffee' : sku(findProduct(addon.id))} : {};
+  }
+  function validate(items) {
+    if (!Array.isArray(items) || !items.length) return '请先选择商品';
+    const restricted = items.filter(i => ['flash','group'].includes(i.promotion?.type));
+    if (restricted.length && (restricted.length !== 1 || items.length !== 1 || count(restricted[0].qty) !== 1)) return '秒杀和拼团每单限一件商品';
+    const addons = items.filter(i => i.promotion?.type === 'exchange');
+    if (addons.length > 1) return '每单最多选择一件换购商品';
+    for (const item of items.filter(i => i.promotion)) {
+      const row = offerByID(item.promotion.offerId);
+      if (!row || row.productId !== item.id || row.status !== 'active') return '活动信息已变化，请刷新活动后重试';
+      if (item.promotion.type === 'group') {
+        const group = groupRows.find(g => g.id === item.promotion.teamId);
+        if (!group || group.status !== 'OPEN' || (Date.parse(group.expires_at) || 0) <= Date.now()) return '拼团已结束，请选择其他拼团';
+      }
+    }
+    if (addons.length && !exchangeState(items).eligible) return '尚未满足服务端换购门槛';
+    return null;
+  }
+  function savings(items) { return (items || []).reduce((sum,i) => sum + Math.max(0,regularPrice(i)-(Number.isFinite(i.unitPrice) ? i.unitPrice : getPrice(i,catalogPrice(i))))*count(i.qty),0); }
+  async function startPurchase(type, offerId, mode, teamId, session) {
+    if (busy) return;
+    if (session === 'tomorrow') { toast('后端尚未发布预告场次'); return; }
+    if (!window.LumoAuth?.requireLogin(location.hash)) return;
+    const row = offerByID(offerId);
+    if (!row || row.type !== type || row.status !== 'active') { toast('该活动暂不可购买，请刷新活动'); return; }
+    busy = true;
+    try {
+      const p = row.product;
+      let groupId = teamId;
+      if (type === 'group') {
+        if (mode === 'create') {
+          const key = window.LumoAPI.key ? window.LumoAPI.key('group') : 'g-' + crypto.randomUUID();
+          const result = await api('group','create',{idempotency_key:key,data:{sku_id:sku(p),required:2}});
+          groupId = result.id;
+          groupRows = [result,...groupRows.filter(g => g.id !== result.id)];
+        } else {
+          const team = await api('group','get',{id:groupId},{auth:false});
+          groupRows = [team,...groupRows.filter(g => g.id !== team.id)];
+          if (team.status !== 'OPEN' || count(team.occupied) >= count(team.required)) throw new Error('该团已满员或结束');
+        }
+      }
+      const item = {id:p.id,sku_id:row.skuId,unitPrice:row.price,regularUnitPrice:row.regularPrice,color:p.colors[0],option:p.defaultOption,qty:1,selected:true,
+        promotion:{type,offerId:row.id,activityId:row.activityId,...(type === 'group' ? {mode,teamId:groupId} : {sessionId:row.sessionId})}};
+      clearExchange(); setCheckout('direct',item); go('checkout');
+    } catch (e) { report(e); }
+    finally { busy = false; }
+  }
+  async function selectExchange(offerId) {
+    const items = baseItems(), eligibility = exchangeState(items), row = offerByRawID(offerId);
+    if (!row || row.status !== 'active' || !eligibility.eligible) { toast('尚未满足换购门槛，或活动库存不足'); return; }
+    if (eligibility.selectedId === offerId) { clearExchange(); redraw(); window.dispatchEvent(new CustomEvent('lumo:checkout-changed')); return; }
+    try {
+      const decision = await api('campaign','evaluate',{data:{subtotal_cents:Math.round(eligibility.baseAmount*100),addon_sku_id:row.productId==='coffee'?'coffee':row.skuId}},{auth:false});
+      if (!decision.eligible) { toast('后端确认本单暂不符合换购资格'); return; }
+      // A cart edit during the request invalidates this selection instead of
+      // applying a promotion to a different set of goods.
+      if (contextKey(baseItems()) !== contextKey(items)) { toast('结算商品已变化，请重新选择换购'); return; }
+      selectedExchange = {offerId,context:contextKey(items)};
+      redraw(); window.dispatchEvent(new CustomEvent('lumo:checkout-changed'));
+    } catch(e) { report(e); }
+  }
+  function rules(type) {
+    const titles = {flash:'秒杀规则',group:'拼团规则',exchange:'加价换购规则'};
+    const copy = {flash:'活动商品、价格、库存与限购资格由服务端裁决。提交请求后进入队列，请等待服务端返回订单结果；重复提交使用同一请求键。尚未配置的未来场次不会开放购买。',
+      group:'两位不同用户分别下单并经服务端确认支付后成团。新开团有效期为30分钟，具体到期时间以拼团返回为准。未成团订单按后端关闭与退款流程处理，成团后仍需库存及订单资源确认才进入待发货。',
+      exchange:'换购门槛、商品与优惠金额以服务端活动配置及报价为准。每单最多一件换购品，换购品金额不计入主商品门槛。秒杀、拼团订单不能同时换购。'};
+    modal(titles[type] || '活动规则','<p class="modal-desc" style="line-height:2">'+esc(copy[type] || copy.flash)+'</p><button class="primary" data-action="close-modal">知道了</button>');
+  }
+  async function copyInvite(teamId) {
+    const team = groupRows.find(g => g.id === teamId);
+    if (!team || team.status !== 'OPEN') { toast('该拼团当前不可邀请'); return; }
+    const url = location.origin + location.pathname + '#/promotions/group/' + encodeURIComponent(teamId);
+    try { await navigator.clipboard.writeText(url); toast('邀请链接已复制，请好友登录自己的账号参团'); }
+    catch (_) { modal('邀请好友参团','<label class="field">邀请链接<input readonly value="'+esc(url)+'"></label><button class="primary" data-action="close-modal">完成</button>'); }
+  }
+  function afterRender() {
+    clearInterval(timer);
+    const update = () => document.querySelectorAll('[data-promo-countdown]').forEach(node => {
+      const end = Number(node.dataset.promoCountdown);
+      if (!(end > 0)) { node.textContent='以活动配置为准'; return; }
+      const seconds = Math.max(0,Math.floor((end-Date.now())/1000));
+      node.textContent = [Math.floor(seconds/3600),Math.floor(seconds/60)%60,seconds%60].map(n => String(n).padStart(2,'0')).join(':');
+    });
+    if (document.querySelector('[data-promo-countdown]')) { update(); timer=setInterval(update,1000); }
+  }
+  document.addEventListener('click',event => {
+    const button=event.target.closest('[data-promo-action]'); if (!button || button.disabled) return;
+    const {promoAction:action,offer:offerId,team,type,session}=button.dataset;
+    if(action==='buy-flash')startPurchase('flash',offerId,null,null,session);
+    if(action==='create-group')startPurchase('group',offerId,'create');
+    if(action==='join-group')startPurchase('group',offerId,'join',team);
+    if(action==='select-exchange')selectExchange(offerId);
+    if(action==='remove-exchange'){clearExchange();redraw();window.dispatchEvent(new CustomEvent('lumo:checkout-changed'));}
+    if(action==='copy-invite')copyInvite(team);
+    if(action==='show-rules')rules(type);
+    if(action==='refresh-promotions'){button.disabled=true;refresh().then(redraw).catch(report).finally(()=>{button.disabled=false;});}
+  });
+  window.LumoPromotions={flashOffers,groupOffers,exchangeOffers,offerFor,teams,myGroups,baseItems,getPrice,regularPrice,eligibleAmount,exchangeState,augmentItems,validate,
+    onPaid:()=>null,savings,orderStatus,groupForOrder,afterRender,clearExchange,quoteData,refresh,status:()=>({loaded,error:loadError})};
+})();

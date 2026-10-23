@@ -1,0 +1,14 @@
+package payment
+
+import (
+	"github.com/davveo/lumo/internal/platform"
+	"github.com/davveo/lumo/services/payment/internal/repository"
+	"github.com/davveo/lumo/services/payment/internal/transport"
+	"github.com/davveo/lumo/services/payment/internal/usecase"
+)
+
+func New(d platform.Dependencies) platform.Module {
+	r := repository.New(d.DB)
+	u := usecase.New(r, d.RPC)
+	return platform.Module{Name: "payment", Migrate: r.Migrate, Handle: transport.New(u), Topics: u.Topics(), OnEvent: u.OnEvent, Tick: u.Tick}
+}

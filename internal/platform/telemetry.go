@@ -1,0 +1,67 @@
+package platform
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"os"
+	"strconv"
+	"strings"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
+)
+
+func InitTelemetry(ctx context.Context, service, endpoint string) (func(context.Context) error, error) {
+	ratio := 1.0
+	if raw := os.Getenv("OTEL_TRACES_SAMPLER_ARG"); raw != "" {
+		v, err := strconv.ParseFloat(raw, 64)
+		if err != nil || v < 0 || v > 1 {
+			return nil, fmt.Errorf("invalid OTEL_TRACES_SAMPLER_ARG")
+		}
+		ratio = v
+	}
+	opts := []sdktrace.TracerProviderOption{
+		sdktrace.WithResource(resource.NewWithAttributes("", attribute.String("service.name", service), attribute.String("service.version", "0.1.0"), attribute.String("deployment.environment.name", os.Getenv("APP_ENV")))),
+		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(ratio))),
+	}
+	if endpoint != "" {
+		exporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpoint(strings.TrimPrefix(strings.TrimPrefix(endpoint, "http://"), "https://")), otlptracegrpc.WithInsecure())
+		if err != nil {
+			return nil, fmt.Errorf("create OTLP exporter: %w", err)
+		}
+		opts = append(opts, sdktrace.WithBatcher(exporter))
+	}
+	tp := sdktrace.NewTracerProvider(opts...)
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})).With("service", service))
+	return tp.Shutdown, nil
+}
+
+// Start adds a code-layer span. Pass the returned context to every RPC,
+// repository, transaction and goroutine that is part of this operation.
+func Start(ctx context.Context, name string) (context.Context, trace.Span) {
+	layer := "application"
+	for _, candidate := range []string{"transport", "usecase", "repository", "worker", "rpc", "mq"} {
+		if strings.Contains(name, candidate) {
+			layer = candidate
+			break
+		}
+	}
+	return otel.Tracer("github.com/davveo/lumo").Start(ctx, name, trace.WithAttributes(attribute.String("code.layer", layer)))
+}
+
+// Log associates a structured log with the active span without logging payloads.
+func Log(ctx context.Context, level slog.Level, message string, attrs ...any) {
+	sc := trace.SpanContextFromContext(ctx)
+	if sc.IsValid() {
+		attrs = append(attrs, "trace_id", sc.TraceID().String(), "span_id", sc.SpanID().String())
+	}
+	slog.Log(ctx, level, message, attrs...)
+}

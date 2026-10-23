@@ -1,0 +1,41 @@
+service:
+  extensions: [jaeger_storage, jaeger_query, healthcheckv2]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [jaeger_storage_exporter]
+  telemetry:
+    logs:
+      level: info
+extensions:
+  healthcheckv2:
+    use_v2: true
+    http:
+      endpoint: 0.0.0.0:13133
+  jaeger_query:
+    storage:
+      traces: main_store
+    grpc:
+      endpoint: 0.0.0.0:16685
+    http:
+      endpoint: 0.0.0.0:16686
+  jaeger_storage:
+    backends:
+      main_store:
+        badger:
+          directories:
+            keys: /var/jaeger/keys
+            values: /var/jaeger/values
+          ephemeral: false
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+processors:
+  batch:
+    timeout: 1s
+exporters:
+  jaeger_storage_exporter:
+    trace_storage: main_store
