@@ -26,7 +26,7 @@ const presentationProducts=[
 const products=[];
 const fallbackProduct={id:'',name:'商品信息加载中',category:'',image:'hero.jpg',sub:'',price:0,old:0,sales:0,colors:['默认'],options:['标准版'],defaultOption:'标准版',highlights:[],highSubs:[]};
 const byId=id=>products.find(p=>p.id===id||p.skuId===id||p.variants?.some(v=>v.sku_id===id))||{...fallbackProduct,id:String(id||'')};
-const categories=['全部好物','手机数码','电脑办公','家用电器','家居生活','美妆个护','服饰箱包','运动户外','食品生鲜','生活电器','厨具餐具','家装建材','母婴玩具','宠物生活','图书文娱','珠宝钟表','鞋靴配饰','汽车用品','工业工具','鲜花绿植','健康护理'];
+const categories=['全部好物'];
 const categoryImages=['iphone-black.png','macbook-midnight.png','speaker.jpg','sofa.jpg','perfume.jpg','bag.jpg','sneakers-white.jpg','coffee.jpg'];
 const read=(key,fallback)=>{try{return JSON.parse((window.LumoAuth||localStorage).getItem(key))??fallback}catch{return fallback}};
 // Business state is a projection of service responses, never restored from the old demo cache.
@@ -48,11 +48,12 @@ const itemText=item=>[item.color,item.option].filter(Boolean).join(' / ');
 function toast(msg){let el=$('#toast');if(!el)return;el.innerHTML=icon('check')+esc(msg);el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2600)}
 function go(path){if(location.hash==='#/'+path){render();window.scrollTo(0,0)}else location.hash='/'+path}
 function primaryNavigation(){
+ const navigationCategories=window.LumoCategories?.categories||categories;
  const route=(location.hash||'#/').slice(2).split('/')[0];
  const section=route==='promotions'?'promotions':route==='coupons'?'coupons':'catalog';
  const selected=key=>section===key?' active':'';
  const current=key=>section===key?' aria-current="page"':'';
- return `<nav class="container nav" aria-label="商品分类"><a class="nav-item${selected('promotions')}" href="#/promotions/flash"${current('promotions')}>${icon('ticket')}活动福利</a><a class="nav-item${selected('coupons')}" href="#/coupons"${current('coupons')}>领券中心</a>${categories.map(c=>{const active=section==='catalog'&&ui.category===c;return `<button type="button" data-action="category" data-value="${esc(c)}" class="nav-item${active?' active':''}"${active?' aria-current="page"':''}>${esc(c)}</button>`}).join('')}</nav>`;
+ return `<nav class="container nav" aria-label="商品分类"><a class="nav-item${selected('promotions')}" href="#/promotions/flash"${current('promotions')}>${icon('ticket')}活动福利</a><a class="nav-item${selected('coupons')}" href="#/coupons"${current('coupons')}>领券中心</a>${navigationCategories.map(c=>{const active=section==='catalog'&&ui.category===c;return `<button type="button" data-action="category" data-value="${esc(c)}" class="nav-item${active?' active':''}"${active?' aria-current="page"':''}>${esc(c)}</button>`}).join('')}</nav>`;
 }
 function positionPrimaryNavigation(){
  const nav=document.querySelector('.nav[aria-label="商品分类"]'),active=nav?.querySelector('[aria-current="page"]');

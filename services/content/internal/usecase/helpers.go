@@ -21,8 +21,13 @@ type Service struct {
 }
 
 func New(r *repository.Repository, rpc platform.Caller) *Service { return &Service{repo: r, rpc: rpc} }
-func (s *Service) Migrate(ctx context.Context) error             { return s.repo.Migrate(ctx) }
-func bad(s string) error                                         { return status.Error(codes.InvalidArgument, s) }
+func (s *Service) Migrate(ctx context.Context) error {
+	if err := s.repo.Migrate(ctx); err != nil {
+		return err
+	}
+	return s.initializeCategoryNavigation(ctx)
+}
+func bad(s string) error { return status.Error(codes.InvalidArgument, s) }
 func stable(parts ...string) string {
 	sum := sha256.Sum256([]byte(strings.Join(parts, "\x00")))
 	return hex.EncodeToString(sum[:])

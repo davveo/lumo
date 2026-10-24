@@ -15,7 +15,7 @@ function setup({missing = [], failure = null, incomplete = false} = {}) {
   const calls = [], messages = [];
   let modal = '', principal = {id:'admin',role:'admin'};
   const app = createHarness(directory,'http://editor.test',{globals:{
-    products:[product],presentationProducts:[product],categories:['全部好物','手机数码'],
+    products:[product],presentationProducts:[product],categories:['全部好物','手机数码'],categoryImages:[],
     LumoAuth:{isLoggedIn:()=>!!principal,user:()=>principal,requireLogin:()=>!!principal},
     LumoAPI:{async call(service,action,command={}) {
       calls.push({service,action,command});
@@ -110,4 +110,53 @@ test('an incomplete stock response cannot initialize existing or unknown stock r
     assert.deepEqual(fixture.calls.filter(c=>c.service==='inventory').map(c=>c.action),['batch_get']);
     assert.match(fixture.messages.join(' '),/库存查询结果不完整/);
   } finally {fixture.app.dispose();}
+});
+
+test('hidden or deleted navigation categories preserve existing product editing and configured hidden choices',async()=>{
+  const group=(id,category,enabled=true)=>({id,category,label:category,title:category,icon:'layers',enabled,rows:[]});
+  for(const status of ['hidden','deleted']){
+    const fixture=setup();
+    try{
+      fixture.app.load('categories.js');
+      fixture.app.ctx.LumoCategories.apply({version:1,groups:[group('phones','手机数码'),group('new-category','后台新分类'),group('hidden-choice','后台隐藏分类',false)]});
+      const next={version:1,groups:[group('new-category','后台新分类'),group('hidden-choice','后台隐藏分类',false)]};
+      if(status==='hidden')next.groups.unshift(group('phones','手机数码',false));
+      fixture.app.ctx.LumoCategories.apply(next);
+      assert.deepEqual(fixture.app.json('categories'),['全部好物','后台新分类'],'public navigation omits hidden and deleted classifications');
+      await fixture.app.click({editorAction:'edit-product',id:'phone'});await tick();
+      const options=fixture.modal.match(/<select name="category">([\s\S]*?)<\/select>/)?.[1];
+      assert.ok(options,'the real product editor opens after navigation changes');
+      assert.match(options,/<option selected>手机数码<\/option>/,'the original classification stays selected');
+      assert.match(options,/>后台隐藏分类<\/option>/,'admin choices use the full configuration, including hidden classes');
+      assert.equal((options.match(/>手机数码<\/option>/g)||[]).length,1,'retained product categories are not duplicated');
+      await fixture.app.submit('studio-product-form',{name:'修改后的手机',sub:'保留原分类',category:'手机数码',price:'100',old:'200',stock:'7',image:'phone.jpg',visible:'on'},{id:'phone'});
+      const saved=fixture.calls.find(call=>call.service==='catalog'&&call.action==='upsert');
+      assert.ok(saved,'editing an existing product still writes to the catalog after its navigation category is '+status);
+      assert.equal(saved.command.data.category,'手机数码');assert.equal(saved.command.data.name,'修改后的手机');
+      assert.ok(fixture.messages.includes('商品修改已保存'));assert.equal(fixture.modal,'');
+      assert.equal(fixture.app.failures.length,0);
+    }finally{fixture.app.dispose();}
+  }
+});
+
+test('dynamic category names are escaped in actual product options and storefront design previews',async()=>{
+  const fixture=setup(),category='</option><img src=x onerror=alert(1)> & "优选"';
+  try{
+    fixture.app.load('categories.js');
+    fixture.app.ctx.LumoCategories.apply({version:1,groups:[{id:'escaped-category',category,label:category,title:category,icon:'layers',rows:[]}]});
+    await fixture.app.click({editorAction:'edit-product',id:'phone'});await tick();
+    const options=fixture.modal.match(/<select name="category">([\s\S]*?)<\/select>/)?.[1];
+    const encoded=fixture.app.ctx.esc(category);
+    assert.ok(options.includes(encoded));assert.ok(!options.includes(category));
+    assert.doesNotMatch(options,/<img\b/,'category text cannot create an element in the select');
+    assert.equal((options.match(/<option\b/g)||[]).length,2,'untrusted names cannot close or create options');
+    await fixture.app.click({editorAction:'tab',value:'design'});
+    const html=fixture.app.ctx.LumoStudio.renderEditor();
+    const preview=html.match(/<div class="studio-preview-categories">([\s\S]*?)<\/div><div class="studio-preview-heading">/)?.[1];
+    assert.ok(preview,'the actual page-decoration view renders configured categories');
+    assert.ok(preview.includes(encoded));assert.ok(!preview.includes(category));
+    assert.equal((preview.match(/<span>/g)||[]).length,1,'preview follows the dynamic category count');
+    assert.equal((preview.match(/<img\b/g)||[]).length,1,'only the intended preview artwork creates an image');
+    assert.doesNotMatch(preview,/undefined/);assert.equal(fixture.app.failures.length,0);
+  }finally{fixture.app.dispose();}
 });

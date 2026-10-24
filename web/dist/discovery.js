@@ -43,7 +43,7 @@
   function selectCategory(category, query = '', label = '', brand = '') {
     if(!categories.includes(category))return;
     data().filters = {brand:brand || 'all',inStock:false};
-    ui.category=category;ui.query=cleanText(query);ui.categoryLabel=cleanText(label);ui.onlyFavorites=false;
+    ui.category=category;ui.query=typeof query==='string'?[...query.trim()].slice(0,120).join(''):'';ui.categoryLabel=cleanText(label);ui.onlyFavorites=false;
     catalogPage=1;catalogSignature='';closeSearch();
     const request=refreshSearch();go('');
     return request.then(()=>renderKeepScroll()).catch(error=>{toast(error.message);renderKeepScroll();});

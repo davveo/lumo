@@ -12,7 +12,7 @@ function deferred() {
   const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
   return {promise, resolve, reject};
 }
-function setup({catalog, inventory, discovery, recommendations, render} = {}) {
+function setup({catalog, inventory, discovery, recommendations, categories, prefetch, render} = {}) {
   let now = 0, sequence = 0;
   const timers = new Map(), statusChanges = [], views = [], events = [], listeners = new Map();
   const clock = {
@@ -48,7 +48,8 @@ function setup({catalog, inventory, discovery, recommendations, render} = {}) {
     addEventListener(name, handler) { const handlers = listeners.get(name) || []; handlers.push(handler); listeners.set(name, handlers); }
   };
   const window = {
-    LumoAPI: {getBase: () => ''},
+    LumoAPI: {getBase: () => '',prefetchBootstrap:prefetch || (async()=>{})},
+    LumoCategories:{refresh:categories || (async()=>{})},
     LumoAuth: {async refresh() {}},
     LumoCommerce: {refreshCatalog: catalog || (async () => {})},
     LumoInventory: {refresh: inventory || (async () => {})},
@@ -83,6 +84,24 @@ test('fast startup never flashes the global loading banner', async () => {
   assert.equal(app.status.hidden, true);
   assert.equal(app.statusChanges.some(change => change.visible), false);
   assert.equal(app.clock.pending, 0);
+});
+
+test('navigation consumes the bootstrap configuration before catalog hydration and core render',async()=>{
+  const configuration=deferred(),stages=[];
+  const app=setup({prefetch:async()=>{stages.push('prefetch');},categories:()=>{stages.push('categories');return configuration.promise;},catalog:async()=>{stages.push('catalog');},render:()=>{stages.push('render');}});
+  await tick();
+  assert.deepEqual(stages,['prefetch','categories']);assert.equal(app.views.length,0);
+  configuration.resolve();await app.window.LumoAppReady;
+  assert.deepEqual(stages.slice(0,3),['prefetch','categories','catalog']);
+  assert.ok(stages.indexOf('render')>stages.indexOf('catalog'));
+  assert.equal(app.window.LumoConnection.ready,true);assert.equal(app.status.hidden,true);
+});
+
+test('navigation errors remain visible while successful catalog data stays usable',async()=>{
+  const app=setup({categories:async()=>{throw Error('品类配置加载失败');}});
+  const result=await app.window.LumoAppReady;
+  assert.equal(result.ready,true);assert.equal(result.errors.length,1);
+  assert.match(app.status.innerHTML,/品类配置加载失败/);assert.equal(app.status.hidden,false);
 });
 
 test('slow core data shows delayed neutral loading and clears it on completion', async () => {

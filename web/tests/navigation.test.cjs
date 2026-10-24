@@ -1,21 +1,24 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
 const path = require('node:path');
 const {createHarness} = require('./dom-harness.cjs');
 
 const directory = process.env.FRONTEND_DIR || path.join(__dirname, '../dist');
 const tick = () => new Promise(resolve => setImmediate(resolve));
 const settleRoutes = () => new Promise(resolve => setTimeout(resolve, 85));
+const categoryConfig=JSON.parse(fs.readFileSync(path.join(__dirname,'../../services/content/internal/usecase/category_navigation.json'),'utf8'));
 function setup(backend = () => ({items: [], has_more: false, total: 0})) {
   const calls = [];
   const app = createHarness(directory, 'http://navigation.test', {globals: {
     LumoAPI: {
       getBase: () => '', getToken: () => '',
-      async call(service, action, command = {}) { calls.push({service, action, command}); return backend(service, action, command); }
+      async call(service, action, command = {}) { calls.push({service, action, command}); if(service==='content'&&action==='get')return{id:'storefront-categories',body:JSON.stringify(categoryConfig)};return backend(service, action, command); }
     }
   }});
-  for (const script of ['app.js', 'promotions.js', 'promo-views.js', 'coupon-center.js']) app.load(script);
+  for (const script of ['app.js', 'promotions.js', 'promo-views.js', 'coupon-center.js','categories.js']) app.load(script);
+  app.ctx.LumoCategories.apply(categoryConfig);
   app.evaluate('products.push(...presentationProducts)');
   return {app, calls};
 }

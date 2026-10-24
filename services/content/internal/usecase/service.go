@@ -39,6 +39,20 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		if kind == "" {
 			kind = "faq"
 		}
+		if c.ID == categoryNavigationID || kind == "category_navigation" || kind == "categories" {
+			if c.ID != categoryNavigationID || kind != "storefront" {
+				return nil, bad("category navigation requires storefront-categories ID and storefront kind")
+			}
+			var validTitle bool
+			if title, validTitle = categoryText(title, 120, true); !validTitle {
+				return nil, bad("category navigation title must contain 1..120 characters")
+			}
+			var err error
+			body, err = validateCategoryNavigation(body)
+			if err != nil {
+				return nil, err
+			}
+		}
 		limit := 20000
 		if kind == "storefront" {
 			limit = 900000

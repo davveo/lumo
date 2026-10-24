@@ -68,6 +68,12 @@ curl -s http://localhost:8080/api/v1/iam/logout \
 
 登录返回 token,user_id,role。退出会撤销服务器会话，不能仅靠浏览器删除token。
 
+## 首页分类导航配置
+
+匿名调用 `POST /api/v1/content/get`，请求 `{"id":"storefront-categories"}`，返回的 `data.body` 为版本1的分类配置JSON。首页通过已有 `storefront/bootstrap` 聚合缓存读取该文档，不增加浏览器启动请求；展开面板不读取接口。
+
+管理员调用 `POST /api/v1/content/upsert`，固定 `id=storefront-categories`、`data.kind=storefront`，提交标题和JSON正文。配置包含大类 `id/category/label/title/icon/enabled`，快捷入口 `shortcuts[{label,query}]`、分组 `rows[{title,query,items:[{label,query,featured}]}]`、品牌 `brands[{label,brand}]`；数组顺序即展示顺序。完整结构及边界见 [内容服务说明](../services/content/README.md)。管理端“分类导航”提供可视化编辑。首次迁移初始化，重复启动不会覆盖已保存配置。
+
 ## 主要动作表
 
 | 服务 | 用户/公开动作 | 管理员动作 |

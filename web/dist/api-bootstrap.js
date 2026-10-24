@@ -31,6 +31,7 @@
         try{await invoke(window.LumoAuth,'refresh');}catch(error){errors.push(error);}
         await invoke(API,'enableReadBatching');
         await invoke(API,'prefetchBootstrap');
+        await stage([()=>invoke(window.LumoCategories,'refresh')],errors);
         let catalogOK=true;
         try{await invoke(window.LumoCommerce,'refreshCatalog');}catch(error){catalogOK=false;errors.push(error);}
         await stage([()=>invoke(window.LumoRecommendations,'refreshHome')],errors);

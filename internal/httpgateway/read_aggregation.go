@@ -273,6 +273,7 @@ func (g *gateway) bootstrapReads(ctx context.Context, principal platform.Command
 		}
 	}
 	results := g.runReads(ctx, plan, principal)
+	results = g.bootstrapCategoryNavigation(ctx, results, principal)
 	stockIDs, flashIDs := map[string]bool{}, map[string]bool{}
 	for _, result := range results {
 		data, ok := result["data"].(platform.Result)

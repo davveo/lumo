@@ -10,7 +10,7 @@ type Record struct {
 	ParentID  string    `gorm:"size:128;index" json:"parent_id,omitempty"`
 	Kind      string    `gorm:"size:32;index" json:"kind"`
 	Status    string    `gorm:"size:32;index" json:"status"`
-	Payload   string    `gorm:"type:text" json:"-"`
+	Payload   string    `gorm:"type:mediumtext" json:"-"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
