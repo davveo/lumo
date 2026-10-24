@@ -103,7 +103,11 @@ test('cold catalog renders six product placeholders without fake count, empty CT
   const html = f.html();
   const catalog = html.slice(html.indexOf('<section class="catalog"'));
   assert.equal((catalog.match(/class="sk-product"/g) || []).length, 6);
-  assert.equal((html.match(/class="sk-product"/g) || []).length, 10, 'four compact featured goods also wait with shapes');
+  assert.equal(
+    (html.match(/class="sk-product"/g) || []).length,
+    10,
+    'four compact featured goods also wait with shapes',
+  );
   assert.match(html, /正在加载商品/);
   assert.doesNotMatch(html, /0 件好物|没有找到合适的好物|浏览全部好物/);
   assert.deepEqual(f.calls, []);

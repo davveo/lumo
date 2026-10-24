@@ -9,9 +9,9 @@
 3. `internal/repository`：唯一GORM访问层，本地事务、条件查询及Outbox持久化。
 4. `internal/domain`：本服务拥有的数据模型与索引键。
 
-所有调用逐层传递 `context.Context`，层Span为 `helpdesk.transport.*` → `helpdesk.usecase.*` → `helpdesk.repository.*`，GORM回调再创建SQL Span。查询参数不展开到trace或日志。
+所有调用逐层传递 `context.Context`，层Span为 `helpdesk.transport.*` → `helpdesk.usecase.*` → `helpdesk.repository.*`，GORM回调再创建SQL Span。SQL绑定参数不展开到trace或日志；结构化业务入参和返回值按共享规则递归脱敏并限长。
 
-本服务只写自己的数据库schema。跨服务通过 `platform.Caller` 访问 gRPC，禁止直接读写对方业务表。网关验证会话后填入调用主体，服务再次检查用户资源归属与管理员角色。
+本服务只写自己的数据库schema。跨服务通过 `platform.NewClients` 的明确方法访问独立 gRPC，禁止直接读写对方业务表。网关验证会话后填入调用主体，服务再次检查用户资源归属与管理员角色。
 
 关联订单在创建时通过RPC验证归属；工单会话与回复Outbox在同一本地事务提交，关闭后拒绝回复。
 

@@ -1,6 +1,6 @@
 # LUMO 商城完整工程
 
-已将原商城前端接入 Go + GORM + gRPC 多服务项目，包含完整商城、独立管理页面、30 个领域服务与配套依赖。30 个领域服务独立运行，通过 Consul 注册、健康检查与服务发现连接；HTTP 网关接入前端，MySQL 按服务隔离 schema / 数据库账号，RabbitMQ 承接领域事件，Redis 用于缓存与秒杀准入。OpenTelemetry + Collector + Jaeger 将调用关联到 SQL。
+已将原商城前端接入 Go + GORM + gRPC 多服务项目，包含完整商城、独立管理页面、30 个领域服务与配套依赖。30 个领域服务独立运行，通过 Consul 注册、健康检查与服务发现连接；独立Nginx前端同源代理到HTTP网关，MySQL 按服务隔离 schema / 数据库账号，RabbitMQ 承接领域事件，Redis 用于缓存与秒杀准入。OpenTelemetry + Collector + Jaeger 将调用关联到 SQL。
 
 ## 放到桌面并一键启动
 
@@ -15,27 +15,30 @@ sh start.sh
 
 新版使用单独目录，避免无覆盖解压时继续运行旧版代码。若旧版有自定义 `.env`，先复制到新项目目录并参考新版 `.env.example` 补齐配置；Compose 项目名保持 lumo-mall，因此原命名卷会保留。
 
-macOS 也可以直接双击项目根目录的 `start.command`。命令行可在任意工作目录执行脚本；它会自动定位完整工程。前端随网关镜像打包，启动电脑只需 Docker，不需要另外安装 Go 或 Node.js。
+macOS 也可以直接双击项目根目录的 `start.command`。命令行可在任意工作目录执行脚本；它会自动定位完整工程。前端使用独立 `web` 镜像与容器，启动电脑只需 Docker，不需要另外安装 Go 或 Node.js。
 
 若已经在其他位置解压，可执行 `sh scripts/install-to-desktop.command` 将完整目录复制到桌面；脚本遇到已有同名目录会停止，避免覆盖。
 
-请先启动 Docker Desktop（含 Compose v2）。完整环境默认启动 **30 个业务服务 + HTTP 网关 + Consul、MySQL、Redis、RabbitMQ、MinIO、Collector、Jaeger**；建议为 Docker 分配至少 8 GB 内存进行开发联调。镜像和依赖首次下载需要网络。`start.sh` 首次以受限文件权限从 `.env.example` 创建 `.env`，之后保留现有配置。
+请先启动 Docker Desktop（含 Compose v2）。完整环境默认启动 **30 个业务服务 + HTTP 网关 + 独立前端 + Consul、MySQL、Redis、RabbitMQ、MinIO、Collector、Jaeger**；建议为 Docker 分配至少 8 GB 内存进行开发联调。镜像和依赖首次下载需要网络。`start.sh` 首次以受限文件权限从 `.env.example` 创建 `.env`，之后保留现有配置。
 
-`start.sh` 首次构建并启动完整环境，以后根据源码与配置指纹，只更新变化的业务容器；运行中的中间件保持原容器。没有变化时不构建、不重建，已停止的服务会补启动。业务共用一次应用镜像构建，但使用明确服务列表更新，避免共享镜像标签改变导致其他容器一起更新。默认等待健康检查600秒，失败返回非零状态，数据库、MQ、Redis和追踪卷保留。`sh scripts/down.sh` 停止环境并保留数据。
+`start.sh` 首次构建并启动完整环境，以后根据源码与配置指纹，只更新变化的业务容器；运行中的中间件保持原容器。没有变化时不构建、不重建，已停止的服务会补启动。30个业务服务和网关共用后端镜像，前端单独构建；使用明确服务列表更新，避免共享镜像标签改变导致其他容器一起更新。默认等待健康检查600秒，失败返回非零状态，数据库、MQ、Redis和追踪卷保留。`sh scripts/down.sh` 停止环境并保留数据。
 
 首次使用新版脚本时没有历史部署指纹，会更新一次业务容器建立基线；中间件仍保留。以后请在同一工程目录执行，保留 `.local/start` 中的部署记录。
+
+旧 `.env` 仅有 `GATEWAY_PORT` 时，启动脚本先私有备份，再将原商城端口保留为 `WEB_PORT` 并拆出API端口；MinIO上传来源的旧变量引用同步迁移，账号密码保留。完整规则见下方部署说明。
 
 | 入口 | 地址 | 用途 |
 | --- | --- | --- |
 | 商城 | http://localhost:8080 | 商品、营销、购物车、下单、支付结果及个人中心 |
 | 管理端 | http://localhost:8080/admin.html | 演示收款、发货、售后、退款、发票、审核和对账 |
-| API 联调台 | http://localhost:8080/debug | 按权限发送业务请求并查看 trace_id |
+| API 网关 | http://localhost:18080/api/v1 | 直接访问业务API，商城也通过8080同源代理访问 |
+| API 联调台 | http://localhost:18080/debug | 按权限发送业务请求并查看 trace_id |
 | Consul 注册中心 | http://localhost:8500/ui/ | 查看30个领域服务、网关及其实例健康状态 |
 | Jaeger | http://localhost:16686 | 按服务、操作或 trace_id 查询完整链路 |
 | RabbitMQ 管理 | http://localhost:15672 | 领域队列、消费、重试与死信 |
 | MinIO API / 控制台 | http://localhost:9001 / http://localhost:9002 | 私有附件上传与授权下载 |
 
-上表为默认端口；脚本完成后查询 Docker 实际映射。`sh start.sh order` 只更新订单服务，`sh start.sh order payment` 更新指定业务服务；前端修改自动只更新gateway，共享平台代码修改更新所有受影响业务服务。`--no-build` 复用镜像，`--wait-timeout 900` 延长等待，只有显式 `--update-infra` 才会重建已运行的中间件。详细规则与验证范围见 [docs/docker-start.md](docs/docker-start.md)。
+上表为默认端口；脚本完成后查询 Docker 实际映射。`sh start.sh order` 只更新订单服务，`sh start.sh order payment` 更新指定业务服务；`sh start.sh web` 只更新前端；前端修改自动只构建/更新 `web`，共享Go平台代码只更新受影响的后端服务。`--no-build` 复用镜像，`--wait-timeout 900` 延长等待，只有显式 `--update-infra` 才会重建已运行的中间件。详细规则与验证范围见 [docs/docker-start.md](docs/docker-start.md)。
 
 所有宿主机端口默认绑定 `127.0.0.1`。业务 RPC 与数据库/Redis 仅在 Compose 内部网络开放。默认账号和密钥仅用于本机演示环境，见 `.env.example`。
 
@@ -46,11 +49,11 @@ lumo-backend/
 ├── api/mall/v1/                  # protobuf 契约与生成代码
 ├── cmd/
 │   ├── server/                   # 单服务启动入口，SERVICE_NAME 决定服务
-│   ├── gateway/                  # 同源商城、HTTP → gRPC、鉴权、动作白名单
+│   ├── gateway/                  # HTTP → gRPC、鉴权、动作白名单、联调台
 │   └── devstack/                 # 不依赖 Docker 的开发联调入口
 ├── internal/
 │   ├── bootstrap/                # 服务装配注册
-│   ├── httpgateway/              # HTTP/API 与静态前端接入
+│   ├── httpgateway/              # HTTP/API 与页面聚合；开发运行器可显式接入静态目录
 │   ├── devstack/                 # 独立SQLite + TCP gRPC + 本地持久化事件派发
 │   └── platform/                 # RPC、GORM、OTel、Outbox/Inbox、MQ
 ├── services/
@@ -67,6 +70,8 @@ lumo-backend/
 ├── docs/                         # API、追踪、启动和架构资料
 ├── tests/                        # 跨服务及完整 HTTP 链路集成测试
 ├── web/
+│   ├── Dockerfile                # 独立Nginx前端镜像
+│   ├── nginx/                    # 静态缓存与同源API代理
 │   ├── dist/                     # 可编辑商城/管理端完整前端与图片
 │   └── tests/                    # 前端认证、页面事件与真实HTTP测试
 ├── compose.yaml
@@ -76,27 +81,27 @@ lumo-backend/
 └── go.mod / go.sum
 ```
 
-服务不直接写其他服务的表，也不在实现代码中导入其他服务的 usecase。同步交互通过 gRPC，异步交互通过持久化 Outbox / RabbitMQ。订单服务使用 `OrderService` 的15个独立RPC及对应强类型用例，transport负责字段映射；原 `DomainService.Execute` 仅作订单兼容适配，其余领域服务尚在使用该通用信封。订单迁移与扩展约定见 [services/order/README.md](services/order/README.md)，HTTP调用动作和示例见 [docs/api.md](docs/api.md)。
+服务不直接写其他服务的表，也不在实现代码中导入其他服务的 usecase。同步交互通过 gRPC，异步交互通过持久化 Outbox / RabbitMQ。30个领域服务均提供独立RPC方法，当前共162项。29个领域服务以不含动作字段的 `platform.Request` 调用独立公开用例，通过专属protobuf服务注册这些方法；订单保留15个强类型RPC及明确请求/响应。跨服务业务调用使用 `platform.NewClients(...).Inventory.Reserve` 等明确方法。`DomainService.Execute` 仅保留边界兼容，不承载业务分发。契约、扩展和生成方式见 [docs/rpc-methods.md](docs/rpc-methods.md)，HTTP动作及示例见 [docs/api.md](docs/api.md)。
 
 Compose 默认启用 Consul。业务服务与网关启动时注册实例，Consul 分别检查 gRPC Health 和网关 `/readyz`；RPC 只从 Consul 获取健康实例并持续刷新地址。进程退出时注销，Consul 重启后实例会定期重新注册。未设置 `CONSUL_HTTP_ADDR` 的独立 Go 开发环境继续使用静态地址；显式的 `*_RPC_ADDR` / `RPC_TARGETS` 保留覆盖能力。配置与排查见 [docs/consul.md](docs/consul.md)。
 
-30个领域服务可分别增加副本：每个容器只装配自身模块，使用所属服务的数据库账号、schema及MQ队列。各副本注册自身地址和唯一实例ID，调用方复用gRPC连接、每2秒刷新Consul健康地址，并通过round_robin分摊到READY实例。共享应用镜像用于统一构建，各服务的进程、配置及副本数量独立。Trace的 `service.instance.id` 和日志的 `instance_id` 对应Consul实例ID，便于检查请求落到了哪个副本。
+30个领域服务可分别增加副本：每个容器只装配自身模块，使用所属服务的数据库账号、schema及MQ队列。各副本注册自身地址和唯一实例ID，调用方复用gRPC连接、每2秒刷新Consul健康地址，并通过round_robin分摊到READY实例。共享后端镜像用于统一构建，各服务的进程、配置及副本数量独立；前端有单独的镜像和构建上下文。Trace的 `service.instance.id` 和日志的 `instance_id` 对应Consul实例ID，便于检查请求落到了哪个副本。
 
 ## 查看每层调用与 SQL
 
-执行 `sh scripts/smoke.sh`，会创建一笔待支付演示订单并输出 trace_id。也可在 http://localhost:8080/debug 的联调台登录后发送请求；页面 API 错误和管理操作结果会显示链路编号。Jaeger 中的典型层级为：
+执行 `sh scripts/smoke.sh`，会创建一笔待支付演示订单并输出 trace_id。也可在 http://localhost:18080/debug 的联调台登录后发送请求；页面 API 错误和管理操作结果会显示链路编号。Jaeger 中的典型层级为：
 
 ```text
 HTTP POST /api/v1/checkout/submit
   gateway.transport.Dispatch
     gateway.usecase.Forward
-      gRPC client Execute
-        checkout gRPC server Execute
+      gRPC client mall.v1.CheckoutService/Submit
+        checkout gRPC server Submit
           checkout.transport.*
             checkout.usecase.*
               checkout.repository.*
                 gorm SQL query/update/transaction
-              inventory gRPC client Execute
+              inventory gRPC client mall.v1.InventoryService/Reserve
                 inventory server → transport → usecase → repository → SQL
 ```
 

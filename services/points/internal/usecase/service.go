@@ -103,11 +103,11 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
 		_, err := s.Refund(
 			ctx,
 			platform.Request{
-ID:     e.AggregateID,
-UserID: e.UserID,
-Role:   constants.RoleSystem,
-Data:   e.Data,
-},
+				ID:     e.AggregateID,
+				UserID: e.UserID,
+				Role:   constants.RoleSystem,
+				Data:   e.Data,
+			},
 		)
 		return err
 	}
@@ -119,11 +119,11 @@ Data:   e.Data,
 		_, err := s.Reward(
 			ctx,
 			platform.Request{
-ID:     e.AggregateID,
-UserID: e.UserID,
-Role:   constants.RoleSystem,
-Data:   map[string]any{"amount": amount},
-},
+				ID:     e.AggregateID,
+				UserID: e.UserID,
+				Role:   constants.RoleSystem,
+				Data:   map[string]any{"amount": amount},
+			},
 		)
 		return err
 	}

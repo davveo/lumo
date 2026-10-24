@@ -35,7 +35,8 @@ body:has(.home-page) .edit-store-button {
   background: #ffffff12;
   color: #fff;
 }
-body:has(.home-page) .auth-account-trigger {
+body:has(.home-page) .header-main .auth-user-trigger,
+body:has(.home-page) .header-main .auth-user-chevron {
   color: #fff;
 }
 .home-page {

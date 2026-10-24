@@ -30,4 +30,6 @@
 
 业务方法统一接收不含动作字段的 `platform.Request`，权限与资源归属校验在方法内部执行。
 `internal/transport/handler.go` 只维护边界路由注册表；模块通过 `Operations` 暴露独立操作，
-`Handle` 仅兼容现有命令调用入口。确认与取消分别调用明确的仓储方法，事务和幂等规则保持不变。
+`Handle` 仅兼容现有命令调用入口。`Request` 负责准入和异步受理，事件处理使用明确的Checkout提交方法。
+
+跨服务调用使用 `platform.NewClients(...).Service.Method(ctx, platform.Request{...})`，不传递业务action。

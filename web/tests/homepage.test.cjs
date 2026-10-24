@@ -7,45 +7,63 @@ const { createHarness } = require('./dom-harness.cjs');
 const directory = process.env.FRONTEND_DIR || path.join(__dirname, '../dist');
 function deferred() {
   let resolve, reject;
-  const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
+  const promise = new Promise((yes, no) => {
+    resolve = yes;
+    reject = no;
+  });
   return { promise, resolve, reject };
 }
 function setup() {
-  let handler = async () => ({ items: [] }), user = null;
+  let handler = async () => ({ items: [] }),
+    user = null;
   const calls = [];
   const app = createHarness(directory, 'http://home.test', {
     globals: {
       LumoAPI: {
-        getBase: () => 'http://home.test', getToken: () => '',
+        getBase: () => 'http://home.test',
+        getToken: () => '',
         async call(service, action, command) {
           calls.push({ service, action, command });
           return handler(service, action, command);
         },
       },
       LumoAuth: {
-        user: () => user, isLoggedIn: () => !!user,
-        afterRender() {}, gate: () => true, requireLogin: () => !!user,
+        user: () => user,
+        isLoggedIn: () => !!user,
+        afterRender() {},
+        gate: () => true,
+        requireLogin: () => !!user,
       },
     },
   });
   app.load('skeleton.js');
   app.load('app.js');
   return {
-    app, calls,
-    setHandler(value) { handler = value; },
-    setUser(value) { user = value; },
+    app,
+    calls,
+    setHandler(value) {
+      handler = value;
+    },
+    setUser(value) {
+      user = value;
+    },
     html: () => app.ids.get('app').innerHTML,
     render: () => app.navigate(''),
   };
 }
-const products = () => Array.from({ length: 8 }, (_, index) => ({
-  id: 'sku-real-' + index, price_cents: 10000 + index * 100,
-  attributes: {
-    product_id: 'real-' + index, name: '后台商品 ' + index,
-    category: '手机数码', image: 'iphone-black.png',
-  },
-}));
-const featured = (html) => html.slice(html.indexOf('<section class="home-picks"'), html.indexOf('<div class="home-activity-grid"'));
+const products = () =>
+  Array.from({ length: 8 }, (_, index) => ({
+    id: 'sku-real-' + index,
+    price_cents: 10000 + index * 100,
+    attributes: {
+      product_id: 'real-' + index,
+      name: '后台商品 ' + index,
+      category: '手机数码',
+      image: 'iphone-black.png',
+    },
+  }));
+const featured = (html) =>
+  html.slice(html.indexOf('<section class="home-picks"'), html.indexOf('<div class="home-activity-grid"'));
 
 test('first script paint reserves the complete home composition without service reads or empty CTAs', (t) => {
   const f = setup();
@@ -64,9 +82,11 @@ test('first script paint reserves the complete home composition without service 
 });
 
 test('independently delayed catalogue and category reads retain the hero; renders add no physical requests', async (t) => {
-  const f = setup(), catalog = deferred(), categories = deferred();
+  const f = setup(),
+    catalog = deferred(),
+    categories = deferred();
   t.after(() => f.app.dispose());
-  f.setHandler((service) => service === 'catalog' ? catalog.promise : categories.promise);
+  f.setHandler((service) => (service === 'catalog' ? catalog.promise : categories.promise));
   f.app.load('categories.js');
   const productRead = f.app.ctx.LumoCommerce.refreshCatalog();
   const categoryRead = f.app.ctx.LumoCategories.refresh();
@@ -79,15 +99,25 @@ test('independently delayed catalogue and category reads retain the hero; render
   assert.equal((featured(html).match(/class="home-pick"/g) || []).length, 4);
   assert.match(featured(html), /后台商品 0/);
   assert.doesNotMatch(featured(html), /sk-loading-products/);
-  const configuration = JSON.parse(fs.readFileSync(path.join(__dirname, '../../services/content/internal/usecase/category_navigation.json'), 'utf8'));
+  const configuration = JSON.parse(
+    fs.readFileSync(path.join(__dirname, '../../services/content/internal/usecase/category_navigation.json'), 'utf8'),
+  );
   categories.resolve({ id: 'storefront-categories', kind: 'storefront', body: JSON.stringify(configuration) });
   await categoryRead;
   for (let index = 0; index < 4; index++) html = f.render();
   assert.match(html, /class="home-feature-area"><div class="home-feature-top"><section class="hero"/);
   assert.match(html, /class="category-directory-item/);
   assert.match(html, /class="nav home-category-nav"/);
-  assert.deepEqual(f.calls.map(({ service, action }) => [service, action]), [['catalog', 'list'], ['content', 'get']]);
-  f.setHandler(() => { throw Error('分类暂不可用'); });
+  assert.deepEqual(
+    f.calls.map(({ service, action }) => [service, action]),
+    [
+      ['catalog', 'list'],
+      ['content', 'get'],
+    ],
+  );
+  f.setHandler(() => {
+    throw Error('分类暂不可用');
+  });
   await assert.rejects(f.app.ctx.LumoCategories.refresh());
   html = f.render();
   assert.match(html, /智享生活精选/);
@@ -100,7 +130,9 @@ test('successful empty and failed catalogue have distinct home states, while bac
   await f.app.ctx.LumoCommerce.refreshCatalog();
   assert.match(featured(f.render()), /新好物正在上架/);
   assert.doesNotMatch(featured(f.html()), /sk-loading-products|重新加载/);
-  f.setHandler(() => { throw Error('商品接口暂不可用'); });
+  f.setHandler(() => {
+    throw Error('商品接口暂不可用');
+  });
   await assert.rejects(f.app.ctx.LumoCommerce.refreshCatalog());
   assert.match(featured(f.render()), /精选商品暂未加载/);
   assert.match(featured(f.html()), /data-action="commerce-refresh"/);
@@ -119,11 +151,18 @@ test('successful empty and failed catalogue have distinct home states, while bac
 test('home activity entries use actual offers and rules, with pending, empty and failed states kept separate', (t) => {
   const f = setup();
   t.after(() => f.app.dispose());
-  let loaded = false, error = '', flash = [], campaigns = [];
+  let loaded = false,
+    error = '',
+    flash = [],
+    campaigns = [];
   f.app.ctx.LumoPromotions = {
-    flashOffers: () => flash, groupOffers: () => [], exchangeOffers: () => [], campaigns: () => campaigns,
+    flashOffers: () => flash,
+    groupOffers: () => [],
+    exchangeOffers: () => [],
+    campaigns: () => campaigns,
     campaignRule: (row) => '每单直减 ¥' + row.discount_cents / 100,
-    status: () => ({ loaded, error }), afterRender() {},
+    status: () => ({ loaded, error }),
+    afterRender() {},
   };
   assert.match(f.render(), /正在加载活动/);
   loaded = true;
@@ -142,6 +181,55 @@ test('home activity entries use actual offers and rules, with pending, empty and
   assert.deepEqual(f.calls, []);
 });
 
+test('flash home card waits for delayed offer details and retains a genuine offer during background refresh', async (t) => {
+  const f = setup();
+  t.after(() => f.app.dispose());
+  f.setHandler(() => ({ items: products() }));
+  await f.app.ctx.LumoCommerce.refreshCatalog();
+  let details = deferred();
+  const stockReads = [];
+  f.app.ctx.LumoInventory = {
+    stockFor: () => 30,
+    async refreshOne(id) {
+      stockReads.push(id);
+    },
+  };
+  f.setHandler((service, action) => {
+    if (service === 'campaign')
+      return { items: [{ id: 'live-flash', active: true, kind: 'flash', quota: 30, discount_cents: 2000 }] };
+    if (service === 'flash')
+      return { items: [{ id: 'live-session', active: true, sku_id: 'sku-real-0', activity_id: 'live-flash' }] };
+    if (service === 'catalog' && action === 'get') return details.promise;
+    return { items: [] };
+  });
+  f.app.load('promotions.js');
+  const flashCard = () => f.render().match(/<a class="home-activity-card is-red"[\s\S]*?<\/a>/)[0];
+  const initial = f.app.ctx.LumoPromotions.refresh();
+  await new Promise((resolve) => setImmediate(resolve));
+  const status = f.app.ctx.LumoPromotions.status();
+  assert.equal(status.ready.flash, true, 'the session list has already completed');
+  assert.equal(status.loading, true, 'the offer detail is still unresolved');
+  assert.match(flashCard(), /正在加载活动/);
+  assert.doesNotMatch(flashCard(), /更多活动准备中/);
+  assert.equal(f.calls.length, 5, 'repeated rendering adds no detail requests');
+  details.resolve(products()[0]);
+  await initial;
+  assert.match(flashCard(), /后台商品 0/);
+  assert.match(flashCard(), /home-activity-price">¥80/);
+  assert.doesNotMatch(flashCard(), /正在加载活动|更多活动准备中/);
+  details = deferred();
+  const background = f.app.ctx.LumoPromotions.refresh();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.match(flashCard(), /后台商品 0/);
+  assert.doesNotMatch(flashCard(), /正在加载活动/);
+  details.reject(Error('详情更新失败'));
+  await assert.rejects(background, /详情更新失败/);
+  assert.match(flashCard(), /后台商品 0/);
+  assert.doesNotMatch(flashCard(), /正在加载活动|更多活动准备中/);
+  assert.equal(f.calls.length, 9);
+  assert.deepEqual(stockReads, ['sku-real-0', 'sku-real-0']);
+});
+
 test('member benefits wait for the current account reads instead of exposing defaults as real balances', (t) => {
   const f = setup();
   t.after(() => f.app.dispose());
@@ -152,6 +240,7 @@ test('member benefits wait for the current account reads instead of exposing def
     afterRender() {},
   };
   assert.match(f.render(), /Hi，欢迎来到 LUMO/);
+  assert.doesNotMatch(f.html(), /href="#\/register"/);
   assert.doesNotMatch(f.html(), /后台昵称|<strong>321<\/strong>/);
   f.setUser({ id: 'buyer' });
   assert.match(f.render(), /欢迎回来/);

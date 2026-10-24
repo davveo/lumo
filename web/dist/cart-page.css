@@ -187,7 +187,7 @@
   font-size: 17px;
   white-space: nowrap;
 }
-.cart-unit-price small {
+.cart-unit-price > small {
   display: block;
   margin-top: 6px;
   color: #a1a7b1;
@@ -251,9 +251,23 @@
 }
 .cart-page .cart-bottom {
   position: static;
-  max-width: 1520px;
-  width: calc(100% - 96px);
-  margin: 0 auto;
+  width: min(
+    var(--shopping-content-max, 1520px),
+    calc(100% - var(--shopping-left-space, 48px) - var(--shopping-right-space, 48px))
+  );
+  margin-left: max(
+    var(--shopping-left-space, 48px),
+    calc(
+      (
+          100% + var(--shopping-left-space, 48px) - var(--shopping-right-space, 48px) -
+            var(--shopping-content-max, 1520px)
+        ) /
+        2
+    )
+  );
+  margin-right: auto;
+  margin-top: 0;
+  margin-bottom: 0;
   border: 0;
   border-radius: 0;
   box-shadow: none;
@@ -285,7 +299,7 @@
   font-size: 25px;
   margin-left: 6px;
 }
-.cart-page .cart-summary small {
+.cart-page .cart-summary > div > small {
   display: block;
   margin-top: 3px;
   color: #a1a8b1;
@@ -396,7 +410,7 @@
     flex-direction: row;
     flex-wrap: wrap;
     font-size: 10px;
-    margin-top: -35px;
+    margin-top: 0;
     align-self: end;
   }
   .cart-variant small {
@@ -425,7 +439,6 @@
     gap: 12px;
   }
   .cart-page .cart-bottom {
-    width: calc(100% - 28px);
     gap: 9px;
     padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
   }
@@ -438,7 +451,7 @@
   .cart-page .cart-summary-label {
     font-size: 10px;
   }
-  .cart-page .cart-summary small {
+  .cart-page .cart-summary > div > small {
     max-width: 150px;
     font-size: 8px;
   }
@@ -447,4 +460,22 @@
     min-height: 43px;
     font-size: 12px;
   }
+}
+
+.cart-page .cart-unit-price .price,
+.cart-page .cart-summary .price {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  line-height: 1.25;
+}
+.cart-page .cart-unit-price .price > small,
+.cart-page .cart-summary .price > small {
+  display: inline;
+  margin: 0;
+  color: inherit;
+  font-size: 0.65em;
+}
+.cart-page .cart-summary > div {
+  white-space: nowrap;
 }

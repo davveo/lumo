@@ -238,9 +238,13 @@ class DockerStartupTests(unittest.TestCase):
         containers = {}
         for n in INFRA + [INIT] + APPS:
             image = (
-                images[WEB_IMAGE] if n == "web" else images[APP_IMAGE]
-                if n in APPS
-                else images[BUILDABLE_INFRA[n]] if n in BUILDABLE_INFRA else "sha256:fixture-" + n
+                images[WEB_IMAGE]
+                if n == "web"
+                else (
+                    images[APP_IMAGE]
+                    if n in APPS
+                    else images[BUILDABLE_INFRA[n]] if n in BUILDABLE_INFRA else "sha256:fixture-" + n
+                )
             )
             containers[n] = {
                 "id": "cid-" + n + "-original",

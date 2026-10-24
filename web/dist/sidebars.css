@@ -1,11 +1,13 @@
 /* Reserve the expanded rails' safe lane at every collapse state. Fixed panels
    may open or close without moving the page or changing its content width. */
-body.has-lumo-sidebars {
+body.has-lumo-sidebars,
+body:has(.home-page) {
   --shopping-content-max: 1760px;
   --shopping-left-space: 148px;
   --shopping-right-space: 80px;
 }
-body.has-lumo-sidebars .container {
+body.has-lumo-sidebars .container,
+body:has(.home-page) .container {
   width: min(var(--shopping-content-max), calc(100% - var(--shopping-left-space) - var(--shopping-right-space)));
   margin-left: max(
     var(--shopping-left-space),
@@ -304,7 +306,8 @@ body.has-lumo-sidebars .svc-support-launcher {
 }
 @media (max-width: 1100px) {
   body.has-lumo-sidebars,
-  body.has-lumo-sidebars.has-interest-rail {
+  body.has-lumo-sidebars.has-interest-rail,
+  body:has(.home-page) {
     --shopping-left-space: 24px;
     --shopping-right-space: 64px;
   }
@@ -352,14 +355,16 @@ body.has-lumo-sidebars .svc-support-launcher {
 }
 @media (max-width: 800px) {
   body.has-lumo-sidebars,
-  body.has-lumo-sidebars.has-interest-rail {
+  body.has-lumo-sidebars.has-interest-rail,
+  body:has(.home-page) {
     --shopping-left-space: 16px;
     --shopping-right-space: 58px;
   }
 }
 @media (max-width: 600px) {
   body.has-lumo-sidebars,
-  body.has-lumo-sidebars.has-interest-rail {
+  body.has-lumo-sidebars.has-interest-rail,
+  body:has(.home-page) {
     --shopping-left-space: 14px;
     --shopping-right-space: 54px;
   }

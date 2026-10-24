@@ -56,7 +56,9 @@
   let memory = emptyMemory();
   let lastTracked = null,
     tracking = null,
-    historyRevision = 0;
+    historyRevision = 0,
+    historyHydration = null,
+    historyProductsKey = '';
   let refreshVersion = 0;
   let inFlight = null,
     dialogVersion = 0;
@@ -94,6 +96,8 @@
     lastTracked = null;
     tracking = null;
     historyRevision++;
+    historyHydration = null;
+    historyProductsKey = '';
     state.address = null;
     state.favorites = [];
     state.favoriteSKUs = [];
@@ -182,7 +186,6 @@
     const version = refreshVersion,
       owner = memberScope(),
       historyReadRevision = historyRevision,
-      previousHistoryRead = { ...readStates.history },
       pending = {};
     inFlight = pending;
     resourceNames.forEach((key) => {
@@ -285,18 +288,9 @@
         ];
       }
       if (history) {
-        try {
-          await hydrateHistory(
-            history.items || [],
-            () => version === refreshVersion && owner === memberScope() && loggedIn(),
-          );
-          if (version !== refreshVersion || owner !== memberScope() || !loggedIn()) return model();
-          const rows = (history.items || []).map(historyRow);
-          memory.history = historyReadRevision === historyRevision ? rows : mergeHistory(memory.history, rows);
-        } catch (error) {
-          if (version !== refreshVersion || owner !== memberScope() || !loggedIn()) return model();
-          readStates.history = { ...readStates.history, loaded: previousHistoryRead.loaded || memory.history.length > 0, error: error.message || '浏览足迹商品加载失败' };
-        }
+        const rows = (history.items || []).map(historyRow);
+        memory.history = historyReadRevision === historyRevision ? rows : mergeHistory(memory.history, rows);
+        historyProductsKey = '';
       }
       if (reviews)
         memory.reviews = (reviews.items || []).map((r) => ({
@@ -751,9 +745,45 @@
       if (product?.id && !findProduct(product.id)) products.push(product);
     }
   }
+  function ensureHistoryProducts() {
+    if (!loggedIn() || readStates.history.error) return;
+    const owner = memberScope(),
+      version = refreshVersion;
+    const key = owner + '|' + JSON.stringify(memory.history.map((row) => row.sku_id));
+    if (historyHydration?.key === key) return historyHydration.promise;
+    if (
+      !readStates.history.loaded ||
+      historyProductsKey === key ||
+      memory.history.every((row) => findProduct(row.sku_id))
+    )
+      return;
+    const active = () => version === refreshVersion && owner === memberScope() && loggedIn();
+    const visible = memory.history.some((row) => findProduct(row.id));
+    const entry = { key, promise: null };
+    historyHydration = entry;
+    readStates.history = { loading: true, loaded: visible, error: '' };
+    entry.promise = (async () => {
+      try {
+        await hydrateHistory(memory.history, active);
+        if (!active()) return;
+        memory.history = memory.history.map((row) => ({ ...row, id: viewId(row.sku_id) }));
+        historyProductsKey = key;
+        readStates.history = { loading: false, loaded: true, error: '' };
+      } catch (error) {
+        if (active())
+          readStates.history = { loading: false, loaded: visible, error: error.message || '浏览足迹商品加载失败' };
+      } finally {
+        if (historyHydration === entry) historyHydration = null;
+        if (active() && location.hash.startsWith('#/member/history')) redraw();
+      }
+    })();
+    redraw();
+    return entry.promise;
+  }
   function track(productId) {
     if (memoryScope !== memberScope()) reset();
-    if (!loggedIn() || !findProduct(productId)) return Promise.resolve(false);
+    const product = findProduct(productId);
+    if (!loggedIn() || !product) return Promise.resolve(false);
     const owner = memberScope(),
       version = refreshVersion,
       key = owner + '|' + productId;
@@ -763,7 +793,7 @@
     const active = () => version === refreshVersion && owner === memberScope() && loggedIn();
     entry.promise = (async () => {
       const result = await call(C.Service.Engagement, C.Action.Put, {
-        data: { kind: C.EngagementKind.History, sku_id: skuFor({ id: productId }) },
+        data: { kind: C.EngagementKind.History, sku_id: product.skuId || product.sku_id || product.id },
       });
       if (!active()) return false;
       if (!result.id || !result.sku_id || (result.user_id && result.user_id !== principal()))
@@ -784,6 +814,11 @@
     if (memoryScope !== memberScope()) reset();
     const route = (location.hash || '#/').slice(2).split('/'),
       id = route[0] === 'product' ? route[1] : null;
+    if (route[0] === 'member' && route[1] === 'history') {
+      lastTracked = null;
+      void ensureHistoryProducts();
+      return;
+    }
     if (!id) {
       lastTracked = null;
       return;

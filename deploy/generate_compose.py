@@ -118,8 +118,7 @@ services = {
             'MINIO_ROOT_USER': '${MINIO_ACCESS_KEY:-lumo_minio_local}',
             'MINIO_ROOT_PASSWORD': '${MINIO_SECRET_KEY:-lumo_minio_local_secret_2026}',
             'MINIO_API_CORS_ALLOW_ORIGIN': (
-                '${MINIO_CORS_ORIGINS:-http://localhost:${WEB_PORT:-8080},'
-                'http://127.0.0.1:${WEB_PORT:-8080}}'
+                '${MINIO_CORS_ORIGINS:-http://localhost:${WEB_PORT:-8080},' 'http://127.0.0.1:${WEB_PORT:-8080}}'
             ),
         },
         'volumes': ['minio-data:/data'],

@@ -8,11 +8,13 @@
 
 每个进程的资源属性 `service.instance.id` 与其Consul实例ID一致，结构化日志同时包含 `instance_id`。默认值由服务名、hostname和监听端口组成；显式设置 `CONSUL_SERVICE_ID` 时沿用该值。服务增加副本后，可按实例区分流量、错误及耗时，并对应到注册中心的具体地址；多个副本仍使用相同 `service.name`。
 
-HTTP 入口、网关分发/转发和 RPC 边界 span 还会记录 `lumo.target_service`（本次请求的目标领域服务，如 `catalog`）与 `lumo.action`（业务动作，如 `list`）；自动 gRPC client span 记录固定的 `lumo.target_service` 和 `peer.service`。在 Jaeger 中可按这些标签检索、区分共用 `DomainService.Execute` 的领域服务。`service.name` 仍表示产生 span 的进程，标准 `rpc.service` 仍表示 protobuf 服务，不用目标名称覆盖它们。
+HTTP 入口、网关分发/转发和 RPC 边界 span 还会记录 `lumo.target_service`（本次请求的目标领域服务，如 `catalog`）与 `lumo.action`（业务动作，如 `list`）；自动 gRPC client span 记录固定的 `lumo.target_service` 和 `peer.service`。在 Jaeger 中可按这些标签检索领域服务与业务动作；标准gRPC span同时显示专属服务和方法。`service.name` 仍表示产生 span 的进程，标准 `rpc.service` 仍表示 protobuf 服务，不用目标名称覆盖它们。
 
 HTTP 路由标签只取已开放路由，RPC 服务端以实际模块名为准，不采信浏览器或 RPC metadata 提供的服务名。入口目标与鉴权子调用分别记录：例如访问 `member/get` 时，HTTP span 的目标为 `member`，校验登录态的 RPC 目标为 `iam`。无效 RPC action 使用固定 `unknown`，不将未通过长度校验的原始值写入业务 span 名称或动作标签。请求及返回值使用下述独立脱敏属性。
 
-订单新调用的自动gRPC span为 `mall.v1.OrderService/GetOrder`、`mall.v1.OrderService/AcceptPayment` 等，标准 `rpc.service` 为 `mall.v1.OrderService`；`lumo.target_service=order` 和 `lumo.action=get/accept_payment` 继续保留。新旧接口共用鉴权与链路传播，旧实例缺少专属方法时可看到兼容Execute调用。
+30个领域服务均使用独立RPC，例如 `mall.v1.CheckoutService/Submit`、`mall.v1.InventoryService/Reserve`、`mall.v1.CatalogService/BatchGet`。订单的自动gRPC span为 `mall.v1.OrderService/GetOrder`、`mall.v1.OrderService/AcceptPayment` 等，标准 `rpc.service` 为 `mall.v1.OrderService`；`lumo.target_service=order` 和 `lumo.action=get/accept_payment` 继续保留。新旧接口共用鉴权与链路传播，旧实例明确缺少专属方法时可看到兼容Execute调用；业务失败或超时不会通过Execute重放。
+
+独立Nginx前端直接提供HTML、JS、CSS和图片，这些请求不进入Go网关或生成后端Trace；同源 `/api/` 请求继续进入网关和领域RPC。开发运行器显式加载静态目录只供隔离测试/本机调试。
 
 ## 调用入参与返回值
 
@@ -33,8 +35,8 @@ HTTP 路由标签只取已开放路由，RPC 服务端以实际模块名为准�
 | --- | --- | --- |
 | HTTP | 路由、状态、总耗时 | 入站追踪上下文 / 新根 |
 | Gateway | 鉴权、路由、RPC转发 | HTTP span |
-| gRPC client / server | 被调用服务、Execute、状态、网络耗时 | 调用层 / RPC传播 |
-| transport | 动作校验和分发 | gRPC server |
+| gRPC client / server | 专属服务与方法、状态、网络耗时 | 调用层 / RPC传播 |
+| transport | 请求边界校验和方法绑定 | gRPC server |
 | usecase | 报价、预占、订单状态与补偿流程 | transport |
 | repository | 事务、查询、条件更新等仓储操作 | usecase |
 | GORM SQL | 参数化SQL模板、表、执行耗时、行数、错误 | 当前 repository / transaction |

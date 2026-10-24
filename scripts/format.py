@@ -110,7 +110,7 @@ def source_files():
     )
     shell_files = sorted(
         path.relative_to(ROOT).as_posix()
-        for directory in (".", "scripts", "deploy/mysql")
+        for directory in (".", "scripts", "deploy/mysql", "web")
         for pattern in ("*.sh", "*.command")
         for path in (ROOT / directory).glob(pattern)
     )

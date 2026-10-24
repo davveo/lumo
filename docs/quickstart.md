@@ -3,7 +3,7 @@
 1. 下载新版压缩包，在桌面创建空目录 `lumo-mall-0.2.2`，解压到其中。
 2. 启动 Docker Desktop，执行 `cd ~/Desktop/lumo-mall-0.2.2/lumo-backend && sh start.sh`。
    macOS 也可双击项目根目录的 `start.command`；旧命令 `sh scripts/up.sh` 和 `make up` 继续可用。
-3. 访问 http://localhost:8080 使用商城；管理端为 `/admin.html`，接口联调台为 `/debug`，Consul 注册中心位于 http://localhost:8500/ui/，Jaeger 位于 http://localhost:16686。
+3. 访问 http://localhost:8080 使用商城；管理端为 `/admin.html`，接口联调台为 http://localhost:18080/debug，Consul 注册中心位于 http://localhost:8500/ui/，Jaeger 位于 http://localhost:16686。
 4. 执行 `sh scripts/smoke.sh` 检查登录、商品读取、报价、下单和 trace_id。
 
 启动无需在电脑上安装 Go、protoc、MySQL、Redis 、RabbitMQ 或 MinIO；这些由镜像构建和 Compose 提供。`smoke.sh` 额外需要 curl 和 Python 3，只用于解析和打印冒烟请求，不是服务运行依赖。
@@ -15,14 +15,15 @@ sh start.sh --no-build
 sh start.sh --wait-timeout 900
 sh start.sh order
 sh start.sh order payment
+sh start.sh web
 docker compose ps
-docker compose logs -f gateway checkout inventory
+docker compose logs -f web gateway checkout inventory
 sh scripts/down.sh
 ```
 
-重复执行 `sh start.sh` 自动检测变化，保留已运行中间件。新版第一次运行会为业务容器建立部署基线，后续仅更新变化的业务服务。保留当前工程的 `.local/start`；删除记录会再次触发业务基线初始化。中间件配置修改默认不应用到运行中的容器，需要更新时显式使用 `sh start.sh --update-infra`。
+重复执行 `sh start.sh` 自动检测变化，保留已运行中间件。新版第一次运行会为业务容器建立部署基线，后续仅更新变化的服务。页面或Nginx修改只构建/更新 `web`，Go代码修改只构建/更新受影响后端；详见 [增量启动说明](docker-start.md)。保留当前工程的 `.local/start`；删除记录会再次触发业务基线初始化。中间件配置修改默认不应用到运行中的容器，需要更新时显式使用 `sh start.sh --update-infra`。
 
-`.env.example` 中的变量都有本地开发默认值。若修改 `GATEWAY_PORT` 等端口，需同时在浏览器和 `BASE_URL` 中使用新端口；启动脚本会按实际 Docker 端口映射输出访问地址。新版 `.env.example` 的 MinIO 上传来源自动引用 `GATEWAY_PORT`，签名地址引用 `MINIO_API_PORT`；如果沿用旧 `.env` 中写死的值，需要一起更新。DSN 用 UTC 并启用 `parseTime`。
+`.env.example` 中的变量都有本地开发默认值。商城端口由 `WEB_PORT` 控制（默认8080），直接API及联调台端口由 `GATEWAY_PORT` 控制（默认18080）。修改商城端口后，在浏览器和走同源代理的 `BASE_URL` 中使用新端口；`BASE_URL` 也可直接指向API网关；启动脚本会按实际 Docker 端口映射输出访问地址。新版 `.env.example` 的 MinIO 上传来源自动引用 `WEB_PORT`，签名地址引用 `MINIO_API_PORT`；如果沿用旧 `.env` 中写死的值，需要一起更新。DSN 用 UTC 并启用 `parseTime`。
 
 MySQL 初始化在数据卷为空时创建30个 schema 和独立用户。以后修改数据库密码不会自动修改已存在卷中的用户密码，应通过数据库管理流程更新，不能只改 `.env` 并期待初始化脚本再次执行。项目启停脚本不会隐式删除卷。
 
@@ -55,7 +56,7 @@ sh start.sh search
 
 每个副本注册自己的容器地址和实例ID，其他服务无需修改目标地址或重启，gRPC客户端持续发现并分摊请求。再次执行启动脚本会检查全部已有副本并保留数量；恢复单实例可执行 `docker compose up -d --no-deps --no-build --scale search=1 --wait search`。Consul健康检查及客户端刷新存在短暂传播时间，刚启动的实例须先通过检查才会加入。
 
-此命令用于30个领域服务。默认网关占用一个固定宿主机端口；部署多个网关时需由外部负载均衡入口转发到各实例。生产环境的Consul、数据库和消息队列也应按各自容量与高可用要求部署；本机Compose仍使用单实例中间件。
+此命令用于30个领域服务。默认网关和前端各占用一个固定宿主机端口；部署多个网关或前端实例时需移除冲突的固定映射，并由外部负载均衡入口转发。生产环境的Consul、数据库和消息队列也应按各自容量与高可用要求部署；本机Compose仍使用单实例中间件。
 
 ## 排查启动失败
 
@@ -80,3 +81,5 @@ sh scripts/test-frontend.sh
 此开发入口需要 C 编译器，因为 SQLite 驱动使用 CGO；不能用 CGO_ENABLED=0 构建的 devstack 运行 SQLite。它为30个服务创建独立的本地数据库和真实 TCP gRPC 服务，并用持久化本地事件派发替代 RabbitMQ。不用于证明 Docker、MySQL、Redis、RabbitMQ、MinIO 或 Jaeger 已启动。默认数据写入 `.local/devstack`；可用 DEVSTACK_DATA_DIR 指定开发数据目录。完整依赖验证仍使用 Compose。
 
 若之前已有同名项目，请将新版解压到一个新目录后比较合并，保留旧项目 `.env` 与数据库卷；不要把解压的无覆盖提示当作升级已成功。
+
+内部调用以30个专属protobuf服务的独立RPC方法为准；新增操作的用例、注册表和生成步骤见 [独立RPC方法说明](rpc-methods.md)。

@@ -48,7 +48,12 @@ func TestAllServicesExposeTheirCompleteNamedRPCContract(t *testing.T) {
 		t.Fatal("method inventory omits a deployed service")
 	}
 	actions := map[string]string{}
-	definitions, err := parser.ParseFile(token.NewFileSet(), filepath.Join(root, "internal/constants/actions.go"), nil, 0)
+	definitions, err := parser.ParseFile(
+		token.NewFileSet(),
+		filepath.Join(root, "internal/constants/actions.go"),
+		nil,
+		0,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +96,12 @@ func TestAllServicesExposeTheirCompleteNamedRPCContract(t *testing.T) {
 				wireMethods[method.Name] = true
 			}
 			bindings := map[string]string{}
-			handler, err := parser.ParseFile(token.NewFileSet(), filepath.Join(root, "services", spec.Service, "internal/transport/handler.go"), nil, 0)
+			handler, err := parser.ParseFile(
+				token.NewFileSet(),
+				filepath.Join(root, "services", spec.Service, "internal/transport/handler.go"),
+				nil,
+				0,
+			)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -124,7 +134,8 @@ func TestAllServicesExposeTheirCompleteNamedRPCContract(t *testing.T) {
 			})
 			for _, method := range spec.Methods {
 				action, ok := actions[method.Action]
-				if !ok || module.Operations[action] == nil || !wireMethods[method.Method] || bindings[method.Action] != method.Method {
+				if !ok || module.Operations[action] == nil || !wireMethods[method.Method] ||
+					bindings[method.Action] != method.Method {
 					t.Fatalf("%s is not directly bound to %s in both usecase and RPC", method.Action, method.Method)
 				}
 			}

@@ -1,8 +1,8 @@
 # 独立部署前端时的 API 跨域配置
 
-Docker 一键启动后，商城页面和 `/api/v1/` 均由 `http://localhost:8080` 的网关提供，同源调用不需要跨域配置。默认 `CORS_ALLOWED_ORIGINS` 为空。
+Docker 一键启动后，独立 `web` 容器在 `http://localhost:8080` 提供商城页面，并将 `/api/v1/` 同源代理到Go网关；同源调用不需要跨域配置。Go网关直接API端口默认18080，`CORS_ALLOWED_ORIGINS` 默认为空。
 
-如果前端独立部署，在网关的 `.env` 中设置完整、精确的前端 Origin，例如：
+如果浏览器从另一个Origin直接调用API，而非使用同源反向代理，在网关的 `.env` 中设置完整、精确的前端 Origin，例如：
 
 ```dotenv
 CORS_ALLOWED_ORIGINS=https://shop.example.com,https://preview.example.com

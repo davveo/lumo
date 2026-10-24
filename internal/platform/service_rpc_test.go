@@ -107,7 +107,9 @@ func TestNamedRPCValidatesCredentialPayloadAndPreservesErrors(t *testing.T) {
 	}
 	authorized := metadata.AppendToOutgoingContext(context.Background(), rpcTokenHeader, "named-test-token")
 	for _, payload := range []string{`{`, `[]`, `{} {}`, `null {}`} {
-		if _, err := wire.Get(authorized, &mallv1.ServiceRequest{PayloadJson: []byte(payload)}); status.Code(err) != codes.InvalidArgument {
+		if _, err := wire.Get(authorized, &mallv1.ServiceRequest{PayloadJson: []byte(payload)}); status.Code(
+			err,
+		) != codes.InvalidArgument {
 			t.Fatalf("invalid JSON %q reached method: %v", payload, err)
 		}
 	}
@@ -127,7 +129,9 @@ func TestNamedRPCValidatesCredentialPayloadAndPreservesErrors(t *testing.T) {
 	if status.Code(err) != codes.DeadlineExceeded || legacy.Load() != 0 {
 		t.Fatalf("deadline was replayed or changed: %v, legacy=%d", err, legacy.Load())
 	}
-	if _, err := caller.Invoke(context.Background(), constants.ServiceCatalog, "Missing", Request{}); status.Code(err) != codes.Unimplemented {
+	if _, err := caller.Invoke(context.Background(), constants.ServiceCatalog, "Missing", Request{}); status.Code(
+		err,
+	) != codes.Unimplemented {
 		t.Fatalf("unknown named method accepted: %v", err)
 	}
 }
@@ -142,7 +146,8 @@ func TestNamedRPCFallsBackOnlyForAnOlderExecuteOnlyServer(t *testing.T) {
 	result, err := NewClients(methodTestCaller(connection, constants.ServiceCatalog)).Catalog.Get(
 		context.Background(), Request{ID: "legacy-record"},
 	)
-	if err != nil || Text(result, "operation") != constants.ActionGet || Text(result, "id") != "legacy-record" || calls.Load() != 1 {
+	if err != nil || Text(result, "operation") != constants.ActionGet || Text(result, "id") != "legacy-record" ||
+		calls.Load() != 1 {
 		t.Fatalf("rolling upgrade compatibility failed: %v %v calls=%d", result, err, calls.Load())
 	}
 }

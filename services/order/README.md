@@ -1,6 +1,6 @@
 # 订单服务
 
-订单使用独立的 `OrderService` protobuf/gRPC 契约，不再在业务层通过 `Command.Action` 分发。此次迁移覆盖订单的15个操作，其余领域服务仍保留原协议。
+订单使用独立的 `OrderService` protobuf/gRPC 契约，不再在业务层通过 `Command.Action` 分发。订单包含15个独立操作；其余29个领域服务也已迁移为专属RPC与独立Go用例，完整约定见 [独立RPC方法说明](../../docs/rpc-methods.md)。
 
 ## 分层
 
@@ -22,3 +22,21 @@
 先定义请求/响应与独立RPC，再增加对应的Go用例方法及transport映射；需要旧HTTP兼容时只在边界增加一条适配路由。鉴权、Trace、行锁与Outbox继续复用共同设施，避免把操作内容重新堆进dispatcher。在已有状态回归基础上验证新操作的权限、幂等、事件及回滚边界。
 
 执行 `make proto` 生成代码；验证使用 `go test ./services/order ./internal/platform ./tests` 和订单/平台的race测试，前端兼容链路由 `sh scripts/test-frontend.sh` 覆盖。测试使用独立数据库，不修改运行订单。
+
+## 方法入口
+
+- `List` → `OrderService.ListOrders`
+- `Get` → `OrderService.GetOrder`
+- `Create` → `OrderService.CreateOrder`
+- `Pending` → `OrderService.MarkPending`
+- `CreateFailed` → `OrderService.MarkCreateFailed`
+- `AcceptPayment` → `OrderService.AcceptPayment`
+- `Ready` → `OrderService.MarkReady`
+- `WaitGroup` → `OrderService.WaitForGroup`
+- `CloseBegin` → `OrderService.BeginClose`
+- `CloseComplete` → `OrderService.CompleteClose`
+- `GroupFormed` → `OrderService.MarkGroupFormed`
+- `GroupFailed` → `OrderService.MarkGroupFailed`
+- `Shipped` → `OrderService.MarkShipped`
+- `Complete` → `OrderService.CompleteOrder`
+- `Refunded` → `OrderService.RecordRefund`

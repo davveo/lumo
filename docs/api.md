@@ -6,7 +6,17 @@
 
 订单使用 `api/mall/v1/order.proto` 的独立 `OrderService`：`ListOrders`、`GetOrder`、`CreateOrder`、`MarkPending`、`MarkCreateFailed`、`AcceptPayment`、`MarkReady`、`WaitForGroup`、`BeginClose`、`CompleteClose`、`MarkGroupFormed`、`MarkGroupFailed`、`MarkShipped`、`CompleteOrder`、`RecordRefund`。每个方法使用明确的protobuf请求/响应，金额为int64、时间为Timestamp；报价/地址是校验后保留的历史JSON快照，避免经过Struct丢失整数精度。
 
-新方法与旧 `DomainService.Execute` 由同一内部凭证保护，并调用相同的独立订单用例。`list/get/complete` 沿用本人及管理员权限，其余写入仅内部角色使用；HTTP仍只开放订单 `list/get/complete`。旧调用兼容映射到新RPC，未迁移领域继续使用原协议；不会通过新增方法将内部订单裁决暴露给浏览器。具体分层和扩展方式见 `services/order/README.md`。
+新方法与旧 `DomainService.Execute` 由同一内部凭证保护，并调用相同的独立订单用例。`list/get/complete` 沿用本人及管理员权限，其余写入仅内部角色使用；HTTP仍只开放订单 `list/get/complete`。旧调用兼容映射到新RPC；不会通过新增方法将内部订单裁决暴露给浏览器。具体分层和扩展方式见 `services/order/README.md`。
+
+其余29个领域服务也均使用独立的protobuf服务与方法，例如 `mall.v1.CheckoutService/Submit`、
+`mall.v1.InventoryService/Reserve`、`mall.v1.CatalogService/BatchGet`。请求类型 `ServiceRequest` 只有对象ID、
+可信主体、幂等键和JSON业务载荷，不含action；返回 `ServiceResponse.payload_json` 保留现有业务字段及整数精度。
+方法直接绑定独立Go用例，业务层不再接收 `Command` 或按action分发。订单使用上述强类型专属消息；
+29个服务的业务载荷仍为JSON，字段校验在各自用例完成。当前30服务共162个RPC，完整清单在
+`api/mall/v1/service_methods.json` 维护，新增与扩展步骤见 [独立RPC方法说明](rpc-methods.md)。
+
+生产调用优先独立方法，只有服务端明确缺少专属服务/方法时才允许回退旧Execute；业务错误、鉴权失败、
+网络错误或超时不会通过兼容入口重放。HTTP动作与白名单保留，公开HTTP路由不等于全部内部RPC。
 
 ## 请求、响应和认证
 

@@ -7,12 +7,13 @@ import (
 )
 
 func New(s *usecase.Service) *platform.MethodHandler {
-	return platform.NewMethodHandler(constants.ServiceCart, map[string]platform.Operation{
-		constants.ActionList:   s.List,
-		constants.ActionAdd:    s.Add,
-		constants.ActionSet:    s.Set,
-		constants.ActionRemove: s.Remove,
-		constants.ActionClear:  s.Clear,
-		constants.ActionMerge:  s.Merge,
-	}, nil)
+	return platform.NewMethodHandler(constants.ServiceCart,
+		map[string]platform.Operation{
+			constants.ActionList:   s.List,
+			constants.ActionAdd:    s.Add,
+			constants.ActionSet:    s.Set,
+			constants.ActionRemove: s.Remove,
+			constants.ActionClear:  s.Clear,
+			constants.ActionMerge:  s.Merge,
+		}, nil)
 }

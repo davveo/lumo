@@ -491,6 +491,9 @@ test('detail footprints wait for hydrated products and persist once before refre
   f.member.afterRender();
   assert.equal(f.calls.length, 0, 'unloaded detail must not be marked as already tracked');
   f.app.ctx.products.push({ id: 'outside-bootstrap', skuId: 'outside-default', name: '真实新增商品' });
+  f.app.ctx.LumoCommerce.skuForItem = () => {
+    throw Error('cannot resolve a color/option-less purchase selection');
+  };
   f.setHandler(async (service, action, command) => {
     assert.equal(service + '/' + action, 'engagement/put');
     assert.equal(command.data.sku_id, 'outside-default');
@@ -571,6 +574,14 @@ test('historical products beyond the bootstrap window hydrate with bounded SKU a
     return { items: [] };
   });
   await f.member.refresh();
+  assert.equal(
+    f.calls.filter((row) => row.service === 'catalog').length,
+    0,
+    'homepage must consume only its bootstrap fragments',
+  );
+  f.app.ctx.location.hash = '#/member/history';
+  f.member.afterRender();
+  await tick();
   assert.equal(f.member.model().history[0].id, 'old-parent');
   assert.equal(f.app.ctx.products[0].name, '目录百条之外的真实商品');
   assert.equal(f.calls.filter((row) => row.service === 'catalog').length, 2);
@@ -594,4 +605,50 @@ test('a history list started before a successful detail write cannot erase the n
   listing.resolve({ items: [] });
   await refresh;
   assert.equal(f.member.model().history[0].recordId, 'new-history');
+});
+
+test('history metadata failures show a retryable error instead of a false empty footprint page', async (t) => {
+  const f = fixture();
+  t.after(() => f.dispose());
+  f.app.ctx.LumoCommerce.normalizeProduct = (raw) => raw;
+  f.setHandler(async (service, action, command) => {
+    if (service === 'catalog') throw Error('历史商品读取失败');
+    if (service === 'engagement' && command.data.kind === 'history')
+      return { items: [{ id: 'history-existing', sku_id: 'not-in-bootstrap', user_id: 'buyer' }] };
+    return { items: [] };
+  });
+  await f.member.refresh();
+  assert.equal(
+    f.calls.filter((row) => row.service === 'catalog').length,
+    0,
+    'homepage must consume only its bootstrap fragments',
+  );
+  f.app.ctx.location.hash = '#/member/history';
+  f.member.afterRender();
+  await tick();
+  assert.equal(f.member.readState('history').loaded, false);
+  assert.match(f.view('history'), /历史商品读取失败/);
+  assert.doesNotMatch(f.view('history'), /还没有浏览足迹/);
+});
+
+test('a late earlier detail visit cannot make the current successfully tracked product write again', async (t) => {
+  const f = fixture();
+  t.after(() => f.dispose());
+  const earlier = deferred(),
+    current = deferred();
+  f.app.ctx.products.push({ id: 'earlier', name: '先看商品' }, { id: 'current', name: '当前商品' });
+  f.setHandler(async (_service, _action, command) =>
+    command.data.sku_id === 'earlier' ? earlier.promise : current.promise,
+  );
+  f.app.ctx.location.hash = '#/product/earlier';
+  f.member.afterRender();
+  f.app.ctx.location.hash = '#/product/current';
+  f.member.afterRender();
+  current.resolve({ id: 'current-record', user_id: 'buyer', sku_id: 'current' });
+  await tick();
+  earlier.resolve({ id: 'earlier-record', user_id: 'buyer', sku_id: 'earlier' });
+  await tick();
+  f.member.afterRender();
+  await tick();
+  assert.equal(f.calls.length, 2, 'late earlier visit must not overwrite the current visit marker');
 });

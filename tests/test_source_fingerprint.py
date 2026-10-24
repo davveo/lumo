@@ -69,7 +69,17 @@ class SourceFingerprintTests(unittest.TestCase):
     def all_digests(self) -> dict[str, str]:
         return {
             name: self.digest(name)
-            for name in ("order", "catalog", "inventory", "payment", "gateway", "web", "--image", "--minio", "--observability")
+            for name in (
+                "order",
+                "catalog",
+                "inventory",
+                "payment",
+                "gateway",
+                "web",
+                "--image",
+                "--minio",
+                "--observability",
+            )
         }
 
     def changed_by(self, name: str, contents: str) -> set[str]:
@@ -84,12 +94,16 @@ class SourceFingerprintTests(unittest.TestCase):
         )
 
     def test_frontend_changes_update_only_the_frontend_image(self) -> None:
-        self.assertEqual(
-            self.changed_by("web/dist/assets/item with spaces.jpg", "changed image bytes"), {"web"}
-        )
+        self.assertEqual(self.changed_by("web/dist/assets/item with spaces.jpg", "changed image bytes"), {"web"})
 
     def test_frontend_recipe_and_proxy_configuration_have_only_one_owner(self) -> None:
-        for path in ("web/Dockerfile", "web/entrypoint.sh", "web/.dockerignore", "web/nginx/default.conf.template", "web/nginx/proxy.conf"):
+        for path in (
+            "web/Dockerfile",
+            "web/entrypoint.sh",
+            "web/.dockerignore",
+            "web/nginx/default.conf.template",
+            "web/nginx/proxy.conf",
+        ):
             with self.subTest(path=path):
                 self.assertEqual(self.changed_by(path, "updated frontend serving configuration\n"), {"web"})
 

@@ -24,7 +24,8 @@ func TestProductionGatewayDoesNotServeFrontendAssets(t *testing.T) {
 	for _, path := range []string{"/", "/index.html", "/admin.html", "/app.js", "/styles.css"} {
 		response := httptest.NewRecorder()
 		handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, path, nil))
-		if response.Code != http.StatusNotFound || strings.Contains(response.Body.String(), "private frontend fixture") {
+		if response.Code != http.StatusNotFound ||
+			strings.Contains(response.Body.String(), "private frontend fixture") {
 			t.Fatalf("API-only gateway served storefront path %s: %d", path, response.Code)
 		}
 	}

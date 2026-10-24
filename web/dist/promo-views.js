@@ -61,26 +61,23 @@
       pagingOwner = owner;
     }
   }
-  function pagination(position) {
+  function pagination() {
     const pages = Math.max(1, Math.ceil(pageTotal / PAGE_SIZE));
     if (pages === 1) return '';
     const button = (page, label, content, disabled = false, current = false) =>
       `<button type="button" data-promo-page="${page}" data-promo-page-revision="${pagingRevision}" aria-label="${label}"${disabled ? ' disabled' : ''}${current ? ' class="active" aria-current="page"' : ''}>${content}</button>`;
-    let numbers = '';
-    if (position === 'bottom') {
-      const visible = [
-        ...new Set([1, displayPage - 1, displayPage, displayPage + 1, pages].filter((n) => n >= 1 && n <= pages)),
-      ].sort((a, b) => a - b);
-      let previous = 0;
-      numbers = visible
-        .map((page) => {
-          const gap = previous && page - previous > 1 ? '<span class="promo-page-gap" aria-hidden="true">…</span>' : '';
-          previous = page;
-          return gap + button(page, `第 ${page} 页活动商品`, String(page), false, page === displayPage);
-        })
-        .join('');
-    }
-    return `<nav class="promo-pagination is-${position}" aria-label="活动商品分页（${position === 'top' ? '顶部' : '底部'}）">${button(displayPage - 1, '上一页活动商品', icon('back'), displayPage === 1)}${numbers}<span class="promo-page-count">第 <strong>${displayPage}</strong> / ${pages} 页</span>${button(displayPage + 1, '下一页活动商品', icon('chevron'), displayPage === pages)}</nav>`;
+    const visible = [
+      ...new Set([1, displayPage - 1, displayPage, displayPage + 1, pages].filter((n) => n >= 1 && n <= pages)),
+    ].sort((a, b) => a - b);
+    let previous = 0;
+    const numbers = visible
+      .map((page) => {
+        const gap = previous && page - previous > 1 ? '<span class="promo-page-gap" aria-hidden="true">…</span>' : '';
+        previous = page;
+        return gap + button(page, `第 ${page} 页活动商品`, String(page), false, page === displayPage);
+      })
+      .join('');
+    return `<nav class="promo-pagination is-bottom" aria-label="活动商品分页（底部）">${button(displayPage - 1, '上一页活动商品', icon('back'), displayPage === 1)}${numbers}<span class="promo-page-count">第 <strong>${displayPage}</strong> / ${pages} 页</span>${button(displayPage + 1, '下一页活动商品', icon('chevron'), displayPage === pages)}</nav>`;
   }
   function pagedList(items, card, className = 'promo-grid', empty = '当前暂无活动商品。', groups = false) {
     pageTotal = items.length;
@@ -90,7 +87,7 @@
     const start = (displayPage - 1) * PAGE_SIZE,
       shown = items.slice(start, start + PAGE_SIZE),
       unit = groups ? '个' : '件';
-    return `<div class="promo-results-head"><p role="status">共 ${pageTotal} ${groups ? '个拼团' : '件好物'}<span> · 当前显示 ${start + 1}–${start + shown.length} ${unit}</span></p></div><div class="${className}">${shown.map(card).join('')}</div>${pagination('bottom')}`;
+    return `<div class="promo-results-head"><p role="status">共 ${pageTotal} ${groups ? '个拼团' : '件好物'}<span> · 当前显示 ${start + 1}–${start + shown.length} ${unit}</span></p></div><div class="${className}">${shown.map(card).join('')}</div>${pagination()}`;
   }
   function timer(endAt) {
     if (!(Number(endAt) > 0)) return '以活动配置为准';

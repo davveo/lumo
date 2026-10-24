@@ -74,11 +74,23 @@ class WebProxyTests(unittest.TestCase):
             shutil.copy2(PROJECT / "web" / "dist" / name, static / name)
         (static / "cache-fixture.deadbeef.js").write_text("const fixture = true;\n")
         cls.web = cls.docker(
-            "run", "--rm", "-d", "--read-only", "--no-healthcheck", "--tmpfs", "/tmp:size=32m",
-            "--tmpfs", "/etc/nginx/conf.d:size=1m",
-            "--network", cls.network, "-p", "127.0.0.1::8080",
-            "-e", "GATEWAY_UPSTREAM=gateway:8080",
-            "-v", f"{static}:/usr/share/nginx/html:ro",
+            "run",
+            "--rm",
+            "-d",
+            "--read-only",
+            "--no-healthcheck",
+            "--tmpfs",
+            "/tmp:size=32m",
+            "--tmpfs",
+            "/etc/nginx/conf.d:size=1m",
+            "--network",
+            cls.network,
+            "-p",
+            "127.0.0.1::8080",
+            "-e",
+            "GATEWAY_UPSTREAM=gateway:8080",
+            "-v",
+            f"{static}:/usr/share/nginx/html:ro",
             cls.image,
         )
         cls.containers.append(cls.web)
@@ -89,9 +101,21 @@ class WebProxyTests(unittest.TestCase):
     @classmethod
     def start_peer(cls, source: str) -> str:
         peer = cls.docker(
-            "run", "--rm", "-d", "--no-healthcheck", "--network", cls.network,
-            "--network-alias", "gateway", "-e", "PEER_SOURCE=" + source,
-            "--entrypoint", "/peer", "-v", f"{cls.root / 'peer'}:/peer:ro", cls.image,
+            "run",
+            "--rm",
+            "-d",
+            "--no-healthcheck",
+            "--network",
+            cls.network,
+            "--network-alias",
+            "gateway",
+            "-e",
+            "PEER_SOURCE=" + source,
+            "--entrypoint",
+            "/peer",
+            "-v",
+            f"{cls.root / 'peer'}:/peer:ro",
+            cls.image,
         )
         cls.containers.append(peer)
         return peer
@@ -129,8 +153,10 @@ class WebProxyTests(unittest.TestCase):
         opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
         payload = b'{"data":{"query":"phone"}}'
         status, headers, body = self.request(
-            "/api/v1/catalog/list?limit=6", payload,
-            {"Authorization": "Bearer fixture-token", "Content-Type": "application/json"}, opener,
+            "/api/v1/catalog/list?limit=6",
+            payload,
+            {"Authorization": "Bearer fixture-token", "Content-Type": "application/json"},
+            opener,
         )
         self.assertEqual(status, 200)
         data = json.loads(body)
@@ -157,9 +183,22 @@ class WebProxyTests(unittest.TestCase):
     def test_invalid_upstream_is_rejected_before_nginx_starts(self):
         for upstream in ("gateway:0", "gateway:99999", "gateway:8080;malformed"):
             result = subprocess.run(
-                ["docker", "run", "--rm", "--read-only", "--tmpfs", "/tmp:size=32m",
-                 "--tmpfs", "/etc/nginx/conf.d:size=1m", "-e", "GATEWAY_UPSTREAM=" + upstream, self.image],
-                capture_output=True, text=True, timeout=15,
+                [
+                    "docker",
+                    "run",
+                    "--rm",
+                    "--read-only",
+                    "--tmpfs",
+                    "/tmp:size=32m",
+                    "--tmpfs",
+                    "/etc/nginx/conf.d:size=1m",
+                    "-e",
+                    "GATEWAY_UPSTREAM=" + upstream,
+                    self.image,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=15,
             )
             self.assertNotEqual(result.returncode, 0, upstream)
             self.assertIn("GATEWAY_UPSTREAM", result.stderr)
@@ -177,7 +216,15 @@ class WebProxyTests(unittest.TestCase):
         self.assertNotIn("immutable", self.request("/app.js?v=release-1")[1]["Cache-Control"])
         self.assertEqual(self.request("/index.html?v=release-1")[1]["Cache-Control"], "no-cache")
         self.assertIn("immutable", self.request("/cache-fixture.deadbeef.js")[1]["Cache-Control"])
-        for path in ("/missing.js", "/missing.deadbeef.js", "/missing.css", "/missing.png", "/unknown-route", "/.env", "/%2e%2e/etc/passwd"):
+        for path in (
+            "/missing.js",
+            "/missing.deadbeef.js",
+            "/missing.css",
+            "/missing.png",
+            "/unknown-route",
+            "/.env",
+            "/%2e%2e/etc/passwd",
+        ):
             status, headers, _ = self.request(path)
             self.assertIn(status, (400, 404), path)
             self.assertNotIn("immutable", headers.get("Cache-Control", ""))

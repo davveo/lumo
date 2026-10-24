@@ -1,5 +1,25 @@
 # 部署配置核对
 
+## 2026-10-24 独立前端与30服务RPC：源码及隔离验证
+
+- 当前30个领域服务均有明确RPC方法，共162项；29个服务使用无Action的 `platform.Request` 与专属方法注册，订单保留15个强类型方法。业务跨服务调用使用 `platform.NewClients`；HTTP动作及旧Execute只在边界兼容。方法和生成约定见 [独立RPC方法说明](rpc-methods.md)。
+- `web` 独立构建和运行，默认8080提供页面/静态资源并同源代理API；Go网关默认18080提供直接API和 `/debug`。静态请求不进入后端Trace。启动脚本按独立前后端源码、配置及镜像基线更新，保留中间件、数据卷和已有领域副本数量。
+- 本轮隔离回归通过45项启动测试、17项源码指纹测试，旧端口及MinIO来源引用迁移专项通过；原 `.env` 备份权限和非执行边界覆盖在测试内。使用 `.env.example` 的Compose配置校验通过。
+- 官方 `public.ecr.aws/docker/library/nginx:1.30.6-alpine` 成功构建隔离前端镜像；5项真实HTTP测试验证Bearer/请求体、第一方Cookie、网关健康/就绪、静态缓存和404、非法upstream拒绝以及网关更换IP后的重解析。测试仅使用临时网络、容器及HTTP服务，完成后已清理。
+- 验证日志位于 `/private/tmp/lumo-web-start-tests-final.log`、`/private/tmp/lumo-web-fingerprint-tests-final.log`、`/private/tmp/lumo-web-legacy-migration-final.log`、`/private/tmp/lumo-web-official-image-build.log` 和 `/private/tmp/lumo-web-official-proxy-tests.log`。此前默认Docker Hub拉取因token请求IPv6超时失败，改用同版本官方ECR镜像后完成构建和代理测试。
+- 已执行 `sh start.sh` 更新30个领域服务、gateway与独立web，再以 `sh start.sh web` 更新最终页面。实际8080返回Nginx静态页面/脚本，200且没有X-Trace-ID；18080对页面/脚本返回404，直接及同源代理的readyz均200。web镜像仅含静态资源，gateway镜像仅含Go程序，两者镜像ID不同。
+- Consul目录为32类（30领域服务、gateway及Consul自身），31个应用实例全部passing，无warning/critical。只读首页聚合产生的Jaeger Trace `23f54ed49e889e0b7d0c27d61144e9e4` 包含85个span，其中20个明确RPC span，实际调用Catalog/List、Catalog/BatchGet、Inventory/BatchGet、Recommendation/RankBootstrap等；未调用DomainService.Execute。63个span带请求/返回属性，Catalog/List的client/server两侧均已核对。
+- 实际游客首页1次业务HTTP（207ms）、会员2次（588ms），均无加载错误；会员探针会话已退出，没有修改运行商城的商品、订单、库存或行为记录。真实环境验收证据 `/private/tmp/lumo-methods-runtime-audit.json` 与 `/private/tmp/lumo-methods-live-requests.json`；部署日志 `/private/tmp/lumo-final-start.log`、`/private/tmp/lumo-final-web-start.log` 含访问凭据，以受限权限保存。
+
+## 2026-10-24 首页、详情和购物车布局与交互
+
+- 首页采用左侧分类、中部主视觉/精选/活动、右侧会员与券的结构，下方六列推荐，继续消费后端配置和真实数据。轮播图有显式grid槽，分类尚未加载时也不会占进左侧窄列；活动明细未完成时保持骨架，已有数据在后台刷新或失败时继续展示。
+- 详情改为左侧缩略图和大媒体、右侧价格/优惠/配送/规格/数量/购买操作，下方评价、详情、参数、保障、推荐、问答。仅显示实际媒体和服务端数据；手机依次为媒体、选购、详情。购物车按真实品牌分组，保留选中、数量、删除、移入收藏、优惠和换购，下方最多12件推荐，底部固定选中预览、金额和结算操作；首次加载使用骨架并隐藏未确认数量。
+- 修复足迹提前标记和多规格商品缺少默认SKU的问题，等待商品与本人认证上下文就绪后仅记录一次；历史商品信息仅进入足迹页时批量补齐。真实隔离HTTP验证首屏窗口外商品可持久化并显示，1次足迹写入加1次兴趣聚合，无额外首页请求。迟到响应、切换账号及收藏失败保护均有回归。
+- 全局去掉优惠券/活动列表顶部重复的翻页按钮，保留下方分页。侧栏折叠仅改变侧栏，安全空间不随之变化；浏览器实测1280px下main/hero折叠前后坐标和宽高完全相同。390/1280/1440/2560px均无横向溢出，2560px主区宽1760px；390px详情区顺序正确，购物车结算栏固定在底部。
+- 全量Go测试、关键交易10包race、147项新RPC矩阵与30服务162项契约检查通过。全站前端包含真实HTTP商城107项、会员47项及认证71条断言；新增布局、延迟、足迹和账号隔离检查通过。Python69项中64通过，5项真实Nginx测试需显式镜像开关，已单独启用官方镜像验证5项全部通过。生成器同步、全局格式检查与diff空白检查通过。
+- 业务写入和浏览器加购仅使用18180隔离临时数据库。预览：`/private/tmp/lumo-homepage-final.png`、`/private/tmp/lumo-product-detail-final.png`、`/private/tmp/lumo-cart-final.png`、`/private/tmp/lumo-cart-full.png`、`/private/tmp/lumo-detail-mobile.png`。测试日志 `/private/tmp/lumo-methods-go-final.log`、`/private/tmp/lumo-methods-race.log`、`/private/tmp/lumo-all-frontend-final.log`、`/private/tmp/lumo-final-python-tests.log`、`/private/tmp/lumo-footprint-http.log`、`/private/tmp/lumo-final-format-check.log`。
+
 最近补充：2026-10-24。此记录区分静态配置、镜像元数据核对与真实容器运行。
 
 ## 2026-10-24 全局长行与缩进整理
