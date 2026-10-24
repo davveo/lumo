@@ -2,7 +2,6 @@ package payment
 
 import (
 	"github.com/davveo/lumo/internal/constants"
-
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/payment/internal/repository"
 	"github.com/davveo/lumo/services/payment/internal/transport"

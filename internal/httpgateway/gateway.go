@@ -211,7 +211,8 @@ func traceHTTPResponse(ctx context.Context, value any, err error) {
 	platform.TraceResponse(ctx, value, err)
 }
 
-// NewHandler serves same-origin storefront assets and the authenticated HTTP API.
+// NewHandler serves the authenticated API. An explicit frontendDir is supported
+// only for the self-contained local devstack and isolated HTTP regression tests.
 func NewHandler(rpc platform.Caller, demo bool, frontendDir string) http.Handler {
 	g := &gateway{rpc: rpc, demo: demo}
 	allowedOrigins := corsOrigins(os.Getenv("CORS_ALLOWED_ORIGINS"))
@@ -229,11 +230,12 @@ func NewHandler(rpc platform.Caller, demo bool, frontendDir string) http.Handler
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = io.WriteString(w, consoleHTML)
 	})
-	if frontendDir == "" {
-		frontendDir = "web/dist"
-	}
 	files := http.FileServer(http.Dir(frontendDir))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if frontendDir == "" {
+			http.NotFound(w, r)
+			return
+		}
 		// Never expose directory listings or executable/private project files.
 		clean := filepath.Clean("/" + r.URL.Path)
 		if strings.Contains(clean, "/.") {

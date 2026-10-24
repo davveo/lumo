@@ -4,13 +4,14 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"os"
+
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/logistics/internal/domain"
 	"github.com/davveo/lumo/services/logistics/internal/repository"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"os"
 )
 
 type Service struct {
@@ -24,7 +25,7 @@ func privileged(c platform.Request) bool {
 	return c.Role == constants.RoleAdmin || c.Role == constants.RoleSystem
 }
 func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.logistics."+constants.ActionCreate)
+	ctx, span := platform.Start(ctx, "usecase.logistics.create")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -66,11 +67,10 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 		return nil, err
 	}
 	return platform.Map(r), nil
-
 }
 
 func (s *Service) Deliver(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.logistics."+constants.ActionDeliver)
+	ctx, span := platform.Start(ctx, "usecase.logistics.deliver")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -107,11 +107,10 @@ func (s *Service) Deliver(ctx context.Context, c platform.Request) (traceResult 
 		event,
 	)
 	return platform.Map(r), err
-
 }
 
 func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.logistics."+constants.ActionGet)
+	ctx, span := platform.Start(ctx, "usecase.logistics.get")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -127,11 +126,10 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 		return nil, status.Error(codes.PermissionDenied, "waybill ownership mismatch")
 	}
 	return platform.Map(r), nil
-
 }
 
 func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.logistics."+constants.ActionList)
+	ctx, span := platform.Start(ctx, "usecase.logistics.list")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -148,11 +146,10 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 	}
 	rows, err := s.Repo.List(ctx, user)
 	return platform.Result{"items": rows}, err
-
 }
 
 func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.logistics."+constants.ActionQuote)
+	ctx, span := platform.Start(ctx, "usecase.logistics.quote")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -165,5 +162,4 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 		"provider":       constants.LogisticsProviderDemoFreeShipping,
 		"serviceable":    true,
 	}, nil
-
 }

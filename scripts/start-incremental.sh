@@ -13,7 +13,7 @@ APP_SERVICES=$(
   for directory in services/*; do
     [ ! -f "$directory/service.go" ] || basename "$directory"
   done
-  printf '%s\n' gateway
+  printf '%s\n' gateway web
 )
 RUN_DIR=''
 LOCK_DIR=''
@@ -71,8 +71,9 @@ compose config | awk '
   active && /^    image:/ { image=$2; gsub(/"/, "", image); print name, image }
 ' >"$RUN_DIR/images"
 APP_IMAGE=$(awk '$1=="gateway"{print $2;exit}' "$RUN_DIR/images")
+WEB_IMAGE=$(awk '$1=="web"{print $2;exit}' "$RUN_DIR/images")
 MINIO_IMAGE=$(awk '$1=="minio"{print $2;exit}' "$RUN_DIR/images")
-[ -n "$APP_IMAGE" ] && [ -n "$MINIO_IMAGE" ] || fail '无法读取Compose应用/MinIO镜像名'
+[ -n "$APP_IMAGE" ] && [ -n "$WEB_IMAGE" ] && [ -n "$MINIO_IMAGE" ] || fail '无法读取Compose后端/前端/MinIO镜像名'
 config_hash() { awk -v name="$1" '$1==name{print $2;exit}' "$RUN_DIR/config.hashes"; }
 container() {
   SERVICE_ID=$(compose ps --all -q "$1") || fail "无法读取$1容器"
@@ -181,26 +182,44 @@ for service in $INFRA_SERVICES; do
     printf '%s配置已改变，本次保留正在运行的中间件；需要应用配置时执行sh start.sh --update-infra。\n' "$service"
   fi
 done
+build_selected_image() {
+  image_scope=$1
+  image_tag=$2
+  image_record=$3
+  image_service=$4
+  image_label=$5
+  IMAGE_SOURCE=$(fingerprint "$image_scope")
+  ACTUAL_IMAGE=$(image_id "$image_tag" || true)
+  CACHED_SOURCE=''
+  CACHED_IMAGE=''
+  if [ -f "$STATE_DIR/$image_record" ]; then
+    CACHED_SOURCE=$(sed -n '1p' "$STATE_DIR/$image_record")
+    CACHED_IMAGE=$(sed -n '2p' "$STATE_DIR/$image_record")
+  fi
+  if [ -z "$ACTUAL_IMAGE" ] || [ "$IMAGE_SOURCE" != "$CACHED_SOURCE" ] || [ "$ACTUAL_IMAGE" != "$CACHED_IMAGE" ]; then
+    printf '构建%s镜像；仅替换上面选中的容器。\n' "$image_label"
+    compose build "$image_service" || failure
+    [ "$(fingerprint "$image_scope")" = "$IMAGE_SOURCE" ] || fail '构建期间源码发生变化；容器尚未更新，请重新执行'
+    ACTUAL_IMAGE=$(image_id "$image_tag") || fail '构建后无法读取应用镜像'
+    printf '%s\n%s\n' "$IMAGE_SOURCE" "$ACTUAL_IMAGE" >"$RUN_DIR/$image_record"
+    mv "$RUN_DIR/$image_record" "$STATE_DIR/$image_record"
+  else
+    printf '复用已验证的%s镜像，无需再次构建。\n' "$image_label"
+  fi
+}
 if [ -n "$UPDATE_APPS" ]; then
-  printf '\n需要更新的业务服务：%s\n' "$UPDATE_APPS"
+  printf '\n需要更新的服务：%s\n' "$UPDATE_APPS"
   if [ "$BUILD_IMAGES" -eq 1 ]; then
-    APP_SOURCE=$(fingerprint --image)
-    ACTUAL_IMAGE=$(image_id "$APP_IMAGE" || true)
-    CACHED_SOURCE=''
-    CACHED_IMAGE=''
-    if [ -f "$STATE_DIR/app-image.state" ]; then
-      CACHED_SOURCE=$(sed -n '1p' "$STATE_DIR/app-image.state")
-      CACHED_IMAGE=$(sed -n '2p' "$STATE_DIR/app-image.state")
+    UPDATE_BACKEND=0
+    UPDATE_WEB=0
+    for service in $UPDATE_APPS; do
+      if [ "$service" = web ]; then UPDATE_WEB=1; else UPDATE_BACKEND=1; fi
+    done
+    if [ "$UPDATE_BACKEND" -eq 1 ]; then
+      build_selected_image --image "$APP_IMAGE" app-image.state gateway 共享后端
     fi
-    if [ -z "$ACTUAL_IMAGE" ] || [ "$APP_SOURCE" != "$CACHED_SOURCE" ] || [ "$ACTUAL_IMAGE" != "$CACHED_IMAGE" ]; then
-      printf '构建一次共享应用镜像；仅替换上面选中的容器。\n'
-      compose build gateway || failure
-      [ "$(fingerprint --image)" = "$APP_SOURCE" ] || fail '构建期间源码发生变化；业务容器尚未更新，请重新执行'
-      ACTUAL_IMAGE=$(image_id "$APP_IMAGE") || fail '构建后无法读取应用镜像'
-      printf '%s\n%s\n' "$APP_SOURCE" "$ACTUAL_IMAGE" >"$RUN_DIR/app-image.state"
-      mv "$RUN_DIR/app-image.state" "$STATE_DIR/app-image.state"
-    else
-      printf '复用已验证的当前代码镜像，无需再次构建。\n'
+    if [ "$UPDATE_WEB" -eq 1 ]; then
+      build_selected_image web "$WEB_IMAGE" web-image.state web 独立前端
     fi
   else
     printf '已指定--no-build：使用现有镜像；未构建的源码不会记为已部署。\n'
@@ -291,6 +310,7 @@ show_login() {
       fi
       ;;
     none) printf '    登录：默认无需账号密码\n' ;;
+    api) printf '    认证：业务接口使用Bearer会话；页面与静态资源由商城前端提供。\n' ;;
     rabbitmq)
       if [ -n "$RABBIT_LOGIN_USER" ] && [ -n "$RABBIT_LOGIN_PASSWORD" ]; then
         printf '    容器初始化账号：%s  密码：%s\n' "$RABBIT_LOGIN_USER" "$RABBIT_LOGIN_PASSWORD"
@@ -320,8 +340,9 @@ show_address() {
   printf '  %s：http://%s%s\n' "$1" "$binding" "$4"
   show_login "$5"
 }
-show_address 商城前台 gateway 8080 '' customer
-show_address 商城管理端 gateway 8080 /admin.html admin
+show_address 商城前台 web 8080 '' customer
+show_address 商城管理端 web 8080 /admin.html admin
+show_address API网关 gateway 8080 /api/v1 api
 show_address 接口联调台 gateway 8080 /debug debug
 show_address Consul注册中心 consul 8500 /ui/ none
 show_address Jaeger jaeger 16686 '' none

@@ -10,11 +10,10 @@ import (
 )
 
 func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "interaction.usecase."+constants.ActionList)
+	ctx, span := platform.Start(ctx, "interaction.usecase.list")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	kind := platform.Text(c.Data, "kind")
 	if kind == "" {
 		kind = constants.InteractionKindReview
@@ -44,11 +43,10 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 	return data, nil
 }
 func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "interaction.usecase."+constants.ActionCreate)
+	ctx, span := platform.Start(ctx, "interaction.usecase.create")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	if e := platform.RequireUser(c); e != nil {
 		return nil, e
 	}
@@ -61,7 +59,7 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 	if sku == "" || body == "" || len(body) > 4000 {
 		return nil, bad("sku_id and body required")
 	}
-	if _, e := call(ctx, s.rpc, constants.ServiceCatalog, child(c, constants.ActionGet, sku, nil)); e != nil {
+	if _, e := platform.NewClients(s.rpc).Catalog.Get(ctx, platform.Request{ID: sku, UserID: c.UserID, Role: c.Role, IdempotencyKey: c.IdempotencyKey, Data: nil}); e != nil {
 		return nil, e
 	}
 	if kind == constants.InteractionKindReview {
@@ -70,7 +68,12 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 			return nil, bad("rating must be 1..5")
 		}
 		oid := platform.Text(c.Data, "order_id")
-		o, e := call(ctx, s.rpc, constants.ServiceOrder, child(c, constants.ActionGet, oid, nil))
+		o, e := platform.NewClients(
+			s.rpc,
+		).Order.Get(
+			ctx,
+			platform.Request{ID: oid, UserID: c.UserID, Role: c.Role, IdempotencyKey: c.IdempotencyKey, Data: nil},
+		)
 		if e != nil {
 			return nil, e
 		}
@@ -129,11 +132,10 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 	return view(r), nil
 }
 func (s *Service) Moderate(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "interaction.usecase."+constants.ActionModerate)
+	ctx, span := platform.Start(ctx, "interaction.usecase.moderate")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
@@ -170,11 +172,10 @@ func (s *Service) Moderate(ctx context.Context, c platform.Request) (traceResult
 	return view(r), nil
 }
 func (s *Service) Answer(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "interaction.usecase."+constants.ActionAnswer)
+	ctx, span := platform.Start(ctx, "interaction.usecase.answer")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
@@ -183,24 +184,13 @@ func (s *Service) Answer(ctx context.Context, c platform.Request) (traceResult p
 		domain.Record{ID: c.ID},
 		false,
 		func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
-			approved, ok := c.Data["approved"].(bool)
-			{
-				approved = true
-				ok = true
-				if platform.Text(c.Data, "answer") == "" {
-					return nil, nil, bad("answer required")
-				}
-				d := payload(*v)
-				d["answer"] = platform.Text(c.Data, "answer")
-				v.Payload = record(v.ID, v.UserID, v.Kind, v.Status, d).Payload
+			if platform.Text(c.Data, "answer") == "" {
+				return nil, nil, bad("answer required")
 			}
-			if !ok {
-				return nil, nil, bad("approved boolean required")
-			}
-			v.Status = constants.InteractionStatusRejected
-			if approved {
-				v.Status = constants.InteractionStatusPublished
-			}
+			d := payload(*v)
+			d["answer"] = platform.Text(c.Data, "answer")
+			v.Payload = record(v.ID, v.UserID, v.Kind, v.Status, d).Payload
+			v.Status = constants.InteractionStatusPublished
 			evt := &platform.Event{
 				ID:          platform.ID("evt"),
 				Type:        "QAChanged",
@@ -220,11 +210,10 @@ func (s *Service) Answer(ctx context.Context, c platform.Request) (traceResult p
 	return view(r), nil
 }
 func (s *Service) Like(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "interaction.usecase."+constants.ActionLike)
+	ctx, span := platform.Start(ctx, "interaction.usecase.like")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	if e := platform.RequireUser(c); e != nil {
 		return nil, e
 	}

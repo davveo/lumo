@@ -55,11 +55,10 @@ func (s *Service) Seed(ctx context.Context) error {
 	return nil
 }
 func (s *Service) Login(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "iam.usecase."+constants.ActionLogin)
+	ctx, span := platform.Start(ctx, "iam.usecase.login")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	username := strings.TrimSpace(platform.Text(c.Data, "username"))
 	password := platform.Text(c.Data, "password")
 	if username == "" || len(username) > 128 || password == "" || len(password) > 1024 {
@@ -87,11 +86,10 @@ func (s *Service) Login(ctx context.Context, c platform.Request) (traceResult pl
 	}, nil
 }
 func (s *Service) Validate(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "iam.usecase."+constants.ActionValidate)
+	ctx, span := platform.Start(ctx, "iam.usecase.validate")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	raw := platform.Text(c.Data, "token")
 	if len(raw) != 64 {
 		return nil, status.Error(codes.Unauthenticated, "invalid session")
@@ -114,11 +112,10 @@ func (s *Service) Validate(ctx context.Context, c platform.Request) (traceResult
 	}, nil
 }
 func (s *Service) Refresh(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "iam.usecase."+constants.ActionRefresh)
+	ctx, span := platform.Start(ctx, "iam.usecase.refresh")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	raw := platform.Text(c.Data, "token")
 	if len(raw) != 64 {
 		return nil, status.Error(codes.Unauthenticated, "invalid session")
@@ -132,38 +129,28 @@ func (s *Service) Refresh(ctx context.Context, c platform.Request) (traceResult 
 		return nil, status.Error(codes.Unauthenticated, "account unavailable")
 	}
 
-	{
-		next, e := token()
-		if e != nil {
-			return nil, e
-		}
-		v := domain.Session{Digest: hash(next), UserID: a.ID, ExpiresAt: time.Now().UTC().Add(24 * time.Hour)}
-		if e = s.repo.Rotate(ctx, sess.Digest, &v); e != nil {
-			return nil, e
-		}
-		return platform.Result{
-			"token":         next,
-			"token_type":    constants.IAMTokenTypeBearer,
-			"user_id":       a.ID,
-			"role":          a.Role,
-			"expires_at":    v.ExpiresAt.Format(time.RFC3339),
-			"registered_at": a.CreatedAt.UTC().Format(time.RFC3339),
-		}, nil
+	next, e := token()
+	if e != nil {
+		return nil, e
+	}
+	v := domain.Session{Digest: hash(next), UserID: a.ID, ExpiresAt: time.Now().UTC().Add(24 * time.Hour)}
+	if e = s.repo.Rotate(ctx, sess.Digest, &v); e != nil {
+		return nil, e
 	}
 	return platform.Result{
+		"token":         next,
+		"token_type":    constants.IAMTokenTypeBearer,
 		"user_id":       a.ID,
 		"role":          a.Role,
-		"session_valid": true,
-		"expires_at":    sess.ExpiresAt.Format(time.RFC3339),
+		"expires_at":    v.ExpiresAt.Format(time.RFC3339),
 		"registered_at": a.CreatedAt.UTC().Format(time.RFC3339),
 	}, nil
 }
 func (s *Service) Logout(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "iam.usecase."+constants.ActionLogout)
+	ctx, span := platform.Start(ctx, "iam.usecase.logout")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	raw := platform.Text(c.Data, "token")
 	if len(raw) != 64 {
 		return nil, status.Error(codes.Unauthenticated, "invalid session")
@@ -176,30 +163,19 @@ func (s *Service) Logout(ctx context.Context, c platform.Request) (traceResult p
 	if e != nil || !a.Active {
 		return nil, status.Error(codes.Unauthenticated, "account unavailable")
 	}
-	{
-		if c.UserID != "" && c.UserID != a.ID {
-			return nil, status.Error(codes.PermissionDenied, "session owner mismatch")
-		}
-		if e = s.repo.Revoke(ctx, sess.Digest, ""); e != nil {
-			return nil, e
-		}
-		return platform.Result{"revoked": true}, nil
+	if c.UserID != "" && c.UserID != a.ID {
+		return nil, status.Error(codes.PermissionDenied, "session owner mismatch")
 	}
-
-	return platform.Result{
-		"user_id":       a.ID,
-		"role":          a.Role,
-		"session_valid": true,
-		"expires_at":    sess.ExpiresAt.Format(time.RFC3339),
-		"registered_at": a.CreatedAt.UTC().Format(time.RFC3339),
-	}, nil
+	if e = s.repo.Revoke(ctx, sess.Digest, ""); e != nil {
+		return nil, e
+	}
+	return platform.Result{"revoked": true}, nil
 }
 func (s *Service) LogoutAll(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "iam.usecase."+constants.ActionLogoutAll)
+	ctx, span := platform.Start(ctx, "iam.usecase.logout_all")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	if e := platform.RequireUser(c); e != nil {
 		return nil, e
 	}

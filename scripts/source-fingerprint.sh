@@ -9,7 +9,7 @@ fail() {
   printf '源码指纹错误：%s\n' "$1" >&2
   exit 1
 }
-usage() { printf '用法：sh scripts/source-fingerprint.sh <服务名|--image|--minio|--observability>\n'; }
+usage() { printf '用法：sh scripts/source-fingerprint.sh <服务名|web|--image|--minio|--observability>\n'; }
 [ "$#" -eq 1 ] || {
   usage >&2
   exit 2
@@ -20,7 +20,7 @@ case "$SCOPE" in
     usage
     exit 0
     ;;
-  --image | --minio | --observability | gateway) ;;
+  --image | --minio | --observability | gateway | web) ;;
   '' | *[!a-z0-9_-]* | [-0-9_]*) fail '服务名称无效' ;;
   *) [ -f "services/$SCOPE/service.go" ] || fail "没有找到服务：$SCOPE" ;;
 esac
@@ -85,7 +85,7 @@ add_tree() {
 }
 add_web() {
   [ -d web/dist ] || return 0
-  # Every published asset affects the gateway, including non-code assets.
+  # Every published asset affects only the frontend image, including images/fonts.
   find web/dist \( -type f -o -type l \) ! -name '.DS_Store' -exec sh -c '
     marker=$1; shift
     for file_path do
@@ -123,7 +123,6 @@ add_domain() {
 add_gateway() {
   add_tree cmd/gateway
   add_tree internal/httpgateway
-  add_web
 }
 
 case "$SCOPE" in
@@ -149,6 +148,13 @@ case "$SCOPE" in
   gateway)
     add_common
     add_gateway
+    ;;
+  web)
+    [ -f web/Dockerfile ] && [ -f web/nginx/default.conf.template ] || fail '缺少前端Dockerfile或Nginx配置'
+    add_file web/Dockerfile
+    add_file web/.dockerignore
+    add_tree web/nginx
+    add_web
     ;;
   *)
     add_common

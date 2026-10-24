@@ -71,17 +71,6 @@ func (s *Service) list(ctx context.Context, c platform.Request, owner, kind, st 
 	}
 	return platform.Result{"items": items, "limit": len(items)}, nil
 }
-func call(ctx context.Context, rpc platform.Caller, target string, c platform.Command) (platform.Result, error) {
-	if rpc == nil {
-		return nil, status.Error(codes.Unavailable, "RPC peer unavailable")
-	}
-	return rpc.Call(ctx, target, c)
-}
-func child(c platform.Request, action, id string, data map[string]any) platform.Command {
-	command := c.Command(action)
-	command.ID, command.Data = id, data
-	return command
-}
 
 func demo() bool {
 	return os.Getenv(

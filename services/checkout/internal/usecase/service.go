@@ -34,17 +34,6 @@ func (s *Service) Topics() []string {
 	}
 }
 
-func (s *Service) call(
-	ctx context.Context,
-	target, action, id, user string,
-	data map[string]any,
-) (platform.Result, error) {
-	return s.rpc.Call(
-		ctx,
-		target,
-		platform.Command{Action: action, ID: id, UserID: user, Role: constants.RoleSystem, Data: data},
-	)
-}
 func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "checkout.usecase.Quote")
 	defer span.End()
@@ -53,7 +42,7 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 	if err := platform.RequireUser(c); err != nil {
 		return nil, err
 	}
-	return s.rpc.Call(ctx, constants.ServicePricing, c.Command(constants.ActionQuote))
+	return platform.NewClients(s.rpc).Pricing.Quote(ctx, c)
 }
 func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "checkout.usecase.Get")
@@ -118,11 +107,11 @@ func (s *Service) Submit(ctx context.Context, c platform.Request) (traceResult p
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
-	q, err := s.rpc.Call(
+	q, err := platform.NewClients(
+		s.rpc,
+	).Pricing.Get(
 		ctx,
-		constants.ServicePricing,
-		platform.Command{
-			Action: constants.ActionGet,
+		platform.Request{
 			ID:     platform.Text(c.Data, "quote_id"),
 			UserID: c.UserID,
 			Role:   c.Role,
@@ -156,11 +145,11 @@ func (s *Service) Submit(ctx context.Context, c platform.Request) (traceResult p
 		}
 	}
 	sort.Strings(ids)
-	catalog, err := s.rpc.Call(
+	catalog, err := platform.NewClients(
+		s.rpc,
+	).Catalog.BatchGet(
 		ctx,
-		constants.ServiceCatalog,
-		platform.Command{
-			Action: constants.ActionBatchGet,
+		platform.Request{
 			UserID: c.UserID,
 			Role:   c.Role,
 			Data:   map[string]any{"ids": ids},
@@ -196,11 +185,11 @@ func (s *Service) Submit(ctx context.Context, c platform.Request) (traceResult p
 		if mainSubtotal == 0 {
 			mainSubtotal = platform.Int(q, "subtotal_cents")
 		}
-		current, e := s.rpc.Call(
+		current, e := platform.NewClients(
+			s.rpc,
+		).Campaign.Evaluate(
 			ctx,
-			constants.ServiceCampaign,
-			platform.Command{
-				Action: constants.ActionEvaluate,
+			platform.Request{
 				UserID: c.UserID,
 				Role:   c.Role,
 				Data: map[string]any{
@@ -233,11 +222,10 @@ func (s *Service) Submit(ctx context.Context, c platform.Request) (traceResult p
 	}
 	address := c.Data["address"]
 	if aid := platform.Text(c.Data, "address_id"); aid != "" {
-		list, e := s.rpc.Call(
-			ctx,
-			constants.ServiceAddress,
-			platform.Command{Action: constants.ActionList, UserID: c.UserID, Role: c.Role},
-		)
+		list, e := platform.NewClients(s.rpc).Address.List(ctx, platform.Request{
+			UserID: c.UserID,
+			Role:   c.Role,
+		})
 		if e != nil {
 			return nil, e
 		}
@@ -351,74 +339,105 @@ func (s *Service) resumeWorkflow(ctx context.Context, id, user, mode string) (pl
 		}
 		var address any
 		_ = json.Unmarshal([]byte(a.Address), &address)
-		if _, err = s.call(
-			ctx,
-			constants.ServiceOrder,
-			constants.ActionCreate,
-			id,
-			user,
-			map[string]any{"quote": q, "address": address, "note": a.Note, "source": a.Source},
-		); err != nil {
+		if _, err = platform.NewClients(s.rpc).Order.Create(ctx, platform.Request{
+			ID:     id,
+			UserID: user,
+			Role:   constants.RoleSystem,
+			Data:   map[string]any{"quote": q, "address": address, "note": a.Note, "source": a.Source},
+		}); err != nil {
 			return nil, err
 		}
-		resources := []string{constants.ServiceInventory}
+		clients := platform.NewClients(s.rpc)
+		type reservation struct {
+			name    string
+			reserve platform.Operation
+			data    map[string]any
+		}
+		resources := []reservation{{
+			name:    constants.ServiceInventory,
+			reserve: clients.Inventory.Reserve,
+			data:    map[string]any{"order_id": id, "lines": q["items"]},
+		}}
 		if platform.Text(q, "activity_id") != "" {
-			resources = append(resources, constants.ServiceCampaign)
+			resources = append(resources, reservation{
+				name:    constants.ServiceCampaign,
+				reserve: clients.Campaign.Reserve,
+				data:    map[string]any{"order_id": id, "activity_id": q["activity_id"], "quantity": int64(1)},
+			})
 		}
 		if platform.Text(q, "group_id") != "" {
-			resources = append(resources, constants.ServiceGroup)
+			resources = append(resources, reservation{
+				name:    constants.ServiceGroup,
+				reserve: clients.Group.Reserve,
+				data:    map[string]any{"order_id": id, "group_id": q["group_id"]},
+			})
 		}
 		if platform.Text(q, "coupon_id") != "" {
-			resources = append(resources, constants.ServiceCoupon)
+			resources = append(resources, reservation{
+				name:    constants.ServiceCoupon,
+				reserve: clients.Coupon.Reserve,
+				data: map[string]any{
+					"order_id": id, "coupon_id": q["coupon_id"], "subtotal_cents": q["subtotal_cents"],
+				},
+			})
 		}
 		if platform.Int(q, "points") > 0 {
-			resources = append(resources, constants.ServicePoints)
+			resources = append(resources, reservation{
+				name:    constants.ServicePoints,
+				reserve: clients.Points.Reserve,
+				data:    map[string]any{"order_id": id, "amount": q["points"]},
+			})
 		}
 		for _, resource := range resources {
-			if steps[resource] == constants.CheckoutStepStatusReserved {
+			if steps[resource.name] == constants.CheckoutStepStatusReserved {
 				continue
 			}
-			steps[resource] = constants.CheckoutStepStatusTrying
+			steps[resource.name] = constants.CheckoutStepStatusTrying
 			if err = save(); err != nil {
 				return nil, err
 			}
-			data := map[string]any{"order_id": id}
-			switch resource {
-			case constants.ServiceInventory:
-				data["lines"] = q["items"]
-			case constants.ServiceCampaign:
-				data["activity_id"] = q["activity_id"]
-				data["quantity"] = int64(1)
-			case constants.ServiceGroup:
-				data["group_id"] = q["group_id"]
-			case constants.ServiceCoupon:
-				data["coupon_id"] = q["coupon_id"]
-				data["subtotal_cents"] = q["subtotal_cents"]
-			case constants.ServicePoints:
-				data["amount"] = q["points"]
-			}
-			reserved, e := s.call(ctx, resource, constants.ActionReserve, id, user, data)
-			if e == nil && resource == constants.ServiceCoupon &&
+			reserved, e := resource.reserve(ctx, platform.Request{
+				ID:     id,
+				UserID: user,
+				Role:   constants.RoleSystem,
+				Data:   resource.data,
+			})
+			if e == nil && resource.name == constants.ServiceCoupon &&
 				platform.Int(reserved, "discount_cents") != platform.Int(q, "coupon_discount_cents") {
 				e = status.Error(codes.FailedPrecondition, "coupon changed; requote required")
 			}
 			if e != nil {
-				steps[resource] = constants.CheckoutStepStatusUnknown
+				steps[resource.name] = constants.CheckoutStepStatusUnknown
 				a.State = constants.CheckoutStateCancelling
 				a.LastError = status.Code(e).String()
 				if err = save(); err != nil {
 					return nil, err
 				}
 				_ = s.releaseResources(ctx, &a, q, steps, save)
-				_, _ = s.call(ctx, constants.ServiceOrder, constants.ActionCreateFailed, id, user, nil)
+				_, _ = platform.NewClients(
+					s.rpc,
+				).Order.CreateFailed(
+					ctx,
+					platform.Request{
+						ID:     id,
+						UserID: user,
+						Role:   constants.RoleSystem,
+						Data:   nil,
+					},
+				)
 				return nil, e
 			}
-			steps[resource] = constants.CheckoutStepStatusReserved
+			steps[resource.name] = constants.CheckoutStepStatusReserved
 			if err = save(); err != nil {
 				return nil, err
 			}
 		}
-		if _, err = s.call(ctx, constants.ServiceOrder, constants.ActionPending, id, user, nil); err != nil {
+		if _, err = platform.NewClients(s.rpc).Order.Pending(ctx, platform.Request{
+			ID:     id,
+			UserID: user,
+			Role:   constants.RoleSystem,
+			Data:   nil,
+		}); err != nil {
 			return nil, err
 		}
 		a.State = constants.CheckoutStatePendingPayment
@@ -439,7 +458,17 @@ func (s *Service) resumeWorkflow(ctx context.Context, id, user, mode string) (pl
 		if a.State == constants.CheckoutStateReadyToFulfill {
 			return platform.Result{"order_id": id, "status": a.State}, nil
 		}
-		o, e := s.call(ctx, constants.ServiceOrder, constants.ActionGet, id, user, nil)
+		o, e := platform.NewClients(
+			s.rpc,
+		).Order.Get(
+			ctx,
+			platform.Request{
+				ID:     id,
+				UserID: user,
+				Role:   constants.RoleSystem,
+				Data:   nil,
+			},
+		)
 		if e != nil {
 			return nil, e
 		}
@@ -452,36 +481,61 @@ func (s *Service) resumeWorkflow(ctx context.Context, id, user, mode string) (pl
 		if err = save(); err != nil {
 			return nil, err
 		}
-		for _, resource := range []string{constants.ServiceCoupon, constants.ServicePoints, constants.ServiceCampaign} {
-			if steps[resource] == "" || steps[resource] == constants.CheckoutStepStatusConfirmed {
+		clients := platform.NewClients(s.rpc)
+		for _, resource := range []struct {
+			name    string
+			confirm platform.Operation
+		}{
+			{constants.ServiceCoupon, clients.Coupon.Confirm},
+			{constants.ServicePoints, clients.Points.Confirm},
+			{constants.ServiceCampaign, clients.Campaign.Confirm},
+		} {
+			if steps[resource.name] == "" || steps[resource.name] == constants.CheckoutStepStatusConfirmed {
 				continue
 			}
-			if _, err = s.call(ctx, resource, constants.ActionConfirm, id, user, nil); err != nil {
+			if _, err = resource.confirm(ctx, platform.Request{
+				ID:     id,
+				UserID: user,
+				Role:   constants.RoleSystem,
+			}); err != nil {
 				return nil, err
 			}
-			steps[resource] = constants.CheckoutStepStatusConfirmed
+			steps[resource.name] = constants.CheckoutStepStatusConfirmed
 			if err = save(); err != nil {
 				return nil, err
 			}
 		}
 		if gid := platform.Text(q, "group_id"); gid != "" {
-			team, e := s.call(
+			team, e := platform.NewClients(
+				s.rpc,
+			).Group.Paid(
 				ctx,
-				constants.ServiceGroup,
-				constants.ActionPaid,
-				id,
-				user,
-				map[string]any{"group_id": gid},
+				platform.Request{
+					ID:     id,
+					UserID: user,
+					Role:   constants.RoleSystem,
+					Data:   map[string]any{"group_id": gid},
+				},
 			)
 			if e != nil {
 				return nil, e
 			}
 			if platform.Text(team, "status") == constants.GroupStatusFailed ||
 				platform.Text(team, "status") == constants.GroupStatusLegacyFailed {
-				if _, e = s.call(ctx, constants.ServiceOrder, constants.ActionGroupFailed, id, user, nil); e != nil {
+				if _, e = platform.NewClients(s.rpc).Order.GroupFailed(ctx, platform.Request{
+					ID:     id,
+					UserID: user,
+					Role:   constants.RoleSystem,
+					Data:   nil,
+				}); e != nil {
 					return nil, e
 				}
-				if _, e = s.call(ctx, constants.ServicePayment, constants.ActionClose, id, user, nil); e != nil {
+				if _, e = platform.NewClients(s.rpc).Payment.Close(ctx, platform.Request{
+					ID:     id,
+					UserID: user,
+					Role:   constants.RoleSystem,
+					Data:   nil,
+				}); e != nil {
 					return nil, e
 				}
 				a.State = constants.CheckoutStateCancelling
@@ -498,7 +552,12 @@ func (s *Service) resumeWorkflow(ctx context.Context, id, user, mode string) (pl
 			}
 			if !formed {
 				a.State = constants.CheckoutStatePaidWaitGroup
-				if _, e = s.call(ctx, constants.ServiceOrder, constants.ActionWaitGroup, id, user, nil); e != nil {
+				if _, e = platform.NewClients(s.rpc).Order.WaitGroup(ctx, platform.Request{
+					ID:     id,
+					UserID: user,
+					Role:   constants.RoleSystem,
+					Data:   nil,
+				}); e != nil {
 					return nil, e
 				}
 				if e = save(); e != nil {
@@ -506,12 +565,22 @@ func (s *Service) resumeWorkflow(ctx context.Context, id, user, mode string) (pl
 				}
 				return platform.Result{"order_id": id, "status": a.State}, nil
 			}
-			if _, e = s.call(ctx, constants.ServiceOrder, constants.ActionGroupFormed, id, user, nil); e != nil {
+			if _, e = platform.NewClients(s.rpc).Order.GroupFormed(ctx, platform.Request{
+				ID:     id,
+				UserID: user,
+				Role:   constants.RoleSystem,
+				Data:   nil,
+			}); e != nil {
 				return nil, e
 			}
 		}
 		if steps[constants.ServiceInventory] != constants.CheckoutStepStatusConfirmed {
-			if _, err = s.call(ctx, constants.ServiceInventory, constants.ActionConfirm, id, user, nil); err != nil {
+			if _, err = platform.NewClients(s.rpc).Inventory.Confirm(ctx, platform.Request{
+				ID:     id,
+				UserID: user,
+				Role:   constants.RoleSystem,
+				Data:   nil,
+			}); err != nil {
 				return nil, err
 			}
 			steps[constants.ServiceInventory] = constants.CheckoutStepStatusConfirmed
@@ -519,7 +588,12 @@ func (s *Service) resumeWorkflow(ctx context.Context, id, user, mode string) (pl
 				return nil, err
 			}
 		}
-		if _, err = s.call(ctx, constants.ServiceOrder, constants.ActionReady, id, user, nil); err != nil {
+		if _, err = platform.NewClients(s.rpc).Order.Ready(ctx, platform.Request{
+			ID:     id,
+			UserID: user,
+			Role:   constants.RoleSystem,
+			Data:   nil,
+		}); err != nil {
 			return nil, err
 		}
 		a.State = constants.CheckoutStateReadyToFulfill
@@ -538,38 +612,44 @@ func (s *Service) releaseResources(
 	steps map[string]string,
 	save func() error,
 ) error {
-	for _, resource := range []string{
-		constants.ServicePoints,
-		constants.ServiceCoupon,
-		constants.ServiceGroup,
-		constants.ServiceCampaign,
-		constants.ServiceInventory,
+	clients := platform.NewClients(s.rpc)
+	for _, resource := range []struct {
+		name   string
+		cancel platform.Operation
+	}{
+		{constants.ServicePoints, clients.Points.Cancel},
+		{constants.ServiceCoupon, clients.Coupon.Cancel},
+		{constants.ServiceGroup, clients.Group.Cancel},
+		{constants.ServiceCampaign, clients.Campaign.Cancel},
+		{constants.ServiceInventory, clients.Inventory.Cancel},
 	} {
-		st := steps[resource]
+		st := steps[resource.name]
 		if st == "" || st == constants.CheckoutStepStatusCancelled {
 			continue
 		}
-		if st == constants.CheckoutStepStatusConfirmed && resource != constants.ServiceInventory {
+		if st == constants.CheckoutStepStatusConfirmed && resource.name != constants.ServiceInventory {
 			continue
 		}
-		if resource == constants.ServiceInventory && st == constants.CheckoutStepStatusConfirmed {
-			if _, err := s.call(
-				ctx,
-				constants.ServiceFulfillment,
-				constants.ActionCancel,
-				a.ID,
-				a.UserID,
-				nil,
-			); err != nil {
+		if resource.name == constants.ServiceInventory && st == constants.CheckoutStepStatusConfirmed {
+			if _, err := platform.NewClients(s.rpc).Fulfillment.Cancel(ctx, platform.Request{
+				ID:     a.ID,
+				UserID: a.UserID,
+				Role:   constants.RoleSystem,
+				Data:   nil,
+			}); err != nil {
 				return err
 			}
 		}
-		if _, err := s.call(ctx, resource, constants.ActionCancel, a.ID, a.UserID, nil); err != nil {
-			if resource != constants.ServiceGroup || status.Code(err) != codes.FailedPrecondition {
+		if _, err := resource.cancel(ctx, platform.Request{
+			ID:     a.ID,
+			UserID: a.UserID,
+			Role:   constants.RoleSystem,
+		}); err != nil {
+			if resource.name != constants.ServiceGroup || status.Code(err) != codes.FailedPrecondition {
 				return err
 			}
 		}
-		steps[resource] = constants.CheckoutStepStatusCancelled
+		steps[resource.name] = constants.CheckoutStepStatusCancelled
 		if err := save(); err != nil {
 			return err
 		}
@@ -586,11 +666,11 @@ func (s *Service) Cancel(ctx context.Context, c platform.Request) (traceResult p
 		return nil, err
 	}
 
-	o, err := s.rpc.Call(
-		ctx,
-		constants.ServiceOrder,
-		platform.Command{Action: constants.ActionGet, ID: c.ID, UserID: c.UserID, Role: c.Role},
-	)
+	o, err := platform.NewClients(s.rpc).Order.Get(ctx, platform.Request{
+		ID:     c.ID,
+		UserID: c.UserID,
+		Role:   c.Role,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -599,17 +679,42 @@ func (s *Service) Cancel(ctx context.Context, c platform.Request) (traceResult p
 	if st == constants.OrderStatusClosed || st == constants.OrderStatusCreateFailed {
 		return s.resumeWorkflow(ctx, c.ID, user, constants.CheckoutModeRelease)
 	}
-	if _, err = s.call(ctx, constants.ServiceOrder, constants.ActionCloseBegin, c.ID, user, nil); err != nil {
+	if _, err = platform.NewClients(s.rpc).Order.CloseBegin(ctx, platform.Request{
+		ID:     c.ID,
+		UserID: user,
+		Role:   constants.RoleSystem,
+		Data:   nil,
+	}); err != nil {
 		return nil, err
 	}
-	p, err := s.call(ctx, constants.ServicePayment, constants.ActionClose, c.ID, user, nil)
+	p, err := platform.NewClients(
+		s.rpc,
+	).Payment.Close(
+		ctx,
+		platform.Request{
+			ID:     c.ID,
+			UserID: user,
+			Role:   constants.RoleSystem,
+			Data:   nil,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
 	paid, _ := p["paid"].(bool)
 	if paid {
 		p["payment_id"] = p["id"]
-		accept, e := s.call(ctx, constants.ServiceOrder, constants.ActionAcceptPayment, c.ID, user, p)
+		accept, e := platform.NewClients(
+			s.rpc,
+		).Order.AcceptPayment(
+			ctx,
+			platform.Request{
+				ID:     c.ID,
+				UserID: user,
+				Role:   constants.RoleSystem,
+				Data:   p,
+			},
+		)
 		if e != nil {
 			err = e
 			return nil, err
@@ -619,7 +724,12 @@ func (s *Service) Cancel(ctx context.Context, c platform.Request) (traceResult p
 		}
 		return s.resumeWorkflow(ctx, c.ID, user, constants.CheckoutModePaid)
 	}
-	if _, err = s.call(ctx, constants.ServiceOrder, constants.ActionCloseComplete, c.ID, user, nil); err != nil {
+	if _, err = platform.NewClients(s.rpc).Order.CloseComplete(ctx, platform.Request{
+		ID:     c.ID,
+		UserID: user,
+		Role:   constants.RoleSystem,
+		Data:   nil,
+	}); err != nil {
 		return nil, err
 	}
 	return s.resumeWorkflow(ctx, c.ID, user, constants.CheckoutModeRelease)
@@ -634,7 +744,11 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 		if id == "" {
 			id = e.AggregateID
 		}
-		_, err := s.Paid(ctx, platform.Request{ID: id, UserID: e.UserID, Role: constants.RoleSystem})
+		_, err := s.Paid(ctx, platform.Request{
+			ID:     id,
+			UserID: e.UserID,
+			Role:   constants.RoleSystem,
+		})
 		return err
 	}
 	if e.Type == constants.EventOrderClosed {
@@ -666,38 +780,36 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 				return err
 			}
 			if e.Type == constants.EventGroupFormed {
-				if _, err = s.call(
-					ctx,
-					constants.ServiceOrder,
-					constants.ActionGroupFormed,
-					id,
-					a.UserID,
-					nil,
-				); err != nil {
+				if _, err = platform.NewClients(s.rpc).Order.GroupFormed(ctx, platform.Request{
+					ID:     id,
+					UserID: a.UserID,
+					Role:   constants.RoleSystem,
+					Data:   nil,
+				}); err != nil {
 					return err
 				}
-				if _, err = s.Paid(ctx, platform.Request{ID: id, UserID: a.UserID, Role: constants.RoleSystem}); err != nil {
+				if _, err = s.Paid(ctx, platform.Request{
+					ID:     id,
+					UserID: a.UserID,
+					Role:   constants.RoleSystem,
+				}); err != nil {
 					return err
 				}
 			} else {
-				if _, err = s.call(
-					ctx,
-					constants.ServiceOrder,
-					constants.ActionGroupFailed,
-					id,
-					a.UserID,
-					nil,
-				); err != nil {
+				if _, err = platform.NewClients(s.rpc).Order.GroupFailed(ctx, platform.Request{
+					ID:     id,
+					UserID: a.UserID,
+					Role:   constants.RoleSystem,
+					Data:   nil,
+				}); err != nil {
 					return err
 				}
-				if _, err = s.call(
-					ctx,
-					constants.ServicePayment,
-					constants.ActionClose,
-					id,
-					a.UserID,
-					nil,
-				); err != nil {
+				if _, err = platform.NewClients(s.rpc).Payment.Close(ctx, platform.Request{
+					ID:     id,
+					UserID: a.UserID,
+					Role:   constants.RoleSystem,
+					Data:   nil,
+				}); err != nil {
 					return err
 				}
 				if _, err = s.resumeWorkflow(ctx, id, a.UserID, constants.CheckoutModeRelease); err != nil {
@@ -724,7 +836,11 @@ func (s *Service) Tick(ctx context.Context) error {
 		}
 		var resumeErr error
 		if mode == constants.CheckoutModePaid {
-			_, resumeErr = s.Paid(ctx, platform.Request{ID: a.ID, UserID: a.UserID, Role: constants.RoleSystem})
+			_, resumeErr = s.Paid(ctx, platform.Request{
+				ID:     a.ID,
+				UserID: a.UserID,
+				Role:   constants.RoleSystem,
+			})
 		} else {
 			_, resumeErr = s.resumeWorkflow(ctx, a.ID, a.UserID, mode)
 		}

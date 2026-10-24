@@ -1,11 +1,11 @@
 # inventory-service / 库存与实物账
 
-公开查询 `get`；管理员 `adjust`；内部 `reserve/confirm/cancel/dispatch/restock`。
+公开查询 `get/batch_get`；管理员 `adjust`；内部 `reserve/confirm/cancel/dispatch/restock`。
 
 ## 目录分层
 
 - `service.go`：组合依赖，注册迁移、消费事件与任务。
-- `internal/transport`：RPC action 白名单、分发与 transport span。
+- `internal/transport`：独立 RPC 方法注册、入参校验与 transport span；兼容 action 仅在边界解析。
 - `internal/usecase`：权限、业务流程、跨服务RPC与 usecase span。
 - `internal/repository`：只访问本服务 GORM 数据库，事务与 repository span。
 - `internal/domain`：数据模型与业务状态。
@@ -30,6 +30,7 @@
 每个操作对应 usecase 的独立公开方法，接收不含 `Action` 的 `platform.Request`。
 transport 通过 `MethodHandler` 注册方法并执行边界校验与链路追踪；兼容入口仅负责路由。
 服务装配同时导出 `Module.Operations`，供独立 gRPC 方法直接调用。
+跨服务调用使用 `platform.NewClients(...).Service.Method` 与 `platform.Request`，业务层不传递 action。
 
 - `get` → `Get(context.Context, platform.Request)`。
 - `batch_get` → `BatchGet(context.Context, platform.Request)`。

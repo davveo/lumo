@@ -35,7 +35,7 @@ func TestIndependentOperationsKeepWireContractsAndAuthorization(t *testing.T) {
 		{"payment", "get list create submit_demo confirm_demo close", "create", payment.New, codes.Unauthenticated},
 		{"refund", "get list create confirm_demo", "create", refund.New, codes.Unauthenticated},
 		{"invoice", "list create get reversals issue_demo adjust_demo", "create", invoice.New, codes.Unauthenticated},
-		{"reconciliation", "list run", "list", reconciliation.New, codes.PermissionDenied},
+		{"reconciliation", "list run", "list", reconciliation.New, codes.Unauthenticated},
 		{"notification", "list read read_all", "list", notification.New, codes.Unauthenticated},
 		{"helpdesk", "faq list get create reply close", "create", helpdesk.New, codes.Unauthenticated},
 	} {

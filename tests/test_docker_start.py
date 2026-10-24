@@ -22,10 +22,12 @@ DOMAINS = (
     "pricing checkout order campaign coupon points group flash inventory fulfillment logistics aftersale "
     "payment refund invoice reconciliation notification helpdesk"
 ).split()
-APPS = DOMAINS + ["gateway"]
+BACKENDS = DOMAINS + ["gateway"]
+APPS = BACKENDS + ["web"]
 INFRA = ["consul", "mysql", "redis", "rabbitmq", "minio", "jaeger", "otel-collector"]
 INIT = "storage-volume-init"
 APP_IMAGE = "lumo-mall-backend:dev"
+WEB_IMAGE = "lumo-mall-web:dev"
 MINIO_IMAGE = "lumo-minio:release-20250907"
 JAEGER_IMAGE = "lumo-jaeger:2.12.0"
 COLLECTOR_IMAGE = "lumo-otel-collector:0.124.1"
@@ -37,9 +39,9 @@ with open(os.environ['TEST_DOCKER_RECORD'],'a',encoding='utf-8') as stream:
     stream.write(json.dumps({'args':args,'cwd':os.getcwd()})+'\n')
 path=pathlib.Path(os.environ['TEST_DOCKER_RUNTIME']);state=json.loads(path.read_text())
 failure=os.environ.get('TEST_DOCKER_FAIL_STAGE','')
-apps=state['domains']+['gateway'];infra=state['infra'];initializer='storage-volume-init';services=infra+[initializer]+apps
+apps=state['domains']+['gateway','web'];infra=state['infra'];initializer='storage-volume-init';services=infra+[initializer]+apps
 local_images={'minio':'lumo-minio:release-20250907','jaeger':'lumo-jaeger:2.12.0','otel-collector':'lumo-otel-collector:0.124.1'}
-images={n:('lumo-mall-backend:dev' if n in apps else local_images.get(n,'fixture-'+n+':fixed')) for n in services}
+images={n:('lumo-mall-web:dev' if n=='web' else 'lumo-mall-backend:dev' if n in apps else local_images.get(n,'fixture-'+n+':fixed')) for n in services}
 def save():path.write_text(json.dumps(state))
 def die(message,code=1):print(message,file=sys.stderr);raise SystemExit(code)
 def config_hash(name):return hashlib.sha256((name+'\0'+state.get('config_overrides',{}).get(name,'v1')).encode()).hexdigest()
@@ -140,7 +142,7 @@ elif command=='up':
             old.update(status='exited' if n==initializer else 'running',health='none' if n==initializer else 'healthy',exit_code=0)
     save()
 elif command=='port':
-    ports={('gateway','8080'):'19080',('consul','8500'):'18500',('jaeger','16686'):'26686',('rabbitmq','15672'):'25672',('minio','9000'):'19001',('minio','9001'):'19002'}
+    ports={('web','8080'):'19080',('gateway','8080'):'29080',('consul','8500'):'18500',('jaeger','16686'):'26686',('rabbitmq','15672'):'25672',('minio','9000'):'19001',('minio','9001'):'19002'}
     key=tuple([v for v in tail if not v.startswith('-')][-2:])
     if key not in ports:die('Unexpected port lookup '+repr(tail),92)
     if key[0] not in state['containers']:raise SystemExit(1)
@@ -175,6 +177,11 @@ class DockerStartupTests(unittest.TestCase):
             "scripts/source-fingerprint.sh",
             "Dockerfile",
             ".dockerignore",
+            "web/Dockerfile",
+            "web/.dockerignore",
+            "web/nginx/default.conf.template",
+            "web/nginx/nginx.conf",
+            "web/nginx/proxy.conf",
             "compose.yaml",
             "deploy/minio.Dockerfile",
         ):
@@ -202,7 +209,7 @@ class DockerStartupTests(unittest.TestCase):
             "deploy/jaeger.yaml": "fixture: jaeger\n",
             "deploy/otel-collector.yaml": "fixture: collector\n",
             "README.md": "Fixture docs\n",
-            ".env.example": "GATEWAY_PORT=19080\nCUSTOM_KEEP=template\n",
+            ".env.example": "WEB_PORT=19080\nGATEWAY_PORT=29080\nCUSTOM_KEEP=template\n",
         }
         for n in DOMAINS:
             files[f"services/{n}/service.go"] = f"package {n}\n"
@@ -222,12 +229,13 @@ class DockerStartupTests(unittest.TestCase):
         self.side_effect = self.sandbox / "env must not execute"
         images = {
             APP_IMAGE: "sha256:original-app",
+            WEB_IMAGE: "sha256:original-web",
             **{tag: "sha256:original-" + name for name, tag in BUILDABLE_INFRA.items()},
         }
         containers = {}
         for n in INFRA + [INIT] + APPS:
             image = (
-                images[APP_IMAGE]
+                images[WEB_IMAGE] if n == "web" else images[APP_IMAGE]
                 if n in APPS
                 else images[BUILDABLE_INFRA[n]] if n in BUILDABLE_INFRA else "sha256:fixture-" + n
             )
@@ -269,6 +277,8 @@ class DockerStartupTests(unittest.TestCase):
                 "DOCKER_HOST",
                 "DOCKER_CONTEXT",
                 "GATEWAY_PORT",
+                "WEB_PORT",
+                "WEB_GATEWAY_UPSTREAM",
                 "JAEGER_PORT",
                 "RABBITMQ_UI_PORT",
                 "CONSUL_UI_PORT",
@@ -396,7 +406,7 @@ class DockerStartupTests(unittest.TestCase):
         before = self.read_runtime()
         self.assert_success(self.run_start())
         self.assertEqual(self.app_targets(), set(APPS))
-        self.assertEqual(len(self.builds()), 1)
+        self.assertEqual([self.selected(c) for c in self.builds()], [{"gateway"}, {"web"}])
         self.assertNotIn("minio", self.selected(self.builds()[0]))
         self.assert_infra_preserved(before)
         for call in self.actual_ups():
@@ -429,7 +439,9 @@ class DockerStartupTests(unittest.TestCase):
         self.mutate("web/dist/app.js")
         self.clear_calls()
         self.assert_success(self.run_start())
-        self.assertEqual(self.app_targets(), {"gateway"})
+        self.assertEqual(self.app_targets(), {"web"})
+        self.assertEqual([self.selected(c) for c in self.builds()], [{"web"}])
+        self.assertEqual(self.read_runtime()["containers"]["gateway"], state["containers"]["gateway"])
         self.clear_calls()
         self.assert_success(self.run_start())
         self.assertEqual(self.actual_ups(), [])
@@ -439,9 +451,50 @@ class DockerStartupTests(unittest.TestCase):
         before = self.read_runtime()
         self.mutate("internal/platform/platform.go")
         self.assert_success(self.run_start())
-        self.assertEqual(self.app_targets(), set(APPS))
+        self.assertEqual(self.app_targets(), set(BACKENDS))
         self.assertEqual(len(self.builds()), 1)
         self.assert_infra_preserved(before)
+
+    def test_frontend_recipe_changes_build_only_web(self):
+        self.establish_baseline()
+        before = self.read_runtime()
+        self.mutate("web/nginx/default.conf.template", "\n# changed proxy configuration\n")
+        self.assert_success(self.run_start())
+        self.assertEqual(self.app_targets(), {"web"})
+        self.assertEqual([self.selected(c) for c in self.builds()], [{"web"}])
+        after = self.read_runtime()
+        self.assertEqual(after["images"][APP_IMAGE], before["images"][APP_IMAGE])
+        for service in BACKENDS:
+            self.assertEqual(after["containers"][service], before["containers"][service], service)
+        self.assert_infra_preserved(before)
+
+    def test_web_no_build_keeps_changed_frontend_pending(self):
+        self.establish_baseline()
+        before = self.read_runtime()
+        self.mutate("web/dist/app.js")
+        self.assert_success(self.run_start("--no-build"))
+        self.assertEqual(self.app_targets(), {"web"})
+        self.assertEqual(self.builds(), [])
+        self.clear_calls()
+        self.assert_success(self.run_start())
+        self.assertEqual(self.app_targets(), {"web"})
+        self.assertEqual([self.selected(c) for c in self.builds()], [{"web"}])
+        self.assertEqual(self.read_runtime()["images"][APP_IMAGE], before["images"][APP_IMAGE])
+
+    def test_legacy_gateway_port_moves_to_web_with_an_exact_private_backup(self):
+        legacy = "GATEWAY_PORT='19080' # original storefront\nCUSTOM_KEEP=literal $(do-not-execute)\n"
+        (self.project / ".env").write_text(legacy)
+        self.assert_success(self.run_start("order"))
+        migrated = (self.project / ".env").read_text()
+        self.assertIn("WEB_PORT=19080\n", migrated)
+        self.assertIn("GATEWAY_PORT=18080\n", migrated)
+        self.assertIn("CUSTOM_KEEP=literal $(do-not-execute)", migrated)
+        backups = list((self.project / ".local" / "env-backups").glob("before-web-split.*"))
+        self.assertEqual(len(backups), 1)
+        self.assertEqual(backups[0].read_text(), legacy)
+        self.assertEqual(backups[0].stat().st_mode & 0o777, 0o600)
+        self.assert_success(self.run_start("order"))
+        self.assertEqual(len(list(backups[0].parent.iterdir())), 1)
 
     def test_demo_catalog_updates_only_catalog_and_inventory(self):
         self.establish_baseline()
@@ -803,7 +856,7 @@ class DockerStartupTests(unittest.TestCase):
                 self.clear_calls()
                 result = self.run_start("order", "--wait-timeout", "71", entry=entry)
                 self.assert_success(result)
-                for port in ("19080", "18500", "26686", "25672", "19001", "19002"):
+                for port in ("19080", "29080", "18500", "26686", "25672", "19001", "19002"):
                     self.assertIn(":" + port, result.stdout)
                 self.assertIn("/admin.html", result.stdout)
                 self.assertNotIn("http://localhost:8080", result.stdout)
@@ -818,7 +871,8 @@ class DockerStartupTests(unittest.TestCase):
     def test_accessible_addresses_normalize_wildcards_use_first_binding_and_skip_empty(self):
         state = self.read_runtime()
         state["port_bindings"] = {
-            "gateway:8080": "0.0.0.0:19080\n[::]:19080",
+            "web:8080": "0.0.0.0:19080\n[::]:19080",
+            "gateway:8080": "0.0.0.0:29080\n[::]:29080",
             "jaeger:16686": "[::]:26686\n0.0.0.0:26686",
             "rabbitmq:15672": "192.0.2.27:25672",
             "minio:9000": "",
@@ -830,7 +884,8 @@ class DockerStartupTests(unittest.TestCase):
         for expected in (
             "商城前台：http://127.0.0.1:19080",
             "商城管理端：http://127.0.0.1:19080/admin.html",
-            "接口联调台：http://127.0.0.1:19080/debug",
+            "API网关：http://127.0.0.1:29080/api/v1",
+            "接口联调台：http://127.0.0.1:29080/debug",
             "Consul注册中心：http://127.0.0.1:18500/ui/",
             "Jaeger：http://[::1]:26686",
             "RabbitMQ：http://192.0.2.27:25672",
@@ -841,7 +896,7 @@ class DockerStartupTests(unittest.TestCase):
         self.assertNotIn("[::]:", result.stdout)
         self.assertNotIn("MinIO接口：", result.stdout)
         links = [line for line in result.stdout.splitlines() if "http://" in line]
-        self.assertEqual(len(links), 7)
+        self.assertEqual(len(links), 8)
         for line in links:
             self.assertTrue(line.startswith("  "), line)
 
@@ -851,7 +906,7 @@ class DockerStartupTests(unittest.TestCase):
         for expected in (
             "商城前台：http://127.0.0.1:19080\n    初始演示顾客账号：demo  密码：Lumo@2026",
             "商城管理端：http://127.0.0.1:19080/admin.html\n    初始演示管理员账号：admin  密码：Admin@2026",
-            "接口联调台：http://127.0.0.1:19080/debug\n    初始演示顾客账号：demo  密码：Lumo@2026\n    初始演示管理员账号：admin  密码：Admin@2026",
+            "接口联调台：http://127.0.0.1:29080/debug\n    初始演示顾客账号：demo  密码：Lumo@2026\n    初始演示管理员账号：admin  密码：Admin@2026",
             "Consul注册中心：http://127.0.0.1:18500/ui/\n    登录：默认无需账号密码",
             "Jaeger：http://127.0.0.1:26686\n    登录：默认无需账号密码",
             "RabbitMQ：http://127.0.0.1:25672\n    容器初始化账号：fixture-mq  密码：fixture-mq-password",

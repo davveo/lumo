@@ -23,6 +23,17 @@ func rpcSpanAttributes(span tracetest.SpanStub) map[string]string {
 
 func rpcTraceServer(t *testing.T, module Module) string {
 	t.Helper()
+	// Fixtures retain their compact local callback, but expose the same named
+	// wire contract as the migrated services so payload assertions cover it.
+	if module.Operations == nil && module.Handle != nil {
+		handle := module.Handle
+		module.Operations = map[string]Operation{}
+		for action := range namedServiceRPCs[module.Name] {
+			module.Operations[action] = func(ctx context.Context, request Request) (Result, error) {
+				return handle(ctx, request.Command(action))
+			}
+		}
+	}
 	server, err := NewRPCServer("trace-internal-token", module)
 	if err != nil {
 		t.Fatal(err)
@@ -96,8 +107,9 @@ func TestRPCTraceIdentifiesEachTargetInFanout(t *testing.T) {
 		if action == "" {
 			t.Errorf("missing per-hop target on %s: %v", span.Name, attrs)
 		}
-		if span.Name == "mall.v1.DomainService/Execute" {
-			if attrs["rpc.service"] != "mall.v1.DomainService" {
+		if span.SpanKind == trace.SpanKindClient || span.SpanKind == trace.SpanKindServer {
+			expectedService := map[string]string{"checkout": "mall.v1.CheckoutService", "pricing": "mall.v1.PricingService"}[target]
+			if attrs["rpc.service"] != expectedService {
 				t.Errorf("protobuf service overwritten on %s: %v", span.Name, attrs)
 			}
 			switch span.SpanKind {

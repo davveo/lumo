@@ -2,7 +2,6 @@ package refund
 
 import (
 	"github.com/davveo/lumo/internal/constants"
-
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/refund/internal/repository"
 	"github.com/davveo/lumo/services/refund/internal/transport"

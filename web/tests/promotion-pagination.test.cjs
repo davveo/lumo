@@ -168,14 +168,14 @@ for (const section of ['flash', 'group', 'exchange', ...types]) {
       const controls = pagers(html);
       assert.deepEqual(
         controls.map((row) => row.position),
-        ['顶部', '底部'],
+        ['底部'],
       );
       assert.match(
         controls[0].body,
         /aria-label="上一页活动商品"[^>]*disabled|disabled[^>]*aria-label="上一页活动商品"/,
       );
       assert.match(controls[0].body, /aria-label="下一页活动商品"/);
-      assert.match(controls[1].body, /aria-label="第 3 页活动商品"/);
+      assert.match(controls[0].body, /aria-label="第 3 页活动商品"/);
 
       await f.app.click({ promoPage: '2' });
       html = f.html();

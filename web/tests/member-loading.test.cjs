@@ -476,3 +476,105 @@ test('invoice order picker joins service hydration and waits for authoritative o
   assert.doesNotMatch(f.modals.at(-1).html, /sk-loading/);
   assert.equal(f.calls.length, 4);
 });
+
+test('detail footprints wait for hydrated products and persist once before refreshing one recent aggregate', async (t) => {
+  const f = fixture();
+  t.after(() => f.dispose());
+  let recentReads = 0;
+  f.app.ctx.LumoSidebars = { async refresh(force) { assert.equal(force, true); recentReads++; } };
+  f.app.ctx.location.hash = '#/product/outside-bootstrap';
+  f.member.afterRender();
+  assert.equal(f.calls.length, 0, 'unloaded detail must not be marked as already tracked');
+  f.app.ctx.products.push({ id: 'outside-bootstrap', skuId: 'outside-default', name: '真实新增商品' });
+  f.setHandler(async (service, action, command) => {
+    assert.equal(service + '/' + action, 'engagement/put');
+    assert.equal(command.data.sku_id, 'outside-default');
+    return { id: 'history-outside', user_id: 'buyer', sku_id: 'outside-default', updated_at: '2026-10-24T10:00:00Z' };
+  });
+  f.member.afterRender();
+  f.member.afterRender();
+  await tick();
+  f.member.afterRender();
+  await tick();
+  assert.equal(f.calls.length, 1, 'rerenders must not repeat writes or refetch history per product');
+  assert.equal(recentReads, 1);
+  assert.equal(f.member.model().history[0].id, 'outside-bootstrap');
+  assert.equal(f.member.model().history[0].recordId, 'history-outside');
+  f.setSession(null, '');
+  assert.equal(await f.member.track('outside-bootstrap'), false, 'guest must not report a persisted footprint');
+  assert.equal(f.member.model().history.length, 0);
+  assert.equal(f.calls.length, 1);
+});
+
+test('late footprint writes never populate or block a different account', async (t) => {
+  const f = fixture();
+  t.after(() => f.dispose());
+  const write = deferred();
+  let recentReads = 0;
+  f.app.ctx.products.push({ id: 'outside', skuId: 'outside', name: '真实商品' });
+  f.app.ctx.LumoSidebars = { async refresh() { recentReads++; } };
+  f.setHandler(async () => write.promise);
+  const old = f.member.track('outside');
+  f.setSession('second', 'token-second');
+  f.setHandler(async () => ({ id: 'second-history', user_id: 'second', sku_id: 'outside' }));
+  assert.equal(await f.member.track('outside'), true);
+  write.resolve({ id: 'old-history', user_id: 'buyer', sku_id: 'outside' });
+  assert.equal(await old, false);
+  assert.deepEqual(clone(f.member.model().history.map((row) => row.recordId)), ['second-history']);
+  assert.equal(recentReads, 1, 'old account completion must not refresh the current sidebar');
+});
+
+test('failed footprint writes remain errors and can be retried after the product is ready', async (t) => {
+  const f = fixture();
+  t.after(() => f.dispose());
+  f.app.ctx.products.push({ id: 'outside', name: '真实商品' });
+  f.app.ctx.location.hash = '#/product/outside';
+  f.setHandler(async () => { throw Error('保存失败'); });
+  f.member.afterRender();
+  await tick();
+  assert.equal(f.member.model().history.length, 0);
+  assert.match(f.member.readState('history').error, /保存失败/);
+  f.setHandler(async () => ({ id: 'saved', user_id: 'buyer', sku_id: 'outside' }));
+  f.member.afterRender();
+  await tick();
+  assert.equal(f.member.model().history[0].recordId, 'saved');
+  assert.equal(f.member.readState('history').error, '');
+});
+
+test('historical products beyond the bootstrap window hydrate with bounded SKU and parent batch reads', async (t) => {
+  const f = fixture();
+  t.after(() => f.dispose());
+  f.app.ctx.LumoCommerce.normalizeProduct = (raw) => ({ ...raw, skuId: raw.id, price: raw.price_cents / 100 });
+  f.setHandler(async (service, action, command) => {
+    if (service === 'catalog') {
+      assert.equal(action, 'batch_get');
+      if (command.data.ids[0] === 'old-sku') return { items: [{ id: 'old-sku', product_id: 'old-parent' }] };
+      return { items: [{ id: 'old-parent', name: '目录百条之外的真实商品', price_cents: 9900, variants: [{ sku_id: 'old-sku' }] }] };
+    }
+    if (service === 'engagement' && command.data.kind === 'history') return { items: [{ id: 'old-record', user_id: 'buyer', sku_id: 'old-sku', created_at: '2026-10-24T10:00:00Z' }] };
+    return { items: [] };
+  });
+  await f.member.refresh();
+  assert.equal(f.member.model().history[0].id, 'old-parent');
+  assert.equal(f.app.ctx.products[0].name, '目录百条之外的真实商品');
+  assert.equal(f.calls.filter((row) => row.service === 'catalog').length, 2);
+  assert.equal(f.calls.filter((row) => row.service === 'inventory').length, 0);
+  assert.equal(f.calls.filter((row) => row.action === 'get' && row.service === 'catalog').length, 0);
+});
+
+test('a history list started before a successful detail write cannot erase the newer footprint', async (t) => {
+  const f = fixture();
+  t.after(() => f.dispose());
+  const listing = deferred();
+  f.app.ctx.products.push({ id: 'new-product', name: '真实商品' });
+  f.setHandler(async (service, action, command) => {
+    if (service === 'engagement' && action === 'put') return { id: 'new-history', user_id: 'buyer', sku_id: 'new-product', updated_at: '2026-10-24T10:00:00Z' };
+    if (service === 'engagement' && command.data.kind === 'history') return listing.promise;
+    return { items: [] };
+  });
+  const refresh = f.member.refresh();
+  await f.member.track('new-product');
+  listing.resolve({ items: [] });
+  await refresh;
+  assert.equal(f.member.model().history[0].recordId, 'new-history');
+});

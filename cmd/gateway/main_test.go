@@ -8,9 +8,32 @@ import (
 	"google.golang.org/grpc/status"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestProductionGatewayDoesNotServeFrontendAssets(t *testing.T) {
+	directory := t.TempDir()
+	if err := os.WriteFile(filepath.Join(directory, "index.html"), []byte("private frontend fixture"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("FRONTEND_DIR", directory)
+	handler := newHandler(&fakeCaller{}, true)
+	for _, path := range []string{"/", "/index.html", "/admin.html", "/app.js", "/styles.css"} {
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, path, nil))
+		if response.Code != http.StatusNotFound || strings.Contains(response.Body.String(), "private frontend fixture") {
+			t.Fatalf("API-only gateway served storefront path %s: %d", path, response.Code)
+		}
+	}
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/debug", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("API console unavailable: %d", response.Code)
+	}
+}
 
 type fakeCaller struct {
 	calls []platform.Command

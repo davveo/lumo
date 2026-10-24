@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"encoding/json"
+
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/reconciliation/internal/domain"
@@ -19,7 +20,7 @@ func (s *Service) Topics() []string                              { return nil }
 func (s *Service) OnEvent(context.Context, platform.Event) error { return nil }
 func (s *Service) Tick(context.Context) error                    { return nil }
 func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "reconciliation.usecase."+constants.ActionList)
+	ctx, sp := platform.Start(ctx, "reconciliation.usecase.list")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -40,11 +41,10 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 		items = append(items, v)
 	}
 	return platform.Result{"items": items}, nil
-
 }
 
 func (s *Service) Run(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "reconciliation.usecase."+constants.ActionRun)
+	ctx, sp := platform.Start(ctx, "reconciliation.usecase.run")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -52,10 +52,8 @@ func (s *Service) Run(ctx context.Context, c platform.Request) (traceResult plat
 		return nil, err
 	}
 
-	payments, err := s.rpc.Call(
-		ctx,
-		constants.ServicePayment,
-		platform.Command{Action: constants.ActionList, UserID: c.UserID, Role: constants.RoleSystem},
+	payments, err := platform.NewClients(s.rpc).Payment.List(
+		ctx, platform.Request{UserID: c.UserID, Role: constants.RoleSystem},
 	)
 	if err != nil {
 		return nil, err
@@ -70,11 +68,8 @@ func (s *Service) Run(ctx context.Context, c platform.Request) (traceResult plat
 		if platform.Text(p, "status") != constants.PaymentStatusSucceeded {
 			continue
 		}
-		o, e := s.rpc.Call(
-			ctx,
-			constants.ServiceOrder,
-			platform.Command{
-				Action: constants.ActionGet,
+		o, e := platform.NewClients(s.rpc).Order.Get(
+			ctx, platform.Request{
 				ID:     platform.Text(p, "order_id"),
 				UserID: c.UserID,
 				Role:   constants.RoleSystem,
@@ -124,5 +119,4 @@ func (s *Service) Run(ctx context.Context, c platform.Request) (traceResult plat
 		return nil, err
 	}
 	return platform.Result{"id": run.ID, "status": state, "details": details}, nil
-
 }

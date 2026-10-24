@@ -18,12 +18,14 @@ import (
 
 // RecommendationCandidates is an internal, bounded recall operation. It does
 // not change the public catalog listing or trust caller-provided ranking data.
-func (s *Service) RecommendationCandidates(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "catalog.usecase."+constants.ActionRecommendationCandidates)
+func (s *Service) RecommendationCandidates(
+	ctx context.Context,
+	c platform.Request,
+) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "catalog.usecase.recommendation_candidates")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	if c.Role != constants.RoleSystem {
 		return nil, status.Error(codes.PermissionDenied, "internal recommendation recall required")
 	}

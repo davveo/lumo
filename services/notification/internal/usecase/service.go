@@ -2,13 +2,14 @@ package usecase
 
 import (
 	"context"
+
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/notification/internal/domain"
 )
 
 func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "notification.usecase."+constants.ActionList)
+	ctx, span := platform.Start(ctx, "notification.usecase.list")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -17,11 +18,10 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 	}
 
 	return s.list(ctx, c, c.UserID, constants.NotificationKindInbox, "")
-
 }
 
 func (s *Service) Read(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "notification.usecase."+constants.ActionRead)
+	ctx, span := platform.Start(ctx, "notification.usecase.read")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -45,11 +45,10 @@ func (s *Service) Read(ctx context.Context, c platform.Request) (traceResult pla
 		return nil, e
 	}
 	return view(r), nil
-
 }
 
 func (s *Service) ReadAll(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "notification.usecase."+constants.ActionReadAll)
+	ctx, span := platform.Start(ctx, "notification.usecase.read_all")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -62,7 +61,6 @@ func (s *Service) ReadAll(ctx context.Context, c platform.Request) (traceResult 
 		return nil, e
 	}
 	return platform.Result{"marked_read": count}, nil
-
 }
 
 func (s *Service) seed(context.Context) error { return nil }

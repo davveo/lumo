@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	mallv1 "github.com/davveo/lumo/api/mall/v1"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -43,6 +44,28 @@ func (c *rpcCaller) Invoke(ctx context.Context, service, method string, request 
 		return nil, status.Error(codes.Unimplemented, "unknown domain method")
 	}
 	return c.Call(ctx, service, request.Command(action))
+}
+
+func callServiceMethod(
+	ctx context.Context,
+	connection grpc.ClientConnInterface,
+	service string,
+	command Command,
+	payload []byte,
+) (Result, bool, error) {
+	definition, ok := namedServiceRPCs[service][command.Action]
+	if !ok {
+		return nil, false, nil
+	}
+	response, err := definition.invoke(ctx, connection, &mallv1.ServiceRequest{
+		Id: command.ID, UserId: command.UserID, Role: command.Role,
+		IdempotencyKey: command.IdempotencyKey, PayloadJson: payload,
+	})
+	if missingServiceMethod(err, definition.fullMethod) {
+		return nil, false, nil
+	}
+	result, err := decodeServiceResponse(response, err)
+	return result, true, err
 }
 
 func serveMethod(

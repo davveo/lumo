@@ -80,12 +80,12 @@ func (s *Service) Merge(ctx context.Context, c platform.Request) (traceResult pl
 		if it.Quantity < 1 || it.Quantity > 10 {
 			return nil, bad("quantity must be 1..10")
 		}
-		if _, e := call(
-			ctx,
-			s.rpc,
-			constants.ServiceCatalog,
-			child(c, constants.ActionGet, it.SKU, nil),
-		); e != nil {
+		if _, e := platform.NewClients(s.rpc).Catalog.Get(ctx, platform.Request{
+			ID:             it.SKU,
+			UserID:         c.UserID,
+			Role:           c.Role,
+			IdempotencyKey: c.IdempotencyKey,
+		}); e != nil {
 			return nil, e
 		}
 	}
@@ -138,10 +138,25 @@ func (s *Service) changeQuantity(ctx context.Context, c platform.Request, absolu
 	if sku == "" || quantity < 1 || quantity > 10 {
 		return nil, bad("sku_id and quantity 1..10 required")
 	}
-	if _, e := call(ctx, s.rpc, constants.ServiceCatalog, child(c, constants.ActionGet, sku, nil)); e != nil {
+	if _, e := platform.NewClients(s.rpc).Catalog.Get(ctx, platform.Request{
+		ID:             sku,
+		UserID:         c.UserID,
+		Role:           c.Role,
+		IdempotencyKey: c.IdempotencyKey,
+	}); e != nil {
 		return nil, e
 	}
-	stock, e := call(ctx, s.rpc, constants.ServiceInventory, child(c, constants.ActionGet, sku, nil))
+	stock, e := platform.NewClients(
+		s.rpc,
+	).Inventory.Get(
+		ctx,
+		platform.Request{
+			ID:             sku,
+			UserID:         c.UserID,
+			Role:           c.Role,
+			IdempotencyKey: c.IdempotencyKey,
+		},
+	)
 	if e != nil {
 		return nil, e
 	}
@@ -181,11 +196,15 @@ func (s *Service) event(ctx context.Context, e platform.Event) (traceErr error) 
 	defer sp.End()
 	platform.TraceRequest(ctx, e)
 	defer func() { platform.TraceResponse(ctx, nil, traceErr) }()
-	o, err := call(
-		ctx,
+	o, err := platform.NewClients(
 		s.rpc,
-		constants.ServiceOrder,
-		platform.Command{Action: constants.ActionGet, ID: e.AggregateID, UserID: e.UserID, Role: constants.RoleSystem},
+	).Order.Get(
+		ctx,
+		platform.Request{
+			ID:     e.AggregateID,
+			UserID: e.UserID,
+			Role:   constants.RoleSystem,
+		},
 	)
 	if err != nil {
 		return err

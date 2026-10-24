@@ -15,12 +15,14 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (s *Service) SearchProducts(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "catalog.usecase."+constants.ActionSearchProducts)
+func (s *Service) SearchProducts(
+	ctx context.Context,
+	c platform.Request,
+) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "catalog.usecase.search_products")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	if c.Role != constants.RoleSystem {
 		return nil, status.Error(codes.PermissionDenied, "internal product search required")
 	}

@@ -30,7 +30,7 @@ var serviceNames = []string{
 }
 
 func newHandler(rpc platform.Caller, demo bool) http.Handler {
-	return httpgateway.NewHandler(rpc, demo, env("FRONTEND_DIR", "web/dist"))
+	return httpgateway.NewHandler(rpc, demo, "")
 }
 
 func env(key, def string) string {

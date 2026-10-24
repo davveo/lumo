@@ -139,6 +139,9 @@ func (c *rpcCaller) Call(ctx context.Context, service string, command Command) (
 			return out, typedErr
 		}
 	}
+	if result, handled, methodErr := callServiceMethod(ctx, conn, service, command, payload); handled {
+		return result, methodErr
+	}
 	result, err := mallv1.NewDomainServiceClient(conn).
 		Execute(
 			ctx,
@@ -268,8 +271,27 @@ func NewRPCServer(token string, module Module) (*grpc.Server, error) {
 	if token == "" {
 		return nil, fmt.Errorf("INTERNAL_RPC_TOKEN must not be empty")
 	}
-	if module.Handle == nil && module.RegisterRPC == nil {
+	if module.Handle == nil && module.RegisterRPC == nil && len(module.Operations) == 0 {
 		return nil, fmt.Errorf("module %s has no RPC handler", module.Name)
+	}
+	if len(module.Operations) != 0 {
+		definitions, ok := namedServiceRPCs[module.Name]
+		if !ok {
+			return nil, fmt.Errorf("module %s has no generated domain RPC contract", module.Name)
+		}
+		actions := make(map[string]string, len(definitions)+len(module.RPCActions))
+		for method, action := range module.RPCActions {
+			actions[method] = action
+		}
+		for action, operation := range module.Operations {
+			if _, ok := definitions[action]; !ok || operation == nil {
+				return nil, fmt.Errorf("module %s has an invalid RPC operation %s", module.Name, action)
+			}
+		}
+		for action, definition := range definitions {
+			actions[definition.fullMethod] = action
+		}
+		module.RPCActions = actions
 	}
 	interceptor := func(
 		ctx context.Context,
@@ -341,6 +363,9 @@ func NewRPCServer(token string, module Module) (*grpc.Server, error) {
 	}
 	if module.RegisterRPC != nil {
 		module.RegisterRPC(server)
+	}
+	if len(module.Operations) != 0 {
+		registerServiceMethods(server, module)
 	}
 	healthServer := health.NewServer()
 	healthServer.SetServingStatus("", healthv1.HealthCheckResponse_SERVING)

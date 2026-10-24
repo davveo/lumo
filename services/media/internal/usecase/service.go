@@ -31,7 +31,7 @@ func contentType(v string) (string, error) {
 	return strings.ToLower(typ), nil
 }
 func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "media.usecase."+constants.ActionCreate)
+	ctx, span := platform.Start(ctx, "media.usecase.create")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -95,7 +95,7 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 	return out, nil
 }
 func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "media.usecase."+constants.ActionGet)
+	ctx, span := platform.Start(ctx, "media.usecase.get")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -116,7 +116,6 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 	out := view(r)
 	out["file_id"] = r.ID
 	if s.store == nil {
-
 		return out, nil
 	}
 	if r.Status != constants.MediaStatusReady {
@@ -164,7 +163,7 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 	return out, nil
 }
 func (s *Service) Download(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "media.usecase."+constants.ActionDownload)
+	ctx, span := platform.Start(ctx, "media.usecase.download")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -185,10 +184,7 @@ func (s *Service) Download(ctx context.Context, c platform.Request) (traceResult
 	out := view(r)
 	out["file_id"] = r.ID
 	if s.store == nil {
-		{
-			return nil, status.Error(codes.FailedPrecondition, "object storage is not configured")
-		}
-		return out, nil
+		return nil, status.Error(codes.FailedPrecondition, "object storage is not configured")
 	}
 
 	if r.Status != constants.MediaStatusReady {
@@ -235,7 +231,7 @@ func (s *Service) Download(ctx context.Context, c platform.Request) (traceResult
 	return out, nil
 }
 func (s *Service) Complete(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "media.usecase."+constants.ActionComplete)
+	ctx, span := platform.Start(ctx, "media.usecase.complete")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -256,10 +252,7 @@ func (s *Service) Complete(ctx context.Context, c platform.Request) (traceResult
 	out := view(r)
 	out["file_id"] = r.ID
 	if s.store == nil {
-		{
-			return nil, status.Error(codes.FailedPrecondition, "object storage is not configured")
-		}
-		return out, nil
+		return nil, status.Error(codes.FailedPrecondition, "object storage is not configured")
 	}
 
 	if r.Status == constants.MediaStatusRejected {

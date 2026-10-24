@@ -3,10 +3,10 @@ package usecase
 import (
 	"context"
 	"encoding/json"
-	"github.com/davveo/lumo/internal/constants"
 	"os"
 	"strings"
 
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/fulfillment/internal/domain"
 	"github.com/davveo/lumo/services/fulfillment/internal/repository"
@@ -65,7 +65,7 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 	)
 }
 func (s *Service) Cancel(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.fulfillment."+constants.ActionCancel)
+	ctx, span := platform.Start(ctx, "usecase.fulfillment.cancel")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -78,16 +78,15 @@ func (s *Service) Cancel(ctx context.Context, c platform.Request) (traceResult p
 	}
 	r, err := s.Repo.Get(ctx, c.ID)
 	if status.Code(err) == codes.NotFound {
-
+		// A cancellation may overtake the asynchronous ready event. Persist a
+		// tombstone first so that the delayed event cannot resurrect shipment.
 		if c.ID == "" || c.UserID == "" {
 			return nil, status.Error(codes.InvalidArgument, "cancellation requires order and owner")
 		}
 		user := c.UserID
 		if c.Role == constants.RoleAdmin {
-			order, callErr := s.RPC.Call(
-				ctx,
-				constants.ServiceOrder,
-				platform.Command{Action: constants.ActionGet, ID: c.ID, UserID: c.UserID, Role: c.Role},
+			order, callErr := platform.NewClients(s.RPC).Order.Get(
+				ctx, platform.Request{ID: c.ID, UserID: c.UserID, Role: c.Role},
 			)
 			if callErr != nil {
 				return nil, callErr
@@ -141,6 +140,8 @@ func (s *Service) Cancel(ctx context.Context, c platform.Request) (traceResult p
 			)
 		}
 
+		// This acknowledgement is ONLY the local deterministic demo warehouse.
+		// The production adapter must wait for an authenticated WMS callback.
 		r, err = s.Repo.Transition(
 			ctx,
 			r.ID,
@@ -153,11 +154,8 @@ func (s *Service) Cancel(ctx context.Context, c platform.Request) (traceResult p
 			return nil, err
 		}
 	}
-	if _, err = s.RPC.Call(
-		ctx,
-		constants.ServiceInventory,
-		platform.Command{
-			Action: constants.ActionCancel,
+	if _, err = platform.NewClients(s.RPC).Inventory.Cancel(
+		ctx, platform.Request{
 			ID:     r.ReservationID,
 			UserID: r.UserID,
 			Role:   constants.RoleSystem,
@@ -177,14 +175,13 @@ func (s *Service) Cancel(ctx context.Context, c platform.Request) (traceResult p
 	out := platform.Map(r)
 	out["warehouse_confirmed"] = true
 	return out, err
-
 }
 
 func (s *Service) CreateExchange(
 	ctx context.Context,
 	c platform.Request,
 ) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.fulfillment."+constants.ActionCreateExchange)
+	ctx, span := platform.Start(ctx, "usecase.fulfillment.create_exchange")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -214,11 +211,10 @@ func (s *Service) CreateExchange(
 		return nil, err
 	}
 	return platform.Map(r), nil
-
 }
 
 func (s *Service) Dispatch(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.fulfillment."+constants.ActionDispatch)
+	ctx, span := platform.Start(ctx, "usecase.fulfillment.dispatch")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -253,21 +249,17 @@ func (s *Service) Dispatch(ctx context.Context, c platform.Request) (traceResult
 	if err != nil {
 		return nil, err
 	}
-	command := platform.Command{
+	command := platform.Request{
 		ID:     r.ReservationID,
 		UserID: r.UserID,
 		Role:   constants.RoleSystem,
-		Action: constants.ActionDispatch,
 		Data:   map[string]any{"warehouse_confirmed": true},
 	}
-	if _, err = s.RPC.Call(ctx, constants.ServiceInventory, command); err != nil {
+	if _, err = platform.NewClients(s.RPC).Inventory.Dispatch(ctx, command); err != nil {
 		return nil, err
 	}
-	shipping, err := s.RPC.Call(
-		ctx,
-		constants.ServiceLogistics,
-		platform.Command{
-			Action: constants.ActionCreate,
+	shipping, err := platform.NewClients(s.RPC).Logistics.Create(
+		ctx, platform.Request{
 			ID:     r.ID,
 			UserID: r.UserID,
 			Role:   constants.RoleSystem,
@@ -299,11 +291,10 @@ func (s *Service) Dispatch(ctx context.Context, c platform.Request) (traceResult
 		event,
 	)
 	return platform.Map(r), err
-
 }
 
 func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.fulfillment."+constants.ActionGet)
+	ctx, span := platform.Start(ctx, "usecase.fulfillment.get")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -319,11 +310,10 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 		return nil, err
 	}
 	return platform.Map(r), nil
-
 }
 
 func (s *Service) InspectReturn(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.fulfillment."+constants.ActionInspectReturn)
+	ctx, span := platform.Start(ctx, "usecase.fulfillment.inspect_return")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -364,11 +354,8 @@ func (s *Service) InspectReturn(ctx context.Context, c platform.Request) (traceR
 	if receipt.Status == constants.FulfillmentStatusInspected {
 		return platform.Map(receipt), nil
 	}
-	if _, err := s.RPC.Call(
-		ctx,
-		constants.ServiceInventory,
-		platform.Command{
-			Action: constants.ActionRestock,
+	if _, err := platform.NewClients(s.RPC).Inventory.Restock(
+		ctx, platform.Request{
 			ID:     c.ID,
 			UserID: c.UserID,
 			Role:   constants.RoleSystem,
@@ -393,11 +380,10 @@ func (s *Service) InspectReturn(ctx context.Context, c platform.Request) (traceR
 		event,
 	)
 	return platform.Map(receipt), err
-
 }
 
 func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.fulfillment."+constants.ActionList)
+	ctx, span := platform.Start(ctx, "usecase.fulfillment.list")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -414,5 +400,4 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 	}
 	rows, err := s.Repo.List(ctx, user)
 	return platform.Result{"items": rows}, err
-
 }

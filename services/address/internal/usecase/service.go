@@ -4,11 +4,10 @@ import (
 	"context"
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
-	"github.com/davveo/lumo/services/address/internal/domain"
 )
 
 func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "address.usecase."+constants.ActionList)
+	ctx, span := platform.Start(ctx, "address.usecase.list")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -19,7 +18,7 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 	return s.list(ctx, c, c.UserID, constants.AddressKindAddress, "")
 }
 func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "address.usecase."+constants.ActionGet)
+	ctx, span := platform.Start(ctx, "address.usecase.get")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -37,7 +36,7 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 	return view(r), nil
 }
 func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "address.usecase."+constants.ActionCreate)
+	ctx, span := platform.Start(ctx, "address.usecase.create")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -45,10 +44,7 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 		return nil, e
 	}
 
-	var r domain.Record
-	{
-		c.ID = platform.ID("addr")
-	}
+	c.ID = platform.ID("addr")
 	recipient := platform.Text(c.Data, "recipient")
 	phone := platform.Text(c.Data, "phone")
 	address := platform.Text(c.Data, "address")
@@ -72,7 +68,6 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 			"district":  platform.Text(c.Data, "district"),
 		},
 	)
-	v.IsDefault = r.IsDefault
 	if e := s.repo.Save(ctx, &v, nil); e != nil {
 		return nil, e
 	}
@@ -85,7 +80,7 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 	return view(v), nil
 }
 func (s *Service) Update(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "address.usecase."+constants.ActionUpdate)
+	ctx, span := platform.Start(ctx, "address.usecase.update")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -93,16 +88,12 @@ func (s *Service) Update(ctx context.Context, c platform.Request) (traceResult p
 		return nil, e
 	}
 
-	var r domain.Record
-	{
-		var e error
-		r, e = s.repo.Get(ctx, c.ID)
-		if e != nil {
-			return nil, e
-		}
-		if e = own(c, r); e != nil {
-			return nil, e
-		}
+	r, e := s.repo.Get(ctx, c.ID)
+	if e != nil {
+		return nil, e
+	}
+	if e = own(c, r); e != nil {
+		return nil, e
 	}
 	recipient := platform.Text(c.Data, "recipient")
 	phone := platform.Text(c.Data, "phone")
@@ -111,10 +102,7 @@ func (s *Service) Update(ctx context.Context, c platform.Request) (traceResult p
 		len(address) > 1000 {
 		return nil, bad("recipient, phone and address required")
 	}
-	owner := c.UserID
-	{
-		owner = r.UserID
-	}
+	owner := r.UserID
 	v := record(
 		c.ID,
 		owner,
@@ -142,7 +130,7 @@ func (s *Service) Update(ctx context.Context, c platform.Request) (traceResult p
 	return view(v), nil
 }
 func (s *Service) Default(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "address.usecase."+constants.ActionDefault)
+	ctx, span := platform.Start(ctx, "address.usecase.default")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -156,7 +144,7 @@ func (s *Service) Default(ctx context.Context, c platform.Request) (traceResult 
 	return platform.Result{"id": c.ID, "is_default": true}, nil
 }
 func (s *Service) Delete(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "address.usecase."+constants.ActionDelete)
+	ctx, span := platform.Start(ctx, "address.usecase.delete")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()

@@ -4,14 +4,14 @@
 
 入口 `service.go` 只组装依赖；各层依次为：
 
-1. `internal/transport`：RPC命令入口和请求追踪。
+1. `internal/transport`：注册独立 RPC 业务方法并记录请求追踪，不包含业务分发。
 2. `internal/usecase`：权限、归属、输入校验、业务规则与跨服务RPC编排。
 3. `internal/repository`：唯一GORM访问层，本地事务、条件查询及Outbox持久化。
 4. `internal/domain`：本服务拥有的数据模型与索引键。
 
 所有调用逐层传递 `context.Context`，层Span为 `catalog.transport.*` → `catalog.usecase.*` → `catalog.repository.*`，GORM回调再创建SQL Span。查询参数不展开到trace或日志。
 
-本服务只写自己的数据库schema。跨服务通过 `platform.Caller` 访问 gRPC，禁止直接读写对方业务表。网关验证会话后填入调用主体，服务再次检查用户资源归属与管理员角色。
+本服务只写自己的数据库schema。跨服务通过 `platform.NewClients` 提供的明确客户端方法访问独立 gRPC 方法，禁止直接读写对方业务表。网关验证会话后填入调用主体，服务再次检查用户资源归属与管理员角色。
 
 推荐召回接受 `categories`（最多4项）、`brands`（最多4项）、`queries`（最多3项）和 `limit`（默认100、最多200），类别及品牌最多64字，搜索词最多80字，输入trim去重并拒绝控制字符。空兴趣返回空列表，不扫描商品表。返回完整公开商品元数据 `items` 和 `degraded` 状态，推荐服务负责最终排序。
 
@@ -28,3 +28,5 @@ v2搜索文本最多300字符、品牌/类目各80字符、数字文本各32字�
 显式启用本机MySQL探针后，测试仅在容器中新建并删除独立scratch库，不打开实际商城schema。`LUMO_MYSQL_PROJECTION_TEST=1` 验证旧类目投影在线DDL；`LUMO_MYSQL_SEARCH_TEST=1` 验证v2迁移、查询与旧SQL语义对照、动态更新及错误结构拒绝；再加 `LUMO_MYSQL_SEARCH_SCALE=1` 执行30万背景商品覆盖索引探针，记录在线迁移时间、全局命中/无结果查询耗时与EXPLAIN。默认测试跳过本机专用探针。
 
 演示模式 `DEMO_MODE=true/1` 在原12件展示商品之外加载 `internal/democatalog` 的分类样例商品，每个商品及其独立规格由本服务写入。每100个父商品分批事务初始化；已有父商品整组跳过，不覆盖管理员文案/价格/上下架状态，也不重建已移除的旧规格。新扩展样例的创建时间取原12件展示商品最早创建时间减1小时，既保留原有活动展示商品在前，也让新样例领先较早的压力测试数据；重复初始化不修改已有商品时间；搜索仍覆盖完整目录。关闭演示模式不导入商品。
+
+业务入口使用不含 `Action` 的 `platform.Request`；每项操作由独立公开方法实现权限、参数与业务校验。方法：`SearchProducts`、`RecommendationCandidates`、`BatchGet`、`List`、`Get`、`Upsert`。运输层仅维护操作到方法的注册表，HTTP 兼容命令不会进入业务层。

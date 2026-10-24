@@ -16,6 +16,7 @@ build:
 smoke:
 	sh scripts/smoke.sh
 proto:
+	python3 scripts/generate-service-rpc.py
 	protoc --go_out=. --go_opt=module=github.com/davveo/lumo --go-grpc_out=. --go-grpc_opt=module=github.com/davveo/lumo api/mall/v1/*.proto
 format-tools:
 	python3 scripts/format.py --install

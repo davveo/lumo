@@ -84,10 +84,15 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 		if len(in.Items) != 1 || in.Items[0].Quantity != 1 {
 			return nil, status.Error(codes.InvalidArgument, "group order requires one unit of its SKU")
 		}
-		team, e := s.rpc.Call(
+		team, e := platform.NewClients(
+			s.rpc,
+		).Group.Get(
 			ctx,
-			constants.ServiceGroup,
-			platform.Command{Action: constants.ActionGet, ID: in.Group, UserID: c.UserID, Role: c.Role},
+			platform.Request{
+				ID:     in.Group,
+				UserID: c.UserID,
+				Role:   c.Role,
+			},
 		)
 		if e != nil {
 			return nil, e
@@ -115,11 +120,11 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 		}
 	}
 	sort.Strings(ids)
-	catalog, err := s.rpc.Call(
+	catalog, err := platform.NewClients(
+		s.rpc,
+	).Catalog.BatchGet(
 		ctx,
-		constants.ServiceCatalog,
-		platform.Command{
-			Action: constants.ActionBatchGet,
+		platform.Request{
 			UserID: c.UserID,
 			Role:   c.Role,
 			Data:   map[string]any{"ids": ids},
@@ -165,11 +170,11 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 		}
 		items = append(items, line)
 	}
-	camp, err := s.rpc.Call(
+	camp, err := platform.NewClients(
+		s.rpc,
+	).Campaign.Evaluate(
 		ctx,
-		constants.ServiceCampaign,
-		platform.Command{
-			Action: constants.ActionEvaluate,
+		platform.Request{
 			UserID: c.UserID,
 			Role:   c.Role,
 			Data: map[string]any{
@@ -207,11 +212,10 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 	campaignDiscount := discount
 	var couponDiscount int64
 	if in.CouponID != "" {
-		coupons, e := s.rpc.Call(
-			ctx,
-			constants.ServiceCoupon,
-			platform.Command{Action: constants.ActionList, UserID: c.UserID, Role: c.Role},
-		)
+		coupons, e := platform.NewClients(s.rpc).Coupon.List(ctx, platform.Request{
+			UserID: c.UserID,
+			Role:   c.Role,
+		})
 		if e != nil {
 			return nil, e
 		}
@@ -250,11 +254,10 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 		}
 	}
 	if in.Points > 0 {
-		pts, e := s.rpc.Call(
-			ctx,
-			constants.ServicePoints,
-			platform.Command{Action: constants.ActionGet, UserID: c.UserID, Role: c.Role},
-		)
+		pts, e := platform.NewClients(s.rpc).Points.Get(ctx, platform.Request{
+			UserID: c.UserID,
+			Role:   c.Role,
+		})
 		if e != nil {
 			return nil, e
 		}

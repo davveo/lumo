@@ -1,20 +1,20 @@
 package usecase
 
 import (
-	"github.com/davveo/lumo/internal/constants"
-
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/helpdesk/internal/domain"
 	"github.com/davveo/lumo/services/helpdesk/internal/repository"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"os"
-	"strings"
-	"time"
 )
 
 type Service struct {
@@ -70,18 +70,6 @@ func (s *Service) list(ctx context.Context, c platform.Request, owner, kind, st 
 		items = append(items, view(v))
 	}
 	return platform.Result{"items": items, "limit": len(items)}, nil
-}
-func call(ctx context.Context, rpc platform.Caller, target string, c platform.Command) (platform.Result, error) {
-	if rpc == nil {
-		return nil, status.Error(codes.Unavailable, "RPC peer unavailable")
-	}
-	return rpc.Call(ctx, target, c)
-}
-func child(c platform.Request, action, id string, data map[string]any) platform.Command {
-	command := c.Command(action)
-	command.ID = id
-	command.Data = data
-	return command
 }
 
 func demo() bool {

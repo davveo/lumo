@@ -36,29 +36,73 @@ type bootstrapInput struct {
 }
 
 func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "recommendation.usecase."+constants.ActionList)
+	ctx, span := platform.Start(ctx, "recommendation.usecase.list")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	return s.rank(ctx, c, false)
+	in, err := recommendationInput(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	if _, err = s.repo.Get(ctx, "recommendation-policy"); err != nil {
+		return nil, err
+	}
+	// Public requests always read server-owned signals and catalog data.
+	base, err := s.peerRows(
+		ctx,
+		platform.NewClients(s.rpc).Catalog.List,
+		platform.Request{Role: constants.RoleSystem, Data: map[string]any{"limit": 100}},
+	)
+	if err != nil {
+		return nil, err
+	}
+	var signals signalRows
+	degraded := false
+	if c.UserID != "" {
+		signals, degraded = s.readSignals(ctx, c)
+	}
+	result, _, err := s.rank(ctx, c, in, base, nil, signals, degraded)
+	return result, err
 }
 func (s *Service) RankBootstrap(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "recommendation.usecase."+constants.ActionRankBootstrap)
+	ctx, span := platform.Start(ctx, "recommendation.usecase.rank_bootstrap")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	if c.Role != constants.RoleSystem {
-		return nil, status.Error(codes.PermissionDenied, "bootstrap ranking is internal")
-	}
-	return s.rank(ctx, c, true)
-}
-func (s *Service) rank(ctx context.Context, c platform.Request, internal bool) (platform.Result, error) {
 	if ctx.Err() != nil {
 		return nil, status.FromContextError(ctx.Err()).Err()
 	}
+	if c.Role != constants.RoleSystem {
+		return nil, status.Error(codes.PermissionDenied, "bootstrap ranking is internal")
+	}
+	in, err := recommendationInput(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	if in.Scene != constants.RecommendationSceneHome || in.OrderID != "" || in.ProductID != "" {
+		return nil, bad("bootstrap ranking only accepts home scene")
+	}
+	if _, err = s.repo.Get(ctx, "recommendation-policy"); err != nil {
+		return nil, err
+	}
+	var input bootstrapInput
+	if err = platform.Decode(c.Data, &input); err != nil || len(input.Catalog) > 500 || len(input.Inventory) > 1000 {
+		return nil, bad("invalid bootstrap recommendation input")
+	}
+	result, snapshot, err := s.rank(ctx, c, in, input.Catalog, input.Inventory, input.Signals, len(input.Errors) > 0)
+	if err != nil {
+		return nil, err
+	}
+	result["stock_snapshot"] = snapshot
+	return result, nil
+}
+func recommendationInput(ctx context.Context, c platform.Request) (recommendationRequest, error) {
+	if ctx.Err() != nil {
+		return recommendationRequest{}, status.FromContextError(ctx.Err()).Err()
+	}
 	var in recommendationRequest
 	if err := platform.Decode(c.Data, &in); err != nil {
-		return nil, bad("invalid recommendation request")
+		return recommendationRequest{}, bad("invalid recommendation request")
 	}
 	if in.Scene == "" {
 		in.Scene = constants.RecommendationSceneHome
@@ -68,75 +112,58 @@ func (s *Service) rank(ctx context.Context, c platform.Request, internal bool) (
 	}
 	if in.Scene != constants.RecommendationSceneHome && in.Scene != constants.RecommendationSceneSimilar &&
 		in.Scene != constants.RecommendationScenePostPurchase {
-		return nil, bad("scene must be home, similar or post_purchase")
+		return recommendationRequest{}, bad("scene must be home, similar or post_purchase")
 	}
 	if in.Limit == 0 {
 		in.Limit = 4
 	}
 	if in.Limit < 1 || in.Limit > 20 {
-		return nil, bad("limit must be between 1 and 20")
+		return recommendationRequest{}, bad("limit must be between 1 and 20")
 	}
 	if !validID(in.ProductID) || !validID(in.OrderID) {
-		return nil, bad("invalid product or order ID")
+		return recommendationRequest{}, bad("invalid product or order ID")
 	}
 	if in.Scene == constants.RecommendationSceneSimilar && in.ProductID == "" {
-		return nil, bad("similar recommendations require product_id")
+		return recommendationRequest{}, bad("similar recommendations require product_id")
 	}
 	if in.Scene == constants.RecommendationScenePostPurchase && in.OrderID == "" {
-		return nil, bad("post_purchase recommendations require order_id")
+		return recommendationRequest{}, bad("post_purchase recommendations require order_id")
 	}
-	if internal && (in.Scene != constants.RecommendationSceneHome || in.OrderID != "" || in.ProductID != "") {
-		return nil, bad("bootstrap ranking only accepts home scene")
-	}
-	if _, err := s.repo.Get(ctx, "recommendation-policy"); err != nil {
-		return nil, err
-	}
-	var base, stockRows []map[string]any
-	var signals signalRows
-	degraded := false
-	if internal {
-		var input bootstrapInput
-		if err := platform.Decode(c.Data, &input); err != nil || len(input.Catalog) > 500 ||
-			len(input.Inventory) > 1000 {
-			return nil, bad("invalid bootstrap recommendation input")
-		}
-		base, stockRows, signals = input.Catalog, input.Inventory, input.Signals
-		degraded = len(input.Errors) > 0
-	} else {
-		// Client data cannot supply or choose another principal's profile.
-		var err error
-		base, err = s.catalogRows(ctx, constants.ActionList, map[string]any{"limit": 100})
-		if err != nil {
-			return nil, err
-		}
-		if c.UserID != "" {
-			signals, degraded = s.readSignals(ctx, c)
-		}
-	}
+	return in, nil
+}
+
+func (s *Service) rank(
+	ctx context.Context,
+	c platform.Request,
+	in recommendationRequest,
+	base, stockRows []map[string]any,
+	signals signalRows,
+	degraded bool,
+) (platform.Result, []map[string]any, error) {
 	if c.UserID == "" {
 		signals = signalRows{}
 	}
 	if ctx.Err() != nil {
-		return nil, status.FromContextError(ctx.Err()).Err()
+		return nil, nil, status.FromContextError(ctx.Err()).Err()
 	}
 	signals, foreign := ownedSignals(signals, c.UserID)
 	degraded = degraded || foreign
 	contextOrder := map[string]any{}
 	if in.OrderID != "" {
 		if err := platform.RequireUser(c); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		result, err := call(
-			ctx,
+		result, err := platform.NewClients(
 			s.rpc,
-			constants.ServiceOrder,
-			platform.Command{Action: constants.ActionGet, ID: in.OrderID, UserID: c.UserID, Role: constants.RoleUser},
+		).Order.Get(
+			ctx,
+			platform.Request{ID: in.OrderID, UserID: c.UserID, Role: constants.RoleUser},
 		)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if platform.Text(result, "user_id") != c.UserID {
-			return nil, status.Error(codes.PermissionDenied, "order belongs to another user")
+			return nil, nil, status.Error(codes.PermissionDenied, "order belongs to another user")
 		}
 		contextOrder = map[string]any(result)
 	}
@@ -156,10 +183,14 @@ func (s *Service) rank(ctx context.Context, c platform.Request, internal bool) (
 		}
 	}
 	if len(missing) > 0 {
-		rows, err := s.catalogRows(ctx, constants.ActionBatchGet, map[string]any{"ids": missing})
+		rows, err := s.peerRows(
+			ctx,
+			platform.NewClients(s.rpc).Catalog.BatchGet,
+			platform.Request{Role: constants.RoleSystem, Data: map[string]any{"ids": missing}},
+		)
 		if err != nil {
 			if in.ProductID != "" {
-				return nil, err
+				return nil, nil, err
 			}
 			degraded = true
 		} else {
@@ -183,7 +214,11 @@ func (s *Service) rank(ctx context.Context, c platform.Request, internal bool) (
 		}
 	}
 	if len(parents) > 0 {
-		rows, err := s.catalogRows(ctx, constants.ActionBatchGet, map[string]any{"ids": parents})
+		rows, err := s.peerRows(
+			ctx,
+			platform.NewClients(s.rpc).Catalog.BatchGet,
+			platform.Request{Role: constants.RoleSystem, Data: map[string]any{"ids": parents}},
+		)
 		if err != nil {
 			degraded = true
 		} else {
@@ -201,7 +236,7 @@ func (s *Service) rank(ctx context.Context, c platform.Request, internal bool) (
 			p = parent
 		}
 		if !ok || !p.active {
-			return nil, status.Error(codes.NotFound, "recommendation product unavailable")
+			return nil, nil, status.Error(codes.NotFound, "recommendation product unavailable")
 		}
 		contextProduct = &p
 	}
@@ -227,19 +262,14 @@ func (s *Service) rank(ctx context.Context, c platform.Request, internal bool) (
 	categories, brands, queries := profile.recall(contextProduct, contextOrder, metadata)
 	recalled := []map[string]any{}
 	if len(categories)+len(brands)+len(queries) > 0 {
-		recall, err := call(
-			ctx,
-			s.rpc,
-			constants.ServiceCatalog,
-			platform.Command{
-				Action: constants.ActionRecommendationCandidates,
-				Role:   constants.RoleSystem,
-				Data:   map[string]any{"categories": categories, "brands": brands, "queries": queries, "limit": 200},
-			},
+		recall, err := platform.NewClients(s.rpc).Catalog.RecommendationCandidates(ctx, platform.Request{
+			Role: constants.RoleSystem,
+			Data: map[string]any{"categories": categories, "brands": brands, "queries": queries, "limit": 200},
+		},
 		)
 		if err != nil {
 			if ctx.Err() != nil {
-				return nil, status.FromContextError(ctx.Err()).Err()
+				return nil, nil, status.FromContextError(ctx.Err()).Err()
 			}
 			degraded = true
 		} else {
@@ -288,12 +318,12 @@ func (s *Service) rank(ctx context.Context, c platform.Request, internal bool) (
 	if len(stockIDs) > 0 {
 		rows, err := s.peerRows(
 			ctx,
-			constants.ServiceInventory,
-			platform.Command{Action: constants.ActionBatchGet, Data: map[string]any{"ids": stockIDs}},
+			platform.NewClients(s.rpc).Inventory.BatchGet,
+			platform.Request{Data: map[string]any{"ids": stockIDs}},
 		)
 		if err != nil {
-			if !internal || len(stocks) == 0 {
-				return nil, err
+			if len(stockRows) == 0 || len(stocks) == 0 {
+				return nil, nil, err
 			}
 			degraded = true
 		} else {
@@ -314,11 +344,11 @@ func (s *Service) rank(ctx context.Context, c platform.Request, internal bool) (
 		}
 	}
 	if ctx.Err() != nil {
-		return nil, status.FromContextError(ctx.Err()).Err()
+		return nil, nil, status.FromContextError(ctx.Err()).Err()
 	}
 	items := rankProducts(sellable, profile, contextProduct, contextOrder, metadata, in.Scene, in.Limit, time.Now())
 	if ctx.Err() != nil {
-		return nil, status.FromContextError(ctx.Err()).Err()
+		return nil, nil, status.FromContextError(ctx.Err()).Err()
 	}
 	selectedStock := []map[string]any{}
 	for _, item := range items {
@@ -336,19 +366,16 @@ func (s *Service) rank(ctx context.Context, c platform.Request, internal bool) (
 		"signal_count":       profile.count,
 		"scene":              in.Scene,
 	}
-	if internal {
-		ids := make([]string, 0, len(stocks))
-		for id := range stocks {
-			ids = append(ids, id)
-		}
-		sort.Strings(ids)
-		snapshot := []map[string]any{}
-		for _, id := range ids {
-			snapshot = append(snapshot, stocks[id])
-		}
-		out["stock_snapshot"] = snapshot
+	ids := make([]string, 0, len(stocks))
+	for id := range stocks {
+		ids = append(ids, id)
 	}
-	return out, nil
+	sort.Strings(ids)
+	snapshot := []map[string]any{}
+	for _, id := range ids {
+		snapshot = append(snapshot, stocks[id])
+	}
+	return out, snapshot, nil
 }
 
 func validID(id string) bool {
@@ -361,8 +388,13 @@ func rowsOf(value any) []map[string]any {
 	_ = platform.Decode(map[string]any{"items": value}, &result)
 	return result.Items
 }
-func (s *Service) peerRows(ctx context.Context, target string, c platform.Command) ([]map[string]any, error) {
-	result, err := call(ctx, s.rpc, target, c)
+
+func (s *Service) peerRows(
+	ctx context.Context,
+	operation platform.Operation,
+	c platform.Request,
+) ([]map[string]any, error) {
+	result, err := operation(ctx, c)
 	if err != nil {
 		return nil, err
 	}
@@ -374,14 +406,6 @@ func (s *Service) peerRows(ctx context.Context, target string, c platform.Comman
 	}
 	return out.Items, nil
 }
-func (s *Service) catalogRows(ctx context.Context, action string, data map[string]any) ([]map[string]any, error) {
-	return s.peerRows(
-		ctx,
-		constants.ServiceCatalog,
-		platform.Command{Action: action, Role: constants.RoleSystem, Data: data},
-	)
-}
-
 func (s *Service) readSignals(ctx context.Context, c platform.Request) (signalRows, bool) {
 	ctx, cancel := context.WithTimeout(ctx, 700*time.Millisecond)
 	defer cancel()
@@ -389,26 +413,43 @@ func (s *Service) readSignals(ctx context.Context, c platform.Request) (signalRo
 	var degraded bool
 	var mu sync.Mutex
 	var wg sync.WaitGroup
-	for _, kind := range []string{
-		constants.RecommendationSignalFavorite,
-		constants.RecommendationSignalHistory,
-		constants.RecommendationSignalCompare,
-		constants.RecommendationSignalSearch,
-		constants.RecommendationSignalOrders,
-	} {
-		kind := kind
+	clients := platform.NewClients(s.rpc)
+	reads := []struct {
+		operation   platform.Operation
+		data        map[string]any
+		destination *[]map[string]any
+	}{
+		{
+			clients.Engagement.List,
+			map[string]any{"kind": constants.RecommendationSignalFavorite, "limit": 100},
+			&out.Favorite,
+		},
+		{
+			clients.Engagement.List,
+			map[string]any{"kind": constants.RecommendationSignalHistory, "limit": 100},
+			&out.History,
+		},
+		{
+			clients.Engagement.List,
+			map[string]any{"kind": constants.RecommendationSignalCompare, "limit": 100},
+			&out.Compare,
+		},
+		{
+			clients.Engagement.List,
+			map[string]any{"kind": constants.RecommendationSignalSearch, "limit": 100},
+			&out.Search,
+		},
+		{clients.Order.List, map[string]any{"limit": 100}, &out.Orders},
+	}
+	for _, read := range reads {
+		read := read
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			target, data := "engagement", map[string]any{"kind": kind, "limit": 100}
-			if kind == constants.RecommendationSignalOrders {
-				target = "order"
-				data = map[string]any{"limit": 100}
-			}
 			rows, err := s.peerRows(
 				ctx,
-				target,
-				platform.Command{Action: constants.ActionList, UserID: c.UserID, Role: constants.RoleUser, Data: data},
+				read.operation,
+				platform.Request{UserID: c.UserID, Role: constants.RoleUser, Data: read.data},
 			)
 			mu.Lock()
 			defer mu.Unlock()
@@ -416,18 +457,7 @@ func (s *Service) readSignals(ctx context.Context, c platform.Request) (signalRo
 				degraded = true
 				return
 			}
-			switch kind {
-			case constants.RecommendationSignalFavorite:
-				out.Favorite = rows
-			case constants.RecommendationSignalHistory:
-				out.History = rows
-			case constants.RecommendationSignalCompare:
-				out.Compare = rows
-			case constants.RecommendationSignalSearch:
-				out.Search = rows
-			case constants.RecommendationSignalOrders:
-				out.Orders = rows
-			}
+			*read.destination = rows
 		}()
 	}
 	wg.Wait()

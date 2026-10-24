@@ -1,15 +1,9 @@
-/* Rails belong to the viewport edges. Content is centered within the remaining
-   lane, with enough room for each rail, its handle and an unobstructed gap. */
+/* Reserve the expanded rails' safe lane at every collapse state. Fixed panels
+   may open or close without moving the page or changing its content width. */
 body.has-lumo-sidebars {
   --shopping-content-max: 1760px;
-  --shopping-left-space: 44px;
-  --shopping-right-space: 80px;
-}
-body.has-lumo-sidebars.has-interest-rail {
   --shopping-left-space: 148px;
-}
-body.has-lumo-sidebars.quick-rail-collapsed {
-  --shopping-right-space: 42px;
+  --shopping-right-space: 80px;
 }
 body.has-lumo-sidebars .container {
   width: min(var(--shopping-content-max), calc(100% - var(--shopping-left-space) - var(--shopping-right-space)));
@@ -314,9 +308,6 @@ body.has-lumo-sidebars .svc-support-launcher {
     --shopping-left-space: 24px;
     --shopping-right-space: 64px;
   }
-  body.has-lumo-sidebars.quick-rail-collapsed {
-    --shopping-right-space: 42px;
-  }
   .interest-rail,
   .interest-rail-reopen {
     display: none;
@@ -365,18 +356,12 @@ body.has-lumo-sidebars .svc-support-launcher {
     --shopping-left-space: 16px;
     --shopping-right-space: 58px;
   }
-  body.has-lumo-sidebars.quick-rail-collapsed {
-    --shopping-right-space: 36px;
-  }
 }
 @media (max-width: 600px) {
   body.has-lumo-sidebars,
   body.has-lumo-sidebars.has-interest-rail {
     --shopping-left-space: 14px;
     --shopping-right-space: 54px;
-  }
-  body.has-lumo-sidebars.quick-rail-collapsed {
-    --shopping-right-space: 34px;
   }
   .quick-rail {
     top: auto;

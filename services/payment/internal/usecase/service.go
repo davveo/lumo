@@ -3,6 +3,9 @@ package usecase
 import (
 	"context"
 	"errors"
+	"os"
+	"time"
+
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/payment/internal/domain"
@@ -10,8 +13,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
-	"os"
-	"time"
 )
 
 type Service struct {
@@ -31,7 +32,7 @@ func own(c platform.Request, p domain.Payment) error {
 	return nil
 }
 func (s *Service) Close(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "payment.usecase."+constants.ActionClose)
+	ctx, sp := platform.Start(ctx, "payment.usecase.close")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -73,11 +74,10 @@ func (s *Service) Close(ctx context.Context, c platform.Request) (traceResult pl
 		return nil
 	})
 	return out, err
-
 }
 
 func (s *Service) ConfirmDemo(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "payment.usecase."+constants.ActionConfirmDemo)
+	ctx, sp := platform.Start(ctx, "payment.usecase.confirm_demo")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -89,11 +89,10 @@ func (s *Service) ConfirmDemo(ctx context.Context, c platform.Request) (traceRes
 		return nil, err
 	}
 	return s.captureDemo(ctx, c, false)
-
 }
 
 func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "payment.usecase."+constants.ActionCreate)
+	ctx, sp := platform.Start(ctx, "payment.usecase.create")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -102,11 +101,10 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 	}
 
 	return s.create(ctx, c)
-
 }
 
 func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "payment.usecase."+constants.ActionGet)
+	ctx, sp := platform.Start(ctx, "payment.usecase.get")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -125,11 +123,10 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 		return nil, err
 	}
 	return platform.Map(p), nil
-
 }
 
 func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "payment.usecase."+constants.ActionList)
+	ctx, sp := platform.Start(ctx, "payment.usecase.list")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -142,11 +139,10 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 	}
 	rows, err := s.r.List(ctx, c.UserID, true)
 	return platform.Result{"items": rows}, err
-
 }
 
 func (s *Service) SubmitDemo(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "payment.usecase."+constants.ActionSubmitDemo)
+	ctx, sp := platform.Start(ctx, "payment.usecase.submit_demo")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -155,7 +151,6 @@ func (s *Service) SubmitDemo(ctx context.Context, c platform.Request) (traceResu
 	}
 
 	return s.captureDemo(ctx, c, true)
-
 }
 
 // requirePayableOrder checks server-owned state and deadlines; browser data
@@ -214,10 +209,8 @@ func (s *Service) captureDemo(ctx context.Context, c platform.Request, validateO
 		if validateOrder {
 			// Hold the payment gate while observing order state so a concurrent
 			// close cannot freeze the payment between validation and capture.
-			o, err := s.rpc.Call(
-				ctx,
-				constants.ServiceOrder,
-				platform.Command{Action: constants.ActionGet, ID: p.OrderID, UserID: c.UserID, Role: c.Role},
+			o, err := platform.NewClients(s.rpc).Order.Get(
+				ctx, platform.Request{ID: p.OrderID, UserID: c.UserID, Role: c.Role},
 			)
 			if err != nil {
 				return err
@@ -263,10 +256,8 @@ func (s *Service) create(ctx context.Context, c platform.Request) (platform.Resu
 	if os.Getenv("DEMO_MODE") != "true" && os.Getenv("DEMO_MODE") != "1" {
 		return nil, status.Error(codes.FailedPrecondition, "no production payment adapter configured")
 	}
-	o, err := s.rpc.Call(
-		ctx,
-		constants.ServiceOrder,
-		platform.Command{Action: constants.ActionGet, ID: c.ID, UserID: c.UserID, Role: c.Role},
+	o, err := platform.NewClients(s.rpc).Order.Get(
+		ctx, platform.Request{ID: c.ID, UserID: c.UserID, Role: c.Role},
 	)
 	if err != nil {
 		return nil, err
@@ -325,11 +316,8 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
 	if p.Status != constants.PaymentStatusSucceeded {
 		return status.Error(codes.FailedPrecondition, "cannot refund unconfirmed payment")
 	}
-	_, err = s.rpc.Call(
-		ctx,
-		constants.ServiceRefund,
-		platform.Command{
-			Action: constants.ActionCreate,
+	_, err = platform.NewClients(s.rpc).Refund.Create(
+		ctx, platform.Request{
 			ID:     "automatic-" + p.ID,
 			UserID: p.UserID,
 			Role:   constants.RoleSystem,

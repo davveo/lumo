@@ -24,14 +24,22 @@ func (s *Service) Templates(ctx context.Context, c platform.Request) (traceResul
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	return s.readTemplates(ctx, c, s.Repo.Templates)
 }
-func (s *Service) TemplatesSnapshot(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+
+func (s *Service) TemplatesSnapshot(
+	ctx context.Context,
+	c platform.Request,
+) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "coupon.usecase.TemplatesSnapshot")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	return s.readTemplates(ctx, c, s.Repo.TemplateSnapshot)
 }
-func (s *Service) TemplatesByIds(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+
+func (s *Service) TemplatesByIds(
+	ctx context.Context,
+	c platform.Request,
+) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "coupon.usecase.TemplatesByIds")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
@@ -114,7 +122,12 @@ func (s *Service) Refund(ctx context.Context, c platform.Request) (traceResult p
 	}
 	return s.Repo.Refund(ctx, c)
 }
-func (s *Service) readTemplates(ctx context.Context, c platform.Request, read func(context.Context, platform.Request) (platform.Result, error)) (platform.Result, error) {
+
+func (s *Service) readTemplates(
+	ctx context.Context,
+	c platform.Request,
+	read func(context.Context, platform.Request) (platform.Result, error),
+) (platform.Result, error) {
 	out, err := read(ctx, c)
 	if err != nil {
 		return nil, err
@@ -169,13 +182,16 @@ type eligibility struct {
 	pointsErr, growthErr   error
 }
 
-func (e *eligibility) read(ctx context.Context, service, field string) (int64, error) {
+func (e *eligibility) read(ctx context.Context, read platform.Operation, field string) (int64, error) {
 	if e.rpc == nil {
 		return 0, status.Error(codes.Unavailable, "领取资格暂时无法核验，请稍后重试")
 	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	v, err := e.rpc.Call(ctx, service, platform.Command{Action: constants.ActionGet, UserID: e.user, Role: e.role})
+	v, err := read(ctx, platform.Request{
+		UserID: e.user,
+		Role:   e.role,
+	})
 	if err != nil {
 		return 0, status.Error(codes.Unavailable, "领取资格暂时无法核验，请稍后重试")
 	}
@@ -187,7 +203,7 @@ func (e *eligibility) read(ctx context.Context, service, field string) (int64, e
 func (e *eligibility) check(ctx context.Context, t domain.Template) error {
 	if t.MinPoints > 0 {
 		if !e.pointsRead {
-			e.points, e.pointsErr = e.read(ctx, constants.ServicePoints, "available")
+			e.points, e.pointsErr = e.read(ctx, platform.NewClients(e.rpc).Points.Get, "available")
 			e.pointsRead = true
 		}
 		if e.pointsErr != nil {
@@ -202,7 +218,7 @@ func (e *eligibility) check(ctx context.Context, t domain.Template) error {
 	}
 	if t.MinGrowth > 0 {
 		if !e.growthRead {
-			e.growth, e.growthErr = e.read(ctx, constants.ServiceMember, "growth")
+			e.growth, e.growthErr = e.read(ctx, platform.NewClients(e.rpc).Member.Get, "growth")
 			e.growthRead = true
 		}
 		if e.growthErr != nil {

@@ -63,11 +63,11 @@ func (s *Service) Request(ctx context.Context, c platform.Request) (traceResult 
 	if s.RPC == nil {
 		return nil, status.Error(codes.Unavailable, "pricing service unavailable")
 	}
-	q, e := s.RPC.Call(
+	q, e := platform.NewClients(
+		s.RPC,
+	).Pricing.Get(
 		ctx,
-		constants.ServicePricing,
-		platform.Command{
-			Action: constants.ActionGet,
+		platform.Request{
 			ID:     platform.Text(c.Data, "quote_id"),
 			UserID: c.UserID,
 			Role:   c.Role,
@@ -139,11 +139,11 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 	if er = json.Unmarshal([]byte(v.PayloadJSON), &data); er != nil {
 		return er
 	}
-	result, er := s.RPC.Call(
+	result, er := platform.NewClients(
+		s.RPC,
+	).Checkout.Submit(
 		ctx,
-		constants.ServiceCheckout,
-		platform.Command{
-			Action:         constants.ActionSubmit,
+		platform.Request{
 			UserID:         v.UserID,
 			Role:           constants.RoleSystem,
 			IdempotencyKey: "flash:" + v.ID,

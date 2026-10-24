@@ -1,0 +1,55 @@
+# Only an explicit version query or a content hash opts an asset into caching.
+# Existing unversioned JS/CSS/images revalidate; HTML always revalidates.
+map $arg_v $versioned_asset_cache {
+  default "public, max-age=3600";
+  "" "no-cache";
+}
+
+map $uri $lumo_cache_control {
+  default "no-cache";
+  ~^/api(?:/|$) "no-store";
+  ~^/(?:healthz|readyz)$ "no-store";
+  "~*[-.][0-9a-f]{8,}\.(?:js|css|png|jpe?g|gif|svg|webp|avif|ico|woff2?)$" "public, max-age=31536000, immutable";
+  ~*\.(?:js|css|png|jpe?g|gif|svg|webp|avif|ico|woff2?)$ $versioned_asset_cache;
+}
+
+server {
+  listen 8080;
+  server_name _;
+  root /usr/share/nginx/html;
+  index index.html;
+  autoindex off;
+  absolute_redirect off;
+  disable_symlinks on;
+  client_max_body_size 16m;
+
+  add_header X-Content-Type-Options nosniff always;
+  add_header Cache-Control $lumo_cache_control always;
+
+  # Resolve again after gateway recreation instead of retaining its old IP.
+  resolver 127.0.0.11 ipv6=off valid=5s;
+  resolver_timeout 3s;
+  set $gateway "${GATEWAY_UPSTREAM}";
+
+  location = /api {
+    include /etc/nginx/lumo-proxy.conf;
+  }
+  location ^~ /api/ {
+    include /etc/nginx/lumo-proxy.conf;
+  }
+  location = /healthz {
+    include /etc/nginx/lumo-proxy.conf;
+  }
+  location = /readyz {
+    include /etc/nginx/lumo-proxy.conf;
+  }
+
+  location ~ (^|/)\. {
+    return 404;
+  }
+
+  # The app uses hash routes. Missing assets and API paths never fall back to HTML.
+  location / {
+    try_files $uri $uri/ =404;
+  }
+}

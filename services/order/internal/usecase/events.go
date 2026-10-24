@@ -94,11 +94,9 @@ func (s *Service) Tick(ctx context.Context) error {
 		return err
 	}
 	for _, order := range rows {
-		_, err = s.rpc.Call(
+		_, err = platform.NewClients(s.rpc).Checkout.Cancel(
 			ctx,
-			constants.ServiceCheckout,
-			platform.Command{
-				Action: constants.ActionCancel,
+			platform.Request{
 				ID:     order.ID,
 				UserID: order.UserID,
 				Role:   constants.RoleSystem,

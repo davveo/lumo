@@ -2,7 +2,6 @@ package notification
 
 import (
 	"github.com/davveo/lumo/internal/constants"
-
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/notification/internal/repository"
 	"github.com/davveo/lumo/services/notification/internal/transport"

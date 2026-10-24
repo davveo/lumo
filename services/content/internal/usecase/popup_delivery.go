@@ -186,11 +186,10 @@ func popupRows(raw any) []platform.Result {
 	return items
 }
 func (s *Service) PopupDecide(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "content.usecase."+constants.ActionPopupDecide)
+	ctx, span := platform.Start(ctx, "content.usecase.popup_decide")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	if err := popupInternal(c); err != nil {
 		return nil, err
 	}
@@ -260,16 +259,11 @@ func (s *Service) PopupDecide(ctx context.Context, c platform.Request) (traceRes
 		if end > len(templateIDs) {
 			end = len(templateIDs)
 		}
-		result, e := call(
-			ctx,
-			s.rpc,
-			constants.ServiceCoupon,
-			platform.Command{
-				Action: constants.ActionTemplatesByIds,
-				UserID: c.UserID,
-				Role:   constants.RoleSystem,
-				Data:   map[string]any{"ids": templateIDs[offset:end]},
-			},
+		result, e := platform.NewClients(s.rpc).Coupon.TemplatesByIds(ctx, platform.Request{
+			UserID: c.UserID,
+			Role:   constants.RoleSystem,
+			Data:   map[string]any{"ids": templateIDs[offset:end]},
+		},
 		)
 		if e != nil {
 			return nil, e
@@ -329,11 +323,10 @@ func popupDeliveryError() error {
 	return status.Error(codes.FailedPrecondition, "popup delivery unavailable; refresh the page")
 }
 func (s *Service) PopupEvent(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "content.usecase."+constants.ActionPopupEvent)
+	ctx, span := platform.Start(ctx, "content.usecase.popup_event")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	if err := popupInternal(c); err != nil {
 		return nil, err
 	}
@@ -460,11 +453,10 @@ func (s *Service) PopupEvent(ctx context.Context, c platform.Request) (traceResu
 	return platform.Result{"allowed": allowed}, nil
 }
 func (s *Service) PopupClaim(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "content.usecase."+constants.ActionPopupClaim)
+	ctx, span := platform.Start(ctx, "content.usecase.popup_claim")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	if err := popupInternal(c); err != nil {
 		return nil, err
 	}
@@ -502,18 +494,13 @@ func (s *Service) PopupClaim(ctx context.Context, c platform.Request) (traceResu
 	}
 	// The coupon service is authoritative for quotas, timing and eligibility. A
 	// network retry is safe because its user/template claim is idempotent.
-	claimed, err := call(
-		ctx,
-		s.rpc,
-		constants.ServiceCoupon,
-		platform.Command{
-			Action:         constants.ActionClaim,
-			UserID:         c.UserID,
-			Role:           constants.RoleSystem,
-			ID:             p.Content.CouponTemplateID,
-			IdempotencyKey: stable("popup-claim", c.UserID, p.Content.CouponTemplateID),
-			Data:           map[string]any{"template_id": p.Content.CouponTemplateID},
-		},
+	claimed, err := platform.NewClients(s.rpc).Coupon.Claim(ctx, platform.Request{
+		UserID:         c.UserID,
+		Role:           constants.RoleSystem,
+		ID:             p.Content.CouponTemplateID,
+		IdempotencyKey: stable("popup-claim", c.UserID, p.Content.CouponTemplateID),
+		Data:           map[string]any{"template_id": p.Content.CouponTemplateID},
+	},
 	)
 	if err != nil {
 		return nil, err

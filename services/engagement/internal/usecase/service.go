@@ -9,7 +9,7 @@ import (
 )
 
 func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "engagement.usecase."+constants.ActionList)
+	ctx, span := platform.Start(ctx, "engagement.usecase.list")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -29,7 +29,7 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 	return s.list(ctx, c, c.UserID, kind, "")
 }
 func (s *Service) Put(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "engagement.usecase."+constants.ActionPut)
+	ctx, span := platform.Start(ctx, "engagement.usecase.put")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -54,12 +54,7 @@ func (s *Service) Put(ctx context.Context, c platform.Request) (traceResult plat
 		return nil, bad("target required")
 	}
 	if kind != constants.EngagementKindSearch {
-		if _, e := call(
-			ctx,
-			s.rpc,
-			constants.ServiceCatalog,
-			child(c, constants.ActionGet, target, nil),
-		); e != nil {
+		if _, e := platform.NewClients(s.rpc).Catalog.Get(ctx, platform.Request{ID: target, UserID: c.UserID, Role: c.Role, IdempotencyKey: c.IdempotencyKey, Data: nil}); e != nil {
 			return nil, e
 		}
 	}
@@ -93,7 +88,7 @@ func (s *Service) Put(ctx context.Context, c platform.Request) (traceResult plat
 	return view(r), nil
 }
 func (s *Service) Delete(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "engagement.usecase."+constants.ActionDelete)
+	ctx, span := platform.Start(ctx, "engagement.usecase.delete")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -120,7 +115,7 @@ func (s *Service) Delete(ctx context.Context, c platform.Request) (traceResult p
 	return platform.Result{"deleted": true}, nil
 }
 func (s *Service) Clear(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "engagement.usecase."+constants.ActionClear)
+	ctx, span := platform.Start(ctx, "engagement.usecase.clear")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()

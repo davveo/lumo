@@ -4,15 +4,16 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"os"
+	"regexp"
+	"strings"
+
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/invoice/internal/domain"
 	"github.com/davveo/lumo/services/invoice/internal/repository"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"os"
-	"regexp"
-	"strings"
 )
 
 type Service struct {
@@ -50,7 +51,7 @@ func privileged(c platform.Request) bool {
 	return c.Role == constants.RoleAdmin || c.Role == constants.RoleSystem
 }
 func (s *Service) AdjustDemo(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.invoice."+constants.ActionAdjustDemo)
+	ctx, span := platform.Start(ctx, "usecase.invoice.adjust_demo")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -77,11 +78,10 @@ func (s *Service) AdjustDemo(ctx context.Context, c platform.Request) (traceResu
 	}
 	row, err = s.Repo.CompleteDemoAdjustments(ctx, row.ID)
 	return platform.Map(row), err
-
 }
 
 func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.invoice."+constants.ActionCreate)
+	ctx, span := platform.Start(ctx, "usecase.invoice.create")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -93,11 +93,10 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 	}
 
 	return s.create(ctx, c)
-
 }
 
 func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.invoice."+constants.ActionGet)
+	ctx, span := platform.Start(ctx, "usecase.invoice.get")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -117,11 +116,10 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 	}
 
 	return platform.Map(row), nil
-
 }
 
 func (s *Service) IssueDemo(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.invoice."+constants.ActionIssueDemo)
+	ctx, span := platform.Start(ctx, "usecase.invoice.issue_demo")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -149,11 +147,8 @@ func (s *Service) IssueDemo(ctx context.Context, c platform.Request) (traceResul
 	if row.Status == constants.InvoiceStatusIssued {
 		return platform.Map(row), nil
 	}
-	order, err := s.RPC.Call(
-		ctx,
-		constants.ServiceOrder,
-		platform.Command{
-			Action: constants.ActionGet,
+	order, err := platform.NewClients(s.RPC).Order.Get(
+		ctx, platform.Request{
 			ID:     row.OrderID,
 			UserID: row.UserID,
 			Role:   constants.RoleSystem,
@@ -183,11 +178,10 @@ func (s *Service) IssueDemo(ctx context.Context, c platform.Request) (traceResul
 	number := fmt.Sprintf("DEMO-INVOICE-%X", sum[:10])
 	row, err = s.Repo.IssueDemo(ctx, row.ID, number)
 	return platform.Map(row), err
-
 }
 
 func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.invoice."+constants.ActionList)
+	ctx, span := platform.Start(ctx, "usecase.invoice.list")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -204,11 +198,10 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 	}
 	rows, err := s.Repo.List(ctx, user)
 	return platform.Result{"items": rows}, err
-
 }
 
 func (s *Service) Reversals(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.invoice."+constants.ActionReversals)
+	ctx, span := platform.Start(ctx, "usecase.invoice.reversals")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -229,7 +222,6 @@ func (s *Service) Reversals(ctx context.Context, c platform.Request) (traceResul
 
 	rows, err := s.Repo.Reversals(ctx, row.ID)
 	return platform.Result{"items": rows}, err
-
 }
 
 func (s *Service) create(ctx context.Context, c platform.Request) (platform.Result, error) {
@@ -247,10 +239,8 @@ func (s *Service) create(ctx context.Context, c platform.Request) (platform.Resu
 	if kind == constants.InvoiceKindCompany && !regexp.MustCompile(`^[A-Z0-9]{18}$`).MatchString(taxID) {
 		return nil, status.Error(codes.InvalidArgument, "company tax_id must contain 18 letters or digits")
 	}
-	order, err := s.RPC.Call(
-		ctx,
-		constants.ServiceOrder,
-		platform.Command{Action: constants.ActionGet, ID: orderID, UserID: c.UserID, Role: c.Role},
+	order, err := platform.NewClients(s.RPC).Order.Get(
+		ctx, platform.Request{ID: orderID, UserID: c.UserID, Role: c.Role},
 	)
 	if err != nil {
 		return nil, err
@@ -288,10 +278,8 @@ func (s *Service) create(ctx context.Context, c platform.Request) (platform.Resu
 	}
 	// A refund may have arrived before this invoice existed. Re-read the owner
 	// snapshot; cumulative totals also make a later duplicated event harmless.
-	fresh, err := s.RPC.Call(
-		ctx,
-		constants.ServiceOrder,
-		platform.Command{Action: constants.ActionGet, ID: orderID, UserID: user, Role: constants.RoleSystem},
+	fresh, err := platform.NewClients(s.RPC).Order.Get(
+		ctx, platform.Request{ID: orderID, UserID: user, Role: constants.RoleSystem},
 	)
 	if err != nil {
 		return nil, err

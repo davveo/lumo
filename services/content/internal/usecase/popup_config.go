@@ -272,11 +272,10 @@ func popupCampaignView(row domain.PopupCampaign) platform.Result {
 	return out
 }
 func (s *Service) PopupList(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "content.usecase."+constants.ActionPopupList)
+	ctx, span := platform.Start(ctx, "content.usecase.popup_list")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	if err := platform.RequireAdmin(c); err != nil {
 		return nil, err
 	}
@@ -295,11 +294,10 @@ func (s *Service) PopupList(ctx context.Context, c platform.Request) (traceResul
 	return platform.Result{"items": items, "settings": settings}, nil
 }
 func (s *Service) PopupUpsert(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "content.usecase."+constants.ActionPopupUpsert)
+	ctx, span := platform.Start(ctx, "content.usecase.popup_upsert")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	if err := platform.RequireAdmin(c); err != nil {
 		return nil, err
 	}
@@ -338,12 +336,15 @@ func (s *Service) PopupUpsert(ctx context.Context, c platform.Request) (traceRes
 	}
 	return popupCampaignView(row), nil
 }
-func (s *Service) PopupConfigure(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "content.usecase."+constants.ActionPopupConfigure)
+
+func (s *Service) PopupConfigure(
+	ctx context.Context,
+	c platform.Request,
+) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "content.usecase.popup_configure")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	if err := platform.RequireAdmin(c); err != nil {
 		return nil, err
 	}

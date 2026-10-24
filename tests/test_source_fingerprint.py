@@ -36,6 +36,10 @@ class SourceFingerprintTests(unittest.TestCase):
             "cmd/server/main.go",
             "cmd/gateway/main.go",
             "web/dist/index.html",
+            "web/Dockerfile",
+            "web/.dockerignore",
+            "web/nginx/default.conf.template",
+            "web/nginx/proxy.conf",
             "web/dist/assets/item with spaces.jpg",
             "deploy/minio.Dockerfile",
             "deploy/observability.Dockerfile",
@@ -64,7 +68,7 @@ class SourceFingerprintTests(unittest.TestCase):
     def all_digests(self) -> dict[str, str]:
         return {
             name: self.digest(name)
-            for name in ("order", "catalog", "inventory", "payment", "gateway", "--image", "--minio", "--observability")
+            for name in ("order", "catalog", "inventory", "payment", "gateway", "web", "--image", "--minio", "--observability")
         }
 
     def changed_by(self, name: str, contents: str) -> set[str]:
@@ -78,10 +82,15 @@ class SourceFingerprintTests(unittest.TestCase):
             {"order", "--image"},
         )
 
-    def test_frontend_changes_update_gateway_without_restarting_domain_services(self) -> None:
+    def test_frontend_changes_update_only_the_frontend_image(self) -> None:
         self.assertEqual(
-            self.changed_by("web/dist/assets/item with spaces.jpg", "changed image bytes"), {"gateway", "--image"}
+            self.changed_by("web/dist/assets/item with spaces.jpg", "changed image bytes"), {"web"}
         )
+
+    def test_frontend_recipe_and_proxy_configuration_have_only_one_owner(self) -> None:
+        for path in ("web/Dockerfile", "web/.dockerignore", "web/nginx/default.conf.template", "web/nginx/proxy.conf"):
+            with self.subTest(path=path):
+                self.assertEqual(self.changed_by(path, "updated frontend serving configuration\n"), {"web"})
 
     def test_gateway_http_changes_do_not_affect_domain_service_sources(self) -> None:
         self.assertEqual(
@@ -195,7 +204,7 @@ class SourceFingerprintTests(unittest.TestCase):
     def test_a_runtime_symlink_fails_instead_of_silently_missing_target_changes(self) -> None:
         (self.root / "web/dist/link.html").symlink_to("index.html")
         result = subprocess.run(
-            ["sh", str(self.root / "scripts/source-fingerprint.sh"), "gateway"],
+            ["sh", str(self.root / "scripts/source-fingerprint.sh"), "web"],
             cwd=self.outside,
             text=True,
             capture_output=True,

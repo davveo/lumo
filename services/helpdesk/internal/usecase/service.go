@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/helpdesk/internal/domain"
@@ -10,7 +11,7 @@ import (
 )
 
 func (s *Service) Close(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "helpdesk.usecase."+constants.ActionClose)
+	ctx, span := platform.Start(ctx, "helpdesk.usecase.close")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -37,11 +38,10 @@ func (s *Service) Close(ctx context.Context, c platform.Request) (traceResult pl
 		return nil, e
 	}
 	return view(r), nil
-
 }
 
 func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "helpdesk.usecase."+constants.ActionCreate)
+	ctx, span := platform.Start(ctx, "helpdesk.usecase.create")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -60,7 +60,12 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 	}
 	oid := platform.Text(c.Data, "order_id")
 	if oid != "" {
-		o, e := call(ctx, s.rpc, constants.ServiceOrder, child(c, constants.ActionGet, oid, nil))
+		o, e := platform.NewClients(
+			s.rpc,
+		).Order.Get(
+			ctx,
+			platform.Request{ID: oid, UserID: c.UserID, Role: c.Role, IdempotencyKey: c.IdempotencyKey, Data: nil},
+		)
 		if e != nil {
 			return nil, e
 		}
@@ -86,26 +91,28 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 		}
 	}
 	return view(r), nil
-
 }
 
 func (s *Service) Faq(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "helpdesk.usecase."+constants.ActionFaq)
+	ctx, span := platform.Start(ctx, "helpdesk.usecase.faq")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 
-	return call(
+	return platform.NewClients(s.rpc).Content.List(
 		ctx,
-		s.rpc,
-		constants.ServiceContent,
-		child(c, constants.ActionList, "", map[string]any{"kind": constants.ContentKindFaq, "limit": 100}),
+		platform.Request{
+			ID:             "",
+			UserID:         c.UserID,
+			Role:           c.Role,
+			IdempotencyKey: c.IdempotencyKey,
+			Data:           map[string]any{"kind": constants.ContentKindFaq, "limit": 100},
+		},
 	)
-
 }
 
 func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "helpdesk.usecase."+constants.ActionGet)
+	ctx, span := platform.Start(ctx, "helpdesk.usecase.get")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -132,11 +139,10 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 	}
 	out["messages"] = v
 	return out, nil
-
 }
 
 func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "helpdesk.usecase."+constants.ActionList)
+	ctx, span := platform.Start(ctx, "helpdesk.usecase.list")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -150,11 +156,10 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 		owner = ""
 	}
 	return s.list(ctx, c, owner, constants.HelpdeskKindTicket, "")
-
 }
 
 func (s *Service) Reply(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "helpdesk.usecase."+constants.ActionReply)
+	ctx, span := platform.Start(ctx, "helpdesk.usecase.reply")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -210,7 +215,6 @@ func (s *Service) Reply(ctx context.Context, c platform.Request) (traceResult pl
 		return nil, e
 	}
 	return view(r), nil
-
 }
 
 func (s *Service) seed(context.Context) error                  { return nil }

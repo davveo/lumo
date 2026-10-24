@@ -12,7 +12,6 @@ RUN apk add --no-cache ca-certificates tzdata \
  && addgroup -g 10001 app && adduser -D -u 10001 -G app app
 WORKDIR /app
 COPY --from=build /out/server /out/gateway /app/
-COPY web/dist /app/web/dist
 USER 10001:10001
 EXPOSE 9000 8080
 ENTRYPOINT ["/app/server"]

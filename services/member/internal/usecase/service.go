@@ -8,7 +8,7 @@ import (
 )
 
 func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "member.usecase."+constants.ActionGet)
+	ctx, span := platform.Start(ctx, "member.usecase.get")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -31,7 +31,6 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 		map[string]any{"display_name": id, "avatar": "", "preferences": map[string]any{}},
 	)
 	r, e := s.repo.Mutate(ctx, seed, true, func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
-
 		return nil, nil, nil
 	})
 	if e != nil {
@@ -51,7 +50,7 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 	return out, nil
 }
 func (s *Service) Update(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "member.usecase."+constants.ActionUpdate)
+	ctx, span := platform.Start(ctx, "member.usecase.update")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()

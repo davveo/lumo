@@ -11,14 +11,14 @@ import (
 )
 
 func (s *Service) Query(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "search.usecase."+constants.ActionQuery)
+	ctx, span := platform.Start(ctx, "search.usecase.query")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	return s.search(ctx, c)
 }
 func (s *Service) Suggest(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "search.usecase."+constants.ActionSuggest)
+	ctx, span := platform.Start(ctx, "search.usecase.suggest")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -44,9 +44,8 @@ func (s *Service) search(ctx context.Context, c platform.Request) (platform.Resu
 	default:
 		catalogSort = ""
 	}
-	catalogCommand := platform.Command{
-		Action: constants.ActionSearchProducts,
-		Role:   constants.RoleSystem,
+	catalogRequest := platform.Request{
+		Role: constants.RoleSystem,
 		Data: map[string]any{
 			"query": strings.TrimSpace(
 				platform.Text(c.Data, "query"),
@@ -54,7 +53,7 @@ func (s *Service) search(ctx context.Context, c platform.Request) (platform.Resu
 			"brand": strings.TrimSpace(platform.Text(c.Data, "brand")), "sort": catalogSort, "limit": 100,
 		},
 	}
-	data, e := call(ctx, s.rpc, constants.ServiceCatalog, catalogCommand)
+	data, e := platform.NewClients(s.rpc).Catalog.SearchProducts(ctx, catalogRequest)
 	if e != nil {
 		return nil, e
 	}
@@ -96,11 +95,17 @@ func (s *Service) search(ctx context.Context, c platform.Request) (platform.Resu
 	stocks := map[string]map[string]any{}
 	if len(ids) > 0 {
 		sort.Strings(ids)
-		batch, err := call(
-			ctx,
+		batch, err := platform.NewClients(
 			s.rpc,
-			constants.ServiceInventory,
-			child(c, constants.ActionBatchGet, "", map[string]any{"ids": ids}),
+		).Inventory.BatchGet(
+			ctx,
+			platform.Request{
+				ID:             "",
+				UserID:         c.UserID,
+				Role:           c.Role,
+				IdempotencyKey: c.IdempotencyKey,
+				Data:           map[string]any{"ids": ids},
+			},
 		)
 		if err != nil {
 			return nil, err

@@ -5,10 +5,10 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"github.com/davveo/lumo/internal/constants"
 	"sort"
 	"strings"
 
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/aftersale/internal/domain"
 	"github.com/davveo/lumo/services/aftersale/internal/repository"
@@ -88,7 +88,7 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 	return nil
 }
 func (s *Service) Approve(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionApprove)
+	ctx, span := platform.Start(ctx, "usecase.aftersale.approve")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -123,7 +123,7 @@ func (s *Service) Approve(ctx context.Context, c platform.Request) (traceResult 
 }
 
 func (s *Service) Cancel(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionCancel)
+	ctx, span := platform.Start(ctx, "usecase.aftersale.cancel")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -155,7 +155,7 @@ func (s *Service) Cancel(ctx context.Context, c platform.Request) (traceResult p
 }
 
 func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionCreate)
+	ctx, span := platform.Start(ctx, "usecase.aftersale.create")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -167,11 +167,10 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 	}
 
 	return s.create(ctx, c)
-
 }
 
 func (s *Service) Exchange(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionExchange)
+	ctx, span := platform.Start(ctx, "usecase.aftersale.exchange")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -191,11 +190,10 @@ func (s *Service) Exchange(ctx context.Context, c platform.Request) (traceResult
 	}
 
 	return s.exchange(ctx, r)
-
 }
 
 func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionGet)
+	ctx, span := platform.Start(ctx, "usecase.aftersale.get")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -215,11 +213,10 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 	}
 
 	return platform.Map(r), nil
-
 }
 
 func (s *Service) Inspect(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionInspect)
+	ctx, span := platform.Start(ctx, "usecase.aftersale.inspect")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -242,11 +239,10 @@ func (s *Service) Inspect(ctx context.Context, c platform.Request) (traceResult 
 		return nil, status.Error(codes.PermissionDenied, "warehouse inspection permission required")
 	}
 	return s.inspect(ctx, c, r)
-
 }
 
 func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionList)
+	ctx, span := platform.Start(ctx, "usecase.aftersale.list")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -263,11 +259,10 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 	}
 	items, err := s.Repo.List(ctx, user)
 	return platform.Result{"items": items}, err
-
 }
 
 func (s *Service) Refund(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionRefund)
+	ctx, span := platform.Start(ctx, "usecase.aftersale.refund")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -287,11 +282,10 @@ func (s *Service) Refund(ctx context.Context, c platform.Request) (traceResult p
 	}
 
 	return s.refund(ctx, r)
-
 }
 
 func (s *Service) Reject(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionReject)
+	ctx, span := platform.Start(ctx, "usecase.aftersale.reject")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -326,7 +320,7 @@ func (s *Service) Reject(ctx context.Context, c platform.Request) (traceResult p
 }
 
 func (s *Service) Return(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionReturn)
+	ctx, span := platform.Start(ctx, "usecase.aftersale.return")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -390,10 +384,8 @@ func (s *Service) create(ctx context.Context, c platform.Request) (platform.Resu
 	if reason == "" || len(reason) > 1000 {
 		return nil, status.Error(codes.InvalidArgument, "valid aftersale reason required")
 	}
-	o, err := s.RPC.Call(
-		ctx,
-		constants.ServiceOrder,
-		platform.Command{Action: constants.ActionGet, ID: orderID, UserID: c.UserID, Role: c.Role},
+	o, err := platform.NewClients(s.RPC).Order.Get(
+		ctx, platform.Request{ID: orderID, UserID: c.UserID, Role: c.Role},
 	)
 	if err != nil {
 		return nil, err
@@ -510,11 +502,8 @@ func (s *Service) create(ctx context.Context, c platform.Request) (platform.Resu
 		return nil, status.Error(codes.InvalidArgument, "replacement SKU requires a single original SKU")
 	}
 	if row.ReplacementSKU != "" && row.ReplacementSKU != requested[0].SKUID {
-		target, callErr := s.RPC.Call(
-			ctx,
-			constants.ServiceCatalog,
-			platform.Command{
-				Action: constants.ActionGet,
+		target, callErr := platform.NewClients(s.RPC).Catalog.Get(
+			ctx, platform.Request{
 				ID:     row.ReplacementSKU,
 				UserID: user,
 				Role:   constants.RoleSystem,
@@ -571,11 +560,8 @@ func (s *Service) inspect(ctx context.Context, c platform.Request, r *domain.Rec
 	for _, line := range lines {
 		digest := sha256.Sum256([]byte(r.ID + ":" + line.SKUID))
 		receipt := fmt.Sprintf("inspection-%x", digest[:16])
-		_, err = s.RPC.Call(
-			ctx,
-			constants.ServiceFulfillment,
-			platform.Command{
-				Action: constants.ActionInspectReturn,
+		_, err = platform.NewClients(s.RPC).Fulfillment.InspectReturn(
+			ctx, platform.Request{
 				ID:     receipt,
 				UserID: r.UserID,
 				Role:   constants.RoleSystem,
@@ -611,10 +597,8 @@ func (s *Service) refund(ctx context.Context, r *domain.Record) (platform.Result
 	if r.Type == constants.AftersaleTypeRefund {
 		// Revalidate stored applications too: earlier versions accepted partial
 		// refund-only requests, while the warehouse cancellation is order-wide.
-		o, err := s.RPC.Call(
-			ctx,
-			constants.ServiceOrder,
-			platform.Command{Action: constants.ActionGet, ID: r.OrderID, UserID: r.UserID, Role: constants.RoleSystem},
+		o, err := platform.NewClients(s.RPC).Order.Get(
+			ctx, platform.Request{ID: r.OrderID, UserID: r.UserID, Role: constants.RoleSystem},
 		)
 		if err != nil {
 			return nil, err
@@ -652,11 +636,8 @@ func (s *Service) refund(ctx context.Context, r *domain.Record) (platform.Result
 		return nil, err
 	}
 	if r.Type == constants.AftersaleTypeRefund {
-		if _, err = s.RPC.Call(
-			ctx,
-			constants.ServiceFulfillment,
-			platform.Command{
-				Action: constants.ActionCancel,
+		if _, err = platform.NewClients(s.RPC).Fulfillment.Cancel(
+			ctx, platform.Request{
 				ID:     r.OrderID,
 				UserID: r.UserID,
 				Role:   constants.RoleSystem,
@@ -666,11 +647,8 @@ func (s *Service) refund(ctx context.Context, r *domain.Record) (platform.Result
 		}
 	}
 	refundID := "refund:" + r.ID
-	_, err = s.RPC.Call(
-		ctx,
-		constants.ServiceRefund,
-		platform.Command{
-			Action:         constants.ActionCreate,
+	_, err = platform.NewClients(s.RPC).Refund.Create(
+		ctx, platform.Request{
 			ID:             refundID,
 			UserID:         r.UserID,
 			Role:           constants.RoleSystem,
@@ -739,26 +717,21 @@ func (s *Service) exchange(ctx context.Context, r *domain.Record) (platform.Resu
 		lines[0].SKUID = r.ReplacementSKU
 	}
 	id := r.ID + ":exchange"
-	command := platform.Command{
-		Action: constants.ActionReserve,
+	command := platform.Request{
 		ID:     id,
 		UserID: r.UserID,
 		Role:   constants.RoleSystem,
 		Data:   map[string]any{"order_id": r.OrderID, "lines": lines},
 	}
-	if _, err = s.RPC.Call(ctx, constants.ServiceInventory, command); err != nil {
+	if _, err = platform.NewClients(s.RPC).Inventory.Reserve(ctx, command); err != nil {
 		return nil, err
 	}
-	command.Action = constants.ActionConfirm
 	command.Data = nil
-	if _, err = s.RPC.Call(ctx, constants.ServiceInventory, command); err != nil {
+	if _, err = platform.NewClients(s.RPC).Inventory.Confirm(ctx, command); err != nil {
 		return nil, err
 	}
-	if _, err = s.RPC.Call(
-		ctx,
-		constants.ServiceFulfillment,
-		platform.Command{
-			Action: constants.ActionCreateExchange,
+	if _, err = platform.NewClients(s.RPC).Fulfillment.CreateExchange(
+		ctx, platform.Request{
 			ID:     id,
 			UserID: r.UserID,
 			Role:   constants.RoleSystem,

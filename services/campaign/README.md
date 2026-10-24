@@ -29,7 +29,11 @@
 
 ## 独立业务方法
 
-`list` → `List`；`evaluate` → `Evaluate`；`reserve` → `Reserve`；`confirm` → `Confirm`；`cancel` → `Cancel`。
+- `list` → `List`
+- `evaluate` → `Evaluate`
+- `reserve` → `Reserve`
+- `confirm` → `Confirm`
+- `cancel` → `Cancel`
 
 业务方法统一接收不含动作字段的 `platform.Request`，权限与资源归属校验在方法内部执行。
 `internal/transport/handler.go` 只维护边界路由注册表；模块通过 `Operations` 暴露独立操作，

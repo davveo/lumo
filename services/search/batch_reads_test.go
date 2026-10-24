@@ -166,3 +166,19 @@ func TestSearchAvoidsInventoryWhenNoCandidatesAndFailsClosedOnStockErrors(t *tes
 		t.Fatalf("batch failure swallowed: %v", err)
 	}
 }
+
+func TestDirectSuggestRetainsQueryAggregationAndIdentity(t *testing.T) {
+	module, rpc := searchBatchSetup(t)
+	request := platform.Request{UserID: "buyer", Role: "user", Data: map[string]any{"query": "phone", "limit": 3}}
+	suggested, err := module.Operations["suggest"](context.Background(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rpc.stockCalls != 1 || rpc.lastStockUser != "buyer" || rpc.lastStockRole != "user" {
+		t.Fatalf("suggest did not use one owner-scoped inventory batch: %+v", rpc)
+	}
+	queried, err := module.Operations["query"](context.Background(), request)
+	if err != nil || !reflect.DeepEqual(suggested, queried) {
+		t.Fatalf("query and suggest changed shared search semantics: %v %v %v", suggested, queried, err)
+	}
+}

@@ -90,7 +90,7 @@
     const start = (displayPage - 1) * PAGE_SIZE,
       shown = items.slice(start, start + PAGE_SIZE),
       unit = groups ? '个' : '件';
-    return `<div class="promo-results-head"><p role="status">共 ${pageTotal} ${groups ? '个拼团' : '件好物'}<span> · 当前显示 ${start + 1}–${start + shown.length} ${unit}</span></p>${pagination('top')}</div><div class="${className}">${shown.map(card).join('')}</div>${pagination('bottom')}`;
+    return `<div class="promo-results-head"><p role="status">共 ${pageTotal} ${groups ? '个拼团' : '件好物'}<span> · 当前显示 ${start + 1}–${start + shown.length} ${unit}</span></p></div><div class="${className}">${shown.map(card).join('')}</div>${pagination('bottom')}`;
   }
   function timer(endAt) {
     if (!(Number(endAt) > 0)) return '以活动配置为准';

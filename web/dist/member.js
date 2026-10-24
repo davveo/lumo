@@ -54,7 +54,7 @@
     };
   }
   let memory = emptyMemory();
-  let lastTracked = null;
+  let lastTracked = null, tracking = null, historyRevision = 0;
   let refreshVersion = 0;
   let inFlight = null,
     dialogVersion = 0;
@@ -90,6 +90,8 @@
     readStates = emptyReadStates();
     memory = emptyMemory();
     lastTracked = null;
+    tracking = null;
+    historyRevision++;
     state.address = null;
     state.favorites = [];
     state.favoriteSKUs = [];
@@ -177,6 +179,7 @@
     }
     const version = refreshVersion,
       owner = memberScope(),
+      historyReadRevision = historyRevision,
       pending = {};
     inFlight = pending;
     resourceNames.forEach((key) => {
@@ -278,13 +281,17 @@
           ),
         ];
       }
-      if (history)
-        memory.history = (history.items || []).map((h) => ({
-          id: viewId(h.sku_id),
-          sku_id: h.sku_id,
-          recordId: h.id,
-          at: timestamp(h.updated_at || h.created_at),
-        }));
+      if (history) {
+        try {
+          await hydrateHistory(history.items || [], () => version === refreshVersion && owner === memberScope() && loggedIn());
+          if (version !== refreshVersion || owner !== memberScope() || !loggedIn()) return model();
+          const rows = (history.items || []).map(historyRow);
+          memory.history = historyReadRevision === historyRevision ? rows : mergeHistory(memory.history, rows);
+        } catch (error) {
+          if (version !== refreshVersion || owner !== memberScope() || !loggedIn()) return model();
+          readStates.history = { ...readStates.history, error: error.message || '浏览足迹商品加载失败' };
+        }
+      }
       if (reviews)
         memory.reviews = (reviews.items || []).map((r) => ({
           id: r.id,
@@ -695,35 +702,75 @@
     });
     return rows;
   }
-  async function track(productId) {
-    if (!loggedIn() || !findProduct(productId)) return;
-    const version = refreshVersion,
-      owner = memberScope();
-    await call(C.Service.Engagement, C.Action.Put, {
-      data: { kind: C.EngagementKind.History, sku_id: skuFor({ id: productId }) },
-    });
-    if (version !== refreshVersion || owner !== memberScope() || !loggedIn()) return;
-    const result = await call(C.Service.Engagement, C.Action.List, {
-      data: { kind: C.EngagementKind.History, limit: 100 },
-    });
-    if (version !== refreshVersion || owner !== memberScope() || !loggedIn()) return;
-    memory.history = (result.items || []).map((h) => ({
-      id: viewId(h.sku_id),
-      sku_id: h.sku_id,
-      recordId: h.id,
-      at: timestamp(h.updated_at || h.created_at),
-    }));
-    readStates.history = { loading: false, loaded: true, error: '' };
-    await window.LumoSidebars?.refresh?.();
+  const historyRow = (row) => ({
+    id: viewId(row.sku_id), sku_id: row.sku_id, recordId: row.id, at: timestamp(row.updated_at || row.created_at),
+  });
+  function mergeHistory(...sources) {
+    const rows = new Map();
+    for (const source of sources) for (const row of source) {
+      const key = row.recordId || row.sku_id;
+      if (!rows.has(key) || row.at > rows.get(key).at) rows.set(key, row);
+    }
+    return [...rows.values()].sort((a,b) => b.at - a.at).slice(0,100);
+  }
+  async function hydrateHistory(rows, active) {
+    if (!window.LumoCommerce?.normalizeProduct) return;
+    const missing = [...new Set(rows.map((row) => row.sku_id).filter((id) => id && !findProduct(id)))].slice(0,100);
+    if (!missing.length) return;
+    const batch = (ids) => window.LumoAPI.call(C.Service.Catalog,C.Action.BatchGet,{data:{ids}}, {auth:false});
+    const result = await batch(missing);
+    if (!active()) return;
+    const raw = [...(result.items || [])];
+    const parents = [...new Set(raw.map((row) => row.product_id || row.parent_id).filter((id) => id && !findProduct(id) && !raw.some((row) => row.id === id)))];
+    if (parents.length) {
+      const parentResult = await batch(parents);
+      if (!active()) return;
+      raw.push(...(parentResult.items || []));
+    }
+    for (const row of raw) {
+      if (!active()) return;
+      if (row.product_id && row.product_id !== row.id || row.parent_id && row.parent_id !== row.id) continue;
+      const product = window.LumoCommerce.normalizeProduct(row);
+      if (product?.id && !findProduct(product.id)) products.push(product);
+    }
+  }
+  function track(productId) {
+    if (memoryScope !== memberScope()) reset();
+    if (!loggedIn() || !findProduct(productId)) return Promise.resolve(false);
+    const owner = memberScope(), version = refreshVersion, key = owner + '|' + productId;
+    if (tracking?.key === key) return tracking.promise;
+    const entry = {key,promise:null};
+    tracking = entry;
+    const active = () => version === refreshVersion && owner === memberScope() && loggedIn();
+    entry.promise = (async () => {
+      const result = await call(C.Service.Engagement,C.Action.Put,{
+        data:{kind:C.EngagementKind.History,sku_id:skuFor({id:productId})},
+      });
+      if (!active()) return false;
+      if (!result.id || !result.sku_id || result.user_id && result.user_id !== principal()) throw Error('浏览足迹未保存，请重试');
+      historyRevision++;
+      memory.history = mergeHistory([historyRow(result)],memory.history);
+      if (location.hash === "#/product/" + productId) lastTracked = key;
+      readStates.history = {loading:false,loaded:true,error:''};
+      await window.LumoSidebars?.refresh?.(true);
+      return active();
+    })().finally(() => {if (tracking === entry) tracking = null;});
+    return entry.promise;
   }
   function afterRender() {
     if (window.LumoConnection?.ready === false || window.LumoAPI?.isBootstrapActive?.()) return;
-    const route = (location.hash || '#/').slice(2).split('/'),
-      id = route[0] === 'product' ? route[1] : null;
-    if (id && id !== lastTracked && loggedIn()) {
-      lastTracked = id;
-      track(id).catch(showError);
-    } else if (!id) lastTracked = null;
+    if (memoryScope !== memberScope()) reset();
+    const route = (location.hash || '#/').slice(2).split('/'), id = route[0] === 'product' ? route[1] : null;
+    if (!id) {lastTracked = null; return;}
+    // A direct URL may still be loading a product outside the bootstrap page.
+    // Do not mark it visited before the real detail data is ready and persisted.
+    if (!loggedIn() || !findProduct(id) || lastTracked === memberScope() + '|' + id) return;
+    const owner = memberScope();
+    void track(id).catch((error) => {
+      if (owner !== memberScope() || !loggedIn()) return;
+      readStates.history = {...readStates.history,loading:false,error:error.message || '浏览足迹保存失败'};
+      showError(error);
+    });
   }
   function showError(error) {
     toast(error?.message || '请求未完成，请重试');

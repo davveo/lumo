@@ -2,7 +2,6 @@ package helpdesk
 
 import (
 	"github.com/davveo/lumo/internal/constants"
-
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/helpdesk/internal/repository"
 	"github.com/davveo/lumo/services/helpdesk/internal/transport"

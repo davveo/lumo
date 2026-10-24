@@ -56,7 +56,12 @@ func (s *Service) list(ctx context.Context, c platform.Request, owner, kind, st 
 	skus := []string{}
 	if sku := platform.Text(c.Data, "sku_id"); sku != "" {
 		skus = append(skus, sku)
-		product, e := call(ctx, s.rpc, constants.ServiceCatalog, child(c, constants.ActionGet, sku, nil))
+		product, e := platform.NewClients(
+			s.rpc,
+		).Catalog.Get(
+			ctx,
+			platform.Request{ID: sku, UserID: c.UserID, Role: c.Role, IdempotencyKey: c.IdempotencyKey, Data: nil},
+		)
 		if e != nil {
 			return nil, e
 		}
@@ -106,17 +111,6 @@ func (s *Service) list(ctx context.Context, c platform.Request, owner, kind, st 
 		items = append(items, item)
 	}
 	return platform.Result{"items": items, "limit": len(items)}, nil
-}
-func call(ctx context.Context, rpc platform.Caller, target string, c platform.Command) (platform.Result, error) {
-	if rpc == nil {
-		return nil, status.Error(codes.Unavailable, "RPC peer unavailable")
-	}
-	return rpc.Call(ctx, target, c)
-}
-func child(c platform.Request, action, id string, data map[string]any) platform.Command {
-	command := c.Command(action)
-	command.ID, command.Data = id, data
-	return command
 }
 
 func demo() bool {

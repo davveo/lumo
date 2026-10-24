@@ -66,10 +66,10 @@ func controllableResolverBackend(t *testing.T, name string) (string, *atomic.Int
 	calls := &atomic.Int64{}
 	server, err := NewRPCServer(
 		"resolver-test-token",
-		Module{Name: "catalog", Handle: func(context.Context, Command) (Result, error) {
+		Module{Name: "catalog", Operations: map[string]Operation{"get": func(context.Context, Request) (Result, error) {
 			calls.Add(1)
 			return Result{"backend": name}, nil
-		}},
+		}}},
 	)
 	if err != nil {
 		t.Fatal(err)

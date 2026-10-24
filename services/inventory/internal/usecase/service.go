@@ -1,21 +1,21 @@
 package usecase
 
 import (
-	"github.com/davveo/lumo/internal/constants"
-
 	"context"
+	"strings"
+
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/inventory/internal/domain"
 	"github.com/davveo/lumo/services/inventory/internal/repository"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"strings"
 )
 
 type Service struct{ Repo *repository.Repository }
 
 func (s *Service) Adjust(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "usecase.inventory."+constants.ActionAdjust)
+	ctx, sp := platform.Start(ctx, "usecase.inventory.adjust")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -31,11 +31,10 @@ func (s *Service) Adjust(ctx context.Context, c platform.Request) (traceResult p
 		return nil, e
 	}
 	return s.Repo.Adjust(ctx, c)
-
 }
 
 func (s *Service) BatchGet(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "usecase.inventory."+constants.ActionBatchGet)
+	ctx, sp := platform.Start(ctx, "usecase.inventory.batch_get")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -57,11 +56,10 @@ func (s *Service) BatchGet(ctx context.Context, c platform.Request) (traceResult
 		}
 	}
 	return s.Repo.GetMany(ctx, ids)
-
 }
 
 func (s *Service) Cancel(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "usecase.inventory."+constants.ActionCancel)
+	ctx, sp := platform.Start(ctx, "usecase.inventory.cancel")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -74,11 +72,10 @@ func (s *Service) Cancel(ctx context.Context, c platform.Request) (traceResult p
 	}
 
 	return s.Repo.Cancel(ctx, c)
-
 }
 
 func (s *Service) Confirm(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "usecase.inventory."+constants.ActionConfirm)
+	ctx, sp := platform.Start(ctx, "usecase.inventory.confirm")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -91,11 +88,10 @@ func (s *Service) Confirm(ctx context.Context, c platform.Request) (traceResult 
 	}
 
 	return s.Repo.Confirm(ctx, c)
-
 }
 
 func (s *Service) Dispatch(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "usecase.inventory."+constants.ActionDispatch)
+	ctx, sp := platform.Start(ctx, "usecase.inventory.dispatch")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -108,21 +104,19 @@ func (s *Service) Dispatch(ctx context.Context, c platform.Request) (traceResult
 	}
 
 	return s.Repo.Dispatch(ctx, c)
-
 }
 
 func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "usecase.inventory."+constants.ActionGet)
+	ctx, sp := platform.Start(ctx, "usecase.inventory.get")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 
 	return s.Repo.Get(ctx, c.ID)
-
 }
 
 func (s *Service) Reserve(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "usecase.inventory."+constants.ActionReserve)
+	ctx, sp := platform.Start(ctx, "usecase.inventory.reserve")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -142,11 +136,10 @@ func (s *Service) Reserve(ctx context.Context, c platform.Request) (traceResult 
 		return nil, status.Error(codes.InvalidArgument, "invalid reservation")
 	}
 	return s.Repo.Reserve(ctx, c, v.OrderID, v.Lines)
-
 }
 
 func (s *Service) Restock(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "usecase.inventory."+constants.ActionRestock)
+	ctx, sp := platform.Start(ctx, "usecase.inventory.restock")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -159,5 +152,4 @@ func (s *Service) Restock(ctx context.Context, c platform.Request) (traceResult 
 	}
 
 	return s.Repo.Restock(ctx, c)
-
 }

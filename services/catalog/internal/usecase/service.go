@@ -15,11 +15,10 @@ import (
 )
 
 func (s *Service) BatchGet(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "catalog.usecase."+constants.ActionBatchGet)
+	ctx, span := platform.Start(ctx, "catalog.usecase.batch_get")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	var input struct {
 		IDs []string `json:"ids"`
 	}
@@ -55,11 +54,10 @@ func (s *Service) BatchGet(ctx context.Context, c platform.Request) (traceResult
 	return platform.Result{"items": items, "missing_ids": missing}, nil
 }
 func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "catalog.usecase."+constants.ActionList)
+	ctx, span := platform.Start(ctx, "catalog.usecase.list")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	st := constants.CatalogStatusActive
 	if include, _ := c.Data["include_disabled"].(bool); c.Role == constants.RoleAdmin && include {
 		st = ""
@@ -80,11 +78,10 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 	return platform.Result{"items": items, "total": total}, nil
 }
 func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "catalog.usecase."+constants.ActionGet)
+	ctx, span := platform.Start(ctx, "catalog.usecase.get")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	if c.ID == "" {
 		return nil, bad("sku ID required")
 	}
@@ -98,11 +95,10 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 	return view(r), nil
 }
 func (s *Service) Upsert(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "catalog.usecase."+constants.ActionUpsert)
+	ctx, span := platform.Start(ctx, "catalog.usecase.upsert")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}

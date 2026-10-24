@@ -6,6 +6,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"os"
+	"sort"
+
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/democatalog"
 	"github.com/davveo/lumo/internal/platform"
@@ -14,8 +17,6 @@ import (
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"os"
-	"sort"
 )
 
 type Repository struct{ DB *gorm.DB }

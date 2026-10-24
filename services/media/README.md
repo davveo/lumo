@@ -40,3 +40,5 @@ MINIO_INTEGRATION_BINARY=/absolute/path/to/minio go test ./services/media -run T
 ```
 
 该测试启动独立的127.0.0.1:19001/19002进程及临时数据目录，尝试真实POST上传、Stat完成校验、预签名GET字节比对、跨用户拒绝和长度政策拒绝，结束后自动清理。本次执行环境中官方MinIO在启动枚举本机IP时受到 `netlinkrib: operation not permitted` 限制，尚未到S3监听，因此真实POST/Stat/GET尚未验收；已通过fake接口和真实SDK本地签名单测。未修改官方MinIO源码绕过环境限制，默认 `go test` 不启用此可选测试。
+
+业务入口使用不含 `Action` 的 `platform.Request`；每项操作由独立公开方法实现权限、参数与业务校验。方法：`Create`、`Get`、`Download`、`Complete`。运输层仅维护操作到方法的注册表，HTTP 兼容命令不会进入业务层。

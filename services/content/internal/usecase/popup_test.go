@@ -211,7 +211,11 @@ func TestPopupPrivateConfigurationOptimisticUpdatesAndLifecycleInvalidation(t *t
 		}
 	}
 	for _, action := range []string{"popup_decide", "popup_event", "popup_claim"} {
-		_, err := executePopup(s, context.Background(), platform.Command{Action: action, UserID: "buyer", Role: "admin"})
+		_, err := executePopup(
+			s,
+			context.Background(),
+			platform.Command{Action: action, UserID: "buyer", Role: "admin"},
+		)
 		if status.Code(err) != codes.PermissionDenied {
 			t.Fatalf("%s skipped internal boundary: %v", action, err)
 		}

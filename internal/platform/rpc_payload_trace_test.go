@@ -48,7 +48,7 @@ func assertRPCPayloadSpans(
 	}
 }
 
-func TestRPCPayloadTraceRecordsLegacyMessagesAtEveryRPCBoundary(t *testing.T) {
+func TestRPCPayloadTraceRecordsNamedMessagesAtEveryRPCBoundary(t *testing.T) {
 	exporter, _ := tracing(t)
 	address := rpcTraceServer(
 		t,

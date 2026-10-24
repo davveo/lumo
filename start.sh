@@ -13,7 +13,7 @@ usage() {
 LUMO 商城 Docker 一键启动
 
 用法：sh start.sh [服务名 ...] [--no-build] [--wait-timeout 秒数] [--update-infra]
-  服务名             指定要更新的业务服务，如order payment；留空自动检测变化
+  服务名             指定要更新的服务，如web、order payment；留空自动检测变化
   --no-build          使用现有镜像，未构建的源码仍保持待更新
   --update-infra      显式更新中间件容器；默认保留已运行中间件
   --wait-timeout N    等待服务健康的最长秒数，默认600
@@ -64,7 +64,7 @@ case "$WAIT_SECONDS" in '' | *[!0-9]*) fail '等待秒数必须是1到86400的�
 
 cd "$PROJECT_DIR"
 for service in $REQUESTED_SERVICES; do
-  [ "$service" = gateway ] || [ -f "services/$service/service.go" ] || fail "未知业务服务：$service"
+  [ "$service" = gateway ] || [ "$service" = web ] || [ -f "services/$service/service.go" ] || fail "未知业务服务：$service"
 done
 for required in \
   compose.yaml \
@@ -73,6 +73,8 @@ for required in \
   go.mod \
   web/dist/index.html \
   web/dist/admin.html \
+  web/Dockerfile \
+  web/nginx/default.conf.template \
   scripts/source-fingerprint.sh \
   scripts/start-incremental.sh; do
   [ -f "$required" ] || fail "缺少 $required；请在完整工程中运行此脚本"
@@ -93,6 +95,39 @@ if [ ! -e .env ]; then
 else
   [ -f .env ] && [ -r .env ] || fail '.env必须是可读取的文件'
   printf '保留现有.env配置。\n'
+fi
+
+# Legacy GATEWAY_PORT named the storefront's public port. Preserve that address
+# when introducing a separate API port; never source/eval dotenv or alter secrets.
+if [ -z "${WEB_PORT:-}" ] && ! grep -Eq '^[[:space:]]*(export[[:space:]]+)?WEB_PORT[[:space:]]*=' .env; then
+  LEGACY_WEB_PORT=$(awk '
+    /^[[:space:]]*(export[[:space:]]+)?GATEWAY_PORT[[:space:]]*=/ {
+      value=$0
+      sub(/^[^=]*=[[:space:]]*/, "", value)
+      sub(/[[:space:]]*(#.*)?$/, "", value)
+      gsub(/^["\047]|["\047]$/, "", value)
+      if (value ~ /^[0-9]+$/ && value+0 > 0 && value+0 <= 65535) port=value
+    }
+    END { if (port != "") print port }
+  ' .env)
+  if [ -n "$LEGACY_WEB_PORT" ]; then
+    LEGACY_API_PORT=18080
+    [ "$LEGACY_WEB_PORT" != 18080 ] || LEGACY_API_PORT=18081
+    (
+      umask 077
+      mkdir -p "$PROJECT_DIR/.local/env-backups"
+    ) || fail '无法创建.env备份目录'
+    ENV_BACKUP=$(mktemp "$PROJECT_DIR/.local/env-backups/before-web-split.XXXXXX") || fail '无法备份旧.env'
+    ENV_MIGRATION=$(mktemp "$PROJECT_DIR/.env.web-split.XXXXXX") || fail '无法创建.env迁移文件'
+    cat .env >"$ENV_BACKUP" || fail '无法备份旧.env'
+    awk -v api_port="$LEGACY_API_PORT" -v web_port="$LEGACY_WEB_PORT" '
+      /^[[:space:]]*(export[[:space:]]+)?GATEWAY_PORT[[:space:]]*=/ { print "GATEWAY_PORT=" api_port; next }
+      { print }
+      END { print "\n# Frontend container: retain the original storefront port.\nWEB_PORT=" web_port }
+    ' .env >"$ENV_MIGRATION" || fail '无法迁移前端端口配置'
+    mv "$ENV_MIGRATION" .env || fail '无法保存前端端口配置'
+    printf '已拆分前端端口：商城%s，API%s；原.env备份：%s\n' "$LEGACY_WEB_PORT" "$LEGACY_API_PORT" "$ENV_BACKUP"
+  fi
 fi
 
 # Let Compose parse dotenv; never execute configuration as shell code.

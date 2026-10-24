@@ -38,11 +38,11 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 		return nil, err
 	}
 	if s.RPC != nil {
-		_, e := s.RPC.Call(
+		_, e := platform.NewClients(
+			s.RPC,
+		).Catalog.Get(
 			ctx,
-			constants.ServiceCatalog,
-			platform.Command{
-				Action: constants.ActionGet,
+			platform.Request{
 				ID:     platform.Text(c.Data, "sku_id"),
 				UserID: c.UserID,
 				Role:   c.Role,
@@ -117,11 +117,18 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
 	}
 	_, er = s.Paid(
 		ctx,
-		platform.Request{ID: e.AggregateID, UserID: e.UserID, Role: constants.RoleSystem},
+		platform.Request{
+			ID:     e.AggregateID,
+			UserID: e.UserID,
+			Role:   constants.RoleSystem,
+		},
 	)
 	return er
 }
 func (s *Service) Tick(ctx context.Context) error {
-	_, e := s.Expire(ctx, platform.Request{UserID: constants.RoleSystem, Role: constants.RoleSystem})
+	_, e := s.Expire(ctx, platform.Request{
+		UserID: constants.RoleSystem,
+		Role:   constants.RoleSystem,
+	})
 	return e
 }

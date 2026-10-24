@@ -2,7 +2,6 @@ package aftersale
 
 import (
 	"github.com/davveo/lumo/internal/constants"
-
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/aftersale/internal/repository"
 	"github.com/davveo/lumo/services/aftersale/internal/transport"

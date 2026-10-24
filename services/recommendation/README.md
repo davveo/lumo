@@ -4,14 +4,14 @@
 
 入口 `service.go` 只组装依赖；各层依次为：
 
-1. `internal/transport`：RPC命令入口和请求追踪。
+1. `internal/transport`：注册独立 RPC 业务方法并记录请求追踪，不包含业务分发。
 2. `internal/usecase`：权限、归属、输入校验、业务规则与跨服务RPC编排。
 3. `internal/repository`：唯一GORM访问层，本地事务、条件查询及Outbox持久化。
 4. `internal/domain`：本服务拥有的数据模型与索引键。
 
 所有调用逐层传递 `context.Context`，层Span为 `recommendation.transport.*` → `recommendation.usecase.*` → `recommendation.repository.*`，GORM回调再创建SQL Span。查询参数不展开到trace或日志。
 
-本服务只写自己的数据库schema。跨服务通过 `platform.Caller` 访问 gRPC，禁止直接读写对方业务表。网关验证会话后填入调用主体，服务再次检查用户资源归属与管理员角色。
+本服务只写自己的数据库schema。跨服务通过 `platform.NewClients` 提供的明确客户端方法访问独立 gRPC 方法，禁止直接读写对方业务表。网关验证会话后填入调用主体，服务再次检查用户资源归属与管理员角色。
 
 当前策略 `hybrid_content_v2` 是可解释的内容与用户偏好混合排序，不宣称已训练模型（`personalized_model:false`）。
 
@@ -26,3 +26,6 @@
 候选先读公开目录100项，再按最多4个偏好类目、4个品牌和3条搜索通过目录内部召回最多200项，去重后不超过300个候选。历史SKU元数据与父商品分最多两次 `catalog/batch_get` 读取，库存使用一次 `inventory/batch_get`，不逐SKU请求。启动排序复用传入的库存，仅补查新增候选，并内部返回 `stock_snapshot` 给网关生成启动快照；该字段不出现在公开推荐响应。
 
 辅助行为或召回部分失败会标记 `degraded:true`，以仍可靠的公开目录、画像或库存继续推荐；目录与整个权威库存查询失败不会凭空编造可售状态。缺失库存的候选会跳过，下架商品、相似场景自身商品和已购商品不会返回。目录召回可返回部分通道结果及 `degraded`，推荐服务沿用该标记。
+
+业务入口使用不含 `Action` 的 `platform.Request`；每项操作由独立公开方法实现权限、参数与业务校验。方法：`List`、`RankBootstrap`。运输层仅维护操作到方法的注册表，HTTP 兼容命令不会进入业务层。
+`List` 读取当前用户的权威行为与公开目录，`RankBootstrap` 验证系统身份后使用聚合快照；两者共享纯排序与候选整理算法，不通过 action 或操作模式切换业务入口。

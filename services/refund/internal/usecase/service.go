@@ -3,6 +3,8 @@ package usecase
 import (
 	"context"
 	"errors"
+	"os"
+
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/refund/internal/domain"
@@ -10,7 +12,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
-	"os"
 )
 
 type Service struct {
@@ -29,7 +30,7 @@ func own(c platform.Request, r domain.Refund) error {
 	return nil
 }
 func (s *Service) ConfirmDemo(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "refund.usecase."+constants.ActionConfirmDemo)
+	ctx, sp := platform.Start(ctx, "refund.usecase.confirm_demo")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -102,11 +103,10 @@ func (s *Service) ConfirmDemo(ctx context.Context, c platform.Request) (traceRes
 		return nil
 	})
 	return out, err
-
 }
 
 func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "refund.usecase."+constants.ActionCreate)
+	ctx, sp := platform.Start(ctx, "refund.usecase.create")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -115,11 +115,10 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 	}
 
 	return s.create(ctx, c)
-
 }
 
 func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "refund.usecase."+constants.ActionGet)
+	ctx, sp := platform.Start(ctx, "refund.usecase.get")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -138,11 +137,10 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 		return nil, err
 	}
 	return platform.Map(r), nil
-
 }
 
 func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "refund.usecase."+constants.ActionList)
+	ctx, sp := platform.Start(ctx, "refund.usecase.list")
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
@@ -155,7 +153,6 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 	}
 	rows, err := s.r.List(ctx, c.UserID, true)
 	return platform.Result{"items": rows}, err
-
 }
 
 func (s *Service) create(ctx context.Context, c platform.Request) (platform.Result, error) {
@@ -171,10 +168,8 @@ func (s *Service) create(ctx context.Context, c platform.Request) (platform.Resu
 	if c.ID == "" || amount <= 0 || pid == "" || oid == "" {
 		return nil, status.Error(codes.InvalidArgument, "refund ID, payment, order and positive amount required")
 	}
-	p, err := s.rpc.Call(
-		ctx,
-		constants.ServicePayment,
-		platform.Command{Action: constants.ActionGet, ID: pid, UserID: c.UserID, Role: constants.RoleSystem},
+	p, err := platform.NewClients(s.rpc).Payment.Get(
+		ctx, platform.Request{ID: pid, UserID: c.UserID, Role: constants.RoleSystem},
 	)
 	if err != nil {
 		return nil, err

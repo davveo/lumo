@@ -10,11 +10,10 @@ import (
 )
 
 func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "content.usecase."+constants.ActionList)
+	ctx, span := platform.Start(ctx, "content.usecase.list")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	kind := platform.Text(c.Data, "kind")
 	if kind == "" {
 		kind = constants.ContentKindFaq
@@ -22,11 +21,10 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 	return s.list(ctx, c, "", kind, constants.ContentStatusPublished)
 }
 func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "content.usecase."+constants.ActionGet)
+	ctx, span := platform.Start(ctx, "content.usecase.get")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	r, e := s.repo.Get(ctx, c.ID)
 	if e != nil {
 		return nil, e
@@ -37,11 +35,10 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 	return view(r), nil
 }
 func (s *Service) Upsert(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "content.usecase."+constants.ActionUpsert)
+	ctx, span := platform.Start(ctx, "content.usecase.upsert")
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
