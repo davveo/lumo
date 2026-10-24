@@ -19,9 +19,14 @@ type consulResolverBuilder struct {
 
 func (*consulResolverBuilder) Scheme() string { return consulResolverScheme }
 
-func (b *consulResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, _ resolver.BuildOptions) (resolver.Resolver, error) {
+func (b *consulResolverBuilder) Build(
+	target resolver.Target,
+	cc resolver.ClientConn,
+	_ resolver.BuildOptions,
+) (resolver.Resolver, error) {
 	name := target.Endpoint()
-	if name == "" || target.URL.Host != "" || target.URL.RawQuery != "" || target.URL.Fragment != "" || strings.ContainsAny(name, "/?#") {
+	if name == "" || target.URL.Host != "" || target.URL.RawQuery != "" || target.URL.Fragment != "" ||
+		strings.ContainsAny(name, "/?#") {
 		return nil, fmt.Errorf("invalid Consul service target")
 	}
 	ctx, cancel := context.WithCancel(context.Background())
@@ -76,7 +81,10 @@ func (r *consulResolver) run() {
 		}
 		key := strings.Join(addresses, "\n")
 		if !initialized || key != published {
-			state := resolver.State{Addresses: make([]resolver.Address, 0, len(addresses)), Endpoints: make([]resolver.Endpoint, 0, len(addresses))}
+			state := resolver.State{
+				Addresses: make([]resolver.Address, 0, len(addresses)),
+				Endpoints: make([]resolver.Endpoint, 0, len(addresses)),
+			}
 			for _, address := range addresses {
 				entry := resolver.Address{Addr: address}
 				state.Addresses = append(state.Addresses, entry)

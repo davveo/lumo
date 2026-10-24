@@ -60,13 +60,24 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			if it.Quantity < 1 || it.Quantity > 10 {
 				return nil, bad("quantity must be 1..10")
 			}
-			if _, e := call(ctx, s.rpc, constants.ServiceCatalog, child(c, constants.ActionGet, it.SKU, nil)); e != nil {
+			if _, e := call(
+				ctx,
+				s.rpc,
+				constants.ServiceCatalog,
+				child(c, constants.ActionGet, it.SKU, nil),
+			); e != nil {
 				return nil, e
 			}
 		}
 		for _, it := range input.Items {
 			id := stable(c.UserID, "cart", it.SKU)
-			seed := record(id, c.UserID, constants.CartRecordKindCartItem, constants.CartStatusActive, map[string]any{"sku_id": it.SKU, "quantity": it.Quantity})
+			seed := record(
+				id,
+				c.UserID,
+				constants.CartRecordKindCartItem,
+				constants.CartStatusActive,
+				map[string]any{"sku_id": it.SKU, "quantity": it.Quantity},
+			)
 			if _, e := s.repo.Mutate(ctx, seed, true, func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
 				d := payload(*v)
 				if it.Quantity > platform.Int(d, "quantity") {
@@ -98,7 +109,13 @@ func (s *Service) add(ctx context.Context, c platform.Command) (platform.Result,
 	}
 	available := platform.Int(stock, "available")
 	id := stable(c.UserID, "cart", sku)
-	seed := record(id, c.UserID, constants.CartRecordKindCartItem, constants.CartStatusActive, map[string]any{"sku_id": sku, "quantity": 0})
+	seed := record(
+		id,
+		c.UserID,
+		constants.CartRecordKindCartItem,
+		constants.CartStatusActive,
+		map[string]any{"sku_id": sku, "quantity": 0},
+	)
 	v, e := s.repo.Mutate(ctx, seed, true, func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
 		d := payload(*v)
 		next := platform.Int(d, "quantity") + quantity
@@ -126,7 +143,12 @@ func (s *Service) event(ctx context.Context, e platform.Event) (traceErr error) 
 	defer sp.End()
 	platform.TraceRequest(ctx, e)
 	defer func() { platform.TraceResponse(ctx, nil, traceErr) }()
-	o, err := call(ctx, s.rpc, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: e.AggregateID, UserID: e.UserID, Role: constants.RoleSystem})
+	o, err := call(
+		ctx,
+		s.rpc,
+		constants.ServiceOrder,
+		platform.Command{Action: constants.ActionGet, ID: e.AggregateID, UserID: e.UserID, Role: constants.RoleSystem},
+	)
 	if err != nil {
 		return err
 	}

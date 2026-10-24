@@ -1,0 +1,9 @@
+# Generated enum values are emitted and verified by their Go generator.
+web/dist/constants.js
+# Images and demo datasets are generated assets, not editable UI source.
+web/dist/assets/
+internal/democatalog/assortment.json
+api/mall/v1/*.pb.go
+
+# HTML text whitespace is observable. Keep text nodes while editing tag attributes.
+web/dist/*.html

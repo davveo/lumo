@@ -34,7 +34,10 @@ func setup(t *testing.T, caller platform.Caller) (*gorm.DB, platform.Module) {
 	return db, m
 }
 func invoke(m platform.Module, action, id, user, role string, data map[string]any) (platform.Result, error) {
-	return m.Handle(context.Background(), platform.Command{Action: action, ID: id, UserID: user, Role: role, Data: data})
+	return m.Handle(
+		context.Background(),
+		platform.Command{Action: action, ID: id, UserID: user, Role: role, Data: data},
+	)
 }
 func must(t *testing.T, m platform.Module, action, id, user, role string, data map[string]any) platform.Result {
 	t.Helper()
@@ -51,7 +54,10 @@ type fakeCaller struct{ calls int }
 
 func (f *fakeCaller) Call(ctx context.Context, target string, c platform.Command) (platform.Result, error) {
 	if target == "pricing" {
-		return platform.Result{"activity_id": "flash-demo", "items": []map[string]any{{"sku_id": "sku-headphones", "quantity": 1}}}, nil
+		return platform.Result{
+			"activity_id": "flash-demo",
+			"items":       []map[string]any{{"sku_id": "sku-headphones", "quantity": 1}},
+		}, nil
 	}
 	if target == "checkout" {
 		f.calls++
@@ -62,7 +68,13 @@ func (f *fakeCaller) Call(ctx context.Context, target string, c platform.Command
 func TestFlashQueueAndDuplicateDelivery(t *testing.T) {
 	f := &fakeCaller{}
 	_, m := setup(t, f)
-	c := platform.Command{Action: "request", UserID: "demo", Role: "user", IdempotencyKey: "click-1", Data: map[string]any{"quote_id": "quote-1", "address": map[string]any{"city": "demo"}}}
+	c := platform.Command{
+		Action:         "request",
+		UserID:         "demo",
+		Role:           "user",
+		IdempotencyKey: "click-1",
+		Data:           map[string]any{"quote_id": "quote-1", "address": map[string]any{"city": "demo"}},
+	}
 	v, e := m.Handle(context.Background(), c)
 	if e != nil {
 		t.Fatal(e)

@@ -15,10 +15,27 @@ import (
 // that verified snapshot to the internal ranker rather than fetching the same
 // lists again inside the recommendation service. The HTTP whitelist never
 // exposes rank_bootstrap or accepts a nested principal/profile from the client.
-func (g *gateway) bootstrapRecommendations(ctx context.Context, fragments []platform.Result, principal platform.Command, stockVariants ...bool) []platform.Result {
-	query := readRequest{Key: "bootstrap-recommendation", Service: constants.ServiceRecommendation, Action: constants.ActionList, Command: readCommand{Data: map[string]any{"scene": constants.RecommendationSceneHome, "limit": 20}}, auth: principal.UserID != ""}
+func (g *gateway) bootstrapRecommendations(
+	ctx context.Context,
+	fragments []platform.Result,
+	principal platform.Command,
+	stockVariants ...bool,
+) []platform.Result {
+	query := readRequest{
+		Key:     "bootstrap-recommendation",
+		Service: constants.ServiceRecommendation,
+		Action:  constants.ActionList,
+		Command: readCommand{Data: map[string]any{"scene": constants.RecommendationSceneHome, "limit": 20}},
+		auth:    principal.UserID != "",
+	}
 	signals := map[string]any{}
-	for _, kind := range []string{constants.RecommendationSignalFavorite, constants.RecommendationSignalHistory, constants.RecommendationSignalCompare, constants.RecommendationSignalSearch, constants.RecommendationSignalOrders} {
+	for _, kind := range []string{
+		constants.RecommendationSignalFavorite,
+		constants.RecommendationSignalHistory,
+		constants.RecommendationSignalCompare,
+		constants.RecommendationSignalSearch,
+		constants.RecommendationSignalOrders,
+	} {
 		signals[kind] = []platform.Result{}
 	}
 	catalog, stocks := []platform.Result{}, []platform.Result{}
@@ -69,7 +86,10 @@ func (g *gateway) bootstrapRecommendations(ctx context.Context, fragments []plat
 		}
 	}
 	if !catalogOK {
-		return append(fragments, readResult(query, nil, status.Error(codes.Unavailable, "recommendation catalog unavailable")))
+		return append(
+			fragments,
+			readResult(query, nil, status.Error(codes.Unavailable, "recommendation catalog unavailable")),
+		)
 	}
 	// Ranking only needs each candidate's default SKU. Avoid forwarding every
 	// option/cart stock row when a catalog has many independently stocked variants.
@@ -85,7 +105,14 @@ func (g *gateway) bootstrapRecommendations(ctx context.Context, fragments []plat
 	}
 	data, err := g.readRPC(ctx, constants.ServiceRecommendation, platform.Command{
 		Action: constants.ActionRankBootstrap, UserID: principal.UserID, Role: constants.RoleSystem,
-		Data: map[string]any{"scene": constants.RecommendationSceneHome, "limit": 20, "catalog_items": catalog, "inventory_items": rankingStocks, "signals": signals, "signal_errors": signalErrors},
+		Data: map[string]any{
+			"scene":           constants.RecommendationSceneHome,
+			"limit":           20,
+			"catalog_items":   catalog,
+			"inventory_items": rankingStocks,
+			"signals":         signals,
+			"signal_errors":   signalErrors,
+		},
 	})
 	if err != nil {
 		return append(fragments, readResult(query, nil, err))
@@ -133,7 +160,12 @@ func (g *gateway) bootstrapRecommendations(ctx context.Context, fragments []plat
 	sort.Strings(ids)
 	reads := []readRequest{}
 	for i, id := range ids {
-		item := readRequest{Key: fmt.Sprintf("bootstrap-recommendation-stock-%d", i), Service: constants.ServiceInventory, Action: constants.ActionGet, Command: readCommand{ID: id, Data: map[string]any{}}}
+		item := readRequest{
+			Key:     fmt.Sprintf("bootstrap-recommendation-stock-%d", i),
+			Service: constants.ServiceInventory,
+			Action:  constants.ActionGet,
+			Command: readCommand{ID: id, Data: map[string]any{}},
+		}
 		if stock, exists := available[id]; exists {
 			fragments = append(fragments, readResult(item, stock, nil))
 		} else {

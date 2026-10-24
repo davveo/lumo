@@ -28,7 +28,16 @@ func FromEnv() (domain.ObjectStore, error) {
 	if endpoint == "" {
 		return nil, nil
 	}
-	return New(Config{Endpoint: endpoint, PublicEndpoint: os.Getenv("MINIO_PUBLIC_ENDPOINT"), AccessKey: os.Getenv("MINIO_ACCESS_KEY"), SecretKey: os.Getenv("MINIO_SECRET_KEY"), Bucket: os.Getenv("MINIO_BUCKET"), UseSSL: os.Getenv("MINIO_USE_SSL") == "true"})
+	return New(
+		Config{
+			Endpoint:       endpoint,
+			PublicEndpoint: os.Getenv("MINIO_PUBLIC_ENDPOINT"),
+			AccessKey:      os.Getenv("MINIO_ACCESS_KEY"),
+			SecretKey:      os.Getenv("MINIO_SECRET_KEY"),
+			Bucket:         os.Getenv("MINIO_BUCKET"),
+			UseSSL:         os.Getenv("MINIO_USE_SSL") == "true",
+		},
+	)
 }
 func endpoint(raw string, secure bool) (string, bool, error) {
 	raw = strings.TrimSpace(raw)
@@ -37,7 +46,9 @@ func endpoint(raw string, secure bool) (string, bool, error) {
 	}
 	if strings.Contains(raw, "://") {
 		u, e := url.Parse(raw)
-		if e != nil || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "" && u.Path != "/" || u.Scheme != "http" && u.Scheme != "https" {
+		if e != nil || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" ||
+			u.Path != "" && u.Path != "/" ||
+			u.Scheme != "http" && u.Scheme != "https" {
 			return "", false, fmt.Errorf("invalid MinIO endpoint")
 		}
 		return u.Host, u.Scheme == "https", nil
@@ -63,7 +74,12 @@ func New(c Config) (*MinIO, error) {
 		return nil, e
 	}
 	opts := func(ssl bool) *minio.Options {
-		return &minio.Options{Creds: credentials.NewStaticV4(c.AccessKey, c.SecretKey, ""), Secure: ssl, Region: "us-east-1", BucketLookup: minio.BucketLookupPath}
+		return &minio.Options{
+			Creds:        credentials.NewStaticV4(c.AccessKey, c.SecretKey, ""),
+			Secure:       ssl,
+			Region:       "us-east-1",
+			BucketLookup: minio.BucketLookupPath,
+		}
 	}
 	ic, e := minio.New(internal, opts(internalSSL))
 	if e != nil {
@@ -97,11 +113,23 @@ func (s *MinIO) EnsureBucket(ctx context.Context) error {
 	}
 	return nil
 }
-func (s *MinIO) SignUpload(ctx context.Context, key, contentType string, size int64, ttl time.Duration) (domain.SignedUpload, error) {
+
+func (s *MinIO) SignUpload(
+	ctx context.Context,
+	key, contentType string,
+	size int64,
+	ttl time.Duration,
+) (domain.SignedUpload, error) {
 	ctx, span := platform.Start(ctx, "media.storage.SignUpload")
 	defer span.End()
 	p := minio.NewPostPolicy()
-	for _, e := range []error{p.SetBucket(s.bucket), p.SetKey(key), p.SetExpires(time.Now().UTC().Add(ttl)), p.SetContentType(contentType), p.SetContentLengthRange(size, size)} {
+	for _, e := range []error{
+		p.SetBucket(s.bucket),
+		p.SetKey(key),
+		p.SetExpires(time.Now().UTC().Add(ttl)),
+		p.SetContentType(contentType),
+		p.SetContentLengthRange(size, size),
+	} {
 		if e != nil {
 			return domain.SignedUpload{}, e
 		}
@@ -124,7 +152,13 @@ func (s *MinIO) Stat(ctx context.Context, key string) (domain.StoredObject, erro
 func (s *MinIO) SignDownload(ctx context.Context, key string, ttl time.Duration) (string, error) {
 	ctx, span := platform.Start(ctx, "media.storage.SignDownload")
 	defer span.End()
-	u, e := s.public.PresignedGetObject(ctx, s.bucket, key, ttl, url.Values{"response-content-disposition": []string{"attachment"}})
+	u, e := s.public.PresignedGetObject(
+		ctx,
+		s.bucket,
+		key,
+		ttl,
+		url.Values{"response-content-disposition": []string{"attachment"}},
+	)
 	if e != nil {
 		return "", e
 	}

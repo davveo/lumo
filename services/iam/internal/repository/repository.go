@@ -68,7 +68,11 @@ func (r *Repository) Rotate(ctx context.Context, oldDigest string, next *domain.
 	defer s.End()
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var old domain.Session
-		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&old, "digest = ?", oldDigest).Error; err != nil {
+		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(
+			&old,
+			"digest = ?",
+			oldDigest,
+		).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return status.Error(codes.Unauthenticated, "invalid session")
 			}

@@ -9,7 +9,11 @@ import (
 )
 
 func main() {
-	source := flag.String("source", "../../services/content/internal/usecase/category_navigation.json", "backend category navigation JSON")
+	source := flag.String(
+		"source",
+		"../../services/content/internal/usecase/category_navigation.json",
+		"backend category navigation JSON",
+	)
 	output := flag.String("out", "assortment.json", "output fixture")
 	flag.Parse()
 	raw, err := os.ReadFile(*source)

@@ -30,7 +30,11 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	switch c.Action {
 	case constants.ActionQuote:
-		return platform.Result{"shipping_cents": int64(0), "provider": constants.LogisticsProviderDemoFreeShipping, "serviceable": true}, nil
+		return platform.Result{
+			"shipping_cents": int64(0),
+			"provider":       constants.LogisticsProviderDemoFreeShipping,
+			"serviceable":    true,
+		}, nil
 	case constants.ActionList:
 		if err := platform.RequireUser(c); err != nil {
 			return nil, err
@@ -46,7 +50,10 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 			return nil, status.Error(codes.PermissionDenied, "internal fulfillment permission required")
 		}
 		if os.Getenv("DEMO_MODE") != "true" {
-			return nil, status.Error(codes.FailedPrecondition, "real carrier adapter not configured; local carrier requires DEMO_MODE=true")
+			return nil, status.Error(
+				codes.FailedPrecondition,
+				"real carrier adapter not configured; local carrier requires DEMO_MODE=true",
+			)
 		}
 		orderID := platform.Text(c.Data, "order_id")
 		if orderID == "" {
@@ -60,7 +67,15 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 			kind = constants.FulfillmentKindOrder
 		}
 		hash := sha256.Sum256([]byte(c.ID))
-		r := &domain.Record{ID: c.ID, OrderID: orderID, UserID: c.UserID, Kind: kind, Status: constants.LogisticsStatusCreated, TrackingID: fmt.Sprintf("DEMO-%X", hash[:10]), Provider: constants.LogisticsProviderLocalDemoCarrier}
+		r := &domain.Record{
+			ID:         c.ID,
+			OrderID:    orderID,
+			UserID:     c.UserID,
+			Kind:       kind,
+			Status:     constants.LogisticsStatusCreated,
+			TrackingID: fmt.Sprintf("DEMO-%X", hash[:10]),
+			Provider:   constants.LogisticsProviderLocalDemoCarrier,
+		}
 		if err := s.Repo.Create(ctx, r); err != nil {
 			return nil, err
 		}
@@ -82,8 +97,27 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 		if err != nil {
 			return nil, err
 		}
-		event := &platform.Event{ID: r.ID + ":delivered", Type: constants.EventDeliveryConfirmed, AggregateID: r.ID, UserID: r.UserID, Data: map[string]any{"order_id": r.OrderID, "fulfillment_id": r.ID, "tracking_id": r.TrackingID, "kind": r.Kind, "provider": r.Provider}}
-		r, err = s.Repo.Transition(ctx, r.ID, []string{constants.LogisticsStatusCreated, constants.LogisticsStatusInTransit}, constants.LogisticsStatusDelivered, nil, event)
+		event := &platform.Event{
+			ID:          r.ID + ":delivered",
+			Type:        constants.EventDeliveryConfirmed,
+			AggregateID: r.ID,
+			UserID:      r.UserID,
+			Data: map[string]any{
+				"order_id":       r.OrderID,
+				"fulfillment_id": r.ID,
+				"tracking_id":    r.TrackingID,
+				"kind":           r.Kind,
+				"provider":       r.Provider,
+			},
+		}
+		r, err = s.Repo.Transition(
+			ctx,
+			r.ID,
+			[]string{constants.LogisticsStatusCreated, constants.LogisticsStatusInTransit},
+			constants.LogisticsStatusDelivered,
+			nil,
+			event,
+		)
 		return platform.Map(r), err
 	}
 	return nil, status.Error(codes.Unimplemented, "unsupported logistics action")

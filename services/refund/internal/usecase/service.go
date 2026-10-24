@@ -97,8 +97,25 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 			if err = tx.Save(&current); err != nil {
 				return err
 			}
-			data := map[string]any{"refund_id": current.ID, "order_id": current.OrderID, "payment_id": current.PaymentID, "amount_cents": current.Amount, "payable_cents": cap.Paid, "refunded_total_cents": cap.Completed, "aftersale_id": current.AftersaleID, "reason": current.Reason}
-			if err = tx.Emit(platform.Event{ID: "RefundSucceeded-" + current.ID, Type: constants.EventRefundSucceeded, AggregateID: current.ID, UserID: current.UserID, Data: data}); err != nil {
+			data := map[string]any{
+				"refund_id":            current.ID,
+				"order_id":             current.OrderID,
+				"payment_id":           current.PaymentID,
+				"amount_cents":         current.Amount,
+				"payable_cents":        cap.Paid,
+				"refunded_total_cents": cap.Completed,
+				"aftersale_id":         current.AftersaleID,
+				"reason":               current.Reason,
+			}
+			if err = tx.Emit(
+				platform.Event{
+					ID:          "RefundSucceeded-" + current.ID,
+					Type:        constants.EventRefundSucceeded,
+					AggregateID: current.ID,
+					UserID:      current.UserID,
+					Data:        data,
+				},
+			); err != nil {
 				return err
 			}
 			out = platform.Map(current)
@@ -123,7 +140,11 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 	if c.ID == "" || amount <= 0 || pid == "" || oid == "" {
 		return nil, status.Error(codes.InvalidArgument, "refund ID, payment, order and positive amount required")
 	}
-	p, err := s.rpc.Call(ctx, constants.ServicePayment, platform.Command{Action: constants.ActionGet, ID: pid, UserID: c.UserID, Role: constants.RoleSystem})
+	p, err := s.rpc.Call(
+		ctx,
+		constants.ServicePayment,
+		platform.Command{Action: constants.ActionGet, ID: pid, UserID: c.UserID, Role: constants.RoleSystem},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +175,17 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 			return status.Error(codes.FailedPrecondition, "refund amount exceeds unrefunded capture")
 		}
 		cap.Reserved += amount
-		r := domain.Refund{ID: c.ID, OrderID: oid, PaymentID: pid, UserID: platform.Text(p, "user_id"), AftersaleID: platform.Text(c.Data, "aftersale_id"), Amount: amount, Status: constants.RefundStatusProcessing, Reason: platform.Text(c.Data, "reason"), Provider: constants.RefundProviderDemo}
+		r := domain.Refund{
+			ID:          c.ID,
+			OrderID:     oid,
+			PaymentID:   pid,
+			UserID:      platform.Text(p, "user_id"),
+			AftersaleID: platform.Text(c.Data, "aftersale_id"),
+			Amount:      amount,
+			Status:      constants.RefundStatusProcessing,
+			Reason:      platform.Text(c.Data, "reason"),
+			Provider:    constants.RefundProviderDemo,
+		}
 		if err = tx.SaveCap(&cap); err != nil {
 			return err
 		}

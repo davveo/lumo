@@ -21,7 +21,11 @@ func (h *Handler) Handle(ctx context.Context, c platform.Command) (traceResult p
 		c.Data = map[string]any{}
 	}
 	switch c.Action {
-	case constants.ActionQuote, constants.ActionCreate, constants.ActionGet, constants.ActionList, constants.ActionDeliver:
+	case constants.ActionQuote,
+		constants.ActionCreate,
+		constants.ActionGet,
+		constants.ActionList,
+		constants.ActionDeliver:
 		return h.Service.Handle(ctx, c)
 	default:
 		return nil, status.Error(codes.Unimplemented, "unsupported logistics action")

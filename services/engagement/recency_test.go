@@ -29,7 +29,15 @@ func TestRepeatedBrowsingPreservesCreationButRefreshesRecentHistory(t *testing.T
 		t.Fatal(err)
 	}
 	put := func(id string) platform.Result {
-		row, e := m.Handle(ctx, platform.Command{Action: "put", UserID: "reader", Role: "user", Data: map[string]any{"kind": "history", "sku_id": id}})
+		row, e := m.Handle(
+			ctx,
+			platform.Command{
+				Action: "put",
+				UserID: "reader",
+				Role:   "user",
+				Data:   map[string]any{"kind": "history", "sku_id": id},
+			},
+		)
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -37,7 +45,9 @@ func TestRepeatedBrowsingPreservesCreationButRefreshesRecentHistory(t *testing.T
 	}
 	old := put("old-interest")
 	aged := time.Now().Add(-100 * 24 * time.Hour).Truncate(time.Second)
-	if err = db.Table("engagement_records").Where("id = ?", old["id"]).Updates(map[string]any{"created_at": aged, "updated_at": aged}).Error; err != nil {
+	if err = db.Table("engagement_records").Where("id = ?", old["id"]).Updates(
+		map[string]any{"created_at": aged, "updated_at": aged},
+	).Error; err != nil {
 		t.Fatal(err)
 	}
 	put("new-interest")
@@ -50,14 +60,23 @@ func TestRepeatedBrowsingPreservesCreationButRefreshesRecentHistory(t *testing.T
 	if e != nil || !created.Equal(aged) {
 		t.Fatal("repeat browsing overwrote original creation time", retouched)
 	}
-	list, err := m.Handle(ctx, platform.Command{Action: "list", UserID: "reader", Role: "user", Data: map[string]any{"kind": "history", "limit": 1}})
+	list, err := m.Handle(
+		ctx,
+		platform.Command{
+			Action: "list",
+			UserID: "reader",
+			Role:   "user",
+			Data:   map[string]any{"kind": "history", "limit": 1},
+		},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var result struct {
 		Items []map[string]any `json:"items"`
 	}
-	if err = platform.Decode(list, &result); err != nil || len(result.Items) != 1 || platform.Text(result.Items[0], "sku_id") != "old-interest" {
+	if err = platform.Decode(list, &result); err != nil || len(result.Items) != 1 ||
+		platform.Text(result.Items[0], "sku_id") != "old-interest" {
 		t.Fatal("recent-history limit dropped a repeated old interest", list, err)
 	}
 }

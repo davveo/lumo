@@ -19,13 +19,57 @@ func (r *Repository) Migrate(ctx context.Context) error {
 }
 func (r *Repository) Seed(ctx context.Context) error {
 	for _, a := range []domain.Activity{
-		{ID: "addon-coffee", Kind: constants.CampaignKindAddon, Threshold: 100000, Discount: 6000, Quota: 50, Active: true},
+		{
+			ID:        "addon-coffee",
+			Kind:      constants.CampaignKindAddon,
+			Threshold: 100000,
+			Discount:  6000,
+			Quota:     50,
+			Active:    true,
+		},
 		{ID: "flash-demo", Kind: constants.CampaignKindFlash, Quota: 20, Active: true},
 		{ID: "group-demo", Kind: constants.CampaignKindGroup, Quota: 30, Active: true},
-		{ID: "reduction-demo", Kind: constants.CampaignKindReduction, Name: "满额立减", Description: "商品满300元减30元，每人限享一次", Threshold: 30000, Discount: 3000, MinQuantity: 1, Quota: 1000, Active: true},
-		{ID: "discount-demo", Kind: constants.CampaignKindDiscount, Name: "折扣特惠", Description: "商品享9折，每人限享一次", PayRateBPS: 9000, MinQuantity: 1, Quota: 1000, Active: true},
-		{ID: "quantity-discount-demo", Kind: constants.CampaignKindQuantityDiscount, Name: "多件优惠", Description: "商品满2件享8.5折，每人限享一次", PayRateBPS: 8500, MinQuantity: 2, Quota: 1000, Active: true},
-		{ID: "direct-demo", Kind: constants.CampaignKindDirect, Name: "限量直降", Description: "每单立减20元，商品金额须大于20元，每人限享一次", Discount: 2000, MinQuantity: 1, Quota: 1000, Active: true},
+		{
+			ID:          "reduction-demo",
+			Kind:        constants.CampaignKindReduction,
+			Name:        "满额立减",
+			Description: "商品满300元减30元，每人限享一次",
+			Threshold:   30000,
+			Discount:    3000,
+			MinQuantity: 1,
+			Quota:       1000,
+			Active:      true,
+		},
+		{
+			ID:          "discount-demo",
+			Kind:        constants.CampaignKindDiscount,
+			Name:        "折扣特惠",
+			Description: "商品享9折，每人限享一次",
+			PayRateBPS:  9000,
+			MinQuantity: 1,
+			Quota:       1000,
+			Active:      true,
+		},
+		{
+			ID:          "quantity-discount-demo",
+			Kind:        constants.CampaignKindQuantityDiscount,
+			Name:        "多件优惠",
+			Description: "商品满2件享8.5折，每人限享一次",
+			PayRateBPS:  8500,
+			MinQuantity: 2,
+			Quota:       1000,
+			Active:      true,
+		},
+		{
+			ID:          "direct-demo",
+			Kind:        constants.CampaignKindDirect,
+			Name:        "限量直降",
+			Description: "每单立减20元，商品金额须大于20元，每人限享一次",
+			Discount:    2000,
+			MinQuantity: 1,
+			Quota:       1000,
+			Active:      true,
+		},
 	} {
 		if e := r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&a).Error; e != nil {
 			return e
@@ -64,12 +108,26 @@ func (r *Repository) Evaluate(ctx context.Context, c platform.Command) (platform
 		return nil, status.Error(codes.NotFound, "activity not found")
 	}
 	discount, reason, policy := evaluate(a, sub, quantity)
-	return platform.Result{"discount_cents": discount, "eligible": reason == "", "reason": reason, "activity_id": id, "kind": a.Kind, "name": a.Name, "threshold_cents": a.Threshold, "min_quantity": a.MinQuantity, "pay_rate_bps": a.PayRateBPS, "policy_version": policy, "refund_policy": "full_bundle_return"}, nil
+	return platform.Result{
+		"discount_cents":  discount,
+		"eligible":        reason == "",
+		"reason":          reason,
+		"activity_id":     id,
+		"kind":            a.Kind,
+		"name":            a.Name,
+		"threshold_cents": a.Threshold,
+		"min_quantity":    a.MinQuantity,
+		"pay_rate_bps":    a.PayRateBPS,
+		"policy_version":  policy,
+		"refund_policy":   "full_bundle_return",
+	}, nil
 }
 
 func evaluate(a domain.Activity, subtotal, quantity int64) (int64, string, string) {
 	policy := "v1"
-	modern := a.Kind == constants.CampaignKindReduction || a.Kind == constants.CampaignKindDiscount || a.Kind == constants.CampaignKindQuantityDiscount || a.Kind == constants.CampaignKindDirect
+	modern := a.Kind == constants.CampaignKindReduction || a.Kind == constants.CampaignKindDiscount ||
+		a.Kind == constants.CampaignKindQuantityDiscount ||
+		a.Kind == constants.CampaignKindDirect
 	if modern {
 		policy = "v2"
 	}
@@ -143,24 +201,44 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.
 			return er
 		}
 		var a domain.Activity
-		if er = tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&a, "id = ?", id).Error; er != nil {
+		if er = tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(
+			&a,
+			"id = ?",
+			id,
+		).Error; er != nil {
 			return status.Error(codes.NotFound, "activity not found")
 		}
 		if !a.Active {
 			return status.Error(codes.FailedPrecondition, "inactive activity")
 		}
 		var count int64
-		if er = tx.WithContext(ctx).Model(&domain.Hold{}).Where("user_id = ? AND activity_id = ? AND state IN ?", c.UserID, id, []string{constants.CampaignHoldStateReserved, constants.CampaignHoldStateConfirmed}).Count(&count).Error; er != nil {
+		if er = tx.WithContext(ctx).Model(&domain.Hold{}).Where(
+			"user_id = ? AND activity_id = ? AND state IN ?",
+			c.UserID,
+			id,
+			[]string{constants.CampaignHoldStateReserved, constants.CampaignHoldStateConfirmed},
+		).Count(
+			&count,
+		).Error; er != nil {
 			return er
 		}
 		if count > 0 {
 			return status.Error(codes.ResourceExhausted, "one purchase per user per activity")
 		}
-		h = domain.Hold{ID: c.ID, UserID: c.UserID, ActivityID: id, Quantity: qty, State: constants.CampaignHoldStateReserved}
+		h = domain.Hold{
+			ID:         c.ID,
+			UserID:     c.UserID,
+			ActivityID: id,
+			Quantity:   qty,
+			State:      constants.CampaignHoldStateReserved,
+		}
 		if er = tx.WithContext(ctx).Create(&h).Error; er != nil {
 			return er
 		}
-		u := tx.WithContext(ctx).Model(&a).Where("quota - held - used >= ?", qty).Update("held", gorm.Expr("held + ?", qty))
+		u := tx.WithContext(ctx).
+			Model(&a).
+			Where("quota - held - used >= ?", qty).
+			Update("held", gorm.Expr("held + ?", qty))
 		if u.Error != nil {
 			return u.Error
 		}
@@ -204,7 +282,13 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 		if target == constants.CampaignHoldStateConfirmed {
 			u["used"] = gorm.Expr("used + ?", h.Quantity)
 		}
-		if er = tx.WithContext(ctx).Model(&domain.Activity{}).Where("id = ? AND held >= ?", h.ActivityID, h.Quantity).Updates(u).Error; er != nil {
+		if er = tx.WithContext(ctx).Model(&domain.Activity{}).Where(
+			"id = ? AND held >= ?",
+			h.ActivityID,
+			h.Quantity,
+		).Updates(
+			u,
+		).Error; er != nil {
 			return er
 		}
 		if er = tx.WithContext(ctx).Model(&h).Update("state", target).Error; er != nil {

@@ -21,7 +21,11 @@ type recommendationBatchCaller struct {
 	stockError error
 }
 
-func (r *recommendationBatchCaller) Call(_ context.Context, service string, c platform.Command) (platform.Result, error) {
+func (r *recommendationBatchCaller) Call(
+	_ context.Context,
+	service string,
+	c platform.Command,
+) (platform.Result, error) {
 	if service == "catalog" && c.Action == "list" {
 		return platform.Result{"items": r.products}, nil
 	}
@@ -82,7 +86,15 @@ func recommendationBatchSetup(t *testing.T) (platform.Module, *recommendationBat
 
 func TestRecommendationsUseOneStockBatchAndPreservePurchasedExclusion(t *testing.T) {
 	m, rpc := recommendationBatchSetup(t)
-	result, err := m.Handle(context.Background(), platform.Command{Action: "list", UserID: "buyer", Role: "user", Data: map[string]any{"order_id": "order-one", "limit": 3}})
+	result, err := m.Handle(
+		context.Background(),
+		platform.Command{
+			Action: "list",
+			UserID: "buyer",
+			Role:   "user",
+			Data:   map[string]any{"order_id": "order-one", "limit": 3},
+		},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,15 +124,21 @@ func TestRecommendationsUseOneStockBatchAndPreservePurchasedExclusion(t *testing
 func TestRecommendationBatchPreservesFailureAndEarlyLimitSemantics(t *testing.T) {
 	m, rpc := recommendationBatchSetup(t)
 	rpc.missing = "sku-099"
-	if _, err := m.Handle(context.Background(), platform.Command{Action: "list", Data: map[string]any{"limit": 1}}); err != nil {
+	if _, err := m.Handle(
+		context.Background(),
+		platform.Command{Action: "list", Data: map[string]any{"limit": 1}},
+	); err != nil {
 		t.Fatalf("unneeded later missing row failed first recommendation: %v", err)
 	}
 	rpc.missing = "sku-000"
-	if result, err := m.Handle(context.Background(), platform.Command{Action: "list"}); err != nil || result["degraded"] != true {
+	if result, err := m.Handle(context.Background(), platform.Command{Action: "list"}); err != nil ||
+		result["degraded"] != true {
 		t.Fatalf("missing candidate must be skipped with degradation: result=%v error=%v", result, err)
 	}
 	rpc.missing, rpc.stockError = "", status.Error(codes.Unavailable, "inventory offline")
-	if _, err := m.Handle(context.Background(), platform.Command{Action: "list"}); status.Code(err) != codes.Unavailable {
+	if _, err := m.Handle(context.Background(), platform.Command{Action: "list"}); status.Code(
+		err,
+	) != codes.Unavailable {
 		t.Fatalf("batch outage swallowed: %v", err)
 	}
 	rpc.stockError, rpc.products, rpc.stockCalls = nil, nil, 0

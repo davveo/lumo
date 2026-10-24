@@ -34,7 +34,10 @@ func setup(t *testing.T, caller platform.Caller) (*gorm.DB, platform.Module) {
 	return db, m
 }
 func invoke(m platform.Module, action, id, user, role string, data map[string]any) (platform.Result, error) {
-	return m.Handle(context.Background(), platform.Command{Action: action, ID: id, UserID: user, Role: role, Data: data})
+	return m.Handle(
+		context.Background(),
+		platform.Command{Action: action, ID: id, UserID: user, Role: role, Data: data},
+	)
 }
 func must(t *testing.T, m platform.Module, action, id, user, role string, data map[string]any) platform.Result {
 	t.Helper()
@@ -49,24 +52,62 @@ var _ = fmt.Sprintf
 
 func TestActivityQuotaAndEligibility(t *testing.T) {
 	_, m := setup(t, nil)
-	v := must(t, m, "evaluate", "", "demo", "user", map[string]any{"subtotal_cents": 99999, "addon_sku_id": "sku-coffee"})
+	v := must(
+		t,
+		m,
+		"evaluate",
+		"",
+		"demo",
+		"user",
+		map[string]any{"subtotal_cents": 99999, "addon_sku_id": "sku-coffee"},
+	)
 	if v["eligible"] != false {
 		t.Fatal(v)
 	}
-	v = must(t, m, "evaluate", "", "demo", "user", map[string]any{"subtotal_cents": 100000, "addon_sku_id": "sku-coffee"})
+	v = must(
+		t,
+		m,
+		"evaluate",
+		"",
+		"demo",
+		"user",
+		map[string]any{"subtotal_cents": 100000, "addon_sku_id": "sku-coffee"},
+	)
 	if platform.Int(v, "discount_cents") != 6000 {
 		t.Fatal(v)
 	}
 	for i := 0; i < 20; i++ {
-		must(t, m, "reserve", fmt.Sprintf("o%d", i), fmt.Sprintf("u%d", i), "system", map[string]any{"activity_id": "flash-demo", "quantity": 1})
+		must(
+			t,
+			m,
+			"reserve",
+			fmt.Sprintf("o%d", i),
+			fmt.Sprintf("u%d", i),
+			"system",
+			map[string]any{"activity_id": "flash-demo", "quantity": 1},
+		)
 	}
-	if _, e := invoke(m, "reserve", "overflow", "another", "system", map[string]any{"activity_id": "flash-demo", "quantity": 1}); e == nil {
+	if _, e := invoke(
+		m,
+		"reserve",
+		"overflow",
+		"another",
+		"system",
+		map[string]any{"activity_id": "flash-demo", "quantity": 1},
+	); e == nil {
 		t.Fatal("quota overflow")
 	}
 	must(t, m, "cancel", "o0", "u0", "system", nil)
 	must(t, m, "reserve", "retry", "u0", "system", map[string]any{"activity_id": "flash-demo", "quantity": 1})
 	must(t, m, "confirm", "retry", "u0", "system", nil)
-	if _, e := invoke(m, "reserve", "same-user", "u0", "system", map[string]any{"activity_id": "flash-demo", "quantity": 1}); e == nil {
+	if _, e := invoke(
+		m,
+		"reserve",
+		"same-user",
+		"u0",
+		"system",
+		map[string]any{"activity_id": "flash-demo", "quantity": 1},
+	); e == nil {
 		t.Fatal("limit bypass")
 	}
 }

@@ -47,7 +47,9 @@ func OpenDB(ctx context.Context, driver, dsn string) (*gorm.DB, error) {
 	if err = sqlDB.PingContext(ctx); err != nil {
 		return nil, fmt.Errorf("database ping: %w", err)
 	}
-	if err = db.Use(&SQLTracing{System: driver, Namespace: db.WithContext(ctx).Migrator().CurrentDatabase()}); err != nil {
+	if err = db.Use(
+		&SQLTracing{System: driver, Namespace: db.WithContext(ctx).Migrator().CurrentDatabase()},
+	); err != nil {
 		return nil, err
 	}
 	return db, nil
@@ -92,7 +94,19 @@ func (p *SQLTracing) before(op string) func(*gorm.DB) {
 		if table == "" {
 			table = "database"
 		}
-		ctx, span := otel.Tracer("lumo/gorm").Start(parent, "SQL "+op+" "+table, trace.WithSpanKind(trace.SpanKindClient), trace.WithAttributes(attribute.String("db.system.name", p.System), attribute.String("db.namespace", p.Namespace), attribute.String("db.operation.name", op), attribute.String("db.collection.name", table), attribute.String("code.layer", "database")))
+		ctx, span := otel.Tracer("lumo/gorm").
+			Start(
+				parent,
+				"SQL "+op+" "+table,
+				trace.WithSpanKind(trace.SpanKindClient),
+				trace.WithAttributes(
+					attribute.String("db.system.name", p.System),
+					attribute.String("db.namespace", p.Namespace),
+					attribute.String("db.operation.name", op),
+					attribute.String("db.collection.name", table),
+					attribute.String("code.layer", "database"),
+				),
+			)
 		tx.InstanceSet("lumo:query-span", querySpan{span: span, parent: parent})
 		tx.Statement.Context = ctx
 	}
@@ -103,7 +117,10 @@ func (p *SQLTracing) after(tx *gorm.DB) {
 		return
 	}
 	q := v.(querySpan)
-	q.span.SetAttributes(attribute.String("db.query.text", SQLTemplate(tx.Statement.SQL.String())), attribute.Int64("db.response.returned_rows", tx.RowsAffected))
+	q.span.SetAttributes(
+		attribute.String("db.query.text", SQLTemplate(tx.Statement.SQL.String())),
+		attribute.Int64("db.response.returned_rows", tx.RowsAffected),
+	)
 	if tx.Error != nil && !errors.Is(tx.Error, gorm.ErrRecordNotFound) {
 		q.span.SetStatus(codes.Error, "database operation failed")
 		q.span.SetAttributes(attribute.String("error.type", fmt.Sprintf("%T", tx.Error)))
@@ -140,8 +157,16 @@ func (p *SQLTracing) Initialize(db *gorm.DB) error {
 		}, func(n string, f func(*gorm.DB)) error {
 			return db.Callback().Delete().After("gorm:delete").Register(n, f)
 		}},
-		{"raw", func(n string, f func(*gorm.DB)) error { return db.Callback().Raw().Before("gorm:raw").Register(n, f) }, func(n string, f func(*gorm.DB)) error { return db.Callback().Raw().After("gorm:raw").Register(n, f) }},
-		{"row", func(n string, f func(*gorm.DB)) error { return db.Callback().Row().Before("gorm:row").Register(n, f) }, func(n string, f func(*gorm.DB)) error { return db.Callback().Row().After("gorm:row").Register(n, f) }},
+		{
+			"raw",
+			func(n string, f func(*gorm.DB)) error { return db.Callback().Raw().Before("gorm:raw").Register(n, f) },
+			func(n string, f func(*gorm.DB)) error { return db.Callback().Raw().After("gorm:raw").Register(n, f) },
+		},
+		{
+			"row",
+			func(n string, f func(*gorm.DB)) error { return db.Callback().Row().Before("gorm:row").Register(n, f) },
+			func(n string, f func(*gorm.DB)) error { return db.Callback().Row().After("gorm:row").Register(n, f) },
+		},
 	}
 	for _, r := range registrations {
 		op := strings.ToUpper(r.name)

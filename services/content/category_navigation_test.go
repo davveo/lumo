@@ -51,8 +51,14 @@ func categoryFixture() map[string]any {
 	return map[string]any{"version": 1, "groups": []any{map[string]any{
 		"id": "configured", "category": "配置品类", "label": "运营配置", "title": "配置品类", "icon": "bag", "enabled": true,
 		"shortcuts": []any{map[string]any{"label": "全部配置品类", "query": ""}},
-		"rows":      []any{map[string]any{"title": "测试分组", "query": "", "items": []any{map[string]any{"label": "搜索词", "query": "", "featured": true}}}},
-		"brands":    []any{map[string]any{"label": "运营品牌", "brand": "KnownBrand"}},
+		"rows": []any{
+			map[string]any{
+				"title": "测试分组",
+				"query": "",
+				"items": []any{map[string]any{"label": "搜索词", "query": "", "featured": true}},
+			},
+		},
+		"brands": []any{map[string]any{"label": "运营品牌", "brand": "KnownBrand"}},
 	}}}
 }
 
@@ -74,7 +80,16 @@ func categoryJSON(t *testing.T, value any) string {
 	return string(raw)
 }
 func categorySave(module platform.Module, id, kind, body, user, role string) (platform.Result, error) {
-	return module.Handle(context.Background(), platform.Command{Action: "upsert", ID: id, UserID: user, Role: role, Data: map[string]any{"kind": kind, "title": "商城分类导航", "body": body}})
+	return module.Handle(
+		context.Background(),
+		platform.Command{
+			Action: "upsert",
+			ID:     id,
+			UserID: user,
+			Role:   role,
+			Data:   map[string]any{"kind": kind, "title": "商城分类导航", "body": body},
+		},
+	)
 }
 
 func TestCategoryNavigationInitializesOutsideDemoAndPersistsAdministratorConfiguration(t *testing.T) {
@@ -99,13 +114,21 @@ func TestCategoryNavigationInitializesOutsideDemoAndPersistsAdministratorConfigu
 	}
 	fixture := categoryFixture()
 	categoryGroup(fixture)["enabled"] = false
-	saved, err := categorySave(module, "storefront-categories", "storefront", categoryJSON(t, fixture), "admin", "admin")
+	saved, err := categorySave(
+		module,
+		"storefront-categories",
+		"storefront",
+		categoryJSON(t, fixture),
+		"admin",
+		"admin",
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	savedBody := platform.Text(saved, "body")
 	parsed := categoryBody(t, saved)
-	if categoryRow(parsed)["query"] != "测试分组" || categoryItem(parsed)["query"] != "搜索词" || categoryGroup(parsed)["enabled"] != false {
+	if categoryRow(parsed)["query"] != "测试分组" || categoryItem(parsed)["query"] != "搜索词" ||
+		categoryGroup(parsed)["enabled"] != false {
 		t.Fatalf("normalization or visibility lost: %v", parsed)
 	}
 	if platform.Text(saved, "created_at") != platform.Text(initial, "created_at") {
@@ -174,7 +197,10 @@ func TestCategoryNavigationValidatesShapeBoundsAndUniqueness(t *testing.T) {
 		}},
 		{"reserved-category", func(c map[string]any) { categoryGroup(c)["category"] = "全部好物" }},
 		{"invalid-icon", func(c map[string]any) { categoryGroup(c)["icon"] = "<svg onload=alert(1)>" }},
-		{"disabled-invalid-icon", func(c map[string]any) { categoryGroup(c)["enabled"] = false; categoryGroup(c)["icon"] = "bad" }},
+		{
+			"disabled-invalid-icon",
+			func(c map[string]any) { categoryGroup(c)["enabled"] = false; categoryGroup(c)["icon"] = "bad" },
+		},
 		{"invalid-enabled", func(c map[string]any) { categoryGroup(c)["enabled"] = "false" }},
 		{"null-enabled", func(c map[string]any) { categoryGroup(c)["enabled"] = nil }},
 		{"invalid-featured", func(c map[string]any) { categoryItem(c)["featured"] = "false" }},
@@ -191,10 +217,16 @@ func TestCategoryNavigationValidatesShapeBoundsAndUniqueness(t *testing.T) {
 			categoryRow(c)["items"] = append(categoryRow(c)["items"].([]any), categoryItem(categoryFixture()))
 		}},
 		{"duplicate-shortcut", func(c map[string]any) {
-			categoryGroup(c)["shortcuts"] = []any{map[string]any{"label": "重复", "query": "a"}, map[string]any{"label": "重复", "query": "b"}}
+			categoryGroup(c)["shortcuts"] = []any{
+				map[string]any{"label": "重复", "query": "a"},
+				map[string]any{"label": "重复", "query": "b"},
+			}
 		}},
 		{"duplicate-brand", func(c map[string]any) {
-			categoryGroup(c)["brands"] = []any{map[string]any{"label": "一", "brand": "same"}, map[string]any{"label": "二", "brand": "same"}}
+			categoryGroup(c)["brands"] = []any{
+				map[string]any{"label": "一", "brand": "same"},
+				map[string]any{"label": "二", "brand": "same"},
+			}
 		}},
 		{"too-many-groups", func(c map[string]any) {
 			groups := []any{}
@@ -274,14 +306,27 @@ func TestCategoryNavigationValidatesShapeBoundsAndUniqueness(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			fixture := categoryFixture()
 			test.mutate(fixture)
-			_, err := categorySave(module, "storefront-categories", "storefront", categoryJSON(t, fixture), "admin", "admin")
+			_, err := categorySave(
+				module,
+				"storefront-categories",
+				"storefront",
+				categoryJSON(t, fixture),
+				"admin",
+				"admin",
+			)
 			if status.Code(err) != codes.InvalidArgument {
 				t.Fatalf("invalid category config accepted: %v", err)
 			}
 		})
 	}
-	for _, body := range []string{"{", `{"version":1,"groups":[]} {}`, strings.Repeat(" ", 256<<10) + `{"version":1,"groups":[]}`} {
-		if _, err := categorySave(module, "storefront-categories", "storefront", body, "admin", "admin"); status.Code(err) != codes.InvalidArgument {
+	for _, body := range []string{
+		"{",
+		`{"version":1,"groups":[]} {}`,
+		strings.Repeat(" ", 256<<10) + `{"version":1,"groups":[]}`,
+	} {
+		if _, err := categorySave(module, "storefront-categories", "storefront", body, "admin", "admin"); status.Code(
+			err,
+		) != codes.InvalidArgument {
 			t.Fatalf("invalid/oversized document accepted: %v", err)
 		}
 	}
@@ -300,7 +345,14 @@ func TestCategoryNavigationAllowsExplicitEmptyConfigurationAndMissingOptionalFla
 			delete(group, "shortcuts")
 			delete(categoryItem(fixture), "featured")
 		}
-		result, err := categorySave(module, "storefront-categories", "storefront", categoryJSON(t, fixture), "admin", "admin")
+		result, err := categorySave(
+			module,
+			"storefront-categories",
+			"storefront",
+			categoryJSON(t, fixture),
+			"admin",
+			"admin",
+		)
 		if err != nil {
 			t.Fatal(err)
 		}

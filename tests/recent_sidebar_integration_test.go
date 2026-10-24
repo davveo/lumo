@@ -17,13 +17,17 @@ func TestHTTPRecentSidebarFillsSixDistinctProductsFromOwnedBehavior(t *testing.T
 	defer server.Close()
 	h := &httpShop{t: t, server: server, client: server.Client(), coverage: map[string]int{}}
 	login := func(name, password string) string {
-		return platform.Text(h.call("", "iam", "login", "", "", map[string]any{"username": name, "password": password}), "token")
+		return platform.Text(
+			h.call("", "iam", "login", "", "", map[string]any{"username": name, "password": password}),
+			"token",
+		)
 	}
 	buyer, admin := login("demo", "Lumo@2026"), login("admin", "Admin@2026")
 	assertSix := func(result platform.Result) []map[string]any {
 		t.Helper()
 		items, stocks := mapItems(result), mapItems(platform.Result{"items": result["inventory_items"]})
-		if len(items) != 6 || platform.Int(result, "count") != 6 || platform.Int(result, "limit") != 6 || len(stocks) != 6 {
+		if len(items) != 6 || platform.Int(result, "count") != 6 || platform.Int(result, "limit") != 6 ||
+			len(stocks) != 6 {
 			t.Fatalf("rail did not return six complete real products and stocks: %v", result)
 		}
 		available := map[string]int64{}
@@ -33,7 +37,8 @@ func TestHTTPRecentSidebarFillsSixDistinctProductsFromOwnedBehavior(t *testing.T
 		seen := map[string]bool{}
 		for _, item := range items {
 			id := platform.Text(item, "id")
-			if id == "" || seen[id] || platform.Text(item, "name") == "" || platform.Int(item, "price_cents") <= 0 || available[id] <= 0 {
+			if id == "" || seen[id] || platform.Text(item, "name") == "" || platform.Int(item, "price_cents") <= 0 ||
+				available[id] <= 0 {
 				t.Fatalf("duplicate, incomplete or unsellable rail product: %v", item)
 			}
 			seen[id] = true
@@ -78,7 +83,12 @@ func TestHTTPRecentSidebarFillsSixDistinctProductsFromOwnedBehavior(t *testing.T
 				}
 			}
 			if !found {
-				t.Fatalf("%d history items were not retained before recommendation fill: missing=%s rows=%v", n, ids[i], items)
+				t.Fatalf(
+					"%d history items were not retained before recommendation fill: missing=%s rows=%v",
+					n,
+					ids[i],
+					items,
+				)
 			}
 		}
 		counted.expectCount(t, "engagement", "list", 4)

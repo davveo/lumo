@@ -31,11 +31,23 @@ func InitTelemetry(ctx context.Context, service, endpoint string) (func(context.
 	}
 	instanceID := telemetryInstanceID(service)
 	opts := []sdktrace.TracerProviderOption{
-		sdktrace.WithResource(resource.NewWithAttributes("", attribute.String("service.name", service), attribute.String("service.instance.id", instanceID), attribute.String("service.version", "0.1.0"), attribute.String("deployment.environment.name", os.Getenv("APP_ENV")))),
+		sdktrace.WithResource(
+			resource.NewWithAttributes(
+				"",
+				attribute.String("service.name", service),
+				attribute.String("service.instance.id", instanceID),
+				attribute.String("service.version", "0.1.0"),
+				attribute.String("deployment.environment.name", os.Getenv("APP_ENV")),
+			),
+		),
 		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(ratio))),
 	}
 	if endpoint != "" {
-		exporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpoint(strings.TrimPrefix(strings.TrimPrefix(endpoint, "http://"), "https://")), otlptracegrpc.WithInsecure())
+		exporter, err := otlptracegrpc.New(
+			ctx,
+			otlptracegrpc.WithEndpoint(strings.TrimPrefix(strings.TrimPrefix(endpoint, "http://"), "https://")),
+			otlptracegrpc.WithInsecure(),
+		)
 		if err != nil {
 			return nil, fmt.Errorf("create OTLP exporter: %w", err)
 		}
@@ -44,7 +56,10 @@ func InitTelemetry(ctx context.Context, service, endpoint string) (func(context.
 	tp := sdktrace.NewTracerProvider(opts...)
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(propagation.TraceContext{})
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})).With("service", service, "instance_id", instanceID))
+	slog.SetDefault(
+		slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})).
+			With("service", service, "instance_id", instanceID),
+	)
 	return tp.Shutdown, nil
 }
 
@@ -84,7 +99,8 @@ func Start(ctx context.Context, name string) (context.Context, trace.Span) {
 			break
 		}
 	}
-	return otel.Tracer("github.com/davveo/lumo").Start(ctx, name, trace.WithAttributes(attribute.String("code.layer", layer)))
+	return otel.Tracer("github.com/davveo/lumo").
+		Start(ctx, name, trace.WithAttributes(attribute.String("code.layer", layer)))
 }
 
 // Log associates a structured log with the active span without logging payloads.

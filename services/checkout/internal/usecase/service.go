@@ -26,10 +26,24 @@ type Service struct {
 
 func New(r *repository.Repository, rpc platform.Caller) *Service { return &Service{r, rpc} }
 func (s *Service) Topics() []string {
-	return []string{constants.EventOrderPaymentAccepted, constants.EventOrderClosed, constants.EventGroupFormed, constants.EventGroupFailed}
+	return []string{
+		constants.EventOrderPaymentAccepted,
+		constants.EventOrderClosed,
+		constants.EventGroupFormed,
+		constants.EventGroupFailed,
+	}
 }
-func (s *Service) call(ctx context.Context, target, action, id, user string, data map[string]any) (platform.Result, error) {
-	return s.rpc.Call(ctx, target, platform.Command{Action: action, ID: id, UserID: user, Role: constants.RoleSystem, Data: data})
+
+func (s *Service) call(
+	ctx context.Context,
+	target, action, id, user string,
+	data map[string]any,
+) (platform.Result, error) {
+	return s.rpc.Call(
+		ctx,
+		target,
+		platform.Command{Action: action, ID: id, UserID: user, Role: constants.RoleSystem, Data: data},
+	)
 }
 func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, sp := platform.Start(ctx, "checkout.usecase."+c.Action)
@@ -80,7 +94,8 @@ func (s *Service) submit(ctx context.Context, c platform.Command) (platform.Resu
 	id := "ord_" + key[:32]
 	old, err := s.r.Get(ctx, id)
 	if err == nil {
-		if old.QuoteID != platform.Text(c.Data, "quote_id") || (old.RequestHash != "" && old.RequestHash != requestHash) {
+		if old.QuoteID != platform.Text(c.Data, "quote_id") ||
+			(old.RequestHash != "" && old.RequestHash != requestHash) {
 			return nil, status.Error(codes.AlreadyExists, "idempotency key reused with a different quote")
 		}
 		return s.run(ctx, id, c.UserID, constants.CheckoutModeCreate)
@@ -88,7 +103,16 @@ func (s *Service) submit(ctx context.Context, c platform.Command) (platform.Resu
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
-	q, err := s.rpc.Call(ctx, constants.ServicePricing, platform.Command{Action: constants.ActionGet, ID: platform.Text(c.Data, "quote_id"), UserID: c.UserID, Role: c.Role})
+	q, err := s.rpc.Call(
+		ctx,
+		constants.ServicePricing,
+		platform.Command{
+			Action: constants.ActionGet,
+			ID:     platform.Text(c.Data, "quote_id"),
+			UserID: c.UserID,
+			Role:   c.Role,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +141,16 @@ func (s *Service) submit(ctx context.Context, c platform.Command) (platform.Resu
 		}
 	}
 	sort.Strings(ids)
-	catalog, err := s.rpc.Call(ctx, constants.ServiceCatalog, platform.Command{Action: constants.ActionBatchGet, UserID: c.UserID, Role: c.Role, Data: map[string]any{"ids": ids}})
+	catalog, err := s.rpc.Call(
+		ctx,
+		constants.ServiceCatalog,
+		platform.Command{
+			Action: constants.ActionBatchGet,
+			UserID: c.UserID,
+			Role:   c.Role,
+			Data:   map[string]any{"ids": ids},
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -148,12 +181,27 @@ func (s *Service) submit(ctx context.Context, c platform.Command) (platform.Resu
 		if mainSubtotal == 0 {
 			mainSubtotal = platform.Int(q, "subtotal_cents")
 		}
-		current, e := s.rpc.Call(ctx, constants.ServiceCampaign, platform.Command{Action: constants.ActionEvaluate, UserID: c.UserID, Role: c.Role, Data: map[string]any{"subtotal_cents": mainSubtotal, "quantity": quantity, "addon_sku_id": q["addon_sku_id"], "activity_id": q["activity_id"]}})
+		current, e := s.rpc.Call(
+			ctx,
+			constants.ServiceCampaign,
+			platform.Command{
+				Action: constants.ActionEvaluate,
+				UserID: c.UserID,
+				Role:   c.Role,
+				Data: map[string]any{
+					"subtotal_cents": mainSubtotal,
+					"quantity":       quantity,
+					"addon_sku_id":   q["addon_sku_id"],
+					"activity_id":    q["activity_id"],
+				},
+			},
+		)
 		if e != nil {
 			return nil, e
 		}
 		eligible, _ := current["eligible"].(bool)
-		if !eligible || platform.Int(current, "discount_cents") != platform.Int(q, "campaign_discount_cents") || platform.Text(current, "policy_version") != platform.Text(q, "campaign_policy_version") {
+		if !eligible || platform.Int(current, "discount_cents") != platform.Int(q, "campaign_discount_cents") ||
+			platform.Text(current, "policy_version") != platform.Text(q, "campaign_policy_version") {
 			return nil, status.Error(codes.FailedPrecondition, "campaign changed; requote required")
 		}
 	}
@@ -170,7 +218,11 @@ func (s *Service) submit(ctx context.Context, c platform.Command) (platform.Resu
 	}
 	address := c.Data["address"]
 	if aid := platform.Text(c.Data, "address_id"); aid != "" {
-		list, e := s.rpc.Call(ctx, constants.ServiceAddress, platform.Command{Action: constants.ActionList, UserID: c.UserID, Role: c.Role})
+		list, e := s.rpc.Call(
+			ctx,
+			constants.ServiceAddress,
+			platform.Command{Action: constants.ActionList, UserID: c.UserID, Role: c.Role},
+		)
 		if e != nil {
 			return nil, e
 		}
@@ -211,13 +263,33 @@ func (s *Service) submit(ctx context.Context, c platform.Command) (platform.Resu
 	ship.Recipient = strings.TrimSpace(ship.Recipient)
 	ship.Phone = strings.TrimSpace(ship.Phone)
 	ship.Address = strings.TrimSpace(ship.Address)
-	if ship.Recipient == "" || utf8.RuneCountInString(ship.Recipient) > 100 || len(ship.Phone) < 5 || len(ship.Phone) > 30 || ship.Address == "" || utf8.RuneCountInString(ship.Address) > 1000 || utf8.RuneCountInString(ship.City) > 100 || utf8.RuneCountInString(ship.Province) > 100 || utf8.RuneCountInString(ship.District) > 100 || len(ship.PostalCode) > 30 {
+	if ship.Recipient == "" || utf8.RuneCountInString(ship.Recipient) > 100 || len(ship.Phone) < 5 ||
+		len(ship.Phone) > 30 ||
+		ship.Address == "" ||
+		utf8.RuneCountInString(ship.Address) > 1000 ||
+		utf8.RuneCountInString(ship.City) > 100 ||
+		utf8.RuneCountInString(ship.Province) > 100 ||
+		utf8.RuneCountInString(ship.District) > 100 ||
+		len(ship.PostalCode) > 30 {
 		return nil, status.Error(codes.InvalidArgument, "valid recipient, phone and shipping address required")
 	}
 	address = ship
 	qb, _ := json.Marshal(q)
 	ab, _ := json.Marshal(address)
-	a := domain.Saga{ID: id, UserID: c.UserID, RequestKey: key, RequestHash: requestHash, QuoteID: platform.Text(q, "quote_id"), Quote: string(qb), Address: string(ab), Note: note, Source: source, State: constants.CheckoutStateCreating, Steps: "{}", LeaseUntil: time.Now().UTC()}
+	a := domain.Saga{
+		ID:          id,
+		UserID:      c.UserID,
+		RequestKey:  key,
+		RequestHash: requestHash,
+		QuoteID:     platform.Text(q, "quote_id"),
+		Quote:       string(qb),
+		Address:     string(ab),
+		Note:        note,
+		Source:      source,
+		State:       constants.CheckoutStateCreating,
+		Steps:       "{}",
+		LeaseUntil:  time.Now().UTC(),
+	}
 	if err = s.r.Ensure(ctx, &a); err != nil {
 		return nil, err
 	}
@@ -230,7 +302,13 @@ func (s *Service) run(ctx context.Context, id, user, mode string) (platform.Resu
 		return nil, err
 	}
 	if !ok {
-		return platform.Result{"order_id": id, "status": constants.CheckoutStateProcessing}, status.Error(codes.Aborted, "checkout workflow is already processing; query original order")
+		return platform.Result{
+			"order_id": id,
+			"status":   constants.CheckoutStateProcessing,
+		}, status.Error(
+			codes.Aborted,
+			"checkout workflow is already processing; query original order",
+		)
 	}
 	defer func() {
 		releaseCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
@@ -258,7 +336,14 @@ func (s *Service) run(ctx context.Context, id, user, mode string) (platform.Resu
 		}
 		var address any
 		_ = json.Unmarshal([]byte(a.Address), &address)
-		if _, err = s.call(ctx, constants.ServiceOrder, constants.ActionCreate, id, user, map[string]any{"quote": q, "address": address, "note": a.Note, "source": a.Source}); err != nil {
+		if _, err = s.call(
+			ctx,
+			constants.ServiceOrder,
+			constants.ActionCreate,
+			id,
+			user,
+			map[string]any{"quote": q, "address": address, "note": a.Note, "source": a.Source},
+		); err != nil {
 			return nil, err
 		}
 		resources := []string{constants.ServiceInventory}
@@ -298,7 +383,8 @@ func (s *Service) run(ctx context.Context, id, user, mode string) (platform.Resu
 				data["amount"] = q["points"]
 			}
 			reserved, e := s.call(ctx, resource, constants.ActionReserve, id, user, data)
-			if e == nil && resource == constants.ServiceCoupon && platform.Int(reserved, "discount_cents") != platform.Int(q, "coupon_discount_cents") {
+			if e == nil && resource == constants.ServiceCoupon &&
+				platform.Int(reserved, "discount_cents") != platform.Int(q, "coupon_discount_cents") {
 				e = status.Error(codes.FailedPrecondition, "coupon changed; requote required")
 			}
 			if e != nil {
@@ -343,7 +429,8 @@ func (s *Service) run(ctx context.Context, id, user, mode string) (platform.Resu
 			return nil, e
 		}
 		st := platform.Text(o, "status")
-		if st != constants.OrderStatusPaidConfirming && st != constants.OrderStatusPaidWaitGroup && st != constants.OrderStatusReadyToFulfill {
+		if st != constants.OrderStatusPaidConfirming && st != constants.OrderStatusPaidWaitGroup &&
+			st != constants.OrderStatusReadyToFulfill {
 			return nil, status.Error(codes.FailedPrecondition, "order has not accepted payment")
 		}
 		a.State = constants.CheckoutStatePaidConfirming
@@ -363,11 +450,19 @@ func (s *Service) run(ctx context.Context, id, user, mode string) (platform.Resu
 			}
 		}
 		if gid := platform.Text(q, "group_id"); gid != "" {
-			team, e := s.call(ctx, constants.ServiceGroup, constants.ActionPaid, id, user, map[string]any{"group_id": gid})
+			team, e := s.call(
+				ctx,
+				constants.ServiceGroup,
+				constants.ActionPaid,
+				id,
+				user,
+				map[string]any{"group_id": gid},
+			)
 			if e != nil {
 				return nil, e
 			}
-			if platform.Text(team, "status") == constants.GroupStatusFailed || platform.Text(team, "status") == constants.GroupStatusLegacyFailed {
+			if platform.Text(team, "status") == constants.GroupStatusFailed ||
+				platform.Text(team, "status") == constants.GroupStatusLegacyFailed {
 				if _, e = s.call(ctx, constants.ServiceOrder, constants.ActionGroupFailed, id, user, nil); e != nil {
 					return nil, e
 				}
@@ -381,7 +476,8 @@ func (s *Service) run(ctx context.Context, id, user, mode string) (platform.Resu
 				e = s.releaseResources(ctx, &a, q, steps, save)
 				return platform.Result{"order_id": id, "status": a.State}, e
 			}
-			formed := platform.Text(team, "status") == constants.GroupStatusFormed || platform.Text(team, "status") == constants.GroupStatusLegacyFormed
+			formed := platform.Text(team, "status") == constants.GroupStatusFormed ||
+				platform.Text(team, "status") == constants.GroupStatusLegacyFormed
 			if b, _ := team["formed"].(bool); b {
 				formed = true
 			}
@@ -419,8 +515,21 @@ func (s *Service) run(ctx context.Context, id, user, mode string) (platform.Resu
 	}
 	return nil, status.Error(codes.InvalidArgument, "invalid workflow mode")
 }
-func (s *Service) releaseResources(ctx context.Context, a *domain.Saga, q map[string]any, steps map[string]string, save func() error) error {
-	for _, resource := range []string{constants.ServicePoints, constants.ServiceCoupon, constants.ServiceGroup, constants.ServiceCampaign, constants.ServiceInventory} {
+
+func (s *Service) releaseResources(
+	ctx context.Context,
+	a *domain.Saga,
+	q map[string]any,
+	steps map[string]string,
+	save func() error,
+) error {
+	for _, resource := range []string{
+		constants.ServicePoints,
+		constants.ServiceCoupon,
+		constants.ServiceGroup,
+		constants.ServiceCampaign,
+		constants.ServiceInventory,
+	} {
 		st := steps[resource]
 		if st == "" || st == constants.CheckoutStepStatusCancelled {
 			continue
@@ -429,7 +538,14 @@ func (s *Service) releaseResources(ctx context.Context, a *domain.Saga, q map[st
 			continue
 		}
 		if resource == constants.ServiceInventory && st == constants.CheckoutStepStatusConfirmed {
-			if _, err := s.call(ctx, constants.ServiceFulfillment, constants.ActionCancel, a.ID, a.UserID, nil); err != nil {
+			if _, err := s.call(
+				ctx,
+				constants.ServiceFulfillment,
+				constants.ActionCancel,
+				a.ID,
+				a.UserID,
+				nil,
+			); err != nil {
 				return err
 			}
 		}
@@ -447,7 +563,11 @@ func (s *Service) releaseResources(ctx context.Context, a *domain.Saga, q map[st
 	return save()
 }
 func (s *Service) cancel(ctx context.Context, c platform.Command) (platform.Result, error) {
-	o, err := s.rpc.Call(ctx, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: c.ID, UserID: c.UserID, Role: c.Role})
+	o, err := s.rpc.Call(
+		ctx,
+		constants.ServiceOrder,
+		platform.Command{Action: constants.ActionGet, ID: c.ID, UserID: c.UserID, Role: c.Role},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -523,17 +643,38 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 				return err
 			}
 			if e.Type == constants.EventGroupFormed {
-				if _, err = s.call(ctx, constants.ServiceOrder, constants.ActionGroupFormed, id, a.UserID, nil); err != nil {
+				if _, err = s.call(
+					ctx,
+					constants.ServiceOrder,
+					constants.ActionGroupFormed,
+					id,
+					a.UserID,
+					nil,
+				); err != nil {
 					return err
 				}
 				if _, err = s.run(ctx, id, a.UserID, constants.CheckoutModePaid); err != nil {
 					return err
 				}
 			} else {
-				if _, err = s.call(ctx, constants.ServiceOrder, constants.ActionGroupFailed, id, a.UserID, nil); err != nil {
+				if _, err = s.call(
+					ctx,
+					constants.ServiceOrder,
+					constants.ActionGroupFailed,
+					id,
+					a.UserID,
+					nil,
+				); err != nil {
 					return err
 				}
-				if _, err = s.call(ctx, constants.ServicePayment, constants.ActionClose, id, a.UserID, nil); err != nil {
+				if _, err = s.call(
+					ctx,
+					constants.ServicePayment,
+					constants.ActionClose,
+					id,
+					a.UserID,
+					nil,
+				); err != nil {
 					return err
 				}
 				if _, err = s.run(ctx, id, a.UserID, constants.CheckoutModeRelease); err != nil {
@@ -558,7 +699,8 @@ func (s *Service) Tick(ctx context.Context) error {
 		case constants.CheckoutStatePaidConfirming, constants.CheckoutStatePaidWaitGroup:
 			mode = constants.CheckoutModePaid
 		}
-		if _, e := s.run(ctx, a.ID, a.UserID, mode); e != nil && status.Code(e) != codes.Aborted && status.Code(e) != codes.FailedPrecondition {
+		if _, e := s.run(ctx, a.ID, a.UserID, mode); e != nil && status.Code(e) != codes.Aborted &&
+			status.Code(e) != codes.FailedPrecondition {
 			return e
 		}
 	}

@@ -57,7 +57,16 @@ func TestReturnRefundQuantityClaimAndMoneyEvent(t *testing.T) {
 	inspections := 0
 	rpc := &fakeCaller{fn: func(ctx context.Context, svc string, c platform.Command) (platform.Result, error) {
 		if svc == "order" {
-			return platform.Result{"id": c.ID, "user_id": "demo", "status": "SHIPPED", "payment_id": "payment1", "payable_cents": int64(18000), "items": []map[string]any{{"sku_id": "sku-headphones", "quantity": 2, "unit_price_cents": 10000}}}, nil
+			return platform.Result{
+				"id":            c.ID,
+				"user_id":       "demo",
+				"status":        "SHIPPED",
+				"payment_id":    "payment1",
+				"payable_cents": int64(18000),
+				"items": []map[string]any{
+					{"sku_id": "sku-headphones", "quantity": 2, "unit_price_cents": 10000},
+				},
+			}, nil
 		}
 		if c.Role != "system" {
 			t.Fatal("internal write principal required")
@@ -75,7 +84,17 @@ func TestReturnRefundQuantityClaimAndMoneyEvent(t *testing.T) {
 	}}
 	m, _ := setup(t, rpc)
 	ctx := context.Background()
-	create := platform.Command{Action: "create", UserID: "demo", IdempotencyKey: "one", Data: map[string]any{"order_id": "o1", "type": "return", "reason": "quality issue", "lines": []map[string]any{{"sku_id": "sku-headphones", "quantity": 1}}}}
+	create := platform.Command{
+		Action:         "create",
+		UserID:         "demo",
+		IdempotencyKey: "one",
+		Data: map[string]any{
+			"order_id": "o1",
+			"type":     "return",
+			"reason":   "quality issue",
+			"lines":    []map[string]any{{"sku_id": "sku-headphones", "quantity": 1}},
+		},
+	}
 	row := run(t, m, create)
 	id := platform.Text(row, "id")
 	if platform.Int(row, "amount_cents") != 9000 {
@@ -86,7 +105,12 @@ func TestReturnRefundQuantityClaimAndMoneyEvent(t *testing.T) {
 	}
 	extra := create
 	extra.IdempotencyKey = "too-many"
-	extra.Data = map[string]any{"order_id": "o1", "type": "return", "reason": "another", "lines": []map[string]any{{"sku_id": "sku-headphones", "quantity": 2}}}
+	extra.Data = map[string]any{
+		"order_id": "o1",
+		"type":     "return",
+		"reason":   "another",
+		"lines":    []map[string]any{{"sku_id": "sku-headphones", "quantity": 2}},
+	}
 	_, err := m.Handle(ctx, extra)
 	expectCode(t, err, codes.FailedPrecondition)
 	_, err = m.Handle(ctx, platform.Command{Action: "get", ID: id, UserID: "other"})
@@ -99,8 +123,18 @@ func TestReturnRefundQuantityClaimAndMoneyEvent(t *testing.T) {
 		t.Fatal("refund before return inspection")
 	}
 	run(t, m, platform.Command{Action: "approve", ID: id, UserID: "admin", Role: "admin"})
-	run(t, m, platform.Command{Action: "return", ID: id, UserID: "demo", Data: map[string]any{"tracking": "RETURN-DEMO"}})
-	inspect := platform.Command{Action: "inspect", ID: id, UserID: "admin", Role: "admin", Data: map[string]any{"condition": "damaged"}}
+	run(
+		t,
+		m,
+		platform.Command{Action: "return", ID: id, UserID: "demo", Data: map[string]any{"tracking": "RETURN-DEMO"}},
+	)
+	inspect := platform.Command{
+		Action: "inspect",
+		ID:     id,
+		UserID: "admin",
+		Role:   "admin",
+		Data:   map[string]any{"condition": "damaged"},
+	}
 	run(t, m, inspect)
 	run(t, m, inspect)
 	if inspections != 1 {
@@ -110,7 +144,12 @@ func TestReturnRefundQuantityClaimAndMoneyEvent(t *testing.T) {
 	if row["status"] != "REFUNDING" || refunds != 1 {
 		t.Fatal(row, refunds)
 	}
-	e := platform.Event{Type: "RefundSucceeded", UserID: "demo", AggregateID: platform.Text(row, "refund_id"), Data: map[string]any{"aftersale_id": id, "refund_id": platform.Text(row, "refund_id")}}
+	e := platform.Event{
+		Type:        "RefundSucceeded",
+		UserID:      "demo",
+		AggregateID: platform.Text(row, "refund_id"),
+		Data:        map[string]any{"aftersale_id": id, "refund_id": platform.Text(row, "refund_id")},
+	}
 	if err = m.OnEvent(ctx, e); err != nil {
 		t.Fatal(err)
 	}
@@ -130,22 +169,54 @@ func TestExchangeCreatesSeparateFulfillmentAndWaitsForDelivery(t *testing.T) {
 	calls := []string{}
 	rpc := &fakeCaller{fn: func(ctx context.Context, svc string, c platform.Command) (platform.Result, error) {
 		if svc == "order" {
-			return platform.Result{"id": "o2", "user_id": "demo", "status": "COMPLETED", "payment_id": "p2", "payable_cents": int64(10000), "items": []map[string]any{{"sku_id": "sku-watch", "quantity": 1, "unit_price_cents": 10000}}}, nil
+			return platform.Result{
+				"id":            "o2",
+				"user_id":       "demo",
+				"status":        "COMPLETED",
+				"payment_id":    "p2",
+				"payable_cents": int64(10000),
+				"items":         []map[string]any{{"sku_id": "sku-watch", "quantity": 1, "unit_price_cents": 10000}},
+			}, nil
 		}
 		calls = append(calls, svc+"."+c.Action)
 		return platform.Result{}, nil
 	}}
 	m, _ := setup(t, rpc)
-	row := run(t, m, platform.Command{Action: "create", UserID: "demo", IdempotencyKey: "exchange", Data: map[string]any{"order_id": "o2", "type": "exchange", "reason": "replace defective unit"}})
+	row := run(
+		t,
+		m,
+		platform.Command{
+			Action:         "create",
+			UserID:         "demo",
+			IdempotencyKey: "exchange",
+			Data:           map[string]any{"order_id": "o2", "type": "exchange", "reason": "replace defective unit"},
+		},
+	)
 	id := platform.Text(row, "id")
 	run(t, m, platform.Command{Action: "approve", ID: id, UserID: "admin", Role: "admin"})
 	run(t, m, platform.Command{Action: "return", ID: id, UserID: "demo", Data: map[string]any{"tracking": "R2"}})
-	run(t, m, platform.Command{Action: "inspect", ID: id, UserID: "admin", Role: "admin", Data: map[string]any{"condition": "unsellable"}})
+	run(
+		t,
+		m,
+		platform.Command{
+			Action: "inspect",
+			ID:     id,
+			UserID: "admin",
+			Role:   "admin",
+			Data:   map[string]any{"condition": "unsellable"},
+		},
+	)
 	row = run(t, m, platform.Command{Action: "exchange", ID: id, UserID: "demo"})
 	if row["status"] != "EXCHANGING" || platform.Int(row, "amount_cents") != 0 {
 		t.Fatal(row)
 	}
-	if err := m.OnEvent(context.Background(), platform.Event{Type: "DeliveryConfirmed", Data: map[string]any{"kind": "EXCHANGE", "fulfillment_id": platform.Text(row, "replacement_id")}}); err != nil {
+	if err := m.OnEvent(
+		context.Background(),
+		platform.Event{
+			Type: "DeliveryConfirmed",
+			Data: map[string]any{"kind": "EXCHANGE", "fulfillment_id": platform.Text(row, "replacement_id")},
+		},
+	); err != nil {
 		t.Fatal(err)
 	}
 	row = run(t, m, platform.Command{Action: "get", ID: id, UserID: "demo"})
@@ -163,13 +234,33 @@ func TestPartialUnshippedRefundIsRejectedWithoutSideEffects(t *testing.T) {
 	writes := 0
 	rpc := &fakeCaller{fn: func(ctx context.Context, svc string, c platform.Command) (platform.Result, error) {
 		if svc == "order" {
-			return platform.Result{"id": "partial-order", "user_id": "demo", "status": "READY_TO_FULFILL", "payment_id": "partial-payment", "payable_cents": int64(20000), "items": []map[string]any{{"sku_id": "sku-phone", "quantity": 2, "unit_price_cents": 10000}}}, nil
+			return platform.Result{
+				"id":            "partial-order",
+				"user_id":       "demo",
+				"status":        "READY_TO_FULFILL",
+				"payment_id":    "partial-payment",
+				"payable_cents": int64(20000),
+				"items":         []map[string]any{{"sku_id": "sku-phone", "quantity": 2, "unit_price_cents": 10000}},
+			}, nil
 		}
 		writes++
 		return platform.Result{}, nil
 	}}
 	m, db := setup(t, rpc)
-	_, err := m.Handle(context.Background(), platform.Command{Action: "create", UserID: "demo", IdempotencyKey: "partial-refund", Data: map[string]any{"order_id": "partial-order", "type": "refund", "reason": "cancel one only", "lines": []map[string]any{{"sku_id": "sku-phone", "quantity": 1}}}})
+	_, err := m.Handle(
+		context.Background(),
+		platform.Command{
+			Action:         "create",
+			UserID:         "demo",
+			IdempotencyKey: "partial-refund",
+			Data: map[string]any{
+				"order_id": "partial-order",
+				"type":     "refund",
+				"reason":   "cancel one only",
+				"lines":    []map[string]any{{"sku_id": "sku-phone", "quantity": 1}},
+			},
+		},
+	)
 	expectCode(t, err, codes.FailedPrecondition)
 	var count int64
 	if err = db.Model(&domain.Record{}).Count(&count).Error; err != nil || count != 0 || writes != 0 {
@@ -177,7 +268,16 @@ func TestPartialUnshippedRefundIsRejectedWithoutSideEffects(t *testing.T) {
 	}
 	// Existing applications accepted by earlier versions must also be stopped
 	// before they change state or send an order-wide warehouse cancellation.
-	legacy := domain.Record{ID: "legacy-partial", UserID: "demo", OrderID: "partial-order", PaymentID: "partial-payment", Type: "refund", Status: "APPROVED", LinesJSON: `[{"sku_id":"sku-phone","quantity":1}]`, AmountCents: 10000}
+	legacy := domain.Record{
+		ID:          "legacy-partial",
+		UserID:      "demo",
+		OrderID:     "partial-order",
+		PaymentID:   "partial-payment",
+		Type:        "refund",
+		Status:      "APPROVED",
+		LinesJSON:   `[{"sku_id":"sku-phone","quantity":1}]`,
+		AmountCents: 10000,
+	}
 	if err = db.Create(&legacy).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +288,16 @@ func TestPartialUnshippedRefundIsRejectedWithoutSideEffects(t *testing.T) {
 		t.Fatal("legacy request changed state before rejection", row, writes)
 	}
 	// Whole-order cancellation remains supported by the existing warehouse.
-	row = run(t, m, platform.Command{Action: "create", UserID: "demo", IdempotencyKey: "whole-refund", Data: map[string]any{"order_id": "whole-order", "type": "refund", "reason": "cancel whole order"}})
+	row = run(
+		t,
+		m,
+		platform.Command{
+			Action:         "create",
+			UserID:         "demo",
+			IdempotencyKey: "whole-refund",
+			Data:           map[string]any{"order_id": "whole-order", "type": "refund", "reason": "cancel whole order"},
+		},
+	)
 	id := platform.Text(row, "id")
 	run(t, m, platform.Command{Action: "approve", ID: id, UserID: "admin", Role: "admin"})
 	row = run(t, m, platform.Command{Action: "refund", ID: id, UserID: "demo"})

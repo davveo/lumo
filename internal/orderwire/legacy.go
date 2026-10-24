@@ -61,7 +61,12 @@ func ListResult(response *mallv1.ListOrdersResponse) map[string]any {
 }
 
 func PaymentResult(response *mallv1.AcceptPaymentResponse) map[string]any {
-	return map[string]any{"accepted": response.GetAccepted(), "order_id": response.GetOrderId(), "status": response.GetStatus(), "payment_id": response.GetPaymentId()}
+	return map[string]any{
+		"accepted":   response.GetAccepted(),
+		"order_id":   response.GetOrderId(),
+		"status":     response.GetStatus(),
+		"payment_id": response.GetPaymentId(),
+	}
 }
 
 func Actions() map[string]string {

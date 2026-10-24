@@ -17,10 +17,14 @@ import (
 type Repository struct{ DB *gorm.DB }
 
 func (r *Repository) Migrate(ctx context.Context) error {
-	return r.DB.WithContext(ctx).AutoMigrate(&domain.Account{}, &domain.Hold{}, &domain.Ledger{}, &domain.Reward{}, &domain.RefundProgress{})
+	return r.DB.WithContext(ctx).
+		AutoMigrate(&domain.Account{}, &domain.Hold{}, &domain.Ledger{}, &domain.Reward{}, &domain.RefundProgress{})
 }
 func (r *Repository) Seed(ctx context.Context) error {
-	return r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&domain.Account{UserID: "demo", Available: 5000}).Error
+	return r.DB.WithContext(ctx).
+		Clauses(clause.OnConflict{DoNothing: true}).
+		Create(&domain.Account{UserID: "demo", Available: 5000}).
+		Error
 }
 func account(ctx context.Context, tx *gorm.DB, user string) (domain.Account, error) {
 	v := domain.Account{UserID: user}
@@ -35,7 +39,8 @@ func (r *Repository) Get(ctx context.Context, c platform.Command) (platform.Resu
 	ctx, s := platform.Start(ctx, "repository.points.Get")
 	defer s.End()
 	var a domain.Account
-	e := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error { var er error; a, er = account(ctx, tx, c.UserID); return er })
+	e := r.DB.WithContext(ctx).
+		Transaction(func(tx *gorm.DB) error { var er error; a, er = account(ctx, tx, c.UserID); return er })
 	if e != nil {
 		return nil, e
 	}
@@ -77,14 +82,27 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.
 		if er = tx.WithContext(ctx).Create(&out).Error; er != nil {
 			return er
 		}
-		u := tx.WithContext(ctx).Model(&domain.Account{}).Where("user_id = ? AND available >= ? AND debt = 0", c.UserID, n).Updates(map[string]any{"available": gorm.Expr("available - ?", n), "frozen": gorm.Expr("frozen + ?", n)})
+		u := tx.WithContext(ctx).
+			Model(&domain.Account{}).
+			Where("user_id = ? AND available >= ? AND debt = 0", c.UserID, n).
+			Updates(map[string]any{"available": gorm.Expr("available - ?", n), "frozen": gorm.Expr("frozen + ?", n)})
 		if u.Error != nil {
 			return u.Error
 		}
 		if u.RowsAffected != 1 {
 			return status.Error(codes.ResourceExhausted, "insufficient points or outstanding debt")
 		}
-		return tx.WithContext(ctx).Create(&domain.Ledger{ID: c.ID + ":reserve", UserID: c.UserID, OrderID: c.ID, Amount: -n, Kind: constants.PointsLedgerKindFreeze}).Error
+		return tx.WithContext(ctx).
+			Create(
+				&domain.Ledger{
+					ID:      c.ID + ":reserve",
+					UserID:  c.UserID,
+					OrderID: c.ID,
+					Amount:  -n,
+					Kind:    constants.PointsLedgerKindFreeze,
+				},
+			).
+			Error
 	})
 	return platform.Map(out), e
 }
@@ -127,7 +145,10 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 		if target == constants.PointsHoldStateCancelled {
 			updates["available"] = gorm.Expr("available + ?", out.Amount)
 		}
-		u := tx.WithContext(ctx).Model(&domain.Account{}).Where("user_id = ? AND frozen >= ?", out.UserID, out.Amount).Updates(updates)
+		u := tx.WithContext(ctx).
+			Model(&domain.Account{}).
+			Where("user_id = ? AND frozen >= ?", out.UserID, out.Amount).
+			Updates(updates)
 		if u.Error != nil {
 			return u.Error
 		}
@@ -138,7 +159,17 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 			return er
 		}
 		out.State = target
-		return tx.WithContext(ctx).Create(&domain.Ledger{ID: c.ID + ":" + target, UserID: out.UserID, OrderID: c.ID, Amount: out.Amount, Kind: target}).Error
+		return tx.WithContext(ctx).
+			Create(
+				&domain.Ledger{
+					ID:      c.ID + ":" + target,
+					UserID:  out.UserID,
+					OrderID: c.ID,
+					Amount:  out.Amount,
+					Kind:    target,
+				},
+			).
+			Error
 	})
 	return platform.Map(out), e
 }
@@ -188,15 +219,27 @@ func (r *Repository) Credit(ctx context.Context, c platform.Command, checkin boo
 				return er
 			}
 		}
-		if er = tx.WithContext(ctx).Create(&domain.Ledger{ID: id, UserID: c.UserID, OrderID: order, Amount: n, Kind: kind}).Error; er != nil {
+		if er = tx.WithContext(ctx).Create(
+			&domain.Ledger{ID: id, UserID: c.UserID, OrderID: order, Amount: n, Kind: kind},
+		).Error; er != nil {
 			return er
 		}
 		if !checkin {
-			if er = tx.WithContext(ctx).Create(&domain.Reward{OrderID: order, UserID: c.UserID, Amount: n, Reversed: reversed}).Error; er != nil {
+			if er = tx.WithContext(ctx).Create(
+				&domain.Reward{OrderID: order, UserID: c.UserID, Amount: n, Reversed: reversed},
+			).Error; er != nil {
 				return er
 			}
 			if reversed > 0 {
-				if er = tx.WithContext(ctx).Create(&domain.Ledger{ID: "reversal:reward:" + order, UserID: c.UserID, OrderID: order, Amount: -reversed, Kind: constants.PointsLedgerKindRewardReversal}).Error; er != nil {
+				if er = tx.WithContext(ctx).Create(
+					&domain.Ledger{
+						ID:      "reversal:reward:" + order,
+						UserID:  c.UserID,
+						OrderID: order,
+						Amount:  -reversed,
+						Kind:    constants.PointsLedgerKindRewardReversal,
+					},
+				).Error; er != nil {
 					return er
 				}
 			}
@@ -210,7 +253,15 @@ func (r *Repository) Credit(ctx context.Context, c platform.Command, checkin boo
 			debtPaid = a.Debt
 		}
 		result["debt_repaid"] = debtPaid
-		return tx.WithContext(ctx).Model(&a).Updates(map[string]any{"available": gorm.Expr("available + ?", net-debtPaid), "debt": gorm.Expr("debt - ?", debtPaid)}).Error
+		return tx.WithContext(ctx).
+			Model(&a).
+			Updates(
+				map[string]any{
+					"available": gorm.Expr("available + ?", net-debtPaid),
+					"debt":      gorm.Expr("debt - ?", debtPaid),
+				},
+			).
+			Error
 	})
 	return result, e
 }
@@ -276,12 +327,14 @@ func (r *Repository) Refund(ctx context.Context, c platform.Command) (platform.R
 			if returned < 0 {
 				returned = 0
 			}
-			if er = tx.WithContext(ctx).Model(&hold).Updates(map[string]any{"returned": hold.Returned + returned, "state": func() string {
-				if total == payable {
-					return constants.PointsHoldStateRefunded
-				}
-				return constants.PointsHoldStateConfirmed
-			}()}).Error; er != nil {
+			if er = tx.WithContext(ctx).Model(&hold).Updates(
+				map[string]any{"returned": hold.Returned + returned, "state": func() string {
+					if total == payable {
+						return constants.PointsHoldStateRefunded
+					}
+					return constants.PointsHoldStateConfirmed
+				}()},
+			).Error; er != nil {
 				return er
 			}
 		} else if !errors.Is(er, gorm.ErrRecordNotFound) {
@@ -315,14 +368,32 @@ func (r *Repository) Refund(ctx context.Context, c platform.Command) (platform.R
 		} else if !errors.Is(er, gorm.ErrRecordNotFound) {
 			return er
 		}
-		if er = tx.WithContext(ctx).Model(&a).Updates(map[string]any{"available": a.Available, "debt": a.Debt}).Error; er != nil {
+		if er = tx.WithContext(ctx).Model(&a).Updates(
+			map[string]any{"available": a.Available, "debt": a.Debt},
+		).Error; er != nil {
 			return er
 		}
-		if er = tx.WithContext(ctx).Create(&domain.Ledger{ID: "refund:" + c.ID, UserID: c.UserID, OrderID: order, Amount: returned, Kind: constants.PointsLedgerKindRefund}).Error; er != nil {
+		if er = tx.WithContext(ctx).Create(
+			&domain.Ledger{
+				ID:      "refund:" + c.ID,
+				UserID:  c.UserID,
+				OrderID: order,
+				Amount:  returned,
+				Kind:    constants.PointsLedgerKindRefund,
+			},
+		).Error; er != nil {
 			return er
 		}
 		if reversed > 0 {
-			if er = tx.WithContext(ctx).Create(&domain.Ledger{ID: "reversal:" + c.ID, UserID: c.UserID, OrderID: order, Amount: -reversed, Kind: constants.PointsLedgerKindRewardReversal}).Error; er != nil {
+			if er = tx.WithContext(ctx).Create(
+				&domain.Ledger{
+					ID:      "reversal:" + c.ID,
+					UserID:  c.UserID,
+					OrderID: order,
+					Amount:  -reversed,
+					Kind:    constants.PointsLedgerKindRewardReversal,
+				},
+			).Error; er != nil {
 				return er
 			}
 		}

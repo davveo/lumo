@@ -28,14 +28,25 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	sortKey := platform.Text(c.Data, "sort")
 	catalogSort := sortKey
 	switch catalogSort {
-	case constants.CatalogSortDefault, constants.CatalogSortPriceAsc, constants.CatalogSortPriceDesc, constants.CatalogSortSales, constants.CatalogSortSalesDesc, constants.CatalogSortNewest:
+	case constants.CatalogSortDefault,
+		constants.CatalogSortPriceAsc,
+		constants.CatalogSortPriceDesc,
+		constants.CatalogSortSales,
+		constants.CatalogSortSalesDesc,
+		constants.CatalogSortNewest:
 	default:
 		catalogSort = ""
 	}
-	catalogCommand := platform.Command{Action: constants.ActionSearchProducts, Role: constants.RoleSystem, Data: map[string]any{
-		"query": strings.TrimSpace(platform.Text(c.Data, "query")), "category": strings.TrimSpace(platform.Text(c.Data, "category")),
-		"brand": strings.TrimSpace(platform.Text(c.Data, "brand")), "sort": catalogSort, "limit": 100,
-	}}
+	catalogCommand := platform.Command{
+		Action: constants.ActionSearchProducts,
+		Role:   constants.RoleSystem,
+		Data: map[string]any{
+			"query": strings.TrimSpace(
+				platform.Text(c.Data, "query"),
+			), "category": strings.TrimSpace(platform.Text(c.Data, "category")),
+			"brand": strings.TrimSpace(platform.Text(c.Data, "brand")), "sort": catalogSort, "limit": 100,
+		},
+	}
 	data, e := call(ctx, s.rpc, constants.ServiceCatalog, catalogCommand)
 	if e != nil {
 		return nil, e
@@ -53,7 +64,13 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	candidates := []map[string]any{}
 	ids, seen := []string{}, map[string]bool{}
 	for _, p := range decoded.Items {
-		if q != "" && !strings.Contains(strings.ToLower(platform.Text(p, "name")+" "+platform.Text(p, "brand")+" "+platform.Text(p, "category")), q) {
+		if q != "" &&
+			!strings.Contains(
+				strings.ToLower(
+					platform.Text(p, "name")+" "+platform.Text(p, "brand")+" "+platform.Text(p, "category"),
+				),
+				q,
+			) {
 			continue
 		}
 		if brand != "" && platform.Text(p, "brand") != brand {
@@ -72,7 +89,12 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	stocks := map[string]map[string]any{}
 	if len(ids) > 0 {
 		sort.Strings(ids)
-		batch, err := call(ctx, s.rpc, constants.ServiceInventory, child(c, constants.ActionBatchGet, "", map[string]any{"ids": ids}))
+		batch, err := call(
+			ctx,
+			s.rpc,
+			constants.ServiceInventory,
+			child(c, constants.ActionBatchGet, "", map[string]any{"ids": ids}),
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -128,10 +150,27 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	for _, product := range selected {
 		inventory = append(inventory, stocks[platform.Text(product, "id")])
 	}
-	return platform.Result{"items": selected, "inventory_items": inventory, "total": total, "offset": offset, "limit": limit, "candidate_limit": 100, "engine": constants.SearchEngineCatalogRPC}, nil
+	return platform.Result{
+		"items":           selected,
+		"inventory_items": inventory,
+		"total":           total,
+		"offset":          offset,
+		"limit":           limit,
+		"candidate_limit": 100,
+		"engine":          constants.SearchEngineCatalogRPC,
+	}, nil
 }
 func (s *Service) seed(ctx context.Context) error {
-	r := record("search-policy", "", constants.SearchKindPolicy, constants.SearchStatusActive, map[string]any{"engine": constants.SearchEngineCatalogRPC, "note": "Elasticsearch adapter is not enabled; authoritative RPC reads"})
+	r := record(
+		"search-policy",
+		"",
+		constants.SearchKindPolicy,
+		constants.SearchStatusActive,
+		map[string]any{
+			"engine": constants.SearchEngineCatalogRPC,
+			"note":   "Elasticsearch adapter is not enabled; authoritative RPC reads",
+		},
+	)
 	_, e := s.repo.InsertOnce(ctx, &r, nil)
 	return e
 }

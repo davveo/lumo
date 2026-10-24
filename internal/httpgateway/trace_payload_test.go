@@ -40,7 +40,14 @@ func payloadSpanAttributes(span tracetest.SpanStub) map[string]string {
 func assertHTTPPayloadPrivacy(t *testing.T, span tracetest.SpanStub) {
 	t.Helper()
 	encoded, _ := json.Marshal(span)
-	for _, private := range []string{"private-browser-token", "private-input-password", "private-output-token", "private-user-id", "private-location", "13521373352"} {
+	for _, private := range []string{
+		"private-browser-token",
+		"private-input-password",
+		"private-output-token",
+		"private-user-id",
+		"private-location",
+		"13521373352",
+	} {
 		if strings.Contains(string(encoded), private) {
 			t.Errorf("%s leaked %q", span.Name, private)
 		}
@@ -55,28 +62,48 @@ func TestHTTPTraceCapturesParsedRequestAndResponseAtEveryBoundary(t *testing.T) 
 		if service != "catalog" || cmd.Action != "get" || cmd.ID != "sku-public" || cmd.UserID != "" || cmd.Role != "" {
 			t.Fatalf("gateway command changed or trusted browser identity: %+v", cmd)
 		}
-		if platform.Text(cmd.Data, "password") != "private-input-password" || platform.Text(cmd.Data, "query") != "coffee" {
+		if platform.Text(cmd.Data, "password") != "private-input-password" ||
+			platform.Text(cmd.Data, "query") != "coffee" {
 			t.Fatal("tracing mutated the business request")
 		}
-		return platform.Result{"id": "sku-public", "price_cents": 1599, "token": "private-output-token", "user_id": "private-user-id", "phone": "13521373352", "address": "private-location"}, nil
+		return platform.Result{
+			"id":          "sku-public",
+			"price_cents": 1599,
+			"token":       "private-output-token",
+			"user_id":     "private-user-id",
+			"phone":       "13521373352",
+			"address":     "private-location",
+		}, nil
 	})
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/catalog/get", strings.NewReader(`{"id":"sku-public","user_id":"private-user-id","role":"admin","data":{"query":"coffee","password":"private-input-password","phone":"13521373352","address":"private-location"}}`))
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/catalog/get",
+		strings.NewReader(
+			`{"id":"sku-public","user_id":"private-user-id","role":"admin","data":{"query":"coffee","password":"private-input-password","phone":"13521373352","address":"private-location"}}`,
+		),
+	)
 	w := httptest.NewRecorder()
 	NewHandler(caller, true, t.TempDir()).ServeHTTP(w, req)
 	if w.Code != 200 || !called || !strings.Contains(w.Body.String(), "private-output-token") {
 		t.Fatalf("business response was changed: %d %s", w.Code, w.Body.String())
 	}
-	want := map[string]bool{"POST /api/v1/catalog/get": false, "gateway.transport.Dispatch": false, "gateway.usecase.Forward": false}
+	want := map[string]bool{
+		"POST /api/v1/catalog/get":   false,
+		"gateway.transport.Dispatch": false,
+		"gateway.usecase.Forward":    false,
+	}
 	for _, span := range exporter.GetSpans() {
 		if _, ok := want[span.Name]; !ok {
 			continue
 		}
 		want[span.Name] = true
 		attrs := payloadSpanAttributes(span)
-		if !strings.Contains(attrs["lumo.request"], "coffee") || !strings.Contains(attrs["lumo.request"], "sku-public") {
+		if !strings.Contains(attrs["lumo.request"], "coffee") ||
+			!strings.Contains(attrs["lumo.request"], "sku-public") {
 			t.Errorf("%s missing business request: %v", span.Name, attrs)
 		}
-		if !strings.Contains(attrs["lumo.response"], "1599") || !strings.Contains(attrs["lumo.response"], "sku-public") {
+		if !strings.Contains(attrs["lumo.response"], "1599") ||
+			!strings.Contains(attrs["lumo.response"], "sku-public") {
 			t.Errorf("%s missing business response: %v", span.Name, attrs)
 		}
 		assertHTTPPayloadPrivacy(t, span)
@@ -93,16 +120,43 @@ func TestHTTPTraceErrorsKeepPayloadsAndDiscardRawErrorMessages(t *testing.T) {
 		name, path, body, errorCode string
 		status                      int
 	}{
-		{"invalid-json", "/api/v1/catalog/get", `{"data":{"password":"private-input-password"},invalid`, "InvalidArgument", 400},
-		{"trailing-json", "/api/v1/catalog/get", `{"data":{"password":"private-input-password"}} {"password":"private-input-password"}`, "InvalidArgument", 400},
-		{"missing-session", "/api/v1/order/get", `{"id":"ord-public","data":{"password":"private-input-password"}}`, "Unauthenticated", 401},
+		{
+			"invalid-json",
+			"/api/v1/catalog/get",
+			`{"data":{"password":"private-input-password"},invalid`,
+			"InvalidArgument",
+			400,
+		},
+		{
+			"trailing-json",
+			"/api/v1/catalog/get",
+			`{"data":{"password":"private-input-password"}} {"password":"private-input-password"}`,
+			"InvalidArgument",
+			400,
+		},
+		{
+			"missing-session",
+			"/api/v1/order/get",
+			`{"id":"ord-public","data":{"password":"private-input-password"}}`,
+			"Unauthenticated",
+			401,
+		},
 		{"unexposed", "/api/v1/order/ready", `{"data":{"password":"private-input-password"}}`, "PermissionDenied", 403},
-		{"downstream-error", "/api/v1/catalog/get", `{"id":"sku-public","data":{"password":"private-input-password"}}`, "FailedPrecondition", 409},
+		{
+			"downstream-error",
+			"/api/v1/catalog/get",
+			`{"id":"sku-public","data":{"password":"private-input-password"}}`,
+			"FailedPrecondition",
+			409,
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			exporter := httpPayloadExporter(t)
 			caller := traceTestCaller(func(context.Context, string, platform.Command) (platform.Result, error) {
-				return nil, status.Error(codes.FailedPrecondition, "private-input-password private-user-id private-location 13521373352")
+				return nil, status.Error(
+					codes.FailedPrecondition,
+					"private-input-password private-user-id private-location 13521373352",
+				)
 			})
 			req := httptest.NewRequest(http.MethodPost, test.path, strings.NewReader(test.body))
 			w := httptest.NewRecorder()
@@ -115,7 +169,8 @@ func TestHTTPTraceErrorsKeepPayloadsAndDiscardRawErrorMessages(t *testing.T) {
 			}
 			for _, span := range exporter.GetSpans() {
 				attrs := payloadSpanAttributes(span)
-				if attrs["lumo.request"] == "" || attrs["lumo.response"] == "" || attrs["lumo.error.code"] != test.errorCode {
+				if attrs["lumo.request"] == "" || attrs["lumo.response"] == "" ||
+					attrs["lumo.error.code"] != test.errorCode {
 					t.Errorf("%s missing request, response or safe error: %v", span.Name, attrs)
 				}
 				assertHTTPPayloadPrivacy(t, span)
@@ -127,16 +182,23 @@ func TestHTTPTraceErrorsKeepPayloadsAndDiscardRawErrorMessages(t *testing.T) {
 func TestHTTPTraceIncludesGETArgumentsAndStorefrontAggregateResult(t *testing.T) {
 	for _, test := range []struct{ name, method, path, body string }{
 		{"get", http.MethodGet, "/api/v1/catalog/get?id=sku-public&query=coffee&password=private-input-password", ""},
-		{"aggregate", http.MethodPost, "/api/v1/storefront/batch", `{"data":{"requests":[{"key":"product","service":"catalog","action":"get","command":{"id":"sku-public","data":{"query":"coffee","password":"private-input-password"}}}]}}`},
+		{
+			"aggregate",
+			http.MethodPost,
+			"/api/v1/storefront/batch",
+			`{"data":{"requests":[{"key":"product","service":"catalog","action":"get","command":{"id":"sku-public","data":{"query":"coffee","password":"private-input-password"}}}]}}`,
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			exporter := httpPayloadExporter(t)
-			caller := traceTestCaller(func(_ context.Context, service string, cmd platform.Command) (platform.Result, error) {
-				if service != "catalog" || cmd.Action != "get" {
-					t.Fatalf("unexpected aggregate request: %s/%s", service, cmd.Action)
-				}
-				return platform.Result{"id": "sku-public", "price_cents": 1599}, nil
-			})
+			caller := traceTestCaller(
+				func(_ context.Context, service string, cmd platform.Command) (platform.Result, error) {
+					if service != "catalog" || cmd.Action != "get" {
+						t.Fatalf("unexpected aggregate request: %s/%s", service, cmd.Action)
+					}
+					return platform.Result{"id": "sku-public", "price_cents": 1599}, nil
+				},
+			)
 			req := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
 			w := httptest.NewRecorder()
 			NewHandler(caller, true, t.TempDir()).ServeHTTP(w, req)
@@ -145,7 +207,8 @@ func TestHTTPTraceIncludesGETArgumentsAndStorefrontAggregateResult(t *testing.T)
 			}
 			for _, span := range exporter.GetSpans() {
 				attrs := payloadSpanAttributes(span)
-				if !strings.Contains(attrs["lumo.request"], "coffee") || !strings.Contains(attrs["lumo.response"], "1599") {
+				if !strings.Contains(attrs["lumo.request"], "coffee") ||
+					!strings.Contains(attrs["lumo.response"], "1599") {
 					t.Errorf("%s missing GET/aggregate payload: %v", span.Name, attrs)
 				}
 				assertHTTPPayloadPrivacy(t, span)
@@ -156,7 +219,11 @@ func TestHTTPTraceIncludesGETArgumentsAndStorefrontAggregateResult(t *testing.T)
 
 func TestHTTPTraceRecordsPreflightWithoutReadingHeadersOrBody(t *testing.T) {
 	exporter := httpPayloadExporter(t)
-	req := httptest.NewRequest(http.MethodOptions, "http://api.local/api/v1/catalog/list", strings.NewReader("private-input-password"))
+	req := httptest.NewRequest(
+		http.MethodOptions,
+		"http://api.local/api/v1/catalog/list",
+		strings.NewReader("private-input-password"),
+	)
 	req.Header.Set("Origin", "http://api.local")
 	req.Header.Set("Authorization", "Bearer private-browser-token")
 	req.Header.Set("Access-Control-Request-Method", "POST")

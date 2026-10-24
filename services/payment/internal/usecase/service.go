@@ -162,7 +162,11 @@ func (s *Service) confirmDemo(ctx context.Context, c platform.Command) (platform
 		if c.Action == constants.ActionSubmitDemo {
 			// Hold the payment gate while observing order state so a concurrent
 			// close cannot freeze the payment between validation and capture.
-			o, err := s.rpc.Call(ctx, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: p.OrderID, UserID: c.UserID, Role: c.Role})
+			o, err := s.rpc.Call(
+				ctx,
+				constants.ServiceOrder,
+				platform.Command{Action: constants.ActionGet, ID: p.OrderID, UserID: c.UserID, Role: c.Role},
+			)
 			if err != nil {
 				return err
 			}
@@ -180,7 +184,21 @@ func (s *Service) confirmDemo(ctx context.Context, c platform.Command) (platform
 		if err = tx.Save(&p); err != nil {
 			return err
 		}
-		if err = tx.Emit(platform.Event{ID: "PaymentSucceeded-" + p.ID, Type: constants.EventPaymentSucceeded, AggregateID: p.ID, UserID: p.UserID, Data: map[string]any{"payment_id": p.ID, "order_id": p.OrderID, "amount_cents": p.Amount, "paid_at": now.Format(time.RFC3339Nano), "provider": constants.PaymentProviderDemo}}); err != nil {
+		if err = tx.Emit(
+			platform.Event{
+				ID:          "PaymentSucceeded-" + p.ID,
+				Type:        constants.EventPaymentSucceeded,
+				AggregateID: p.ID,
+				UserID:      p.UserID,
+				Data: map[string]any{
+					"payment_id":   p.ID,
+					"order_id":     p.OrderID,
+					"amount_cents": p.Amount,
+					"paid_at":      now.Format(time.RFC3339Nano),
+					"provider":     constants.PaymentProviderDemo,
+				},
+			},
+		); err != nil {
 			return err
 		}
 		out = platform.Map(p)
@@ -193,7 +211,11 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 	if os.Getenv("DEMO_MODE") != "true" && os.Getenv("DEMO_MODE") != "1" {
 		return nil, status.Error(codes.FailedPrecondition, "no production payment adapter configured")
 	}
-	o, err := s.rpc.Call(ctx, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: c.ID, UserID: c.UserID, Role: c.Role})
+	o, err := s.rpc.Call(
+		ctx,
+		constants.ServiceOrder,
+		platform.Command{Action: constants.ActionGet, ID: c.ID, UserID: c.UserID, Role: c.Role},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +242,14 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
-		p = domain.Payment{ID: platform.ID("pay"), OrderID: c.ID, UserID: platform.Text(o, "user_id"), Amount: platform.Int(o, "payable_cents"), Status: constants.PaymentStatusPending, Provider: constants.PaymentProviderDemo}
+		p = domain.Payment{
+			ID:       platform.ID("pay"),
+			OrderID:  c.ID,
+			UserID:   platform.Text(o, "user_id"),
+			Amount:   platform.Int(o, "payable_cents"),
+			Status:   constants.PaymentStatusPending,
+			Provider: constants.PaymentProviderDemo,
+		}
 		if err = tx.Create(&p); err != nil {
 			return err
 		}
@@ -244,6 +273,21 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
 	if p.Status != constants.PaymentStatusSucceeded {
 		return status.Error(codes.FailedPrecondition, "cannot refund unconfirmed payment")
 	}
-	_, err = s.rpc.Call(ctx, constants.ServiceRefund, platform.Command{Action: constants.ActionCreate, ID: "automatic-" + p.ID, UserID: p.UserID, Role: constants.RoleSystem, Data: map[string]any{"payment_id": p.ID, "order_id": p.OrderID, "amount_cents": p.Amount, "reason": e.Type}})
+	_, err = s.rpc.Call(
+		ctx,
+		constants.ServiceRefund,
+		platform.Command{
+			Action: constants.ActionCreate,
+			ID:     "automatic-" + p.ID,
+			UserID: p.UserID,
+			Role:   constants.RoleSystem,
+			Data: map[string]any{
+				"payment_id":   p.ID,
+				"order_id":     p.OrderID,
+				"amount_cents": p.Amount,
+				"reason":       e.Type,
+			},
+		},
+	)
 	return err
 }

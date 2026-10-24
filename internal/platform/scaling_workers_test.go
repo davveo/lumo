@@ -115,7 +115,10 @@ func namedLockDB(t *testing.T, server *namedLockDriver, namespace string) *gorm.
 	}
 	raw.SetMaxOpenConns(5)
 	t.Cleanup(func() { _ = raw.Close() })
-	db, err := gorm.Open(mysql.New(mysql.Config{Conn: raw, SkipInitializeWithVersion: true}), &gorm.Config{DisableAutomaticPing: true, Logger: logger.Default.LogMode(logger.Silent)})
+	db, err := gorm.Open(
+		mysql.New(mysql.Config{Conn: raw, SkipInitializeWithVersion: true}),
+		&gorm.Config{DisableAutomaticPing: true, Logger: logger.Default.LogMode(logger.Silent)},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +140,12 @@ func TestServiceStartupLockSerializesReplicas(t *testing.T) {
 	<-entered
 	secondEntered := make(chan struct{})
 	go func() {
-		results <- WithServiceStartupLock(context.Background(), second, "order", func(context.Context) error { close(secondEntered); return nil })
+		results <- WithServiceStartupLock(
+			context.Background(),
+			second,
+			"order",
+			func(context.Context) error { close(secondEntered); return nil },
+		)
 	}()
 	select {
 	case <-secondEntered:
@@ -164,7 +172,13 @@ func TestServiceTickLockSkipsReplicaAndSeparatesServicesAndSchemas(t *testing.T)
 	workError := errors.New("tick failed")
 	err := runServiceTick(context.Background(), first, "order", func(ctx context.Context) error {
 		called := false
-		if err := runServiceTick(ctx, second, "order", func(context.Context) error { called = true; return nil }); err != nil || called {
+		if err := runServiceTick(
+			ctx,
+			second,
+			"order",
+			func(context.Context) error { called = true; return nil },
+		); err != nil ||
+			called {
 			t.Fatalf("competing replica ran: called=%v err=%v", called, err)
 		}
 		for _, test := range []struct {
@@ -172,7 +186,13 @@ func TestServiceTickLockSkipsReplicaAndSeparatesServicesAndSchemas(t *testing.T)
 			service string
 		}{{second, "checkout"}, {otherSchema, "order"}} {
 			called = false
-			if err := runServiceTick(ctx, test.db, test.service, func(context.Context) error { called = true; return nil }); err != nil || !called {
+			if err := runServiceTick(
+				ctx,
+				test.db,
+				test.service,
+				func(context.Context) error { called = true; return nil },
+			); err != nil ||
+				!called {
 				t.Fatalf("independent service/schema blocked: called=%v err=%v", called, err)
 			}
 		}
@@ -182,7 +202,13 @@ func TestServiceTickLockSkipsReplicaAndSeparatesServicesAndSchemas(t *testing.T)
 		t.Fatal(err)
 	}
 	called := false
-	if err := runServiceTick(context.Background(), second, "order", func(context.Context) error { called = true; return nil }); err != nil || !called {
+	if err := runServiceTick(
+		context.Background(),
+		second,
+		"order",
+		func(context.Context) error { called = true; return nil },
+	); err != nil ||
+		!called {
 		t.Fatalf("failed work did not release: called=%v err=%v", called, err)
 	}
 }
@@ -191,7 +217,12 @@ func TestServiceDatabaseLockCancellationAndBrokenSessionsReleaseOwnership(t *tes
 	server := &namedLockDriver{owner: map[string]int{}}
 	first, second := namedLockDB(t, server, "lumo_order"), namedLockDB(t, server, "lumo_order")
 	ctx, cancel := context.WithCancel(context.Background())
-	if err := WithServiceStartupLock(ctx, first, "order", func(context.Context) error { cancel(); return nil }); err != nil {
+	if err := WithServiceStartupLock(
+		ctx,
+		first,
+		"order",
+		func(context.Context) error { cancel(); return nil },
+	); err != nil {
 		t.Fatal(err)
 	}
 	for _, failure := range []string{"release", "acquire"} {
@@ -203,14 +234,25 @@ func TestServiceDatabaseLockCancellationAndBrokenSessionsReleaseOwnership(t *tes
 			t.Fatalf("expected acquisition failure, got %v", err)
 		}
 		called := false
-		if err := runServiceTick(context.Background(), second, "order", func(context.Context) error { called = true; return nil }); err != nil || !called {
+		if err := runServiceTick(
+			context.Background(),
+			second,
+			"order",
+			func(context.Context) error { called = true; return nil },
+		); err != nil ||
+			!called {
 			t.Fatalf("broken %s leaked named lock: called=%v err=%v", failure, called, err)
 		}
 	}
 	if err := WithServiceStartupLock(context.Background(), first, "order", func(context.Context) error {
 		cancelled, cancelWait := context.WithCancel(context.Background())
 		cancelWait()
-		return WithServiceStartupLock(cancelled, second, "order", func(context.Context) error { t.Fatal("cancelled startup ran"); return nil })
+		return WithServiceStartupLock(
+			cancelled,
+			second,
+			"order",
+			func(context.Context) error { t.Fatal("cancelled startup ran"); return nil },
+		)
 	}); !errors.Is(err, context.Canceled) {
 		t.Fatalf("cancelled waiter returned %v", err)
 	}
@@ -229,7 +271,10 @@ func TestOutboxReplicaClaimFencesExpiredPublisher(t *testing.T) {
 	if _, owned, err = claimOutbox(ctx, db, "replica-event"); err != nil || owned {
 		t.Fatal("simultaneous publisher claimed same event", owned, err)
 	}
-	if err := db.Model(&Outbox{}).Where("id = ?", "replica-event").Update("lease_until", time.Now().UTC().Add(-time.Minute)).Error; err != nil {
+	if err := db.Model(&Outbox{}).Where("id = ?", "replica-event").Update(
+		"lease_until",
+		time.Now().UTC().Add(-time.Minute),
+	).Error; err != nil {
 		t.Fatal(err)
 	}
 	second, owned, err := claimOutbox(ctx, db, "replica-event")
@@ -241,11 +286,18 @@ func TestOutboxReplicaClaimFencesExpiredPublisher(t *testing.T) {
 			t.Fatalf("expired publisher overwrote new claim with %s", state)
 		}
 	}
-	if err = markOutbox(ctx, db, "replica-event", second, map[string]any{"state": "PUBLISHED", "published_at": time.Now()}); err != nil {
+	if err = markOutbox(
+		ctx,
+		db,
+		"replica-event",
+		second,
+		map[string]any{"state": "PUBLISHED", "published_at": time.Now()},
+	); err != nil {
 		t.Fatal(err)
 	}
 	var row Outbox
-	if err = db.First(&row, "id = ?", "replica-event").Error; err != nil || row.State != "PUBLISHED" || row.Attempts != 2 {
+	if err = db.First(&row, "id = ?", "replica-event").Error; err != nil || row.State != "PUBLISHED" ||
+		row.Attempts != 2 {
 		t.Fatal(row, err)
 	}
 }

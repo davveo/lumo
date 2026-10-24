@@ -51,7 +51,18 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 		return status.Error(codes.InvalidArgument, "order event lacks identity")
 	}
 	lines, _ := json.Marshal(e.Data["items"])
-	return s.Repo.Create(ctx, &domain.Record{ID: id, OrderID: id, UserID: e.UserID, ReservationID: reservation, Kind: constants.FulfillmentKindOrder, Status: constants.FulfillmentStatusReady, LinesJSON: string(lines)})
+	return s.Repo.Create(
+		ctx,
+		&domain.Record{
+			ID:            id,
+			OrderID:       id,
+			UserID:        e.UserID,
+			ReservationID: reservation,
+			Kind:          constants.FulfillmentKindOrder,
+			Status:        constants.FulfillmentStatusReady,
+			LinesJSON:     string(lines),
+		},
+	)
 }
 func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "usecase.fulfillment."+c.Action)
@@ -88,7 +99,15 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 			return nil, status.Error(codes.InvalidArgument, "exchange identity, order and reservation required")
 		}
 		lines, _ := json.Marshal(c.Data["lines"])
-		r := &domain.Record{ID: c.ID, OrderID: orderID, UserID: c.UserID, ReservationID: reservation, Kind: constants.FulfillmentKindExchange, Status: constants.FulfillmentStatusReady, LinesJSON: string(lines)}
+		r := &domain.Record{
+			ID:            c.ID,
+			OrderID:       orderID,
+			UserID:        c.UserID,
+			ReservationID: reservation,
+			Kind:          constants.FulfillmentKindExchange,
+			Status:        constants.FulfillmentStatusReady,
+			LinesJSON:     string(lines),
+		}
 		if err := s.Repo.Create(ctx, r); err != nil {
 			return nil, err
 		}
@@ -98,7 +117,10 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 			return nil, status.Error(codes.PermissionDenied, "warehouse permission required")
 		}
 		if os.Getenv("DEMO_MODE") != "true" {
-			return nil, status.Error(codes.FailedPrecondition, "real warehouse adapter is not configured; demo dispatch requires DEMO_MODE=true")
+			return nil, status.Error(
+				codes.FailedPrecondition,
+				"real warehouse adapter is not configured; demo dispatch requires DEMO_MODE=true",
+			)
 		}
 		r, err := s.Repo.Get(ctx, c.ID)
 		if err != nil {
@@ -107,21 +129,62 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 		if r.Status == constants.FulfillmentStatusDispatched {
 			return platform.Map(r), nil
 		}
-		r, err = s.Repo.Transition(ctx, r.ID, []string{constants.FulfillmentStatusReady}, constants.FulfillmentStatusDispatching, nil, nil)
+		r, err = s.Repo.Transition(
+			ctx,
+			r.ID,
+			[]string{constants.FulfillmentStatusReady},
+			constants.FulfillmentStatusDispatching,
+			nil,
+			nil,
+		)
 		if err != nil {
 			return nil, err
 		}
-		command := platform.Command{ID: r.ReservationID, UserID: r.UserID, Role: constants.RoleSystem, Action: constants.ActionDispatch, Data: map[string]any{"warehouse_confirmed": true}}
+		command := platform.Command{
+			ID:     r.ReservationID,
+			UserID: r.UserID,
+			Role:   constants.RoleSystem,
+			Action: constants.ActionDispatch,
+			Data:   map[string]any{"warehouse_confirmed": true},
+		}
 		if _, err = s.RPC.Call(ctx, constants.ServiceInventory, command); err != nil {
 			return nil, err
 		}
-		shipping, err := s.RPC.Call(ctx, constants.ServiceLogistics, platform.Command{Action: constants.ActionCreate, ID: r.ID, UserID: r.UserID, Role: constants.RoleSystem, Data: map[string]any{"order_id": r.OrderID, "kind": r.Kind}})
+		shipping, err := s.RPC.Call(
+			ctx,
+			constants.ServiceLogistics,
+			platform.Command{
+				Action: constants.ActionCreate,
+				ID:     r.ID,
+				UserID: r.UserID,
+				Role:   constants.RoleSystem,
+				Data:   map[string]any{"order_id": r.OrderID, "kind": r.Kind},
+			},
+		)
 		if err != nil {
 			return nil, err
 		}
 		tracking := platform.Text(shipping, "tracking_id")
-		event := &platform.Event{ID: r.ID + ":dispatched", Type: constants.EventShipmentDispatched, AggregateID: r.ID, UserID: r.UserID, Data: map[string]any{"order_id": r.OrderID, "fulfillment_id": r.ID, "tracking_id": tracking, "kind": r.Kind}}
-		r, err = s.Repo.Transition(ctx, r.ID, []string{constants.FulfillmentStatusDispatching}, constants.FulfillmentStatusDispatched, map[string]any{"tracking_id": tracking}, event)
+		event := &platform.Event{
+			ID:          r.ID + ":dispatched",
+			Type:        constants.EventShipmentDispatched,
+			AggregateID: r.ID,
+			UserID:      r.UserID,
+			Data: map[string]any{
+				"order_id":       r.OrderID,
+				"fulfillment_id": r.ID,
+				"tracking_id":    tracking,
+				"kind":           r.Kind,
+			},
+		}
+		r, err = s.Repo.Transition(
+			ctx,
+			r.ID,
+			[]string{constants.FulfillmentStatusDispatching},
+			constants.FulfillmentStatusDispatched,
+			map[string]any{"tracking_id": tracking},
+			event,
+		)
 		return platform.Map(r), err
 	case constants.ActionCancel:
 		if !internal(c) {
@@ -136,7 +199,11 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 			}
 			user := c.UserID
 			if c.Role == constants.RoleAdmin {
-				order, callErr := s.RPC.Call(ctx, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: c.ID, UserID: c.UserID, Role: c.Role})
+				order, callErr := s.RPC.Call(
+					ctx,
+					constants.ServiceOrder,
+					platform.Command{Action: constants.ActionGet, ID: c.ID, UserID: c.UserID, Role: c.Role},
+				)
 				if callErr != nil {
 					return nil, callErr
 				}
@@ -145,7 +212,14 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 					return nil, status.Error(codes.FailedPrecondition, "order owner unavailable")
 				}
 			}
-			r = &domain.Record{ID: c.ID, OrderID: c.ID, UserID: user, ReservationID: c.ID, Kind: constants.FulfillmentKindOrder, Status: constants.FulfillmentStatusCancelRequested}
+			r = &domain.Record{
+				ID:            c.ID,
+				OrderID:       c.ID,
+				UserID:        user,
+				ReservationID: c.ID,
+				Kind:          constants.FulfillmentKindOrder,
+				Status:        constants.FulfillmentStatusCancelRequested,
+			}
 			if err = s.Repo.Create(ctx, r); err != nil {
 				return nil, err
 			}
@@ -162,26 +236,60 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 			return nil, status.Error(codes.FailedPrecondition, "warehouse shipment cannot be cancelled")
 		}
 		if r.Status == constants.FulfillmentStatusReady {
-			r, err = s.Repo.Transition(ctx, r.ID, []string{constants.FulfillmentStatusReady}, constants.FulfillmentStatusCancelRequested, nil, nil)
+			r, err = s.Repo.Transition(
+				ctx,
+				r.ID,
+				[]string{constants.FulfillmentStatusReady},
+				constants.FulfillmentStatusCancelRequested,
+				nil,
+				nil,
+			)
 			if err != nil {
 				return nil, err
 			}
 		}
 		if r.Status == constants.FulfillmentStatusCancelRequested {
 			if os.Getenv("DEMO_MODE") != "true" {
-				return nil, status.Error(codes.FailedPrecondition, "awaiting authenticated warehouse cancellation acknowledgement")
+				return nil, status.Error(
+					codes.FailedPrecondition,
+					"awaiting authenticated warehouse cancellation acknowledgement",
+				)
 			}
 			// This acknowledgement is ONLY the local deterministic demo warehouse.
 			// The production adapter must wait for an authenticated WMS callback.
-			r, err = s.Repo.Transition(ctx, r.ID, []string{constants.FulfillmentStatusCancelRequested}, constants.FulfillmentStatusWarehouseCancelConfirmed, nil, nil)
+			r, err = s.Repo.Transition(
+				ctx,
+				r.ID,
+				[]string{constants.FulfillmentStatusCancelRequested},
+				constants.FulfillmentStatusWarehouseCancelConfirmed,
+				nil,
+				nil,
+			)
 			if err != nil {
 				return nil, err
 			}
 		}
-		if _, err = s.RPC.Call(ctx, constants.ServiceInventory, platform.Command{Action: constants.ActionCancel, ID: r.ReservationID, UserID: r.UserID, Role: constants.RoleSystem, Data: map[string]any{"warehouse_confirmed": true}}); err != nil {
+		if _, err = s.RPC.Call(
+			ctx,
+			constants.ServiceInventory,
+			platform.Command{
+				Action: constants.ActionCancel,
+				ID:     r.ReservationID,
+				UserID: r.UserID,
+				Role:   constants.RoleSystem,
+				Data:   map[string]any{"warehouse_confirmed": true},
+			},
+		); err != nil {
 			return nil, err
 		}
-		r, err = s.Repo.Transition(ctx, r.ID, []string{constants.FulfillmentStatusWarehouseCancelConfirmed}, constants.FulfillmentStatusCancelled, nil, nil)
+		r, err = s.Repo.Transition(
+			ctx,
+			r.ID,
+			[]string{constants.FulfillmentStatusWarehouseCancelConfirmed},
+			constants.FulfillmentStatusCancelled,
+			nil,
+			nil,
+		)
 		out := platform.Map(r)
 		out["warehouse_confirmed"] = true
 		return out, err
@@ -192,11 +300,24 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 		condition := strings.ToLower(platform.Text(c.Data, "condition"))
 		sku := platform.Text(c.Data, "sku_id")
 		qty := platform.Int(c.Data, "quantity")
-		if c.ID == "" || sku == "" || qty <= 0 || (condition != constants.StockConditionSellable && condition != constants.StockConditionDamaged && condition != constants.StockConditionUnsellable) {
-			return nil, status.Error(codes.InvalidArgument, "valid return receipt, SKU, quantity and condition required")
+		if c.ID == "" || sku == "" || qty <= 0 ||
+			(condition != constants.StockConditionSellable && condition != constants.StockConditionDamaged &&
+				condition != constants.StockConditionUnsellable) {
+			return nil, status.Error(
+				codes.InvalidArgument,
+				"valid return receipt, SKU, quantity and condition required",
+			)
 		}
 		payload, _ := json.Marshal(map[string]any{"sku_id": sku, "quantity": qty, "condition": condition})
-		receipt := &domain.Record{ID: "return:" + c.ID, OrderID: platform.Text(c.Data, "order_id"), UserID: c.UserID, ReservationID: c.ID, Kind: constants.FulfillmentKindReturn, Status: constants.FulfillmentStatusInspecting, LinesJSON: string(payload)}
+		receipt := &domain.Record{
+			ID:            "return:" + c.ID,
+			OrderID:       platform.Text(c.Data, "order_id"),
+			UserID:        c.UserID,
+			ReservationID: c.ID,
+			Kind:          constants.FulfillmentKindReturn,
+			Status:        constants.FulfillmentStatusInspecting,
+			LinesJSON:     string(payload),
+		}
 		if err := s.Repo.Create(ctx, receipt); err != nil {
 			return nil, err
 		}
@@ -206,11 +327,34 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 		if receipt.Status == constants.FulfillmentStatusInspected {
 			return platform.Map(receipt), nil
 		}
-		if _, err := s.RPC.Call(ctx, constants.ServiceInventory, platform.Command{Action: constants.ActionRestock, ID: c.ID, UserID: c.UserID, Role: constants.RoleSystem, Data: map[string]any{"sku_id": sku, "quantity": qty, "condition": condition}}); err != nil {
+		if _, err := s.RPC.Call(
+			ctx,
+			constants.ServiceInventory,
+			platform.Command{
+				Action: constants.ActionRestock,
+				ID:     c.ID,
+				UserID: c.UserID,
+				Role:   constants.RoleSystem,
+				Data:   map[string]any{"sku_id": sku, "quantity": qty, "condition": condition},
+			},
+		); err != nil {
 			return nil, err
 		}
-		event := &platform.Event{ID: receipt.ID + ":inspected", Type: constants.EventReturnInspectionCompleted, AggregateID: receipt.ID, UserID: receipt.UserID, Data: map[string]any{"inspection_id": c.ID, "sku_id": sku, "quantity": qty, "condition": condition}}
-		receipt, err := s.Repo.Transition(ctx, receipt.ID, []string{constants.FulfillmentStatusInspecting}, constants.FulfillmentStatusInspected, nil, event)
+		event := &platform.Event{
+			ID:          receipt.ID + ":inspected",
+			Type:        constants.EventReturnInspectionCompleted,
+			AggregateID: receipt.ID,
+			UserID:      receipt.UserID,
+			Data:        map[string]any{"inspection_id": c.ID, "sku_id": sku, "quantity": qty, "condition": condition},
+		}
+		receipt, err := s.Repo.Transition(
+			ctx,
+			receipt.ID,
+			[]string{constants.FulfillmentStatusInspecting},
+			constants.FulfillmentStatusInspected,
+			nil,
+			event,
+		)
 		return platform.Map(receipt), err
 	}
 	return nil, status.Error(codes.Unimplemented, "unsupported fulfillment action")

@@ -54,7 +54,14 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 		if e.UserID != "" && r.UserID != e.UserID {
 			return status.Error(codes.PermissionDenied, "refund event owner mismatch")
 		}
-		_, err = s.Repo.Transition(ctx, id, []string{constants.AftersaleStatusRefundRequested, constants.AftersaleStatusRefunding}, constants.AftersaleStatusCompleted, map[string]any{"refund_id": platform.Text(e.Data, "refund_id")}, nil)
+		_, err = s.Repo.Transition(
+			ctx,
+			id,
+			[]string{constants.AftersaleStatusRefundRequested, constants.AftersaleStatusRefunding},
+			constants.AftersaleStatusCompleted,
+			map[string]any{"refund_id": platform.Text(e.Data, "refund_id")},
+			nil,
+		)
 		return err
 	case constants.EventDeliveryConfirmed:
 		if platform.Text(e.Data, "kind") != constants.FulfillmentKindExchange {
@@ -68,7 +75,14 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 			}
 			return err
 		}
-		_, err = s.Repo.Transition(ctx, r.ID, []string{constants.AftersaleStatusExchanging}, constants.AftersaleStatusCompleted, nil, nil)
+		_, err = s.Repo.Transition(
+			ctx,
+			r.ID,
+			[]string{constants.AftersaleStatusExchanging},
+			constants.AftersaleStatusCompleted,
+			nil,
+			nil,
+		)
 		return err
 	}
 	return nil
@@ -106,14 +120,35 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 		if !staff(c) {
 			return nil, status.Error(codes.PermissionDenied, "aftersale approval permission required")
 		}
-		r, err = s.Repo.Transition(ctx, r.ID, []string{constants.AftersaleStatusRequested}, constants.AftersaleStatusApproved, nil, nil)
+		r, err = s.Repo.Transition(
+			ctx,
+			r.ID,
+			[]string{constants.AftersaleStatusRequested},
+			constants.AftersaleStatusApproved,
+			nil,
+			nil,
+		)
 	case constants.ActionReject:
 		if !staff(c) {
 			return nil, status.Error(codes.PermissionDenied, "aftersale approval permission required")
 		}
-		r, err = s.Repo.Transition(ctx, r.ID, []string{constants.AftersaleStatusRequested}, constants.AftersaleStatusRejected, nil, nil)
+		r, err = s.Repo.Transition(
+			ctx,
+			r.ID,
+			[]string{constants.AftersaleStatusRequested},
+			constants.AftersaleStatusRejected,
+			nil,
+			nil,
+		)
 	case constants.ActionCancel:
-		r, err = s.Repo.Transition(ctx, r.ID, []string{constants.AftersaleStatusRequested, constants.AftersaleStatusApproved}, constants.AftersaleStatusCancelled, nil, nil)
+		r, err = s.Repo.Transition(
+			ctx,
+			r.ID,
+			[]string{constants.AftersaleStatusRequested, constants.AftersaleStatusApproved},
+			constants.AftersaleStatusCancelled,
+			nil,
+			nil,
+		)
 	case constants.ActionReturn:
 		if r.Type == constants.AftersaleTypeRefund {
 			return nil, status.Error(codes.FailedPrecondition, "refund-only requires no physical return")
@@ -122,7 +157,14 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 		if tracking == "" || len(tracking) > 100 {
 			return nil, status.Error(codes.InvalidArgument, "return tracking required")
 		}
-		r, err = s.Repo.Transition(ctx, r.ID, []string{constants.AftersaleStatusApproved}, constants.AftersaleStatusReturning, map[string]any{"return_tracking": tracking}, nil)
+		r, err = s.Repo.Transition(
+			ctx,
+			r.ID,
+			[]string{constants.AftersaleStatusApproved},
+			constants.AftersaleStatusReturning,
+			map[string]any{"return_tracking": tracking},
+			nil,
+		)
 	case constants.ActionInspect:
 		if !staff(c) {
 			return nil, status.Error(codes.PermissionDenied, "warehouse inspection permission required")
@@ -155,14 +197,20 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 	if typ == constants.AftersaleTypeRefundOnly {
 		typ = constants.AftersaleTypeRefund
 	}
-	if c.IdempotencyKey == "" || orderID == "" || (typ != constants.AftersaleTypeRefund && typ != constants.AftersaleTypeReturn && typ != constants.AftersaleTypeExchange) {
+	if c.IdempotencyKey == "" || orderID == "" ||
+		(typ != constants.AftersaleTypeRefund && typ != constants.AftersaleTypeReturn &&
+			typ != constants.AftersaleTypeExchange) {
 		return nil, status.Error(codes.InvalidArgument, "idempotency key, order_id and valid type required")
 	}
 	reason := strings.TrimSpace(platform.Text(c.Data, "reason"))
 	if reason == "" || len(reason) > 1000 {
 		return nil, status.Error(codes.InvalidArgument, "valid aftersale reason required")
 	}
-	o, err := s.RPC.Call(ctx, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: orderID, UserID: c.UserID, Role: c.Role})
+	o, err := s.RPC.Call(
+		ctx,
+		constants.ServiceOrder,
+		platform.Command{Action: constants.ActionGet, ID: orderID, UserID: c.UserID, Role: c.Role},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -174,11 +222,16 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 		return nil, status.Error(codes.PermissionDenied, "order ownership mismatch")
 	}
 	state := platform.Text(o, "status")
-	if state != constants.OrderStatusReadyToFulfill && state != constants.OrderStatusShipped && state != constants.OrderStatusCompleted {
+	if state != constants.OrderStatusReadyToFulfill && state != constants.OrderStatusShipped &&
+		state != constants.OrderStatusCompleted {
 		return nil, status.Error(codes.FailedPrecondition, "order is not eligible for aftersale")
 	}
-	if typ == constants.AftersaleTypeRefund && (state == constants.OrderStatusShipped || state == constants.OrderStatusCompleted) {
-		return nil, status.Error(codes.FailedPrecondition, "shipped order requires physical return or staff-reviewed return policy")
+	if typ == constants.AftersaleTypeRefund &&
+		(state == constants.OrderStatusShipped || state == constants.OrderStatusCompleted) {
+		return nil, status.Error(
+			codes.FailedPrecondition,
+			"shipped order requires physical return or staff-reviewed return policy",
+		)
 	}
 	var items []orderLine
 	b, _ := json.Marshal(o["items"])
@@ -236,7 +289,10 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 		requested = append(requested, domain.Line{SKUID: k, Quantity: q})
 	}
 	if typ == constants.AftersaleTypeRefund && !wholeOrder(normalized, purchased) {
-		return nil, status.Error(codes.FailedPrecondition, "partial refund before shipment requires partial warehouse cancellation; only whole-order refund is supported")
+		return nil, status.Error(
+			codes.FailedPrecondition,
+			"partial refund before shipment requires partial warehouse cancellation; only whole-order refund is supported",
+		)
 	}
 	sort.Slice(requested, func(i, j int) bool { return requested[i].SKUID < requested[j].SKUID })
 	payable := platform.Int(o, "payable_cents")
@@ -254,12 +310,32 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 	sum := sha256.Sum256([]byte(user + "\x00" + c.IdempotencyKey))
 	id := fmt.Sprintf("as-%x", sum[:16])
 	lines, _ := json.Marshal(requested)
-	row := &domain.Record{ID: id, UserID: user, OrderID: orderID, PaymentID: platform.Text(o, "payment_id"), Type: typ, Reason: reason, Status: constants.AftersaleStatusRequested, LinesJSON: string(lines), AmountCents: amount, ReplacementSKU: platform.Text(c.Data, "replacement_sku_id")}
+	row := &domain.Record{
+		ID:             id,
+		UserID:         user,
+		OrderID:        orderID,
+		PaymentID:      platform.Text(o, "payment_id"),
+		Type:           typ,
+		Reason:         reason,
+		Status:         constants.AftersaleStatusRequested,
+		LinesJSON:      string(lines),
+		AmountCents:    amount,
+		ReplacementSKU: platform.Text(c.Data, "replacement_sku_id"),
+	}
 	if row.ReplacementSKU != "" && len(requested) != 1 {
 		return nil, status.Error(codes.InvalidArgument, "replacement SKU requires a single original SKU")
 	}
 	if row.ReplacementSKU != "" && row.ReplacementSKU != requested[0].SKUID {
-		target, callErr := s.RPC.Call(ctx, constants.ServiceCatalog, platform.Command{Action: constants.ActionGet, ID: row.ReplacementSKU, UserID: user, Role: constants.RoleSystem})
+		target, callErr := s.RPC.Call(
+			ctx,
+			constants.ServiceCatalog,
+			platform.Command{
+				Action: constants.ActionGet,
+				ID:     row.ReplacementSKU,
+				UserID: user,
+				Role:   constants.RoleSystem,
+			},
+		)
 		if callErr != nil {
 			return nil, callErr
 		}
@@ -267,7 +343,10 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 			return nil, status.Error(codes.FailedPrecondition, "replacement SKU is inactive")
 		}
 		if platform.Int(target, "price_cents") != weights[requested[0].SKUID]/purchased[requested[0].SKUID] {
-			return nil, status.Error(codes.FailedPrecondition, "price-changing exchange requires a differential-payment workflow; this provider supports equal-price exchange")
+			return nil, status.Error(
+				codes.FailedPrecondition,
+				"price-changing exchange requires a differential-payment workflow; this provider supports equal-price exchange",
+			)
 		}
 	}
 	if err = s.Repo.Claim(ctx, row, purchased, payable); err != nil {
@@ -277,7 +356,8 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 }
 func (s *Service) inspect(ctx context.Context, c platform.Command, r *domain.Record) (platform.Result, error) {
 	condition := strings.ToLower(platform.Text(c.Data, "condition"))
-	if condition != constants.StockConditionSellable && condition != constants.StockConditionDamaged && condition != constants.StockConditionUnsellable {
+	if condition != constants.StockConditionSellable && condition != constants.StockConditionDamaged &&
+		condition != constants.StockConditionUnsellable {
 		return nil, status.Error(codes.InvalidArgument, "inspection condition required")
 	}
 	if r.Status == constants.AftersaleStatusInspected {
@@ -289,7 +369,14 @@ func (s *Service) inspect(ctx context.Context, c platform.Command, r *domain.Rec
 	if r.Type == constants.AftersaleTypeRefund {
 		return nil, status.Error(codes.FailedPrecondition, "refund-only has no return inspection")
 	}
-	r, err := s.Repo.Transition(ctx, r.ID, []string{constants.AftersaleStatusReturning}, constants.AftersaleStatusInspecting, map[string]any{"condition": condition}, nil)
+	r, err := s.Repo.Transition(
+		ctx,
+		r.ID,
+		[]string{constants.AftersaleStatusReturning},
+		constants.AftersaleStatusInspecting,
+		map[string]any{"condition": condition},
+		nil,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -300,12 +387,34 @@ func (s *Service) inspect(ctx context.Context, c platform.Command, r *domain.Rec
 	for _, line := range lines {
 		digest := sha256.Sum256([]byte(r.ID + ":" + line.SKUID))
 		receipt := fmt.Sprintf("inspection-%x", digest[:16])
-		_, err = s.RPC.Call(ctx, constants.ServiceFulfillment, platform.Command{Action: constants.ActionInspectReturn, ID: receipt, UserID: r.UserID, Role: constants.RoleSystem, Data: map[string]any{"order_id": r.OrderID, "sku_id": line.SKUID, "quantity": line.Quantity, "condition": r.Condition}})
+		_, err = s.RPC.Call(
+			ctx,
+			constants.ServiceFulfillment,
+			platform.Command{
+				Action: constants.ActionInspectReturn,
+				ID:     receipt,
+				UserID: r.UserID,
+				Role:   constants.RoleSystem,
+				Data: map[string]any{
+					"order_id":  r.OrderID,
+					"sku_id":    line.SKUID,
+					"quantity":  line.Quantity,
+					"condition": r.Condition,
+				},
+			},
+		)
 		if err != nil {
 			return nil, err
 		}
 	}
-	r, err = s.Repo.Transition(ctx, r.ID, []string{constants.AftersaleStatusInspecting}, constants.AftersaleStatusInspected, nil, nil)
+	r, err = s.Repo.Transition(
+		ctx,
+		r.ID,
+		[]string{constants.AftersaleStatusInspecting},
+		constants.AftersaleStatusInspected,
+		nil,
+		nil,
+	)
 	return platform.Map(r), err
 }
 func (s *Service) refund(ctx context.Context, r *domain.Record) (platform.Result, error) {
@@ -318,7 +427,11 @@ func (s *Service) refund(ctx context.Context, r *domain.Record) (platform.Result
 	if r.Type == constants.AftersaleTypeRefund {
 		// Revalidate stored applications too: earlier versions accepted partial
 		// refund-only requests, while the warehouse cancellation is order-wide.
-		o, err := s.RPC.Call(ctx, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: r.OrderID, UserID: r.UserID, Role: constants.RoleSystem})
+		o, err := s.RPC.Call(
+			ctx,
+			constants.ServiceOrder,
+			platform.Command{Action: constants.ActionGet, ID: r.OrderID, UserID: r.UserID, Role: constants.RoleSystem},
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -340,7 +453,10 @@ func (s *Service) refund(ctx context.Context, r *domain.Record) (platform.Result
 			requested[line.SKUID] += line.Quantity
 		}
 		if !wholeOrder(requested, purchased) {
-			return nil, status.Error(codes.FailedPrecondition, "partial refund before shipment requires partial warehouse cancellation; only whole-order refund is supported")
+			return nil, status.Error(
+				codes.FailedPrecondition,
+				"partial refund before shipment requires partial warehouse cancellation; only whole-order refund is supported",
+			)
 		}
 	}
 	allowed := []string{constants.AftersaleStatusInspected}
@@ -352,19 +468,52 @@ func (s *Service) refund(ctx context.Context, r *domain.Record) (platform.Result
 		return nil, err
 	}
 	if r.Type == constants.AftersaleTypeRefund {
-		if _, err = s.RPC.Call(ctx, constants.ServiceFulfillment, platform.Command{Action: constants.ActionCancel, ID: r.OrderID, UserID: r.UserID, Role: constants.RoleSystem}); err != nil {
+		if _, err = s.RPC.Call(
+			ctx,
+			constants.ServiceFulfillment,
+			platform.Command{
+				Action: constants.ActionCancel,
+				ID:     r.OrderID,
+				UserID: r.UserID,
+				Role:   constants.RoleSystem,
+			},
+		); err != nil {
 			return nil, err
 		}
 	}
 	refundID := "refund:" + r.ID
-	_, err = s.RPC.Call(ctx, constants.ServiceRefund, platform.Command{Action: constants.ActionCreate, ID: refundID, UserID: r.UserID, Role: constants.RoleSystem, IdempotencyKey: refundID, Data: map[string]any{"order_id": r.OrderID, "payment_id": r.PaymentID, "amount_cents": r.AmountCents, "reason": r.Reason, "aftersale_id": r.ID}})
+	_, err = s.RPC.Call(
+		ctx,
+		constants.ServiceRefund,
+		platform.Command{
+			Action:         constants.ActionCreate,
+			ID:             refundID,
+			UserID:         r.UserID,
+			Role:           constants.RoleSystem,
+			IdempotencyKey: refundID,
+			Data: map[string]any{
+				"order_id":     r.OrderID,
+				"payment_id":   r.PaymentID,
+				"amount_cents": r.AmountCents,
+				"reason":       r.Reason,
+				"aftersale_id": r.ID,
+			},
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
 	if latest, readErr := s.Repo.Get(ctx, r.ID); readErr == nil && latest.Status == constants.AftersaleStatusCompleted {
 		return platform.Map(latest), nil
 	}
-	r, err = s.Repo.Transition(ctx, r.ID, []string{constants.AftersaleStatusRefundRequested}, constants.AftersaleStatusRefunding, map[string]any{"refund_id": refundID}, nil)
+	r, err = s.Repo.Transition(
+		ctx,
+		r.ID,
+		[]string{constants.AftersaleStatusRefundRequested},
+		constants.AftersaleStatusRefunding,
+		map[string]any{"refund_id": refundID},
+		nil,
+	)
 	return platform.Map(r), err
 }
 
@@ -387,7 +536,14 @@ func (s *Service) exchange(ctx context.Context, r *domain.Record) (platform.Resu
 	if r.Status == constants.AftersaleStatusExchanging || r.Status == constants.AftersaleStatusCompleted {
 		return platform.Map(r), nil
 	}
-	r, err := s.Repo.Transition(ctx, r.ID, []string{constants.AftersaleStatusInspected}, constants.AftersaleStatusExchangePreparing, map[string]any{"replacement_id": r.ID + ":exchange"}, nil)
+	r, err := s.Repo.Transition(
+		ctx,
+		r.ID,
+		[]string{constants.AftersaleStatusInspected},
+		constants.AftersaleStatusExchangePreparing,
+		map[string]any{"replacement_id": r.ID + ":exchange"},
+		nil,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -399,7 +555,13 @@ func (s *Service) exchange(ctx context.Context, r *domain.Record) (platform.Resu
 		lines[0].SKUID = r.ReplacementSKU
 	}
 	id := r.ID + ":exchange"
-	command := platform.Command{Action: constants.ActionReserve, ID: id, UserID: r.UserID, Role: constants.RoleSystem, Data: map[string]any{"order_id": r.OrderID, "lines": lines}}
+	command := platform.Command{
+		Action: constants.ActionReserve,
+		ID:     id,
+		UserID: r.UserID,
+		Role:   constants.RoleSystem,
+		Data:   map[string]any{"order_id": r.OrderID, "lines": lines},
+	}
 	if _, err = s.RPC.Call(ctx, constants.ServiceInventory, command); err != nil {
 		return nil, err
 	}
@@ -408,9 +570,26 @@ func (s *Service) exchange(ctx context.Context, r *domain.Record) (platform.Resu
 	if _, err = s.RPC.Call(ctx, constants.ServiceInventory, command); err != nil {
 		return nil, err
 	}
-	if _, err = s.RPC.Call(ctx, constants.ServiceFulfillment, platform.Command{Action: constants.ActionCreateExchange, ID: id, UserID: r.UserID, Role: constants.RoleSystem, Data: map[string]any{"order_id": r.OrderID, "reservation_id": id, "lines": lines}}); err != nil {
+	if _, err = s.RPC.Call(
+		ctx,
+		constants.ServiceFulfillment,
+		platform.Command{
+			Action: constants.ActionCreateExchange,
+			ID:     id,
+			UserID: r.UserID,
+			Role:   constants.RoleSystem,
+			Data:   map[string]any{"order_id": r.OrderID, "reservation_id": id, "lines": lines},
+		},
+	); err != nil {
 		return nil, err
 	}
-	r, err = s.Repo.Transition(ctx, r.ID, []string{constants.AftersaleStatusExchangePreparing}, constants.AftersaleStatusExchanging, map[string]any{"replacement_id": id}, nil)
+	r, err = s.Repo.Transition(
+		ctx,
+		r.ID,
+		[]string{constants.AftersaleStatusExchangePreparing},
+		constants.AftersaleStatusExchanging,
+		map[string]any{"replacement_id": id},
+		nil,
+	)
 	return platform.Map(r), err
 }

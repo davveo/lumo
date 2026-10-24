@@ -43,7 +43,16 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 }
 func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
 	if e.Type == constants.EventRefundSucceeded {
-		_, err := s.Execute(ctx, platform.Command{Action: constants.ActionRefund, ID: e.AggregateID, UserID: e.UserID, Role: constants.RoleSystem, Data: e.Data})
+		_, err := s.Execute(
+			ctx,
+			platform.Command{
+				Action: constants.ActionRefund,
+				ID:     e.AggregateID,
+				UserID: e.UserID,
+				Role:   constants.RoleSystem,
+				Data:   e.Data,
+			},
+		)
 		return err
 	}
 	if e.Type == constants.EventOrderCompleted {
@@ -51,7 +60,16 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
 		if amount == 0 {
 			amount = platform.Int(e.Data, "payable_cents") / 100
 		}
-		_, err := s.Execute(ctx, platform.Command{Action: constants.ActionReward, ID: e.AggregateID, UserID: e.UserID, Role: constants.RoleSystem, Data: map[string]any{"amount": amount}})
+		_, err := s.Execute(
+			ctx,
+			platform.Command{
+				Action: constants.ActionReward,
+				ID:     e.AggregateID,
+				UserID: e.UserID,
+				Role:   constants.RoleSystem,
+				Data:   map[string]any{"amount": amount},
+			},
+		)
 		return err
 	}
 	return nil

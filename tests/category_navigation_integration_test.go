@@ -27,8 +27,14 @@ func navigationFixture(t *testing.T) string {
 			"id": entry.id, "category": entry.category, "label": entry.category + "导航", "title": entry.category,
 			"icon": "bag", "enabled": entry.enabled,
 			"shortcuts": []map[string]any{{"label": "全部" + entry.category, "query": ""}},
-			"rows":      []map[string]any{{"title": "运营分组", "query": "配置搜索词", "items": []map[string]any{{"label": "运营推荐词", "query": "实际搜索词", "featured": true}}}},
-			"brands":    []map[string]any{{"label": "运营品牌", "brand": "KnownBrand"}},
+			"rows": []map[string]any{
+				{
+					"title": "运营分组",
+					"query": "配置搜索词",
+					"items": []map[string]any{{"label": "运营推荐词", "query": "实际搜索词", "featured": true}},
+				},
+			},
+			"brands": []map[string]any{{"label": "运营品牌", "brand": "KnownBrand"}},
 		})
 	}
 	body, err := json.Marshal(map[string]any{"version": 1, "groups": groups})
@@ -50,7 +56,8 @@ func decodedNavigation(t *testing.T, document platform.Result) map[string]any {
 func navigationFragment(t *testing.T, rows []map[string]any) platform.Result {
 	t.Helper()
 	for _, row := range rows {
-		if row["service"] == "content" && row["action"] == "get" && platform.Text(platform.Map(row["command"]), "id") == categoryNavigationID {
+		if row["service"] == "content" && row["action"] == "get" &&
+			platform.Text(platform.Map(row["command"]), "id") == categoryNavigationID {
 			if row["auth"] != false || len(platform.Map(platform.Map(row["command"])["data"])) != 0 {
 				t.Fatalf("navigation fragment lost the exact public cache scope: %#v", row)
 			}
@@ -86,25 +93,42 @@ func TestCategoryNavigationHTTPConfigurationPersistsAndBootstrapsWithoutRepeated
 	counted.expectCount(t, "content", "list", 2) // storefront + FAQ are existing reads.
 	counted.expectCount(t, "content", "get", 0)
 
-	admin := platform.Text(h.call("", "iam", "login", "", "", map[string]any{"username": "admin", "password": "Admin@2026"}), "token")
-	user := platform.Text(h.call("", "iam", "login", "", "", map[string]any{"username": "demo", "password": "Lumo@2026"}), "token")
+	admin := platform.Text(
+		h.call("", "iam", "login", "", "", map[string]any{"username": "admin", "password": "Admin@2026"}),
+		"token",
+	)
+	user := platform.Text(
+		h.call("", "iam", "login", "", "", map[string]any{"username": "demo", "password": "Lumo@2026"}),
+		"token",
+	)
 	body := navigationFixture(t)
 	update := map[string]any{"kind": "storefront", "title": "后台分类导航", "body": body}
 	h.expect(401, "", "content", "upsert", categoryNavigationID, "", update)
 	h.expect(403, user, "content", "upsert", categoryNavigationID, "", update)
 	h.call(admin, "content", "upsert", categoryNavigationID, "", update)
-	h.expect(400, admin, "content", "upsert", categoryNavigationID, "", map[string]any{"kind": "storefront", "title": "非法分类", "body": `{"version":1,"groups":"wrong"}`})
+	h.expect(
+		400,
+		admin,
+		"content",
+		"upsert",
+		categoryNavigationID,
+		"",
+		map[string]any{"kind": "storefront", "title": "非法分类", "body": `{"version":1,"groups":"wrong"}`},
+	)
 
 	counted.reset()
 	boot = aggregateRows(t, h.call("", "storefront", "bootstrap", "", "", nil))
 	updated := decodedNavigation(t, navigationFragment(t, boot))
 	groups := updated["groups"].([]any)
-	if len(groups) != 3 || platform.Text(platform.Map(groups[0]), "id") != "second" || platform.Text(platform.Map(groups[2]), "id") != "first" || platform.Map(groups[1])["enabled"] != false {
+	if len(groups) != 3 || platform.Text(platform.Map(groups[0]), "id") != "second" ||
+		platform.Text(platform.Map(groups[2]), "id") != "first" ||
+		platform.Map(groups[1])["enabled"] != false {
 		t.Fatalf("backend ordering/disabled group was lost: %#v", groups)
 	}
 	first := platform.Map(groups[0])
 	brands := first["brands"].([]any)
-	if platform.Text(platform.Map(brands[0]), "brand") != "KnownBrand" || platform.Text(platform.Map(brands[0]), "label") != "运营品牌" {
+	if platform.Text(platform.Map(brands[0]), "brand") != "KnownBrand" ||
+		platform.Text(platform.Map(brands[0]), "label") != "运营品牌" {
 		t.Fatal("backend brand config was derived from current product page instead")
 	}
 	rows := first["rows"].([]any)
@@ -114,7 +138,8 @@ func TestCategoryNavigationHTTPConfigurationPersistsAndBootstrapsWithoutRepeated
 	}
 	counted.expectCount(t, "content", "get", 0)
 	for _, call := range counted.snapshot() {
-		if call.service == "content" && (call.command.Action == "get" || call.command.Action == "list") && (call.command.UserID != "" || call.command.Role != "") {
+		if call.service == "content" && (call.command.Action == "get" || call.command.Action == "list") &&
+			(call.command.UserID != "" || call.command.Role != "") {
 			t.Fatal("public configuration read inherited private identity")
 		}
 	}
@@ -149,12 +174,23 @@ func TestCategoryNavigationBootstrapFindsDocumentBeyondBoundedContentPage(t *tes
 	// Publish enough newer storefront pages to move the navigation document out
 	// of the existing 100-entry editor list. The BFF must not page-walk or lose it.
 	for index := 0; index < 101; index++ {
-		c.call(t, context.Background(), "content", "upsert", fmt.Sprintf("newer-storefront-%03d", index), "", "admin", "admin", map[string]any{"kind": "storefront", "title": "页面", "body": `{}`})
+		c.call(
+			t,
+			context.Background(),
+			"content",
+			"upsert",
+			fmt.Sprintf("newer-storefront-%03d", index),
+			"",
+			"admin",
+			"admin",
+			map[string]any{"kind": "storefront", "title": "页面", "body": `{}`},
+		)
 	}
 	counted.reset()
 	boot := aggregateRows(t, h.call("", "storefront", "bootstrap", "", "", nil))
 	document := navigationFragment(t, boot)
-	if platform.Text(document, "id") != categoryNavigationID || len(decodedNavigation(t, document)["groups"].([]any)) != 20 {
+	if platform.Text(document, "id") != categoryNavigationID ||
+		len(decodedNavigation(t, document)["groups"].([]any)) != 20 {
 		t.Fatal("bounded content list hid the category configuration")
 	}
 	counted.expectCount(t, "content", "list", 2)

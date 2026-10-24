@@ -39,7 +39,12 @@ func request(h http.Handler, path, body, token string) *httptest.ResponseRecorde
 }
 func TestBrowserCannotForgePrincipal(t *testing.T) {
 	f := &fakeCaller{role: "user"}
-	w := request(newHandler(f, true), "/api/v1/member/update", `{"user_id":"victim","role":"system","data":{"nickname":"safe"}}`, "valid")
+	w := request(
+		newHandler(f, true),
+		"/api/v1/member/update",
+		`{"user_id":"victim","role":"system","data":{"nickname":"safe"}}`,
+		"valid",
+	)
 	if w.Code != 200 {
 		t.Fatal(w.Code, w.Body.String())
 	}
@@ -51,7 +56,12 @@ func TestBrowserCannotForgePrincipal(t *testing.T) {
 func TestInternalAndAdminActionsBlocked(t *testing.T) {
 	f := &fakeCaller{role: "user"}
 	h := newHandler(f, true)
-	for _, p := range []string{"/api/v1/order/ready", "/api/v1/inventory/reserve", "/api/v1/refund/create", "/api/v1/payment/confirm_demo"} {
+	for _, p := range []string{
+		"/api/v1/order/ready",
+		"/api/v1/inventory/reserve",
+		"/api/v1/refund/create",
+		"/api/v1/payment/confirm_demo",
+	} {
 		w := request(h, p, `{"data":{}}`, "valid")
 		if w.Code != 403 {
 			t.Errorf("%s got %d", p, w.Code)
@@ -104,7 +114,12 @@ func TestIAMUsesBearerForCurrentRefreshAndLogout(t *testing.T) {
 
 func TestAdminReadListsCannotBeReadByCustomer(t *testing.T) {
 	h := newHandler(&fakeCaller{role: "user"}, true)
-	for _, path := range []string{"/api/v1/payment/list", "/api/v1/refund/list", "/api/v1/reconciliation/list", "/api/v1/analytics/list"} {
+	for _, path := range []string{
+		"/api/v1/payment/list",
+		"/api/v1/refund/list",
+		"/api/v1/reconciliation/list",
+		"/api/v1/analytics/list",
+	} {
 		w := request(h, path, `{}`, "valid")
 		if w.Code != 403 {
 			t.Fatalf("%s returned%d", path, w.Code)

@@ -79,14 +79,25 @@ func run() error {
 			}
 		}
 	}()
-	srv := &http.Server{Addr: env("HTTP_ADDR", "127.0.0.1:8080"), Handler: httpgateway.NewHandler(stack.RPC, true, env("FRONTEND_DIR", "web/dist")), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}
+	srv := &http.Server{
+		Addr:              env("HTTP_ADDR", "127.0.0.1:8080"),
+		Handler:           httpgateway.NewHandler(stack.RPC, true, env("FRONTEND_DIR", "web/dist")),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
 	go func() {
 		<-ctx.Done()
 		c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_ = srv.Shutdown(c)
 	}()
-	slog.Warn("DEVELOPMENT runtime: SQLite + TCP gRPC + durable local dispatcher; external infrastructure is not running", "addr", srv.Addr)
+	slog.Warn(
+		"DEVELOPMENT runtime: SQLite + TCP gRPC + durable local dispatcher; external infrastructure is not running",
+		"addr",
+		srv.Addr,
+	)
 	err = srv.ListenAndServe()
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil

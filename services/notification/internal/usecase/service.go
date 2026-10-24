@@ -21,13 +21,18 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	case constants.ActionList:
 		return s.list(ctx, c, c.UserID, constants.NotificationKindInbox, "")
 	case constants.ActionRead:
-		r, e := s.repo.Mutate(ctx, domain.Record{ID: c.ID}, false, func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
-			if e := own(c, *v); e != nil {
-				return nil, nil, e
-			}
-			v.Status = constants.NotificationStatusRead
-			return nil, nil, nil
-		})
+		r, e := s.repo.Mutate(
+			ctx,
+			domain.Record{ID: c.ID},
+			false,
+			func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
+				if e := own(c, *v); e != nil {
+					return nil, nil, e
+				}
+				v.Status = constants.NotificationStatusRead
+				return nil, nil, nil
+			},
+		)
 		if e != nil {
 			return nil, e
 		}
@@ -51,7 +56,20 @@ func (s *Service) event(ctx context.Context, e platform.Event) (traceErr error) 
 	if e.UserID == "" {
 		return nil
 	}
-	r := record(stable(e.ID, e.UserID, constants.NotificationKindInbox), e.UserID, constants.NotificationKindInbox, constants.NotificationStatusUnread, map[string]any{"event_id": e.ID, "event_type": e.Type, "business_id": e.AggregateID, "title": e.Type, "delivery_mode": constants.NotificationDeliveryModeInboxOnly, "external_delivery": constants.NotificationExternalDeliveryNotConfigured})
+	r := record(
+		stable(e.ID, e.UserID, constants.NotificationKindInbox),
+		e.UserID,
+		constants.NotificationKindInbox,
+		constants.NotificationStatusUnread,
+		map[string]any{
+			"event_id":          e.ID,
+			"event_type":        e.Type,
+			"business_id":       e.AggregateID,
+			"title":             e.Type,
+			"delivery_mode":     constants.NotificationDeliveryModeInboxOnly,
+			"external_delivery": constants.NotificationExternalDeliveryNotConfigured,
+		},
+	)
 	_, err := s.repo.InsertOnce(ctx, &r, nil)
 	return err
 }

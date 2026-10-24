@@ -16,14 +16,37 @@ func TestRestartDeliversDurablePaymentWithoutDoubleAllocation(t *testing.T) {
 	}
 	call := func(service, action, id, key, role, user string, data map[string]any) platform.Result {
 		t.Helper()
-		out, e := stack.RPC.Call(ctx, service, platform.Command{Action: action, ID: id, IdempotencyKey: key, Role: role, UserID: user, Data: data})
+		out, e := stack.RPC.Call(
+			ctx,
+			service,
+			platform.Command{Action: action, ID: id, IdempotencyKey: key, Role: role, UserID: user, Data: data},
+		)
 		if e != nil {
 			t.Fatalf("%s.%s %v", service, action, e)
 		}
 		return out
 	}
-	q := call("pricing", "quote", "", "", "user", "demo", map[string]any{"items": []any{map[string]any{"sku_id": "sku-watch", "quantity": 1}}})
-	order := call("checkout", "submit", "", "restart-order", "user", "demo", map[string]any{"quote_id": platform.Text(q, "quote_id"), "address": map[string]any{"recipient": "Demo", "phone": "13800000000", "address": "Integration street"}})
+	q := call(
+		"pricing",
+		"quote",
+		"",
+		"",
+		"user",
+		"demo",
+		map[string]any{"items": []any{map[string]any{"sku_id": "sku-watch", "quantity": 1}}},
+	)
+	order := call(
+		"checkout",
+		"submit",
+		"",
+		"restart-order",
+		"user",
+		"demo",
+		map[string]any{
+			"quote_id": platform.Text(q, "quote_id"),
+			"address":  map[string]any{"recipient": "Demo", "phone": "13800000000", "address": "Integration street"},
+		},
+	)
 	oid := platform.Text(order, "order_id")
 	p := call("payment", "create", oid, "", "user", "demo", nil)
 	call("payment", "confirm_demo", platform.Text(p, "id"), "", "admin", "admin", nil)

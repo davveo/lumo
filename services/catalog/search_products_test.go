@@ -16,7 +16,10 @@ import (
 
 func searchProducts(t *testing.T, module platform.Module, data map[string]any) []platform.Result {
 	t.Helper()
-	result, err := module.Handle(context.Background(), platform.Command{Action: "search_products", Role: "system", Data: data})
+	result, err := module.Handle(
+		context.Background(),
+		platform.Command{Action: "search_products", Role: "system", Data: data},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +31,18 @@ func TestProductSearchFiltersEntireCatalogBeforeBoundedPage(t *testing.T) {
 	old := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	now := old.AddDate(2, 0, 0)
 	for i := range 125 {
-		insertRecallProduct(t, db, fmt.Sprintf("recent-%03d", i), "常见无线耳机", "Common", "手机数码", "ACTIVE", "", true, now.Add(time.Duration(i)*time.Minute))
+		insertRecallProduct(
+			t,
+			db,
+			fmt.Sprintf("recent-%03d", i),
+			"常见无线耳机",
+			"Common",
+			"手机数码",
+			"ACTIVE",
+			"",
+			true,
+			now.Add(time.Duration(i)*time.Minute),
+		)
 	}
 	insertRecallProduct(t, db, "older-kettle", "恒温养生壶", "Quiet Studio", "生活电器", "ACTIVE", "", true, old)
 	insertRecallProduct(t, db, "other-category", "恒温养生壶", "Quiet Studio", "厨具餐具", "ACTIVE", "", true, now)
@@ -36,7 +50,17 @@ func TestProductSearchFiltersEntireCatalogBeforeBoundedPage(t *testing.T) {
 	insertRecallProduct(t, db, "disabled", "恒温养生壶", "Quiet Studio", "生活电器", "DISABLED", "", true, now)
 	insertRecallProduct(t, db, "child", "恒温养生壶", "Quiet Studio", "生活电器", "ACTIVE", "older-kettle", true, now)
 	insertRecallProduct(t, db, "hidden", "恒温养生壶", "Quiet Studio", "生活电器", "ACTIVE", "", false, now)
-	if err := db.Table("catalog_records").Create(map[string]any{"id": "broken", "kind": "sku", "parent_id": "", "status": "ACTIVE", "payload": "not JSON", "created_at": now, "updated_at": now}).Error; err != nil {
+	if err := db.Table("catalog_records").Create(
+		map[string]any{
+			"id":         "broken",
+			"kind":       "sku",
+			"parent_id":  "",
+			"status":     "ACTIVE",
+			"payload":    "not JSON",
+			"created_at": now,
+			"updated_at": now,
+		},
+	).Error; err != nil {
 		t.Fatal(err)
 	}
 	var queries atomic.Int64
@@ -45,11 +69,16 @@ func TestProductSearchFiltersEntireCatalogBeforeBoundedPage(t *testing.T) {
 			queries.Add(1)
 		}
 	})
-	rows := searchProducts(t, m, map[string]any{"query": "养生壶", "category": "生活电器", "brand": "Quiet Studio", "limit": 100})
+	rows := searchProducts(
+		t,
+		m,
+		map[string]any{"query": "养生壶", "category": "生活电器", "brand": "Quiet Studio", "limit": 100},
+	)
 	if queries.Load() != 1 || len(rows) != 1 || platform.Text(rows[0], "id") != "older-kettle" {
 		t.Fatalf("full-catalog AND constraints were not applied in one query: queries=%d rows=%v", queries.Load(), rows)
 	}
-	if platform.Text(rows[0], "image") != "product.png" || rows[0]["specs"] == nil || platform.Int(rows[0], "price_cents") != 12345 {
+	if platform.Text(rows[0], "image") != "product.png" || rows[0]["specs"] == nil ||
+		platform.Int(rows[0], "price_cents") != 12345 {
 		t.Fatalf("full product metadata lost: %v", rows)
 	}
 	rows = searchProducts(t, m, map[string]any{"category": "生活电器"})
@@ -66,17 +95,39 @@ func TestProductSearchSortsAcrossCatalogBeforeTakingLimit(t *testing.T) {
 	m, db := recallSetup(t)
 	old := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	for i := range 120 {
-		insertRecallProduct(t, db, fmt.Sprintf("new-%03d", i), "Product", "Brand", "电脑办公", "ACTIVE", "", true, old.AddDate(2, 0, 0).Add(time.Duration(i)*time.Minute))
+		insertRecallProduct(
+			t,
+			db,
+			fmt.Sprintf("new-%03d", i),
+			"Product",
+			"Brand",
+			"电脑办公",
+			"ACTIVE",
+			"",
+			true,
+			old.AddDate(2, 0, 0).Add(time.Duration(i)*time.Minute),
+		)
 	}
 	insertRecallProduct(t, db, "old-cheap", "Old Affordable", "Brand", "电脑办公", "ACTIVE", "", true, old)
 	insertRecallProduct(t, db, "old-expensive", "Old Premium", "Brand", "电脑办公", "ACTIVE", "", true, old)
-	if err := db.Table("catalog_records").Where("id = ?", "old-cheap").Update("payload", `{"name":"Old Affordable","category":"电脑办公","price_cents":100,"sales":99999}`).Error; err != nil {
+	if err := db.Table("catalog_records").Where("id = ?", "old-cheap").Update(
+		"payload",
+		`{"name":"Old Affordable","category":"电脑办公","price_cents":100,"sales":99999}`,
+	).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := db.Table("catalog_records").Where("id = ?", "old-expensive").Update("payload", `{"name":"Old Premium","category":"电脑办公","price_cents":9000000,"sales":1}`).Error; err != nil {
+	if err := db.Table("catalog_records").Where("id = ?", "old-expensive").Update(
+		"payload",
+		`{"name":"Old Premium","category":"电脑办公","price_cents":9000000,"sales":1}`,
+	).Error; err != nil {
 		t.Fatal(err)
 	}
-	for _, tc := range []struct{ sort, id string }{{"price_asc", "old-cheap"}, {"price_desc", "old-expensive"}, {"sales", "old-cheap"}, {"newest", "new-119"}} {
+	for _, tc := range []struct{ sort, id string }{
+		{"price_asc", "old-cheap"},
+		{"price_desc", "old-expensive"},
+		{"sales", "old-cheap"},
+		{"newest", "new-119"},
+	} {
 		rows := searchProducts(t, m, map[string]any{"category": "电脑办公", "sort": tc.sort, "limit": 1})
 		if len(rows) != 1 || platform.Text(rows[0], "id") != tc.id {
 			t.Fatalf("sort %s only reordered a truncated catalog: %v", tc.sort, rows)
@@ -107,13 +158,30 @@ func TestProductSearchValidatesInternalRoleAndBoundsBeforeSQL(t *testing.T) {
 	queries := 0
 	_ = db.Callback().Query().Before("gorm:query").Register("count-invalid-search", func(*gorm.DB) { queries++ })
 	for _, role := range []string{"", "user", "admin"} {
-		_, err := m.Handle(context.Background(), platform.Command{Action: "search_products", Role: role, Data: map[string]any{}})
+		_, err := m.Handle(
+			context.Background(),
+			platform.Command{Action: "search_products", Role: role, Data: map[string]any{}},
+		)
 		if status.Code(err) != codes.PermissionDenied {
 			t.Fatalf("non-system search allowed: %q %v", role, err)
 		}
 	}
-	for _, data := range []map[string]any{{"limit": -1}, {"limit": 101}, {"limit": 1.5}, {"query": strings.Repeat("长", 121)}, {"brand": strings.Repeat("a", 81)}, {"category": strings.Repeat("类", 81)}, {"category": "bad\x00"}, {"query": []string{"a"}}, {"sort": "price_cents; DROP TABLE catalog_records"}, {"user_id": "other"}} {
-		_, err := m.Handle(context.Background(), platform.Command{Action: "search_products", Role: "system", Data: data})
+	for _, data := range []map[string]any{
+		{"limit": -1},
+		{"limit": 101},
+		{"limit": 1.5},
+		{"query": strings.Repeat("长", 121)},
+		{"brand": strings.Repeat("a", 81)},
+		{"category": strings.Repeat("类", 81)},
+		{"category": "bad\x00"},
+		{"query": []string{"a"}},
+		{"sort": "price_cents; DROP TABLE catalog_records"},
+		{"user_id": "other"},
+	} {
+		_, err := m.Handle(
+			context.Background(),
+			platform.Command{Action: "search_products", Role: "system", Data: data},
+		)
 		if status.Code(err) != codes.InvalidArgument {
 			t.Fatalf("invalid search accepted: %v %v", data, err)
 		}

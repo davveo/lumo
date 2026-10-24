@@ -20,12 +20,42 @@ func (g *gateway) storefrontRecent(ctx context.Context, principal platform.Comma
 	if principal.ID != "" || len(principal.Data) != 0 {
 		return nil, status.Error(codes.InvalidArgument, "recent does not accept parameters")
 	}
-	plan := []readRequest{{Key: "recent-catalog", Service: constants.ServiceCatalog, Action: constants.ActionList, Command: readCommand{Data: map[string]any{"limit": 100}}}}
+	plan := []readRequest{
+		{
+			Key:     "recent-catalog",
+			Service: constants.ServiceCatalog,
+			Action:  constants.ActionList,
+			Command: readCommand{Data: map[string]any{"limit": 100}},
+		},
+	}
 	if principal.UserID != "" {
-		for _, kind := range []string{constants.EngagementKindHistory, constants.EngagementKindFavorite, constants.EngagementKindCompare, constants.EngagementKindSearch} {
-			plan = append(plan, readRequest{Key: "recent-" + kind, Service: constants.ServiceEngagement, Action: constants.ActionList, Command: readCommand{Data: map[string]any{"kind": kind, "limit": 100}}, auth: true})
+		for _, kind := range []string{
+			constants.EngagementKindHistory,
+			constants.EngagementKindFavorite,
+			constants.EngagementKindCompare,
+			constants.EngagementKindSearch,
+		} {
+			plan = append(
+				plan,
+				readRequest{
+					Key:     "recent-" + kind,
+					Service: constants.ServiceEngagement,
+					Action:  constants.ActionList,
+					Command: readCommand{Data: map[string]any{"kind": kind, "limit": 100}},
+					auth:    true,
+				},
+			)
 		}
-		plan = append(plan, readRequest{Key: "recent-orders", Service: constants.ServiceOrder, Action: constants.ActionList, Command: readCommand{Data: map[string]any{}}, auth: true})
+		plan = append(
+			plan,
+			readRequest{
+				Key:     "recent-orders",
+				Service: constants.ServiceOrder,
+				Action:  constants.ActionList,
+				Command: readCommand{Data: map[string]any{}},
+				auth:    true,
+			},
+		)
 	}
 	fragments := g.runReads(ctx, plan, principal)
 	stockReads := []readRequest{}
@@ -33,7 +63,15 @@ func (g *gateway) storefrontRecent(ctx context.Context, principal platform.Comma
 		if fragment["service"] == constants.ServiceCatalog && fragment["error"] == nil {
 			for _, row := range resultRows(platform.Map(fragment["data"])) {
 				if id := platform.Text(row, "id"); recentID(id) {
-					stockReads = append(stockReads, readRequest{Key: fmt.Sprintf("recent-stock-%d", len(stockReads)), Service: constants.ServiceInventory, Action: constants.ActionGet, Command: readCommand{ID: id, Data: map[string]any{}}})
+					stockReads = append(
+						stockReads,
+						readRequest{
+							Key:     fmt.Sprintf("recent-stock-%d", len(stockReads)),
+							Service: constants.ServiceInventory,
+							Action:  constants.ActionGet,
+							Command: readCommand{ID: id, Data: map[string]any{}},
+						},
+					)
 				}
 			}
 		}
@@ -64,7 +102,12 @@ type recentSnapshot struct {
 }
 
 func newRecentSnapshot() *recentSnapshot {
-	return &recentSnapshot{products: map[string]platform.Result{}, stocks: map[string]platform.Result{}, aliases: map[string]string{}, seen: map[string]bool{}}
+	return &recentSnapshot{
+		products: map[string]platform.Result{},
+		stocks:   map[string]platform.Result{},
+		aliases:  map[string]string{},
+		seen:     map[string]bool{},
+	}
 }
 
 func (s *recentSnapshot) product(row platform.Result) {
@@ -102,7 +145,12 @@ func (s *recentSnapshot) remember(fragments []platform.Result, principal platfor
 	for _, fragment := range fragments {
 		service, action := platform.Text(fragment, "service"), platform.Text(fragment, "action")
 		command := platform.Map(fragment["command"])
-		request := readRequest{Service: service, Action: action, Command: readCommand{ID: platform.Text(command, "id"), Data: platform.Map(command["data"])}, auth: fragment["auth"] == true}
+		request := readRequest{
+			Service: service,
+			Action:  action,
+			Command: readCommand{ID: platform.Text(command, "id"), Data: platform.Map(command["data"])},
+			auth:    fragment["auth"] == true,
+		}
 		s.seen[canonicalRead(request)] = true
 		failed := fragment["error"] != nil || fragment["data"] == nil
 		data := platform.Map(fragment["data"])
@@ -142,7 +190,8 @@ func (s *recentSnapshot) remember(fragments []platform.Result, principal platfor
 				s.stocks[id] = data
 			}
 		}
-		if service == constants.ServiceRecommendation && action == constants.ActionList && request.auth == (principal.UserID != "") {
+		if service == constants.ServiceRecommendation && action == constants.ActionList &&
+			request.auth == (principal.UserID != "") {
 			if failed {
 				s.degraded = true
 				continue
@@ -158,7 +207,9 @@ func (s *recentSnapshot) remember(fragments []platform.Result, principal platfor
 				s.stocks[platform.Text(stock, "sku_id")] = stock
 			}
 		}
-		if principal.UserID != "" && request.auth && ((service == constants.ServiceEngagement && action == constants.ActionList) || (service == constants.ServiceOrder && action == constants.ActionList)) {
+		if principal.UserID != "" && request.auth &&
+			((service == constants.ServiceEngagement && action == constants.ActionList) ||
+				(service == constants.ServiceOrder && action == constants.ActionList)) {
 			if failed {
 				s.degraded = true
 				continue
@@ -216,10 +267,20 @@ func recentVisible(row platform.Result) bool {
 // bootstrapRecent builds the entire rail from already-read account/public data.
 // Missing option/parent metadata and stock remain bounded bulk reads; no browser
 // per-item hydration or second account-profile/order read is needed.
-func (g *gateway) bootstrapRecent(ctx context.Context, fragments []platform.Result, principal platform.Command) []platform.Result {
+func (g *gateway) bootstrapRecent(
+	ctx context.Context,
+	fragments []platform.Result,
+	principal platform.Command,
+) []platform.Result {
 	snapshot := newRecentSnapshot()
 	snapshot.remember(fragments, principal)
-	query := readRequest{Key: "bootstrap-recent", Service: constants.ServiceStorefront, Action: constants.ActionRecent, Command: readCommand{Data: map[string]any{}}, auth: principal.UserID != ""}
+	query := readRequest{
+		Key:     "bootstrap-recent",
+		Service: constants.ServiceStorefront,
+		Action:  constants.ActionRecent,
+		Command: readCommand{Data: map[string]any{}},
+		auth:    principal.UserID != "",
+	}
 	if !snapshot.catalogOK && !snapshot.recommendationOK {
 		return append(fragments, readResult(query, nil, status.Error(codes.Unavailable, "recent catalog unavailable")))
 	}
@@ -229,12 +290,18 @@ func (g *gateway) bootstrapRecent(ctx context.Context, fragments []platform.Resu
 		}
 		reads := []readRequest{}
 		for _, id := range ids {
-			request := readRequest{Key: fmt.Sprintf("bootstrap-recent-%s-%d", service, len(fragments)+len(reads)), Service: service, Action: constants.ActionGet, Command: readCommand{ID: id, Data: map[string]any{}}}
+			request := readRequest{
+				Key:     fmt.Sprintf("bootstrap-recent-%s-%d", service, len(fragments)+len(reads)),
+				Service: service,
+				Action:  constants.ActionGet,
+				Command: readCommand{ID: id, Data: map[string]any{}},
+			}
 			key := canonicalRead(request)
 			if !recentID(id) || snapshot.seen[key] {
 				continue
 			}
-			if (service == constants.ServiceCatalog && snapshot.products[id] != nil) || (service == constants.ServiceInventory && snapshot.stocks[id] != nil) {
+			if (service == constants.ServiceCatalog && snapshot.products[id] != nil) ||
+				(service == constants.ServiceInventory && snapshot.stocks[id] != nil) {
 				continue
 			}
 			snapshot.seen[key] = true
@@ -278,7 +345,10 @@ func (g *gateway) bootstrapRecent(ctx context.Context, fragments []platform.Resu
 	for _, source := range []struct {
 		kind string
 		rows []platform.Result
-	}{{constants.RecommendationSourceHistory, snapshot.history}, {constants.RecommendationSourceFavorite, snapshot.favorites}} {
+	}{
+		{constants.RecommendationSourceHistory, snapshot.history},
+		{constants.RecommendationSourceFavorite, snapshot.favorites},
+	} {
 		for _, signal := range source.rows {
 			add(snapshot.products[snapshot.aliases[platform.Text(signal, "sku_id")]], source.kind)
 		}
@@ -314,16 +384,26 @@ func (g *gateway) bootstrapRecent(ctx context.Context, fragments []platform.Resu
 			}
 			row["recent_source"] = candidate.source
 			selected, inventory = append(selected, row), append(inventory, stock)
-			personalized = personalized || candidate.source == constants.RecommendationSourceHistory || candidate.source == constants.RecommendationSourceFavorite || (candidate.source == constants.RecommendationSourceRecommendation && snapshot.personalized)
+			personalized = personalized || candidate.source == constants.RecommendationSourceHistory ||
+				candidate.source == constants.RecommendationSourceFavorite ||
+				(candidate.source == constants.RecommendationSourceRecommendation && snapshot.personalized)
 		}
 	}
 	consume(0)
 	// A sparse/out-of-stock first page is not proof the catalog has <6 goods.
 	// Only scan more real pages when needed, preserving the normal bootstrap's
 	// single catalog read and inventory batch when its snapshot already suffices.
-	for len(selected) < bootstrapRecentLimit && !snapshot.exhausted && snapshot.catalogOK && !snapshot.inventoryFailed && ctx.Err() == nil {
+	for len(
+		selected,
+	) < bootstrapRecentLimit && !snapshot.exhausted && snapshot.catalogOK && !snapshot.inventoryFailed &&
+		ctx.Err() == nil {
 		before, offset, knownProducts := len(candidates), snapshot.offset, len(snapshot.products)
-		request := readRequest{Key: fmt.Sprintf("bootstrap-recent-page-%d", offset), Service: constants.ServiceCatalog, Action: constants.ActionList, Command: readCommand{Data: map[string]any{"limit": 100, "offset": offset}}}
+		request := readRequest{
+			Key:     fmt.Sprintf("bootstrap-recent-page-%d", offset),
+			Service: constants.ServiceCatalog,
+			Action:  constants.ActionList,
+			Command: readCommand{Data: map[string]any{"limit": 100, "offset": offset}},
+		}
 		loaded := g.runReads(ctx, []readRequest{request}, principal)
 		fragments = append(fragments, loaded...)
 		snapshot.remember(loaded, principal)
@@ -343,7 +423,14 @@ func (g *gateway) bootstrapRecent(ctx context.Context, fragments []platform.Resu
 	if ctx.Err() != nil {
 		return append(fragments, readResult(query, nil, status.FromContextError(ctx.Err()).Err()))
 	}
-	data := platform.Result{"items": selected, "inventory_items": inventory, "personalized": personalized, "degraded": snapshot.degraded, "limit": bootstrapRecentLimit, "count": len(selected)}
+	data := platform.Result{
+		"items":           selected,
+		"inventory_items": inventory,
+		"personalized":    personalized,
+		"degraded":        snapshot.degraded,
+		"limit":           bootstrapRecentLimit,
+		"count":           len(selected),
+	}
 	return append(fragments, readResult(query, data, nil))
 }
 

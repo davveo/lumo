@@ -59,7 +59,10 @@ func newOrderFixture(t *testing.T) *orderFixture {
 
 func (f *orderFixture) call(t *testing.T, action, id, user, role string, data map[string]any) platform.Result {
 	t.Helper()
-	result, err := f.m.Handle(context.Background(), platform.Command{Action: action, ID: id, UserID: user, Role: role, Data: data})
+	result, err := f.m.Handle(
+		context.Background(),
+		platform.Command{Action: action, ID: id, UserID: user, Role: role, Data: data},
+	)
 	if err != nil {
 		t.Fatalf("order.%s(%s): %v", action, id, err)
 	}
@@ -68,8 +71,21 @@ func (f *orderFixture) call(t *testing.T, action, id, user, role string, data ma
 
 func createOrderData(expiry time.Time, group string) map[string]any {
 	return map[string]any{
-		"quote": map[string]any{"id": "quote-one", "payable_cents": int64(1000), "coupon_id": "coupon-one", "points": int64(25), "group_id": group,
-			"items": []any{map[string]any{"sku_id": "coffee-blue", "product_id": "coffee", "quantity": int64(2), "unit_price_cents": int64(500)}}},
+		"quote": map[string]any{
+			"id":            "quote-one",
+			"payable_cents": int64(1000),
+			"coupon_id":     "coupon-one",
+			"points":        int64(25),
+			"group_id":      group,
+			"items": []any{
+				map[string]any{
+					"sku_id":           "coffee-blue",
+					"product_id":       "coffee",
+					"quantity":         int64(2),
+					"unit_price_cents": int64(500),
+				},
+			},
+		},
 		"address":    map[string]any{"recipient": "示例收货人", "address": "示例路 1 号", "phone": "13800000000"},
 		"expires_at": expiry.UTC().Format(time.RFC3339Nano), "source": "cart", "note": "保留快照",
 	}
@@ -125,7 +141,8 @@ func TestOrderCreationAndPendingRetriesPreserveSnapshotsAndEvents(t *testing.T) 
 	f := newOrderFixture(t)
 	expiry := time.Now().Add(time.Hour).UTC()
 	created := f.create(t, "retry-order", "buyer", "", expiry)
-	if platform.Text(created, "status") != "CREATING" || platform.Int(created, "version") != 1 || platform.Text(created, "reservation_id") != "retry-order" {
+	if platform.Text(created, "status") != "CREATING" || platform.Int(created, "version") != 1 ||
+		platform.Text(created, "reservation_id") != "retry-order" {
 		t.Fatalf("incorrect creation: %v", created)
 	}
 	retry := createOrderData(expiry, "")
@@ -137,7 +154,8 @@ func TestOrderCreationAndPendingRetriesPreserveSnapshotsAndEvents(t *testing.T) 
 	}
 	first := f.call(t, "pending", row.ID, "buyer", "system", nil)
 	second := f.call(t, "pending", row.ID, "buyer", "system", nil)
-	if platform.Int(first, "version") != 2 || platform.Int(second, "version") != 2 || platform.Text(second, "status") != "PENDING_PAYMENT" {
+	if platform.Int(first, "version") != 2 || platform.Int(second, "version") != 2 ||
+		platform.Text(second, "status") != "PENDING_PAYMENT" {
 		t.Fatalf("pending retry was not idempotent: %v / %v", first, second)
 	}
 	assertEventCount(t, f.events(t, row.ID), "OrderAwaitingPayment", 1)
@@ -148,13 +166,32 @@ func TestOrderRejectsCrossMemberAndUnauthorizedTransitions(t *testing.T) {
 	f.create(t, "private-order", "buyer", "", time.Now().Add(time.Hour))
 	f.create(t, "someone-else", "other", "", time.Now().Add(time.Hour))
 	for _, action := range []string{"get", "complete"} {
-		_, err := f.m.Handle(context.Background(), platform.Command{Action: action, ID: "private-order", UserID: "other", Role: "user"})
+		_, err := f.m.Handle(
+			context.Background(),
+			platform.Command{Action: action, ID: "private-order", UserID: "other", Role: "user"},
+		)
 		if status.Code(err) != codes.PermissionDenied {
 			t.Fatalf("cross-member %s: %v", action, err)
 		}
 	}
-	for _, action := range []string{"create", "pending", "create_failed", "accept_payment", "ready", "wait_group", "close_begin", "close_complete", "group_formed", "group_failed", "shipped", "refunded"} {
-		_, err := f.m.Handle(context.Background(), platform.Command{Action: action, ID: "private-order", UserID: "buyer", Role: "user"})
+	for _, action := range []string{
+		"create",
+		"pending",
+		"create_failed",
+		"accept_payment",
+		"ready",
+		"wait_group",
+		"close_begin",
+		"close_complete",
+		"group_formed",
+		"group_failed",
+		"shipped",
+		"refunded",
+	} {
+		_, err := f.m.Handle(
+			context.Background(),
+			platform.Command{Action: action, ID: "private-order", UserID: "buyer", Role: "user"},
+		)
 		if status.Code(err) != codes.PermissionDenied {
 			t.Fatalf("public internal transition %s: %v", action, err)
 		}
@@ -180,7 +217,10 @@ func TestOrderRejectsCrossMemberAndUnauthorizedTransitions(t *testing.T) {
 			t.Fatal("list exposed another member")
 		}
 	}
-	_, err := f.m.Handle(context.Background(), platform.Command{Action: "not-an-order-method", ID: "private-order", UserID: "buyer", Role: "system"})
+	_, err := f.m.Handle(
+		context.Background(),
+		platform.Command{Action: "not-an-order-method", ID: "private-order", UserID: "buyer", Role: "system"},
+	)
 	if status.Code(err) != codes.Unimplemented {
 		t.Fatalf("unknown legacy action must remain unsupported: %v", err)
 	}
@@ -190,7 +230,18 @@ func (f *orderFixture) pay(t *testing.T, id string) {
 	t.Helper()
 	f.call(t, "pending", id, "buyer", "system", nil)
 	for range 2 {
-		result := f.call(t, "accept_payment", id, "buyer", "system", map[string]any{"payment_id": "payment-" + id, "amount_cents": int64(1000), "paid_at": time.Now().UTC().Format(time.RFC3339Nano)})
+		result := f.call(
+			t,
+			"accept_payment",
+			id,
+			"buyer",
+			"system",
+			map[string]any{
+				"payment_id":   "payment-" + id,
+				"amount_cents": int64(1000),
+				"paid_at":      time.Now().UTC().Format(time.RFC3339Nano),
+			},
+		)
 		if result["accepted"] != true || platform.Text(result, "status") != "PAID_CONFIRMING" {
 			t.Fatalf("payment did not bind: %v", result)
 		}
@@ -217,7 +268,8 @@ func TestOrderReadyShipmentAndCompletionAreIdempotent(t *testing.T) {
 	assertEventCount(t, events, "OrderReadyToFulfill", 1)
 	assertEventCount(t, events, "OrderCompleted", 1)
 	for _, event := range events {
-		if event.Type == "OrderReadyToFulfill" && (platform.Text(event.Data, "reservation_id") != row.ID || len(event.Data["items"].([]any)) != 1) {
+		if event.Type == "OrderReadyToFulfill" &&
+			(platform.Text(event.Data, "reservation_id") != row.ID || len(event.Data["items"].([]any)) != 1) {
 			t.Fatalf("fulfillment event lost order items: %+v", event)
 		}
 	}
@@ -232,11 +284,17 @@ func TestOrderGroupEventsRespectResourceCommitAndFailureBoundaries(t *testing.T)
 		t.Fatalf("resources should wait for group: %+v", row)
 	}
 	assertEventCount(t, f.events(t, "group-winner"), "OrderReadyToFulfill", 0)
-	if err := f.m.OnEvent(context.Background(), platform.Event{Type: "GroupFormed", Data: map[string]any{"order_ids": []string{"group-winner"}}}); err != nil {
+	if err := f.m.OnEvent(
+		context.Background(),
+		platform.Event{Type: "GroupFormed", Data: map[string]any{"order_ids": []string{"group-winner"}}},
+	); err != nil {
 		t.Fatal(err)
 	}
 	f.call(t, "ready", "group-winner", "buyer", "system", nil)
-	for _, event := range []platform.Event{{Type: "ShipmentDispatched", Data: map[string]any{"order_id": "group-winner", "kind": "EXCHANGE"}}, {Type: "DeliveryConfirmed", Data: map[string]any{"order_id": "group-winner", "kind": "EXCHANGE"}}} {
+	for _, event := range []platform.Event{
+		{Type: "ShipmentDispatched", Data: map[string]any{"order_id": "group-winner", "kind": "EXCHANGE"}},
+		{Type: "DeliveryConfirmed", Data: map[string]any{"order_id": "group-winner", "kind": "EXCHANGE"}},
+	} {
 		event.UserID = "buyer"
 		if err := f.m.OnEvent(context.Background(), event); err != nil {
 			t.Fatal(err)
@@ -247,21 +305,35 @@ func TestOrderGroupEventsRespectResourceCommitAndFailureBoundaries(t *testing.T)
 	}
 	f.call(t, "shipped", "group-winner", "buyer", "system", nil)
 	before := f.row(t, "group-winner")
-	if _, err := f.m.Handle(context.Background(), platform.Command{Action: "group_failed", ID: before.ID, UserID: "buyer", Role: "system"}); status.Code(err) != codes.FailedPrecondition {
+	if _, err := f.m.Handle(
+		context.Background(),
+		platform.Command{Action: "group_failed", ID: before.ID, UserID: "buyer", Role: "system"},
+	); status.Code(
+		err,
+	) != codes.FailedPrecondition {
 		t.Fatalf("dispatched group order was failed: %v", err)
 	}
-	if after := f.row(t, before.ID); after.Status != before.Status || after.Version != before.Version || after.GroupFailed {
+	if after := f.row(t, before.ID); after.Status != before.Status || after.Version != before.Version ||
+		after.GroupFailed {
 		t.Fatalf("rejected failure partially changed the order: %+v", after)
 	}
 	f.create(t, "group-loser", "buyer", "team-two", time.Now().Add(time.Hour))
 	f.pay(t, "group-loser")
-	if err := f.m.OnEvent(context.Background(), platform.Event{Type: "GroupFailed", Data: map[string]any{"order_id": "group-loser"}}); err != nil {
+	if err := f.m.OnEvent(
+		context.Background(),
+		platform.Event{Type: "GroupFailed", Data: map[string]any{"order_id": "group-loser"}},
+	); err != nil {
 		t.Fatal(err)
 	}
 	if row := f.row(t, "group-loser"); row.Status != "TERMINATED" || !row.GroupFailed {
 		t.Fatalf("failed group was not terminated: %+v", row)
 	}
-	if _, err := f.m.Handle(context.Background(), platform.Command{Action: "ready", ID: "group-loser", UserID: "buyer", Role: "system"}); status.Code(err) != codes.FailedPrecondition {
+	if _, err := f.m.Handle(
+		context.Background(),
+		platform.Command{Action: "ready", ID: "group-loser", UserID: "buyer", Role: "system"},
+	); status.Code(
+		err,
+	) != codes.FailedPrecondition {
 		t.Fatalf("failed group became fulfillable: %v", err)
 	}
 	assertEventCount(t, f.events(t, "group-loser"), "GroupOrderTerminated", 1)
@@ -272,17 +344,40 @@ func TestOrderPaymentCloseRaceAndDeadlineRemainAuthoritative(t *testing.T) {
 	f.create(t, "closing", "buyer", "", time.Now().Add(time.Hour))
 	f.call(t, "pending", "closing", "buyer", "system", nil)
 	f.call(t, "close_begin", "closing", "buyer", "system", nil)
-	accepted := f.call(t, "accept_payment", "closing", "buyer", "system", map[string]any{"payment_id": "payment-closing", "amount_cents": int64(1000)})
+	accepted := f.call(
+		t,
+		"accept_payment",
+		"closing",
+		"buyer",
+		"system",
+		map[string]any{"payment_id": "payment-closing", "amount_cents": int64(1000)},
+	)
 	if accepted["accepted"] != true || platform.Text(accepted, "status") != "PAID_CONFIRMING" {
 		t.Fatalf("a valid capture lost the close race: %v", accepted)
 	}
-	if _, err := f.m.Handle(context.Background(), platform.Command{Action: "close_complete", ID: "closing", UserID: "buyer", Role: "system"}); status.Code(err) != codes.FailedPrecondition {
+	if _, err := f.m.Handle(
+		context.Background(),
+		platform.Command{Action: "close_complete", ID: "closing", UserID: "buyer", Role: "system"},
+	); status.Code(
+		err,
+	) != codes.FailedPrecondition {
 		t.Fatalf("accepted payment was closed: %v", err)
 	}
 	f.create(t, "expired", "buyer", "", time.Now().Add(-time.Minute))
 	f.call(t, "pending", "expired", "buyer", "system", nil)
 	for range 2 {
-		result := f.call(t, "accept_payment", "expired", "buyer", "system", map[string]any{"payment_id": "late-capture", "amount_cents": int64(1000), "paid_at": time.Now().UTC().Format(time.RFC3339Nano)})
+		result := f.call(
+			t,
+			"accept_payment",
+			"expired",
+			"buyer",
+			"system",
+			map[string]any{
+				"payment_id":   "late-capture",
+				"amount_cents": int64(1000),
+				"paid_at":      time.Now().UTC().Format(time.RFC3339Nano),
+			},
+		)
 		if result["accepted"] != false || platform.Text(result, "status") != "CLOSED" {
 			t.Fatalf("late payment revived expired order: %v", result)
 		}
@@ -302,11 +397,21 @@ func TestOrderRefundReceiptsDeduplicateAndRejectedAmountsRollBack(t *testing.T) 
 	receipt := map[string]any{"refund_id": "receipt-one", "amount_cents": int64(600)}
 	first := f.call(t, "refunded", "refundable", "buyer", "system", receipt)
 	second := f.call(t, "refunded", "refundable", "buyer", "system", receipt)
-	if platform.Int(first, "refunded_total_cents") != 600 || platform.Int(second, "version") != platform.Int(first, "version") {
+	if platform.Int(first, "refunded_total_cents") != 600 ||
+		platform.Int(second, "version") != platform.Int(first, "version") {
 		t.Fatalf("duplicate receipt changed refund balance: %v / %v", first, second)
 	}
 	before := f.row(t, "refundable")
-	_, err := f.m.Handle(context.Background(), platform.Command{Action: "refunded", ID: before.ID, UserID: "buyer", Role: "system", Data: map[string]any{"refund_id": "too-large", "amount_cents": int64(401)}})
+	_, err := f.m.Handle(
+		context.Background(),
+		platform.Command{
+			Action: "refunded",
+			ID:     before.ID,
+			UserID: "buyer",
+			Role:   "system",
+			Data:   map[string]any{"refund_id": "too-large", "amount_cents": int64(401)},
+		},
+	)
 	if status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("refund over capture accepted: %v", err)
 	}
@@ -314,10 +419,18 @@ func TestOrderRefundReceiptsDeduplicateAndRejectedAmountsRollBack(t *testing.T) 
 		t.Fatalf("rejected refund partially updated row: %+v", after)
 	}
 	var count int64
-	if err := f.db.Model(&domain.RefundReceipt{}).Where("id = ?", "too-large").Count(&count).Error; err != nil || count != 0 {
+	if err := f.db.Model(&domain.RefundReceipt{}).Where("id = ?", "too-large").Count(&count).Error; err != nil ||
+		count != 0 {
 		t.Fatalf("rejected refund left a receipt: %d %v", count, err)
 	}
-	f.call(t, "refunded", before.ID, "buyer", "system", map[string]any{"refund_id": "receipt-two", "amount_cents": int64(400)})
+	f.call(
+		t,
+		"refunded",
+		before.ID,
+		"buyer",
+		"system",
+		map[string]any{"refund_id": "receipt-two", "amount_cents": int64(400)},
+	)
 	if row := f.row(t, before.ID); row.Refunded != row.Payable {
 		t.Fatalf("exact capture total should be allowed: %+v", row)
 	}
@@ -326,10 +439,15 @@ func TestOrderRefundReceiptsDeduplicateAndRejectedAmountsRollBack(t *testing.T) 
 func TestOrderMutationAndOutboxFailureRollBackTogether(t *testing.T) {
 	f := newOrderFixture(t)
 	f.create(t, "atomic", "buyer", "", time.Now().Add(time.Hour))
-	if err := f.db.Exec(`CREATE TRIGGER reject_pending_event BEFORE INSERT ON outboxes WHEN NEW.event_type = 'OrderAwaitingPayment' BEGIN SELECT RAISE(ABORT, 'test outbox failure'); END`).Error; err != nil {
+	if err := f.db.Exec(
+		`CREATE TRIGGER reject_pending_event BEFORE INSERT ON outboxes WHEN NEW.event_type = 'OrderAwaitingPayment' BEGIN SELECT RAISE(ABORT, 'test outbox failure'); END`,
+	).Error; err != nil {
 		t.Fatal(err)
 	}
-	if _, err := f.m.Handle(context.Background(), platform.Command{Action: "pending", ID: "atomic", UserID: "buyer", Role: "system"}); err == nil {
+	if _, err := f.m.Handle(
+		context.Background(),
+		platform.Command{Action: "pending", ID: "atomic", UserID: "buyer", Role: "system"},
+	); err == nil {
 		t.Fatal("outbox failure was swallowed")
 	}
 	if row := f.row(t, "atomic"); row.Status != "CREATING" || row.Version != 1 {
@@ -345,10 +463,21 @@ func TestOrderMutationAndOutboxFailureRollBackTogether(t *testing.T) {
 	assertEventCount(t, f.events(t, "atomic"), "OrderAwaitingPayment", 1)
 	f.pay(t, "atomic")
 	before := f.row(t, "atomic")
-	if err := f.db.Exec(`CREATE TRIGGER reject_refund_update BEFORE UPDATE ON orders WHEN NEW.refunded > OLD.refunded BEGIN SELECT RAISE(ABORT, 'test order save failure'); END`).Error; err != nil {
+	if err := f.db.Exec(
+		`CREATE TRIGGER reject_refund_update BEFORE UPDATE ON orders WHEN NEW.refunded > OLD.refunded BEGIN SELECT RAISE(ABORT, 'test order save failure'); END`,
+	).Error; err != nil {
 		t.Fatal(err)
 	}
-	_, err := f.m.Handle(context.Background(), platform.Command{Action: "refunded", ID: "atomic", UserID: "buyer", Role: "system", Data: map[string]any{"refund_id": "rolled-back-receipt", "amount_cents": int64(100)}})
+	_, err := f.m.Handle(
+		context.Background(),
+		platform.Command{
+			Action: "refunded",
+			ID:     "atomic",
+			UserID: "buyer",
+			Role:   "system",
+			Data:   map[string]any{"refund_id": "rolled-back-receipt", "amount_cents": int64(100)},
+		},
+	)
 	if err == nil {
 		t.Fatal("failed order save was swallowed")
 	}
@@ -356,7 +485,10 @@ func TestOrderMutationAndOutboxFailureRollBackTogether(t *testing.T) {
 		t.Fatalf("failed refund save left a partial order mutation: %+v", row)
 	}
 	var receipts int64
-	if err := f.db.Model(&domain.RefundReceipt{}).Where("id = ?", "rolled-back-receipt").Count(&receipts).Error; err != nil || receipts != 0 {
+	if err := f.db.Model(&domain.RefundReceipt{}).Where("id = ?", "rolled-back-receipt").Count(
+		&receipts,
+	).Error; err != nil ||
+		receipts != 0 {
 		t.Fatalf("refund receipt escaped its failed order transaction: %d %v", receipts, err)
 	}
 }
@@ -370,7 +502,10 @@ func TestOrderTickDelegatesExpirationToCheckout(t *testing.T) {
 	if err := f.m.Tick(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	if len(f.rpc.commands) != 1 || f.rpc.services[0] != "checkout" || f.rpc.commands[0].Action != "cancel" || f.rpc.commands[0].ID != "expired-unpaid" || f.rpc.commands[0].UserID != "buyer" || f.rpc.commands[0].Role != "system" {
+	if len(f.rpc.commands) != 1 || f.rpc.services[0] != "checkout" || f.rpc.commands[0].Action != "cancel" ||
+		f.rpc.commands[0].ID != "expired-unpaid" ||
+		f.rpc.commands[0].UserID != "buyer" ||
+		f.rpc.commands[0].Role != "system" {
 		t.Fatalf("expiration bypassed checkout resource release: %+v %+v", f.rpc.services, f.rpc.commands)
 	}
 	if row := f.row(t, "expired-unpaid"); row.Status != "PENDING_PAYMENT" {

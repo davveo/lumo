@@ -64,6 +64,13 @@ func (r *Repository) Expired(ctx context.Context) ([]domain.Order, error) {
 	ctx, s := platform.Start(ctx, "order.repository.Expired")
 	defer s.End()
 	var rows []domain.Order
-	err := r.db.WithContext(ctx).Where("status IN ? AND expires_at < CURRENT_TIMESTAMP", []string{constants.OrderStatusPendingPayment, constants.OrderStatusClosing}).Limit(30).Find(&rows).Error
+	err := r.db.WithContext(ctx).
+		Where(
+			"status IN ? AND expires_at < CURRENT_TIMESTAMP",
+			[]string{constants.OrderStatusPendingPayment, constants.OrderStatusClosing},
+		).
+		Limit(30).
+		Find(&rows).
+		Error
 	return rows, err
 }

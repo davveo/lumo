@@ -32,20 +32,50 @@ func recallSetup(t *testing.T) (platform.Module, *gorm.DB) {
 	return m, db
 }
 
-func insertRecallProduct(t *testing.T, db *gorm.DB, id, name, brand, category, state, parent string, visible bool, created time.Time) {
+func insertRecallProduct(
+	t *testing.T,
+	db *gorm.DB,
+	id, name, brand, category, state, parent string,
+	visible bool,
+	created time.Time,
+) {
 	t.Helper()
-	data, err := json.Marshal(map[string]any{"name": name, "brand": brand, "category": category, "price_cents": 12345, "image": "product.png", "catalog_visible": visible, "specs": map[string]any{"material": "cotton"}})
+	data, err := json.Marshal(
+		map[string]any{
+			"name":            name,
+			"brand":           brand,
+			"category":        category,
+			"price_cents":     12345,
+			"image":           "product.png",
+			"catalog_visible": visible,
+			"specs":           map[string]any{"material": "cotton"},
+		},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = db.Table("catalog_records").Create(map[string]any{"id": id, "user_id": "", "parent_id": parent, "kind": "sku", "status": state, "payload": string(data), "created_at": created, "updated_at": created}).Error; err != nil {
+	if err = db.Table("catalog_records").Create(
+		map[string]any{
+			"id":         id,
+			"user_id":    "",
+			"parent_id":  parent,
+			"kind":       "sku",
+			"status":     state,
+			"payload":    string(data),
+			"created_at": created,
+			"updated_at": created,
+		},
+	).Error; err != nil {
 		t.Fatal(err)
 	}
 }
 
 func recallItems(t *testing.T, m platform.Module, data map[string]any) []platform.Result {
 	t.Helper()
-	result, err := m.Handle(context.Background(), platform.Command{Action: "recommendation_candidates", Role: "system", Data: data})
+	result, err := m.Handle(
+		context.Background(),
+		platform.Command{Action: "recommendation_candidates", Role: "system", Data: data},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +87,18 @@ func TestRecommendationRecallFindsOlderInterestsWithoutNPlusOne(t *testing.T) {
 	old := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	newer := old.AddDate(2, 0, 0)
 	for i := range 120 {
-		insertRecallProduct(t, db, fmt.Sprintf("new-%03d", i), "Recent Phone", "Common", "手机数码", "ACTIVE", "", true, newer.Add(time.Duration(i)*time.Minute))
+		insertRecallProduct(
+			t,
+			db,
+			fmt.Sprintf("new-%03d", i),
+			"Recent Phone",
+			"Common",
+			"手机数码",
+			"ACTIVE",
+			"",
+			true,
+			newer.Add(time.Duration(i)*time.Minute),
+		)
 	}
 	insertRecallProduct(t, db, "old-apple", "Apple Tablet", "Apple", "手机数码", "ACTIVE", "", true, old)
 	insertRecallProduct(t, db, "old-rare", "Rare Headphones", "Rare Audio", "音频设备", "ACTIVE", "", true, old)
@@ -65,7 +106,17 @@ func TestRecommendationRecallFindsOlderInterestsWithoutNPlusOne(t *testing.T) {
 	insertRecallProduct(t, db, "disabled", "独特搜索词 产品", "Rare Audio", "手机数码", "DISABLED", "", true, newer)
 	insertRecallProduct(t, db, "child", "独特搜索词 产品", "Rare Audio", "手机数码", "ACTIVE", "old-rare", true, newer)
 	insertRecallProduct(t, db, "hidden", "独特搜索词 产品", "Rare Audio", "手机数码", "ACTIVE", "", false, newer)
-	if err := db.Table("catalog_records").Create(map[string]any{"id": "policy", "kind": "policy", "parent_id": "", "status": "ACTIVE", "payload": `{"brand":"Rare Audio"}`, "created_at": newer, "updated_at": newer}).Error; err != nil {
+	if err := db.Table("catalog_records").Create(
+		map[string]any{
+			"id":         "policy",
+			"kind":       "policy",
+			"parent_id":  "",
+			"status":     "ACTIVE",
+			"payload":    `{"brand":"Rare Audio"}`,
+			"created_at": newer,
+			"updated_at": newer,
+		},
+	).Error; err != nil {
 		t.Fatal(err)
 	}
 	list, err := m.Handle(context.Background(), platform.Command{Action: "list", Data: map[string]any{"limit": 100}})
@@ -85,7 +136,12 @@ func TestRecommendationRecallFindsOlderInterestsWithoutNPlusOne(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	data := map[string]any{"categories": []string{"手机数码"}, "brands": []string{"Apple", "Rare Audio"}, "queries": []string{"独特搜索词"}, "limit": 12}
+	data := map[string]any{
+		"categories": []string{"手机数码"},
+		"brands":     []string{"Apple", "Rare Audio"},
+		"queries":    []string{"独特搜索词"},
+		"limit":      12,
+	}
 	rows := recallItems(t, m, data)
 	if queries.Load() != 3 || len(rows) > 12 {
 		t.Fatalf("recall must execute at most three channel reads: queries=%d rows=%d", queries.Load(), len(rows))
@@ -99,7 +155,8 @@ func TestRecommendationRecallFindsOlderInterestsWithoutNPlusOne(t *testing.T) {
 		}
 		got[id] = true
 		ids = append(ids, id)
-		if platform.Int(row, "price_cents") != 12345 || platform.Text(row, "image") != "product.png" || row["specs"] == nil {
+		if platform.Int(row, "price_cents") != 12345 || platform.Text(row, "image") != "product.png" ||
+			row["specs"] == nil {
 			t.Fatalf("candidate metadata was truncated: %v", row)
 		}
 	}
@@ -128,7 +185,15 @@ func TestRecommendationRecallBoundsValidationAndSystemAuthorization(t *testing.T
 		t.Fatalf("empty interests queried the whole catalog: %v queries=%d", rows, queries)
 	}
 	for _, role := range []string{"", "user", "admin"} {
-		_, err := m.Handle(context.Background(), platform.Command{Action: "recommendation_candidates", Role: role, UserID: "buyer", Data: map[string]any{"categories": []string{"phone"}}})
+		_, err := m.Handle(
+			context.Background(),
+			platform.Command{
+				Action: "recommendation_candidates",
+				Role:   role,
+				UserID: "buyer",
+				Data:   map[string]any{"categories": []string{"phone"}},
+			},
+		)
 		if status.Code(err) != codes.PermissionDenied {
 			t.Fatalf("non-system recall accepted: role=%q err=%v", role, err)
 		}
@@ -142,7 +207,10 @@ func TestRecommendationRecallBoundsValidationAndSystemAuthorization(t *testing.T
 		{"queries": []string{strings.Repeat("q", 81)}},
 		{"categories": "phone"}, {"unknown": true},
 	} {
-		_, err := m.Handle(context.Background(), platform.Command{Action: "recommendation_candidates", Role: "system", Data: data})
+		_, err := m.Handle(
+			context.Background(),
+			platform.Command{Action: "recommendation_candidates", Role: "system", Data: data},
+		)
 		if status.Code(err) != codes.InvalidArgument {
 			t.Fatalf("invalid recall accepted: %v err=%v", data, err)
 		}
@@ -152,7 +220,14 @@ func TestRecommendationRecallBoundsValidationAndSystemAuthorization(t *testing.T
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	_, err := m.Handle(ctx, platform.Command{Action: "recommendation_candidates", Role: "system", Data: map[string]any{"categories": []string{"phone"}}})
+	_, err := m.Handle(
+		ctx,
+		platform.Command{
+			Action: "recommendation_candidates",
+			Role:   "system",
+			Data:   map[string]any{"categories": []string{"phone"}},
+		},
+	)
 	if status.Code(err) != codes.Canceled {
 		t.Fatalf("recall ignored caller cancellation: %v", err)
 	}
@@ -196,7 +271,14 @@ func TestRecommendationRecallKeepsHealthyLaneWhenAnotherTimesOut(t *testing.T) {
 		t.Fatal(err)
 	}
 	started := time.Now()
-	result, err := m.Handle(context.Background(), platform.Command{Action: "recommendation_candidates", Role: "system", Data: map[string]any{"categories": []string{"服饰箱包"}, "brands": []string{"Rare"}}})
+	result, err := m.Handle(
+		context.Background(),
+		platform.Command{
+			Action: "recommendation_candidates",
+			Role:   "system",
+			Data:   map[string]any{"categories": []string{"服饰箱包"}, "brands": []string{"Rare"}},
+		},
+	)
 	if err != nil {
 		t.Fatal("a failed optional lane discarded successful recall", err)
 	}

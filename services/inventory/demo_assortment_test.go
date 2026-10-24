@@ -24,7 +24,15 @@ func TestDemoAssortmentStockSeedPreservesCommittedResourcesAndLedger(t *testing.
 		}
 	}
 	must(t, module, "adjust", ids[0], "admin", "admin", map[string]any{"on_hand": 7})
-	must(t, module, "reserve", "demo-seed-preserve", "buyer", "system", map[string]any{"order_id": "demo-seed-order", "lines": []map[string]any{{"sku_id": ids[0], "quantity": 2}}})
+	must(
+		t,
+		module,
+		"reserve",
+		"demo-seed-preserve",
+		"buyer",
+		"system",
+		map[string]any{"order_id": "demo-seed-order", "lines": []map[string]any{{"sku_id": ids[0], "quantity": 2}}},
+	)
 	must(t, module, "confirm", "demo-seed-preserve", "buyer", "system", nil)
 	must(t, module, "adjust", ids[1], "admin", "admin", map[string]any{"on_hand": 0})
 	var beforeCount int64
@@ -35,7 +43,9 @@ func TestDemoAssortmentStockSeedPreservesCommittedResourcesAndLedger(t *testing.
 		t.Fatal(err)
 	}
 	stock := must(t, module, "get", ids[0], "", "", nil)
-	if platform.Int(stock, "on_hand") != 7 || platform.Int(stock, "allocated") != 2 || platform.Int(stock, "reserved") != 0 || platform.Int(stock, "available") != 5 {
+	if platform.Int(stock, "on_hand") != 7 || platform.Int(stock, "allocated") != 2 ||
+		platform.Int(stock, "reserved") != 0 ||
+		platform.Int(stock, "available") != 5 {
 		t.Fatalf("seed reset real committed resources: %v", stock)
 	}
 	stock = must(t, module, "get", ids[1], "", "", nil)

@@ -88,7 +88,9 @@ func run() error {
 	sqlDB.SetConnMaxLifetime(15 * time.Minute)
 	var cache *redis.Client
 	if addr := os.Getenv("REDIS_ADDR"); addr != "" {
-		cache = redis.NewClient(&redis.Options{Addr: addr, Password: os.Getenv("REDIS_PASSWORD"), DialTimeout: 3 * time.Second})
+		cache = redis.NewClient(
+			&redis.Options{Addr: addr, Password: os.Getenv("REDIS_PASSWORD"), DialTimeout: 3 * time.Second},
+		)
 		defer cache.Close()
 	}
 	consul, err := platform.ConsulFromEnv()
@@ -146,7 +148,17 @@ func run() error {
 	go func() {
 		failures <- platform.ServeRPC(ctx, env("RPC_ADDR", ":9000"), os.Getenv("INTERNAL_RPC_TOKEN"), module)
 	}()
-	slog.Info("service started", "service", name, "rpc_addr", env("RPC_ADDR", ":9000"), "database_driver", driver, "demo_mode", env("DEMO_MODE", "false"))
+	slog.Info(
+		"service started",
+		"service",
+		name,
+		"rpc_addr",
+		env("RPC_ADDR", ":9000"),
+		"database_driver",
+		driver,
+		"demo_mode",
+		env("DEMO_MODE", "false"),
+	)
 	select {
 	case <-ctx.Done():
 		return nil

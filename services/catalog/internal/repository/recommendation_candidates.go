@@ -25,7 +25,10 @@ type RecommendationRecall struct {
 // ones outside the default catalog page. There is no COUNT, offset walk, or
 // startup backfill. Sparse JSON filters can scan many rows; the derived deadline
 // bounds this optional recall work so the recommender can fall back safely.
-func (r *Repository) RecommendationCandidates(ctx context.Context, input RecommendationRecall) ([]domain.Record, bool, error) {
+func (r *Repository) RecommendationCandidates(
+	ctx context.Context,
+	input RecommendationRecall,
+) ([]domain.Record, bool, error) {
 	rows := []domain.Record{}
 	if len(input.Categories)+len(input.Brands)+len(input.Queries) == 0 {
 		return rows, false, nil
@@ -97,7 +100,12 @@ func (r *Repository) RecommendationCandidates(ctx context.Context, input Recomme
 			laneCtx, done := context.WithTimeout(ctx, 400*time.Millisecond)
 			defer done()
 			query := r.db.WithContext(laneCtx).Model(&domain.Record{}).
-				Where("kind = ? AND parent_id = ? AND status = ?", constants.CatalogKindSku, "", constants.CatalogStatusActive).
+				Where(
+					"kind = ? AND parent_id = ? AND status = ?",
+					constants.CatalogKindSku,
+					"",
+					constants.CatalogStatusActive,
+				).
 				Where("JSON_VALID(payload)").
 				Where("COALESCE(CAST("+text("$.catalog_visible")+" AS CHAR),'true') NOT IN ('false','0')").
 				Where(lane.condition, lane.args...).Order("created_at DESC,id DESC").Limit(quota)

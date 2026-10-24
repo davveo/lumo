@@ -34,7 +34,10 @@ func setup(t *testing.T, caller platform.Caller) (*gorm.DB, platform.Module) {
 	return db, m
 }
 func invoke(m platform.Module, action, id, user, role string, data map[string]any) (platform.Result, error) {
-	return m.Handle(context.Background(), platform.Command{Action: action, ID: id, UserID: user, Role: role, Data: data})
+	return m.Handle(
+		context.Background(),
+		platform.Command{Action: action, ID: id, UserID: user, Role: role, Data: data},
+	)
 }
 func must(t *testing.T, m platform.Module, action, id, user, role string, data map[string]any) platform.Result {
 	t.Helper()
@@ -50,7 +53,14 @@ var _ = fmt.Sprintf
 func TestInventoryReservationsAndWarehouseBoundary(t *testing.T) {
 	_, m := setup(t, nil)
 	reserve := func(id, user string, n int64) (platform.Result, error) {
-		return invoke(m, "reserve", id, user, "system", map[string]any{"order_id": id, "lines": []map[string]any{{"sku_id": "sku-phone", "quantity": n}}})
+		return invoke(
+			m,
+			"reserve",
+			id,
+			user,
+			"system",
+			map[string]any{"order_id": id, "lines": []map[string]any{{"sku_id": "sku-phone", "quantity": n}}},
+		)
 	}
 	if _, e := invoke(m, "reserve", "x", "demo", "user", map[string]any{}); e == nil {
 		t.Fatal("user cannot mutate stock")
@@ -78,13 +88,37 @@ func TestInventoryReservationsAndWarehouseBoundary(t *testing.T) {
 	if _, e := invoke(m, "cancel", "o1", "demo", "system", map[string]any{"warehouse_confirmed": true}); e == nil {
 		t.Fatal("dispatched stock cannot be cancelled")
 	}
-	must(t, m, "restock", "inspection1", "demo", "system", map[string]any{"sku_id": "sku-phone", "quantity": 1, "condition": "damaged"})
+	must(
+		t,
+		m,
+		"restock",
+		"inspection1",
+		"demo",
+		"system",
+		map[string]any{"sku_id": "sku-phone", "quantity": 1, "condition": "damaged"},
+	)
 	v = must(t, m, "get", "sku-phone", "", "", nil)
 	if platform.Int(v, "on_hand") != 48 {
 		t.Fatal("damaged stock entered sellable")
 	}
-	must(t, m, "restock", "inspection2", "demo", "system", map[string]any{"sku_id": "sku-phone", "quantity": 1, "condition": "sellable"})
-	must(t, m, "restock", "inspection2", "demo", "system", map[string]any{"sku_id": "sku-phone", "quantity": 1, "condition": "sellable"})
+	must(
+		t,
+		m,
+		"restock",
+		"inspection2",
+		"demo",
+		"system",
+		map[string]any{"sku_id": "sku-phone", "quantity": 1, "condition": "sellable"},
+	)
+	must(
+		t,
+		m,
+		"restock",
+		"inspection2",
+		"demo",
+		"system",
+		map[string]any{"sku_id": "sku-phone", "quantity": 1, "condition": "sellable"},
+	)
 	v = must(t, m, "get", "sku-phone", "", "", nil)
 	if platform.Int(v, "on_hand") != 49 {
 		t.Fatal(v)
@@ -96,7 +130,17 @@ func TestInventoryConcurrentReservationsNeverOversell(t *testing.T) {
 	results := make(chan bool, 20)
 	for i := 0; i < 20; i++ {
 		go func(i int) {
-			_, e := invoke(m, "reserve", fmt.Sprintf("r%d", i), fmt.Sprintf("u%d", i), "system", map[string]any{"order_id": fmt.Sprintf("o%d", i), "lines": []map[string]any{{"sku_id": "sku-phone", "quantity": 1}}})
+			_, e := invoke(
+				m,
+				"reserve",
+				fmt.Sprintf("r%d", i),
+				fmt.Sprintf("u%d", i),
+				"system",
+				map[string]any{
+					"order_id": fmt.Sprintf("o%d", i),
+					"lines":    []map[string]any{{"sku_id": "sku-phone", "quantity": 1}},
+				},
+			)
 			results <- e == nil
 		}(i)
 	}

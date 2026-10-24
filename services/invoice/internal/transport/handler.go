@@ -21,7 +21,12 @@ func (h *Handler) Handle(ctx context.Context, c platform.Command) (traceResult p
 		c.Data = map[string]any{}
 	}
 	switch c.Action {
-	case constants.ActionCreate, constants.ActionList, constants.ActionGet, constants.ActionIssueDemo, constants.ActionAdjustDemo, constants.ActionReversals:
+	case constants.ActionCreate,
+		constants.ActionList,
+		constants.ActionGet,
+		constants.ActionIssueDemo,
+		constants.ActionAdjustDemo,
+		constants.ActionReversals:
 		return h.Service.Handle(ctx, c)
 	default:
 		return nil, status.Error(codes.Unimplemented, "unsupported invoice action")

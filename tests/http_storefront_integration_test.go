@@ -83,7 +83,10 @@ func TestHTTPStorefrontEndToEnd(t *testing.T) {
 	defer server.Close()
 	h := &httpShop{t: t, server: server, client: server.Client(), coverage: map[string]int{}}
 	login := func(name, password string) string {
-		return platform.Text(h.call("", "iam", "login", "", "", map[string]any{"username": name, "password": password}), "token")
+		return platform.Text(
+			h.call("", "iam", "login", "", "", map[string]any{"username": name, "password": password}),
+			"token",
+		)
 	}
 	user := login("demo", "Lumo@2026")
 	admin := login("admin", "Admin@2026")
@@ -95,17 +98,57 @@ func TestHTTPStorefrontEndToEnd(t *testing.T) {
 	old := user
 	user = platform.Text(rotated, "token")
 	h.expect(401, old, "member", "get", "", "", nil)
-	h.call(user, "member", "update", "", "", map[string]any{"display_name": "HTTP integration member", "preferences": map[string]any{"birthday": "2000-01-01"}})
+	h.call(
+		user,
+		"member",
+		"update",
+		"",
+		"",
+		map[string]any{
+			"display_name": "HTTP integration member",
+			"preferences":  map[string]any{"birthday": "2000-01-01"},
+		},
+	)
 	h.call(user, "member", "get", "", "", nil)
-	address := h.call(user, "address", "create", "", "", map[string]any{"recipient": "Integration", "phone": "13800000000", "address": "Integration Street 1", "city": "Shenzhen", "is_default": true})
+	address := h.call(
+		user,
+		"address",
+		"create",
+		"",
+		"",
+		map[string]any{
+			"recipient":  "Integration",
+			"phone":      "13800000000",
+			"address":    "Integration Street 1",
+			"city":       "Shenzhen",
+			"is_default": true,
+		},
+	)
 	aid := platform.Text(address, "id")
-	h.call(user, "address", "update", aid, "", map[string]any{"recipient": "Integration", "phone": "13800000000", "address": "Integration Street 2", "city": "Shenzhen"})
+	h.call(
+		user,
+		"address",
+		"update",
+		aid,
+		"",
+		map[string]any{
+			"recipient": "Integration",
+			"phone":     "13800000000",
+			"address":   "Integration Street 2",
+			"city":      "Shenzhen",
+		},
+	)
 	h.call(user, "address", "default", aid, "", nil)
 	h.call(user, "address", "list", "", "", nil)
 	// Catalog prices and real SKU variants are server-owned; no browser price is accepted.
 	catalogue := h.call("", "catalog", "list", "", "", map[string]any{"limit": 100})
-	if len(mapItems(catalogue)) != 100 || platform.Int(catalogue, "total") != int64(len(democatalog.Products())+len(democatalog.ExpandedProducts())) {
-		t.Fatalf("expanded storefront must return one bounded page and the actual total: returned=%d total=%v", len(mapItems(catalogue)), catalogue["total"])
+	if len(mapItems(catalogue)) != 100 ||
+		platform.Int(catalogue, "total") != int64(len(democatalog.Products())+len(democatalog.ExpandedProducts())) {
+		t.Fatalf(
+			"expanded storefront must return one bounded page and the actual total: returned=%d total=%v",
+			len(mapItems(catalogue)),
+			catalogue["total"],
+		)
 	}
 	h.call("", "catalog", "get", "iphone", "", nil)
 	h.call("", "inventory", "get", "iphone", "", nil)
@@ -113,7 +156,14 @@ func TestHTTPStorefrontEndToEnd(t *testing.T) {
 	h.call("", "search", "query", "", "", map[string]any{"query": "Apple"})
 	h.call("", "recommendation", "list", "", "", nil)
 	h.call("", "content", "list", "", "", nil)
-	h.call(admin, "content", "upsert", "faq-http", "", map[string]any{"kind": "faq", "title": "HTTP FAQ", "body": "Persisted help content"})
+	h.call(
+		admin,
+		"content",
+		"upsert",
+		"faq-http",
+		"",
+		map[string]any{"kind": "faq", "title": "HTTP FAQ", "body": "Persisted help content"},
+	)
 	h.call("", "helpdesk", "faq", "", "", nil)
 	for _, kind := range []string{"favorite", "compare", "history"} {
 		h.call(user, "engagement", "put", "", "", map[string]any{"kind": kind, "sku_id": "iphone"})
@@ -128,7 +178,14 @@ func TestHTTPStorefrontEndToEnd(t *testing.T) {
 	if platform.Int(updated, "quantity") != 1 {
 		t.Fatal(updated)
 	}
-	h.call(user, "cart", "merge", "", "http-cart-merge", map[string]any{"items": []any{map[string]any{"sku_id": "coffee", "quantity": 1}}})
+	h.call(
+		user,
+		"cart",
+		"merge",
+		"",
+		"http-cart-merge",
+		map[string]any{"items": []any{map[string]any{"sku_id": "coffee", "quantity": 1}}},
+	)
 	h.call(user, "cart", "list", "", "", nil)
 	h.call(user, "cart", "remove", "coffee", "", nil)
 	h.call(user, "coupon", "templates", "", "", nil)
@@ -137,11 +194,25 @@ func TestHTTPStorefrontEndToEnd(t *testing.T) {
 	h.call(user, "points", "checkin", "", "", nil)
 	h.call(user, "points", "get", "", "", nil)
 	h.call("", "campaign", "list", "", "", nil)
-	eligible := h.call("", "campaign", "evaluate", "", "", map[string]any{"subtotal_cents": 100000, "addon_sku_id": "coffee"})
+	eligible := h.call(
+		"",
+		"campaign",
+		"evaluate",
+		"",
+		"",
+		map[string]any{"subtotal_cents": 100000, "addon_sku_id": "coffee"},
+	)
 	if eligible["eligible"] != true {
 		t.Fatal(eligible)
 	}
-	question := h.call(user, "interaction", "create", "", "http-question", map[string]any{"kind": "question", "sku_id": "iphone", "body": "Is delivery tracked?"})
+	question := h.call(
+		user,
+		"interaction",
+		"create",
+		"",
+		"http-question",
+		map[string]any{"kind": "question", "sku_id": "iphone", "body": "Is delivery tracked?"},
+	)
 	qid := platform.Text(question, "id")
 	pending := h.call(admin, "interaction", "list", "", "", map[string]any{"kind": "question", "include_pending": true})
 	if len(mapItems(pending)) != 1 {
@@ -151,7 +222,14 @@ func TestHTTPStorefrontEndToEnd(t *testing.T) {
 	h.call(admin, "interaction", "answer", qid, "", map[string]any{"answer": "Yes, use the logistics page."})
 	h.expect(409, user, "interaction", "like", qid, "", nil)
 	h.call("", "interaction", "list", "", "", map[string]any{"kind": "question", "sku_id": "iphone"})
-	file := h.call(user, "media", "create", "", "", map[string]any{"file_name": "sample.txt", "content_type": "text/plain", "size": 5})
+	file := h.call(
+		user,
+		"media",
+		"create",
+		"",
+		"",
+		map[string]any{"file_name": "sample.txt", "content_type": "text/plain", "size": 5},
+	)
 	fid := platform.Text(file, "id")
 	h.call(user, "media", "get", fid, "", nil)
 	if file["upload_supported"] != false {
@@ -169,12 +247,40 @@ func TestHTTPStorefrontEndToEnd(t *testing.T) {
 		q := h.call(token, "checkout", "quote", "", "", d)
 		quote := platform.Text(q, "quote_id")
 		h.call(token, "pricing", "get", quote, "", nil)
-		placed := h.call(token, "checkout", "submit", "", key, map[string]any{"quote_id": quote, "address": map[string]any{"recipient": "Integration", "phone": "13800000000", "address": "Integration Street"}})
+		placed := h.call(
+			token,
+			"checkout",
+			"submit",
+			"",
+			key,
+			map[string]any{
+				"quote_id": quote,
+				"address": map[string]any{
+					"recipient": "Integration",
+					"phone":     "13800000000",
+					"address":   "Integration Street",
+				},
+			},
+		)
 		oid := platform.Text(placed, "order_id")
 		if oid == "" {
 			t.Fatal(placed)
 		}
-		repeated := h.call(token, "checkout", "submit", "", key, map[string]any{"quote_id": quote, "address": map[string]any{"recipient": "Integration", "phone": "13800000000", "address": "Integration Street"}})
+		repeated := h.call(
+			token,
+			"checkout",
+			"submit",
+			"",
+			key,
+			map[string]any{
+				"quote_id": quote,
+				"address": map[string]any{
+					"recipient": "Integration",
+					"phone":     "13800000000",
+					"address":   "Integration Street",
+				},
+			},
+		)
 		if platform.Text(repeated, "order_id") != oid {
 			t.Fatal("duplicate order")
 		}
@@ -198,7 +304,14 @@ func TestHTTPStorefrontEndToEnd(t *testing.T) {
 	h.call(user, "order", "list", "", "", nil)
 	h.call(user, "fulfillment", "get", oid, "", nil)
 	h.call(admin, "fulfillment", "list", "", "", nil)
-	invoice := h.call(user, "invoice", "create", "", "", map[string]any{"order_id": oid, "title": "Integration invoice", "kind": "personal"})
+	invoice := h.call(
+		user,
+		"invoice",
+		"create",
+		"",
+		"",
+		map[string]any{"order_id": oid, "title": "Integration invoice", "kind": "personal"},
+	)
 	iid := platform.Text(invoice, "id")
 	h.call(admin, "invoice", "issue_demo", iid, "", nil)
 	h.call(user, "invoice", "get", iid, "", nil)
@@ -212,11 +325,31 @@ func TestHTTPStorefrontEndToEnd(t *testing.T) {
 	c.pump(t)
 	h.call(user, "order", "complete", oid, "", nil)
 	c.pump(t)
-	review := h.call(user, "interaction", "create", "", "http-review", map[string]any{"kind": "review", "sku_id": "iphone", "order_id": oid, "rating": 5, "body": "Order completed through actual HTTP and RPC."})
+	review := h.call(
+		user,
+		"interaction",
+		"create",
+		"",
+		"http-review",
+		map[string]any{
+			"kind":     "review",
+			"sku_id":   "iphone",
+			"order_id": oid,
+			"rating":   5,
+			"body":     "Order completed through actual HTTP and RPC.",
+		},
+	)
 	h.call(admin, "interaction", "moderate", platform.Text(review, "id"), "", map[string]any{"approved": true})
 	h.call(user, "interaction", "like", platform.Text(review, "id"), "", nil)
 	// Physical return, inspection, funds refund and invoice reversal are separate steps.
-	as := h.call(user, "aftersale", "create", "", "http-return", map[string]any{"order_id": oid, "type": "return", "reason": "Integration return"})
+	as := h.call(
+		user,
+		"aftersale",
+		"create",
+		"",
+		"http-return",
+		map[string]any{"order_id": oid, "type": "return", "reason": "Integration return"},
+	)
 	asid := platform.Text(as, "id")
 	h.call(user, "aftersale", "list", "", "", nil)
 	h.call(user, "aftersale", "get", asid, "", nil)
@@ -241,7 +374,14 @@ func TestHTTPStorefrontEndToEnd(t *testing.T) {
 	h.call(admin, "payment", "list", "", "", nil)
 	h.call(admin, "reconciliation", "run", "", "", nil)
 	h.call(admin, "reconciliation", "list", "", "", nil)
-	ticket := h.call(user, "helpdesk", "create", "", "http-ticket", map[string]any{"title": "Order question", "body": "Please check delivery", "order_id": oid})
+	ticket := h.call(
+		user,
+		"helpdesk",
+		"create",
+		"",
+		"http-ticket",
+		map[string]any{"title": "Order question", "body": "Please check delivery", "order_id": oid},
+	)
 	tid := platform.Text(ticket, "id")
 	h.call(admin, "helpdesk", "reply", tid, "http-reply", map[string]any{"body": "Your return is complete"})
 	c.pump(t)
@@ -260,8 +400,26 @@ func TestHTTPStorefrontEndToEnd(t *testing.T) {
 	h.expect(409, user, "payment", "create", cancelled, "", nil)
 	// Flash is asynchronous: the returned durable request becomes an order only after event handling.
 	h.call("", "flash", "list", "", "", nil)
-	fq := h.call(user, "pricing", "quote", "", "", map[string]any{"activity_id": "flash-demo", "items": []any{map[string]any{"sku_id": "sku-headphones", "quantity": 1}}})
-	flash := h.expect(202, user, "flash", "request", "", "http-flash", map[string]any{"quote_id": platform.Text(fq, "quote_id"), "address_id": aid})
+	fq := h.call(
+		user,
+		"pricing",
+		"quote",
+		"",
+		"",
+		map[string]any{
+			"activity_id": "flash-demo",
+			"items":       []any{map[string]any{"sku_id": "sku-headphones", "quantity": 1}},
+		},
+	)
+	flash := h.expect(
+		202,
+		user,
+		"flash",
+		"request",
+		"",
+		"http-flash",
+		map[string]any{"quote_id": platform.Text(fq, "quote_id"), "address_id": aid},
+	)
 	c.pump(t)
 	fr := h.call(user, "flash", "get", platform.Text(flash, "id"), "", nil)
 	if platform.Text(fr, "status") != "SUCCEEDED" {

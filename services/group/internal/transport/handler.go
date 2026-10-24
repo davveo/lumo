@@ -20,7 +20,13 @@ func (h *Handler) Handle(ctx context.Context, c platform.Command) (traceResult p
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	switch c.Action {
-	case constants.ActionList, constants.ActionCreate, constants.ActionGet, constants.ActionReserve, constants.ActionPaid, constants.ActionCancel, constants.ActionExpire:
+	case constants.ActionList,
+		constants.ActionCreate,
+		constants.ActionGet,
+		constants.ActionReserve,
+		constants.ActionPaid,
+		constants.ActionCancel,
+		constants.ActionExpire:
 		return h.App.Execute(ctx, c)
 	default:
 		return nil, status.Error(codes.Unimplemented, "unsupported group action")

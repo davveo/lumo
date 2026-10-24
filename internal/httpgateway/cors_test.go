@@ -13,7 +13,15 @@ func TestExactOriginCORSPreflight(t *testing.T) {
 		code                                      int
 		allow                                     bool
 	}{
-		{"allowlisted", "https://shop.example", "https://shop.example", "POST", "Authorization, Content-Type, Idempotency-Key, traceparent, tracestate", 204, true},
+		{
+			"allowlisted",
+			"https://shop.example",
+			"https://shop.example",
+			"POST",
+			"Authorization, Content-Type, Idempotency-Key, traceparent, tracestate",
+			204,
+			true,
+		},
 		{"unlisted", "https://shop.example", "https://evil.example", "POST", "Authorization", 403, false},
 		{"defaultcrossorigin", "", "https://shop.example", "POST", "Authorization", 403, false},
 		{"sameorigin", "", "http://api.local", "POST", "Authorization", 204, true},

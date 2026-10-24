@@ -35,49 +35,129 @@ var publicActions = actionSet(map[string][]string{
 	constants.ServiceLogistics:      {constants.ActionQuote},
 	constants.ServiceHelpdesk:       {constants.ActionFaq},
 	constants.ServiceCoupon:         {constants.ActionTemplates, constants.ActionTemplatesSnapshot},
-	constants.ServiceStorefront:     {constants.ActionBootstrap, constants.ActionBatch, constants.ActionRecent, constants.ActionPopup, constants.ActionPopupEvent},
+	constants.ServiceStorefront: {
+		constants.ActionBootstrap,
+		constants.ActionBatch,
+		constants.ActionRecent,
+		constants.ActionPopup,
+		constants.ActionPopupEvent,
+	},
 })
 var userActions = actionSet(map[string][]string{
-	constants.ServiceIAM:          {constants.ActionCurrent, constants.ActionRefresh, constants.ActionLogout, constants.ActionLogoutAll},
-	constants.ServiceMember:       {constants.ActionGet, constants.ActionUpdate},
-	constants.ServiceAddress:      {constants.ActionList, constants.ActionGet, constants.ActionCreate, constants.ActionUpdate, constants.ActionDelete, constants.ActionDefault},
-	constants.ServiceCart:         {constants.ActionList, constants.ActionAdd, constants.ActionSet, constants.ActionRemove, constants.ActionClear, constants.ActionMerge},
-	constants.ServiceEngagement:   {constants.ActionList, constants.ActionPut, constants.ActionDelete, constants.ActionClear},
-	constants.ServiceMedia:        {constants.ActionCreate, constants.ActionGet, constants.ActionComplete, constants.ActionDownload},
-	constants.ServiceInteraction:  {constants.ActionCreate, constants.ActionLike},
-	constants.ServiceAnalytics:    {constants.ActionRecord},
-	constants.ServicePricing:      {constants.ActionQuote, constants.ActionGet},
-	constants.ServiceCheckout:     {constants.ActionQuote, constants.ActionSubmit, constants.ActionCancel},
-	constants.ServiceOrder:        {constants.ActionList, constants.ActionGet, constants.ActionComplete},
-	constants.ServicePayment:      {constants.ActionCreate, constants.ActionGet, constants.ActionSubmitDemo},
-	constants.ServiceRefund:       {constants.ActionGet},
-	constants.ServiceCoupon:       {constants.ActionList, constants.ActionClaim},
-	constants.ServicePoints:       {constants.ActionGet, constants.ActionCheckin},
-	constants.ServiceGroup:        {constants.ActionCreate},
-	constants.ServiceFlash:        {constants.ActionRequest, constants.ActionGet},
-	constants.ServiceFulfillment:  {constants.ActionGet},
-	constants.ServiceLogistics:    {constants.ActionGet},
-	constants.ServiceAftersale:    {constants.ActionList, constants.ActionGet, constants.ActionCreate, constants.ActionReturn, constants.ActionCancel},
-	constants.ServiceInvoice:      {constants.ActionList, constants.ActionGet, constants.ActionReversals, constants.ActionCreate},
+	constants.ServiceIAM: {
+		constants.ActionCurrent,
+		constants.ActionRefresh,
+		constants.ActionLogout,
+		constants.ActionLogoutAll,
+	},
+	constants.ServiceMember: {constants.ActionGet, constants.ActionUpdate},
+	constants.ServiceAddress: {
+		constants.ActionList,
+		constants.ActionGet,
+		constants.ActionCreate,
+		constants.ActionUpdate,
+		constants.ActionDelete,
+		constants.ActionDefault,
+	},
+	constants.ServiceCart: {
+		constants.ActionList,
+		constants.ActionAdd,
+		constants.ActionSet,
+		constants.ActionRemove,
+		constants.ActionClear,
+		constants.ActionMerge,
+	},
+	constants.ServiceEngagement: {
+		constants.ActionList,
+		constants.ActionPut,
+		constants.ActionDelete,
+		constants.ActionClear,
+	},
+	constants.ServiceMedia: {
+		constants.ActionCreate,
+		constants.ActionGet,
+		constants.ActionComplete,
+		constants.ActionDownload,
+	},
+	constants.ServiceInteraction: {constants.ActionCreate, constants.ActionLike},
+	constants.ServiceAnalytics:   {constants.ActionRecord},
+	constants.ServicePricing:     {constants.ActionQuote, constants.ActionGet},
+	constants.ServiceCheckout:    {constants.ActionQuote, constants.ActionSubmit, constants.ActionCancel},
+	constants.ServiceOrder:       {constants.ActionList, constants.ActionGet, constants.ActionComplete},
+	constants.ServicePayment:     {constants.ActionCreate, constants.ActionGet, constants.ActionSubmitDemo},
+	constants.ServiceRefund:      {constants.ActionGet},
+	constants.ServiceCoupon:      {constants.ActionList, constants.ActionClaim},
+	constants.ServicePoints:      {constants.ActionGet, constants.ActionCheckin},
+	constants.ServiceGroup:       {constants.ActionCreate},
+	constants.ServiceFlash:       {constants.ActionRequest, constants.ActionGet},
+	constants.ServiceFulfillment: {constants.ActionGet},
+	constants.ServiceLogistics:   {constants.ActionGet},
+	constants.ServiceAftersale: {
+		constants.ActionList,
+		constants.ActionGet,
+		constants.ActionCreate,
+		constants.ActionReturn,
+		constants.ActionCancel,
+	},
+	constants.ServiceInvoice: {
+		constants.ActionList,
+		constants.ActionGet,
+		constants.ActionReversals,
+		constants.ActionCreate,
+	},
 	constants.ServiceNotification: {constants.ActionList, constants.ActionRead, constants.ActionReadAll},
-	constants.ServiceHelpdesk:     {constants.ActionList, constants.ActionGet, constants.ActionCreate, constants.ActionReply, constants.ActionClose},
-	constants.ServiceStorefront:   {constants.ActionPopupClaim},
+	constants.ServiceHelpdesk: {
+		constants.ActionList,
+		constants.ActionGet,
+		constants.ActionCreate,
+		constants.ActionReply,
+		constants.ActionClose,
+	},
+	constants.ServiceStorefront: {constants.ActionPopupClaim},
 })
 var adminActions = actionSet(map[string][]string{
-	constants.ServiceCatalog:        {constants.ActionUpsert},
-	constants.ServiceContent:        {constants.ActionUpsert, constants.ActionPopupList, constants.ActionPopupUpsert, constants.ActionPopupConfigure},
-	constants.ServiceInventory:      {constants.ActionAdjust},
-	constants.ServiceInteraction:    {constants.ActionModerate, constants.ActionAnswer},
-	constants.ServiceFulfillment:    {constants.ActionList, constants.ActionDispatch, constants.ActionCancel, constants.ActionInspectReturn},
-	constants.ServiceLogistics:      {constants.ActionDeliver},
-	constants.ServiceAftersale:      {constants.ActionApprove, constants.ActionReject, constants.ActionInspect, constants.ActionRefund, constants.ActionExchange},
+	constants.ServiceCatalog: {constants.ActionUpsert},
+	constants.ServiceContent: {
+		constants.ActionUpsert,
+		constants.ActionPopupList,
+		constants.ActionPopupUpsert,
+		constants.ActionPopupConfigure,
+	},
+	constants.ServiceInventory:   {constants.ActionAdjust},
+	constants.ServiceInteraction: {constants.ActionModerate, constants.ActionAnswer},
+	constants.ServiceFulfillment: {
+		constants.ActionList,
+		constants.ActionDispatch,
+		constants.ActionCancel,
+		constants.ActionInspectReturn,
+	},
+	constants.ServiceLogistics: {constants.ActionDeliver},
+	constants.ServiceAftersale: {
+		constants.ActionApprove,
+		constants.ActionReject,
+		constants.ActionInspect,
+		constants.ActionRefund,
+		constants.ActionExchange,
+	},
 	constants.ServicePayment:        {constants.ActionList, constants.ActionConfirmDemo},
 	constants.ServiceRefund:         {constants.ActionList, constants.ActionConfirmDemo},
 	constants.ServiceInvoice:        {constants.ActionIssueDemo, constants.ActionAdjustDemo},
 	constants.ServiceReconciliation: {constants.ActionList, constants.ActionRun},
 	constants.ServiceAnalytics:      {constants.ActionList},
 })
-var reads = map[string]bool{constants.ActionList: true, constants.ActionGet: true, constants.ActionBatchGet: true, constants.ActionQuery: true, constants.ActionEvaluate: true, constants.ActionTemplates: true, constants.ActionTemplatesSnapshot: true, constants.ActionCurrent: true, constants.ActionFaq: true, constants.ActionPopupList: true}
+
+var reads = map[string]bool{
+	constants.ActionList:              true,
+	constants.ActionGet:               true,
+	constants.ActionBatchGet:          true,
+	constants.ActionQuery:             true,
+	constants.ActionEvaluate:          true,
+	constants.ActionTemplates:         true,
+	constants.ActionTemplatesSnapshot: true,
+	constants.ActionCurrent:           true,
+	constants.ActionFaq:               true,
+	constants.ActionPopupList:         true,
+}
 
 func actionSet(m map[string][]string) map[string]bool {
 	r := map[string]bool{}
@@ -170,24 +250,30 @@ func NewHandler(rpc platform.Caller, demo bool, frontendDir string) http.Handler
 		}
 		files.ServeHTTP(w, r)
 	})
-	return otelhttp.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/api/v1/") || r.URL.Path == "/healthz" || r.URL.Path == "/readyz" {
-			r = r.WithContext(beginHTTPTrace(r.Context()))
-			traceHTTPRequest(r.Context(), map[string]any{"method": r.Method, "body": "not parsed"})
-		}
-		trace.SpanFromContext(r.Context()).SetAttributes(apiTraceAttributes(r.URL.Path)...)
-		tid := trace.SpanContextFromContext(r.Context()).TraceID().String()
-		w.Header().Set("X-Trace-ID", tid)
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("Cache-Control", "no-store")
-		// Bearer tokens authenticate API calls. Anonymous marketing cookies only
-		// identify a browser for popup caps; they never authenticate an account.
-		// Permissive cross-origin credentials remain disabled.
-		if strings.HasPrefix(r.URL.Path, "/api/v1/") && !applyCORS(w, r, allowedOrigins) {
-			return
-		}
-		mux.ServeHTTP(w, r)
-	}), "gateway.http", otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string { return r.Method + " " + routeName(r.URL.Path) }))
+	return otelhttp.NewHandler(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasPrefix(r.URL.Path, "/api/v1/") || r.URL.Path == "/healthz" || r.URL.Path == "/readyz" {
+				r = r.WithContext(beginHTTPTrace(r.Context()))
+				traceHTTPRequest(r.Context(), map[string]any{"method": r.Method, "body": "not parsed"})
+			}
+			trace.SpanFromContext(r.Context()).SetAttributes(apiTraceAttributes(r.URL.Path)...)
+			tid := trace.SpanContextFromContext(r.Context()).TraceID().String()
+			w.Header().Set("X-Trace-ID", tid)
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.Header().Set("Cache-Control", "no-store")
+			// Bearer tokens authenticate API calls. Anonymous marketing cookies only
+			// identify a browser for popup caps; they never authenticate an account.
+			// Permissive cross-origin credentials remain disabled.
+			if strings.HasPrefix(r.URL.Path, "/api/v1/") && !applyCORS(w, r, allowedOrigins) {
+				return
+			}
+			mux.ServeHTTP(w, r)
+		}),
+		"gateway.http",
+		otelhttp.WithSpanNameFormatter(
+			func(_ string, r *http.Request) string { return r.Method + " " + routeName(r.URL.Path) },
+		),
+	)
 }
 
 // Only registered routes become business trace attributes. Never derive these
@@ -201,7 +287,10 @@ func apiTraceAttributes(path string) []attribute.KeyValue {
 		return nil
 	}
 	service, action, _ := strings.Cut(key, "/")
-	return []attribute.KeyValue{attribute.String("lumo.target_service", service), attribute.String("lumo.action", action)}
+	return []attribute.KeyValue{
+		attribute.String("lumo.target_service", service),
+		attribute.String("lumo.action", action),
+	}
 }
 
 func routeName(path string) string {
@@ -219,7 +308,11 @@ func (g *gateway) ready(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 	// Public catalog read also confirms an RPC connection and a migrated DB.
-	_, err := g.rpc.Call(ctx, constants.ServiceCatalog, platform.Command{Action: constants.ActionList, Data: map[string]any{"limit": 1}})
+	_, err := g.rpc.Call(
+		ctx,
+		constants.ServiceCatalog,
+		platform.Command{Action: constants.ActionList, Data: map[string]any{"limit": 1}},
+	)
 	if err != nil {
 		writeError(w, ctx, status.Error(codes.Unavailable, "catalog dependency not ready"))
 		return
@@ -298,7 +391,11 @@ func (g *gateway) execute(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		authCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		principal, err := g.rpc.Call(authCtx, constants.ServiceIAM, platform.Command{Action: constants.ActionValidate, Data: map[string]any{"token": token}})
+		principal, err := g.rpc.Call(
+			authCtx,
+			constants.ServiceIAM,
+			platform.Command{Action: constants.ActionValidate, Data: map[string]any{"token": token}},
+		)
 		cancel()
 		if err != nil {
 			writeError(w, ctx, err)
@@ -322,13 +419,17 @@ func (g *gateway) execute(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if service == constants.ServiceIAM && (action == constants.ActionLogout || action == constants.ActionRefresh || action == constants.ActionCurrent) {
+	if service == constants.ServiceIAM &&
+		(action == constants.ActionLogout || action == constants.ActionRefresh || action == constants.ActionCurrent) {
 		cmd.Data["token"] = token
 	}
 	if service == constants.ServiceIAM && action == constants.ActionCurrent {
 		cmd.Action = constants.ActionValidate
 	}
-	if service == constants.ServiceStorefront && (action == constants.ActionBootstrap || action == constants.ActionPopup || action == constants.ActionPopupEvent || action == constants.ActionPopupClaim) {
+	if service == constants.ServiceStorefront &&
+		(action == constants.ActionBootstrap || action == constants.ActionPopup ||
+			action == constants.ActionPopupEvent ||
+			action == constants.ActionPopupClaim) {
 		ctx = preparePopupIdentity(ctx, w, r)
 	}
 	ctx, sp2 := platform.Start(ctx, "gateway.usecase.Forward")
@@ -399,5 +500,11 @@ func writeError(w http.ResponseWriter, ctx context.Context, err error) {
 	case codes.DeadlineExceeded:
 		code = 504
 	}
-	writeJSONResponse(w, ctx, code, map[string]any{"error": map[string]any{"code": s.Code().String(), "message": s.Message()}}, status.Error(s.Code(), s.Code().String()))
+	writeJSONResponse(
+		w,
+		ctx,
+		code,
+		map[string]any{"error": map[string]any{"code": s.Code().String(), "message": s.Message()}},
+		status.Error(s.Code(), s.Code().String()),
+	)
 }

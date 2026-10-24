@@ -53,7 +53,12 @@ func newCluster(t *testing.T) *cluster {
 		targets[name] = listener.Addr().String()
 		t.Cleanup(func() { _ = listener.Close() })
 	}
-	c := &cluster{rpc: platform.NewCaller(targets, "integration-service-secret"), modules: map[string]platform.Module{}, dbs: map[string]*gorm.DB{}, exporter: exporter}
+	c := &cluster{
+		rpc:      platform.NewCaller(targets, "integration-service-secret"),
+		modules:  map[string]platform.Module{},
+		dbs:      map[string]*gorm.DB{},
+		exporter: exporter,
+	}
 	if closer, ok := c.rpc.(interface{ Close() error }); ok {
 		t.Cleanup(func() { _ = closer.Close() })
 	}
@@ -94,9 +99,18 @@ func newCluster(t *testing.T) *cluster {
 	return c
 }
 
-func (c *cluster) call(t *testing.T, ctx context.Context, service, action, id, key, role, user string, data map[string]any) platform.Result {
+func (c *cluster) call(
+	t *testing.T,
+	ctx context.Context,
+	service, action, id, key, role, user string,
+	data map[string]any,
+) platform.Result {
 	t.Helper()
-	out, err := c.rpc.Call(ctx, service, platform.Command{Action: action, ID: id, IdempotencyKey: key, UserID: user, Role: role, Data: data})
+	out, err := c.rpc.Call(
+		ctx,
+		service,
+		platform.Command{Action: action, ID: id, IdempotencyKey: key, UserID: user, Role: role, Data: data},
+	)
 	if err != nil {
 		t.Fatalf("%s.%s: %v", service, action, err)
 	}
@@ -108,7 +122,9 @@ func (c *cluster) pump(t *testing.T) {
 		count := 0
 		for _, producer := range bootstrap.Names {
 			var rows []platform.Outbox
-			if err := c.dbs[producer].Where("state = ?", "PENDING").Order("created_at ASC").Find(&rows).Error; err != nil {
+			if err := c.dbs[producer].Where("state = ?", "PENDING").Order("created_at ASC").Find(
+				&rows,
+			).Error; err != nil {
 				t.Fatal(err)
 			}
 			for _, row := range rows {
@@ -134,14 +150,18 @@ func (c *cluster) pump(t *testing.T) {
 						continue
 					}
 					ctx := otel.GetTextMapPropagator().Extract(context.Background(), carrier)
-					ctx, span := otel.Tracer("integration/broker").Start(ctx, "mq.consume."+e.Type, trace.WithSpanKind(trace.SpanKindConsumer))
+					ctx, span := otel.Tracer("integration/broker").
+						Start(ctx, "mq.consume."+e.Type, trace.WithSpanKind(trace.SpanKindConsumer))
 					err := m.OnEvent(ctx, e)
 					span.End()
 					if err != nil {
 						t.Fatalf("event %s from %s -> %s: %v", e.Type, producer, consumer, err)
 					}
 				}
-				if err := c.dbs[producer].Model(&platform.Outbox{}).Where("id = ?", row.ID).Update("state", "PUBLISHED").Error; err != nil {
+				if err := c.dbs[producer].Model(&platform.Outbox{}).Where("id = ?", row.ID).Update(
+					"state",
+					"PUBLISHED",
+				).Error; err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -166,22 +186,95 @@ func TestCommerceRPCAndTrace(t *testing.T) {
 	if platform.Text(verified, "user_id") != "demo" {
 		t.Fatalf("wrong login principal: %#v", verified)
 	}
-	c.call(t, ctx, "cart", "add", "", "cart-add-1", "user", "demo", map[string]any{"sku_id": "sku-watch", "quantity": 1})
-	quote := c.call(t, ctx, "pricing", "quote", "", "", "user", "demo", map[string]any{"items": []any{map[string]any{"sku_id": "sku-watch", "quantity": 1}}, "coupon_id": "coupon-demo-100", "points": 500})
+	c.call(
+		t,
+		ctx,
+		"cart",
+		"add",
+		"",
+		"cart-add-1",
+		"user",
+		"demo",
+		map[string]any{"sku_id": "sku-watch", "quantity": 1},
+	)
+	quote := c.call(
+		t,
+		ctx,
+		"pricing",
+		"quote",
+		"",
+		"",
+		"user",
+		"demo",
+		map[string]any{
+			"items":     []any{map[string]any{"sku_id": "sku-watch", "quantity": 1}},
+			"coupon_id": "coupon-demo-100",
+			"points":    500,
+		},
+	)
 	quoteID := platform.Text(quote, "quote_id")
 	if quoteID == "" {
 		t.Fatalf("missing quote id: %#v", quote)
 	}
-	placed := c.call(t, ctx, "checkout", "submit", "", "checkout-integration-1", "user", "demo", map[string]any{"quote_id": quoteID, "address": map[string]any{"recipient": "Demo", "phone": "00000000000", "address": "Demo street", "city": "Shenzhen"}})
+	placed := c.call(
+		t,
+		ctx,
+		"checkout",
+		"submit",
+		"",
+		"checkout-integration-1",
+		"user",
+		"demo",
+		map[string]any{
+			"quote_id": quoteID,
+			"address": map[string]any{
+				"recipient": "Demo",
+				"phone":     "00000000000",
+				"address":   "Demo street",
+				"city":      "Shenzhen",
+			},
+		},
+	)
 	orderID := platform.Text(placed, "order_id")
 	if orderID == "" {
 		t.Fatalf("missing order: %#v", placed)
 	}
-	again := c.call(t, ctx, "checkout", "submit", "", "checkout-integration-1", "user", "demo", map[string]any{"quote_id": quoteID, "address": map[string]any{"recipient": "Demo", "phone": "00000000000", "address": "Demo street", "city": "Shenzhen"}})
+	again := c.call(
+		t,
+		ctx,
+		"checkout",
+		"submit",
+		"",
+		"checkout-integration-1",
+		"user",
+		"demo",
+		map[string]any{
+			"quote_id": quoteID,
+			"address": map[string]any{
+				"recipient": "Demo",
+				"phone":     "00000000000",
+				"address":   "Demo street",
+				"city":      "Shenzhen",
+			},
+		},
+	)
 	if platform.Text(again, "order_id") != orderID {
 		t.Fatal("idempotent submit created a different order")
 	}
-	_, changedErr := c.rpc.Call(ctx, "checkout", platform.Command{Action: "submit", IdempotencyKey: "checkout-integration-1", UserID: "demo", Role: "user", Data: map[string]any{"quote_id": quoteID, "address": map[string]any{"street": "Different address"}}})
+	_, changedErr := c.rpc.Call(
+		ctx,
+		"checkout",
+		platform.Command{
+			Action:         "submit",
+			IdempotencyKey: "checkout-integration-1",
+			UserID:         "demo",
+			Role:           "user",
+			Data: map[string]any{
+				"quote_id": quoteID,
+				"address":  map[string]any{"street": "Different address"},
+			},
+		},
+	)
 	if status.Code(changedErr) != codes.AlreadyExists {
 		t.Fatalf("changed idempotency payload was accepted: %v", changedErr)
 	}
@@ -203,7 +296,17 @@ func TestCommerceRPCAndTrace(t *testing.T) {
 	if platform.Int(stock, "allocated") != 1 {
 		t.Fatalf("stock not allocated: %#v", stock)
 	}
-	inv := c.call(t, ctx, "invoice", "create", "", "invoice-integration-1", "user", "demo", map[string]any{"order_id": orderID, "title": "Demo invoice", "kind": "personal"})
+	inv := c.call(
+		t,
+		ctx,
+		"invoice",
+		"create",
+		"",
+		"invoice-integration-1",
+		"user",
+		"demo",
+		map[string]any{"order_id": orderID, "title": "Demo invoice", "kind": "personal"},
+	)
 	invoiceID := platform.Text(inv, "id")
 	issued := c.call(t, ctx, "invoice", "issue_demo", invoiceID, "", "admin", "admin", nil)
 	originalNumber := platform.Text(issued, "number")
@@ -211,7 +314,22 @@ func TestCommerceRPCAndTrace(t *testing.T) {
 		t.Fatal("demo invoice missing original number")
 	}
 	money := platform.Int(order, "payable_cents")
-	refund := c.call(t, ctx, "refund", "create", "refund-integration-1", "", "system", "demo", map[string]any{"order_id": orderID, "payment_id": paymentID, "amount_cents": money, "reason": "integration full refund"})
+	refund := c.call(
+		t,
+		ctx,
+		"refund",
+		"create",
+		"refund-integration-1",
+		"",
+		"system",
+		"demo",
+		map[string]any{
+			"order_id":     orderID,
+			"payment_id":   paymentID,
+			"amount_cents": money,
+			"reason":       "integration full refund",
+		},
+	)
 	refundID := platform.Text(refund, "id")
 	if refundID == "" {
 		refundID = "refund-integration-1"
@@ -237,7 +355,11 @@ func TestCommerceRPCAndTrace(t *testing.T) {
 	if len(rev) != 1 {
 		t.Fatalf("refund must create exactly one linked invoice adjustment: %#v", reversals)
 	}
-	_, err := c.rpc.Call(ctx, "order", platform.Command{Action: "get", ID: orderID, UserID: "another-user", Role: "user"})
+	_, err := c.rpc.Call(
+		ctx,
+		"order",
+		platform.Command{Action: "get", ID: orderID, UserID: "another-user", Role: "user"},
+	)
 	if status.Code(err) != codes.PermissionDenied && status.Code(err) != codes.NotFound {
 		t.Fatalf("cross-account access allowed: %v", err)
 	}
@@ -283,7 +405,13 @@ func TestCommerceRPCAndTrace(t *testing.T) {
 	if os.Getenv("UPDATE_TRACE_FIXTURE") == "1" {
 		writeTraceFixture(t, spans, traceID)
 	}
-	t.Log(fmt.Sprintf("30 services; actual gRPC; payment/refund saga; %d correlated spans; layers=%v", correlatedCount, layers))
+	t.Log(
+		fmt.Sprintf(
+			"30 services; actual gRPC; payment/refund saga; %d correlated spans; layers=%v",
+			correlatedCount,
+			layers,
+		),
+	)
 }
 
 // The checked-in example is exported from a real passing integration run. It
@@ -324,19 +452,45 @@ func writeTraceFixture(t *testing.T, spans tracetest.SpanStubs, id trace.TraceID
 		processes[name] = map[string]any{"serviceName": name, "tags": []any{}}
 		tags := []any{}
 		for _, a := range s.Attributes {
-			tags = append(tags, map[string]any{"key": string(a.Key), "type": "string", "value": fmt.Sprint(a.Value.AsInterface())})
+			tags = append(
+				tags,
+				map[string]any{"key": string(a.Key), "type": "string", "value": fmt.Sprint(a.Value.AsInterface())},
+			)
 		}
 		refs := []any{}
 		if s.Parent.IsValid() {
-			refs = append(refs, map[string]any{"refType": "CHILD_OF", "traceID": id.String(), "spanID": s.Parent.SpanID().String()})
+			refs = append(
+				refs,
+				map[string]any{"refType": "CHILD_OF", "traceID": id.String(), "spanID": s.Parent.SpanID().String()},
+			)
 		}
 		duration := s.EndTime.Sub(s.StartTime).Microseconds()
 		if duration < 1 {
 			duration = 1
 		}
-		rows = append(rows, map[string]any{"traceID": id.String(), "spanID": s.SpanContext.SpanID().String(), "operationName": s.Name, "references": refs, "startTime": s.StartTime.UnixMicro(), "duration": duration, "tags": tags, "logs": []any{}, "processID": name, "warnings": nil})
+		rows = append(
+			rows,
+			map[string]any{
+				"traceID":       id.String(),
+				"spanID":        s.SpanContext.SpanID().String(),
+				"operationName": s.Name,
+				"references":    refs,
+				"startTime":     s.StartTime.UnixMicro(),
+				"duration":      duration,
+				"tags":          tags,
+				"logs":          []any{},
+				"processID":     name,
+				"warnings":      nil,
+			},
+		)
 	}
-	out := map[string]any{"data": []any{map[string]any{"traceID": id.String(), "spans": rows, "processes": processes, "warnings": nil}}, "total": 1, "limit": 0, "offset": 0, "errors": nil}
+	out := map[string]any{
+		"data":   []any{map[string]any{"traceID": id.String(), "spans": rows, "processes": processes, "warnings": nil}},
+		"total":  1,
+		"limit":  0,
+		"offset": 0,
+		"errors": nil,
+	}
 	raw, err := json.MarshalIndent(out, "", "  ")
 	if err != nil {
 		t.Fatal(err)
@@ -354,8 +508,28 @@ func shipping() map[string]any {
 	return map[string]any{"recipient": "Demo", "phone": "00000000000", "address": "Demo street", "city": "Shenzhen"}
 }
 func (c *cluster) place(t *testing.T, ctx context.Context, sku, user, key, group string) string {
-	q := c.call(t, ctx, "pricing", "quote", "", "", "user", user, map[string]any{"items": []any{map[string]any{"sku_id": sku, "quantity": 1}}, "group_id": group})
-	r := c.call(t, ctx, "checkout", "submit", "", key, "user", user, map[string]any{"quote_id": platform.Text(q, "quote_id"), "address": shipping()})
+	q := c.call(
+		t,
+		ctx,
+		"pricing",
+		"quote",
+		"",
+		"",
+		"user",
+		user,
+		map[string]any{"items": []any{map[string]any{"sku_id": sku, "quantity": 1}}, "group_id": group},
+	)
+	r := c.call(
+		t,
+		ctx,
+		"checkout",
+		"submit",
+		"",
+		key,
+		"user",
+		user,
+		map[string]any{"quote_id": platform.Text(q, "quote_id"), "address": shipping()},
+	)
 	return platform.Text(r, "order_id")
 }
 func (c *cluster) pay(t *testing.T, ctx context.Context, id, user string) {
@@ -389,7 +563,17 @@ func TestCancelReleasesReservationsAndFreezesPayment(t *testing.T) {
 func TestGroupWaitsForAllPaidMembersThenReleasesBoth(t *testing.T) {
 	c := newCluster(t)
 	ctx := context.Background()
-	team := c.call(t, ctx, "group", "create", "", "group-flow-1", "user", "demo", map[string]any{"sku_id": "sku-headphones", "required": 2})
+	team := c.call(
+		t,
+		ctx,
+		"group",
+		"create",
+		"",
+		"group-flow-1",
+		"user",
+		"demo",
+		map[string]any{"sku_id": "sku-headphones", "required": 2},
+	)
 	gid := platform.Text(team, "id")
 	first := c.place(t, ctx, "sku-headphones", "demo", "group-order-1", gid)
 	c.pay(t, ctx, first, "demo")

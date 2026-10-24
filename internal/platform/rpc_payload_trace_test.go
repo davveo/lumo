@@ -12,7 +12,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func assertRPCPayloadSpans(t *testing.T, spans tracetest.SpanStubs, requestValue, responseValue, errorCode string, secrets ...string) {
+func assertRPCPayloadSpans(
+	t *testing.T,
+	spans tracetest.SpanStubs,
+	requestValue, responseValue, errorCode string,
+	secrets ...string,
+) {
 	t.Helper()
 	for _, span := range spans {
 		attrs := rpcSpanAttributes(span)
@@ -45,40 +50,99 @@ func assertRPCPayloadSpans(t *testing.T, spans tracetest.SpanStubs, requestValue
 
 func TestRPCPayloadTraceRecordsLegacyMessagesAtEveryRPCBoundary(t *testing.T) {
 	exporter, _ := tracing(t)
-	address := rpcTraceServer(t, Module{Name: "catalog", Handle: func(_ context.Context, request Command) (Result, error) {
-		if Text(request.Data, "password") != "request-password-private" {
-			t.Error("tracing changed the business request")
-		}
-		return Result{"id": "receipt-visible", "total_cents": 8400, "access_token": "response-token-private", "address": map[string]any{"detail": "response-address-private"}}, nil
-	}})
+	address := rpcTraceServer(
+		t,
+		Module{Name: "catalog", Handle: func(_ context.Context, request Command) (Result, error) {
+			if Text(request.Data, "password") != "request-password-private" {
+				t.Error("tracing changed the business request")
+			}
+			return Result{
+				"id":           "receipt-visible",
+				"total_cents":  8400,
+				"access_token": "response-token-private",
+				"address":      map[string]any{"detail": "response-address-private"},
+			}, nil
+		}},
+	)
 	caller := NewCaller(map[string]string{"catalog": address}, "trace-internal-token")
 	t.Cleanup(func() { _ = caller.(*rpcCaller).Close() })
-	result, err := caller.Call(context.Background(), "catalog", Command{Action: "get", UserID: "member-identity-private", Data: map[string]any{
-		"sku_id": "sku-visible", "quantity": 2, "password": "request-password-private", "phone": "13912345678",
-	}})
+	result, err := caller.Call(
+		context.Background(),
+		"catalog",
+		Command{Action: "get", UserID: "member-identity-private", Data: map[string]any{
+			"sku_id": "sku-visible", "quantity": 2, "password": "request-password-private", "phone": "13912345678",
+		}},
+	)
 	if err != nil || result["access_token"] != "response-token-private" {
 		t.Fatalf("tracing changed the business result: %v %v", result, err)
 	}
-	assertRPCPayloadSpans(t, awaitRPCTraceSpans(t, exporter, 4), "sku-visible", "8400", "",
-		"trace-internal-token", "request-password-private", "response-token-private", "member-identity-private", "13912345678", "response-address-private")
+	assertRPCPayloadSpans(
+		t,
+		awaitRPCTraceSpans(t, exporter, 4),
+		"sku-visible",
+		"8400",
+		"",
+		"trace-internal-token",
+		"request-password-private",
+		"response-token-private",
+		"member-identity-private",
+		"13912345678",
+		"response-address-private",
+	)
 }
 
 func TestRPCPayloadTraceRecordsTypedSnapshotsWithoutLosingPrecision(t *testing.T) {
 	exporter, _ := tracing(t)
 	const amount int64 = 9007199254741115
-	address := orderTestAddress(t, &orderRPCFixture{create: func(_ context.Context, request *mallv1.CreateOrderRequest) (*mallv1.Order, error) {
-		return &mallv1.Order{Id: request.GetId(), PayableCents: amount, QuoteSnapshotJson: request.GetQuoteSnapshotJson(), AddressSnapshotJson: request.GetAddressSnapshotJson()}, nil
-	}}, nil)
-	result, err := orderTestCaller(t, address).Call(context.Background(), "order", Command{Action: "create", ID: "order-visible", UserID: "member-private", Role: "system", Data: map[string]any{
-		"quote":   map[string]any{"payable_cents": amount, "items": []any{map[string]any{"sku_id": "sku-visible"}}, "secret": "snapshot-secret-private"},
-		"address": map[string]any{"recipient": "recipient-private", "phone": "13912345678", "detail": "address-private"},
-		"note":    "freeform-private",
-	}})
+	address := orderTestAddress(
+		t,
+		&orderRPCFixture{create: func(_ context.Context, request *mallv1.CreateOrderRequest) (*mallv1.Order, error) {
+			return &mallv1.Order{
+				Id:                  request.GetId(),
+				PayableCents:        amount,
+				QuoteSnapshotJson:   request.GetQuoteSnapshotJson(),
+				AddressSnapshotJson: request.GetAddressSnapshotJson(),
+			}, nil
+		}},
+		nil,
+	)
+	result, err := orderTestCaller(
+		t,
+		address,
+	).Call(
+		context.Background(),
+		"order",
+		Command{Action: "create", ID: "order-visible", UserID: "member-private", Role: "system", Data: map[string]any{
+			"quote": map[string]any{
+				"payable_cents": amount,
+				"items":         []any{map[string]any{"sku_id": "sku-visible"}},
+				"secret":        "snapshot-secret-private",
+			},
+			"address": map[string]any{
+				"recipient": "recipient-private",
+				"phone":     "13912345678",
+				"detail":    "address-private",
+			},
+			"note": "freeform-private",
+		}},
+	)
 	if err != nil || Int(result, "payable_cents") != amount {
 		t.Fatalf("tracing changed typed request or result: %v %v", result, err)
 	}
-	assertRPCPayloadSpans(t, awaitRPCTraceSpans(t, exporter, 4), "9007199254741115", "9007199254741115", "",
-		orderTestToken, "member-private", "snapshot-secret-private", "recipient-private", "13912345678", "address-private", "freeform-private")
+	assertRPCPayloadSpans(
+		t,
+		awaitRPCTraceSpans(t, exporter, 4),
+		"9007199254741115",
+		"9007199254741115",
+		"",
+		orderTestToken,
+		"member-private",
+		"snapshot-secret-private",
+		"recipient-private",
+		"13912345678",
+		"address-private",
+		"freeform-private",
+	)
 }
 
 func TestRPCPayloadTraceRecordsErrorsAndRejectsSensitiveStatusText(t *testing.T) {
@@ -89,19 +153,26 @@ func TestRPCPayloadTraceRecordsErrorsAndRejectsSensitiveStatusText(t *testing.T)
 		}
 		t.Run(name, func(t *testing.T) {
 			exporter, _ := tracing(t)
-			address := rpcTraceServer(t, Module{Name: "catalog", Handle: func(context.Context, Command) (Result, error) {
-				if rejection {
-					t.Error("rejected credential reached business handler")
-				}
-				return nil, status.Error(codes.InvalidArgument, "business-sensitive-error-private")
-			}})
+			address := rpcTraceServer(
+				t,
+				Module{Name: "catalog", Handle: func(context.Context, Command) (Result, error) {
+					if rejection {
+						t.Error("rejected credential reached business handler")
+					}
+					return nil, status.Error(codes.InvalidArgument, "business-sensitive-error-private")
+				}},
+			)
 			token, expectedCode, count := "trace-internal-token", codes.InvalidArgument, 4
 			if rejection {
 				token, expectedCode, count = "wrong-internal-token-private", codes.Unauthenticated, 3
 			}
 			caller := NewCaller(map[string]string{"catalog": address}, token)
 			t.Cleanup(func() { _ = caller.(*rpcCaller).Close() })
-			_, err := caller.Call(context.Background(), "catalog", Command{Action: "get", ID: "order-visible", Data: map[string]any{"secret": "request-secret-private"}})
+			_, err := caller.Call(
+				context.Background(),
+				"catalog",
+				Command{Action: "get", ID: "order-visible", Data: map[string]any{"secret": "request-secret-private"}},
+			)
 			if status.Code(err) != expectedCode {
 				t.Fatalf("RPC result changed: %v", err)
 			}
@@ -124,17 +195,34 @@ func TestRPCPayloadTraceRecordsCallerValidationBeforeNetworkIO(t *testing.T) {
 	}{
 		{"missing-credential", "", map[string]string{}, nil, codes.Unauthenticated},
 		{"missing-target", "configured-token-private", map[string]string{}, nil, codes.Unavailable},
-		{"unencodable-payload", "configured-token-private", map[string]string{"catalog": "127.0.0.1:1"}, map[string]any{"unsupported": make(chan int)}, codes.InvalidArgument},
+		{
+			"unencodable-payload",
+			"configured-token-private",
+			map[string]string{"catalog": "127.0.0.1:1"},
+			map[string]any{"unsupported": make(chan int)},
+			codes.InvalidArgument,
+		},
 	} {
 		t.Run(fixture.name, func(t *testing.T) {
 			exporter, _ := tracing(t)
 			caller := NewCaller(fixture.targets, fixture.token)
 			t.Cleanup(func() { _ = caller.(*rpcCaller).Close() })
-			_, err := caller.Call(context.Background(), "catalog", Command{Action: "get", ID: "order-visible", Data: fixture.data})
+			_, err := caller.Call(
+				context.Background(),
+				"catalog",
+				Command{Action: "get", ID: "order-visible", Data: fixture.data},
+			)
 			if status.Code(err) != fixture.code {
 				t.Fatal(err)
 			}
-			assertRPCPayloadSpans(t, awaitRPCTraceSpans(t, exporter, 1), "", "", fixture.code.String(), "configured-token-private")
+			assertRPCPayloadSpans(
+				t,
+				awaitRPCTraceSpans(t, exporter, 1),
+				"",
+				"",
+				fixture.code.String(),
+				"configured-token-private",
+			)
 		})
 	}
 }

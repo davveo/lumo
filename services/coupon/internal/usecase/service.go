@@ -22,7 +22,8 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	if c.Action == constants.ActionTemplates || c.Action == constants.ActionTemplatesSnapshot || c.Action == constants.ActionTemplatesByIds {
+	if c.Action == constants.ActionTemplates || c.Action == constants.ActionTemplatesSnapshot ||
+		c.Action == constants.ActionTemplatesByIds {
 		if c.Action == constants.ActionTemplatesByIds && c.Role != constants.RoleSystem {
 			return nil, status.Error(codes.PermissionDenied, "internal coupon command required")
 		}
@@ -42,7 +43,10 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			if item["claim_status"] != constants.CouponClaimStatusAvailable {
 				continue
 			}
-			t := domain.Template{MinPoints: platform.Int(item, "min_points"), MinGrowth: platform.Int(item, "min_growth")}
+			t := domain.Template{
+				MinPoints: platform.Int(item, "min_points"),
+				MinGrowth: platform.Int(item, "min_growth"),
+			}
 			if err := check.check(ctx, t); err != nil {
 				item["claim_status"] = constants.CouponClaimStatusConditionsUnmet
 				if status.Code(err) == codes.Unavailable {
@@ -84,7 +88,16 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
 	if data == nil {
 		data = map[string]any{}
 	}
-	_, err := s.Execute(ctx, platform.Command{Action: constants.ActionRefund, ID: e.AggregateID, UserID: e.UserID, Role: constants.RoleSystem, Data: data})
+	_, err := s.Execute(
+		ctx,
+		platform.Command{
+			Action: constants.ActionRefund,
+			ID:     e.AggregateID,
+			UserID: e.UserID,
+			Role:   constants.RoleSystem,
+			Data:   data,
+		},
+	)
 	return err
 }
 
@@ -123,7 +136,10 @@ func (e *eligibility) check(ctx context.Context, t domain.Template) error {
 			return e.pointsErr
 		}
 		if e.points < t.MinPoints {
-			return status.Error(codes.FailedPrecondition, fmt.Sprintf("需可用积分达到 %d，当前 %d（领取不扣积分）", t.MinPoints, e.points))
+			return status.Error(
+				codes.FailedPrecondition,
+				fmt.Sprintf("需可用积分达到 %d，当前 %d（领取不扣积分）", t.MinPoints, e.points),
+			)
 		}
 	}
 	if t.MinGrowth > 0 {

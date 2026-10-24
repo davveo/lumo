@@ -37,14 +37,20 @@ func NewConsul(address, token string) (*Consul, error) {
 		address = "http://" + address
 	}
 	base, err := url.Parse(address)
-	if err != nil || (base.Scheme != "http" && base.Scheme != "https") || base.Hostname() == "" || base.User != nil || base.RawQuery != "" || base.Fragment != "" {
+	if err != nil || (base.Scheme != "http" && base.Scheme != "https") || base.Hostname() == "" || base.User != nil ||
+		base.RawQuery != "" ||
+		base.Fragment != "" {
 		return nil, fmt.Errorf("CONSUL_HTTP_ADDR must be an HTTP(S) endpoint without credentials or query parameters")
 	}
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.MaxIdleConnsPerHost = 64
 	return &Consul{
 		base: base, token: token, registerInterval: 10 * time.Second, cleanupTimeout: 5 * time.Second,
-		http: &http.Client{Timeout: 3 * time.Second, Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
+		http: &http.Client{
+			Timeout:       3 * time.Second,
+			Transport:     transport,
+			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+		},
 	}, nil
 }
 
@@ -113,7 +119,14 @@ func (c *Consul) Resolve(ctx context.Context, service string) ([]string, error) 
 		}
 		Checks []struct{ CheckID, ServiceID, Status string }
 	}
-	_, err := c.request(ctx, http.MethodGet, "/v1/health/service/"+url.PathEscape(service), url.Values{"passing": {"true"}}, nil, &rows)
+	_, err := c.request(
+		ctx,
+		http.MethodGet,
+		"/v1/health/service/"+url.PathEscape(service),
+		url.Values{"passing": {"true"}},
+		nil,
+		&rows,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -125,11 +138,13 @@ func (c *Consul) Resolve(ctx context.Context, service string) ([]string, error) 
 			if check.Status != constants.ConsulHealthStatusPassing {
 				passing = false
 			}
-			if row.Service.ID != "" && check.ServiceID == row.Service.ID && check.CheckID != "" && check.Status == constants.ConsulHealthStatusPassing {
+			if row.Service.ID != "" && check.ServiceID == row.Service.ID && check.CheckID != "" &&
+				check.Status == constants.ConsulHealthStatusPassing {
 				serviceCheck = true
 			}
 		}
-		if !passing || !serviceCheck || row.Service.Port < 1 || row.Service.Port > 65535 || (row.Service.Service != "" && row.Service.Service != service) {
+		if !passing || !serviceCheck || row.Service.Port < 1 || row.Service.Port > 65535 ||
+			(row.Service.Service != "" && row.Service.Service != service) {
 			continue
 		}
 		address := row.Service.Address
@@ -192,7 +207,9 @@ func consulName(name string) bool {
 }
 
 func (c *Consul) registrationSpec(ctx context.Context, service ConsulService) (consulRegistration, error) {
-	if !consulName(service.Name) || service.ID == "" || strings.ContainsAny(service.ID, "/\\\r\n") || service.Port < 1 || service.Port > 65535 {
+	if !consulName(service.Name) || service.ID == "" || strings.ContainsAny(service.ID, "/\\\r\n") ||
+		service.Port < 1 ||
+		service.Port > 65535 {
 		return consulRegistration{}, fmt.Errorf("valid Consul service name, instance ID and port required")
 	}
 	address := service.Address
@@ -213,7 +230,13 @@ func (c *Consul) registrationSpec(ctx context.Context, service ConsulService) (c
 	}
 	address = ip.String()
 	target := net.JoinHostPort(address, strconv.Itoa(service.Port))
-	check := consulCheck{CheckID: "service:" + service.ID, Name: service.Name + " readiness", Interval: "10s", Timeout: "5s", DeregisterCriticalServiceAfter: "2m"}
+	check := consulCheck{
+		CheckID:                        "service:" + service.ID,
+		Name:                           service.Name + " readiness",
+		Interval:                       "10s",
+		Timeout:                        "5s",
+		DeregisterCriticalServiceAfter: "2m",
+	}
 	switch service.Protocol {
 	case "grpc":
 		check.GRPC = target
@@ -223,7 +246,12 @@ func (c *Consul) registrationSpec(ctx context.Context, service ConsulService) (c
 		return consulRegistration{}, fmt.Errorf("Consul service protocol must be grpc or http")
 	}
 	return consulRegistration{ID: service.ID, Name: service.Name, Address: address, Port: service.Port,
-		Meta: map[string]string{"logical_service": service.Name, "protocol": service.Protocol, "registration_id": ID("consul"), "health_target": check.GRPC + check.HTTP}, Check: check}, nil
+		Meta: map[string]string{
+			"logical_service": service.Name,
+			"protocol":        service.Protocol,
+			"registration_id": ID("consul"),
+			"health_target":   check.GRPC + check.HTTP,
+		}, Check: check}, nil
 }
 
 func (c *Consul) ensureRegistration(ctx context.Context, spec consulRegistration, owned bool) error {
@@ -236,13 +264,22 @@ func (c *Consul) ensureRegistration(ctx context.Context, spec consulRegistration
 		if owned && existing.Meta["registration_id"] != spec.Meta["registration_id"] {
 			return fmt.Errorf("Consul instance ID was replaced by another process")
 		}
-		if existing.Address == spec.Address && existing.Port == spec.Port && existing.Meta["registration_id"] == spec.Meta["registration_id"] && existing.Meta["health_target"] == spec.Meta["health_target"] {
+		if existing.Address == spec.Address && existing.Port == spec.Port &&
+			existing.Meta["registration_id"] == spec.Meta["registration_id"] &&
+			existing.Meta["health_target"] == spec.Meta["health_target"] {
 			return nil
 		}
 	} else if code != http.StatusNotFound {
 		return err
 	}
-	_, err = c.request(ctx, http.MethodPut, "/v1/agent/service/register", url.Values{"replace-existing-checks": {"true"}}, spec, nil)
+	_, err = c.request(
+		ctx,
+		http.MethodPut,
+		"/v1/agent/service/register",
+		url.Values{"replace-existing-checks": {"true"}},
+		spec,
+		nil,
+	)
 	return err
 }
 
@@ -283,15 +320,34 @@ func (c *Consul) Register(ctx context.Context, service ConsulService) (func(), e
 			cleanupCtx, finish := context.WithTimeout(context.Background(), c.cleanupTimeout)
 			defer finish()
 			var existing consulAgentService
-			code, err := c.request(cleanupCtx, http.MethodGet, "/v1/agent/service/"+url.PathEscape(spec.ID), nil, nil, &existing)
+			code, err := c.request(
+				cleanupCtx,
+				http.MethodGet,
+				"/v1/agent/service/"+url.PathEscape(spec.ID),
+				nil,
+				nil,
+				&existing,
+			)
 			if code == http.StatusNotFound {
 				return
 			}
-			if err == nil && existing.Service == spec.Name && existing.Meta["registration_id"] == spec.Meta["registration_id"] {
-				_, err = c.request(cleanupCtx, http.MethodPut, "/v1/agent/service/deregister/"+url.PathEscape(spec.ID), nil, nil, nil)
+			if err == nil && existing.Service == spec.Name &&
+				existing.Meta["registration_id"] == spec.Meta["registration_id"] {
+				_, err = c.request(
+					cleanupCtx,
+					http.MethodPut,
+					"/v1/agent/service/deregister/"+url.PathEscape(spec.ID),
+					nil,
+					nil,
+					nil,
+				)
 			}
 			if err != nil {
-				slog.Warn("Consul deregistration failed; critical health check will expire the instance", "service", service.Name)
+				slog.Warn(
+					"Consul deregistration failed; critical health check will expire the instance",
+					"service",
+					service.Name,
+				)
 			}
 		})
 	}

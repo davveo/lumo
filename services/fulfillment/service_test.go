@@ -73,7 +73,15 @@ func TestWarehouseDispatchCancellationAndReceiptIdempotency(t *testing.T) {
 	}}
 	m, _ := setup(t, rpc)
 	ctx := context.Background()
-	if err := m.OnEvent(ctx, platform.Event{Type: "OrderReadyToFulfill", AggregateID: "o1", UserID: "demo", Data: map[string]any{"order_id": "o1", "reservation_id": "o1"}}); err != nil {
+	if err := m.OnEvent(
+		ctx,
+		platform.Event{
+			Type:        "OrderReadyToFulfill",
+			AggregateID: "o1",
+			UserID:      "demo",
+			Data:        map[string]any{"order_id": "o1", "reservation_id": "o1"},
+		},
+	); err != nil {
 		t.Fatal(err)
 	}
 	admin := platform.Command{Action: "dispatch", ID: "o1", UserID: "admin", Role: "admin"}
@@ -91,7 +99,15 @@ func TestWarehouseDispatchCancellationAndReceiptIdempotency(t *testing.T) {
 	expectCode(t, err, codes.PermissionDenied)
 	_, err = m.Handle(ctx, platform.Command{Action: "cancel", ID: "o1", UserID: "demo", Role: "system"})
 	expectCode(t, err, codes.FailedPrecondition)
-	if err = m.OnEvent(ctx, platform.Event{Type: "OrderReadyToFulfill", AggregateID: "o2", UserID: "demo", Data: map[string]any{"order_id": "o2"}}); err != nil {
+	if err = m.OnEvent(
+		ctx,
+		platform.Event{
+			Type:        "OrderReadyToFulfill",
+			AggregateID: "o2",
+			UserID:      "demo",
+			Data:        map[string]any{"order_id": "o2"},
+		},
+	); err != nil {
 		t.Fatal(err)
 	}
 	out = run(t, m, platform.Command{Action: "cancel", ID: "o2", UserID: "demo", Role: "system"})
@@ -100,14 +116,28 @@ func TestWarehouseDispatchCancellationAndReceiptIdempotency(t *testing.T) {
 	}
 	// Cancellation arriving before MQ readiness must leave a durable tombstone.
 	run(t, m, platform.Command{Action: "cancel", ID: "o-late", UserID: "demo", Role: "system"})
-	if err = m.OnEvent(ctx, platform.Event{Type: "OrderReadyToFulfill", AggregateID: "o-late", UserID: "demo", Data: map[string]any{"order_id": "o-late"}}); err != nil {
+	if err = m.OnEvent(
+		ctx,
+		platform.Event{
+			Type:        "OrderReadyToFulfill",
+			AggregateID: "o-late",
+			UserID:      "demo",
+			Data:        map[string]any{"order_id": "o-late"},
+		},
+	); err != nil {
 		t.Fatal(err)
 	}
 	late := run(t, m, platform.Command{Action: "get", ID: "o-late", UserID: "demo"})
 	if late["status"] != "CANCELLED" {
 		t.Fatal("late event resurrected cancelled shipment", late)
 	}
-	receipt := platform.Command{Action: "inspect_return", ID: "inspection1", UserID: "demo", Role: "system", Data: map[string]any{"order_id": "o1", "sku_id": "sku-phone", "quantity": 1, "condition": "damaged"}}
+	receipt := platform.Command{
+		Action: "inspect_return",
+		ID:     "inspection1",
+		UserID: "demo",
+		Role:   "system",
+		Data:   map[string]any{"order_id": "o1", "sku_id": "sku-phone", "quantity": 1, "condition": "damaged"},
+	}
 	run(t, m, receipt)
 	run(t, m, receipt)
 	if calls["inventory.restock"] != 1 {

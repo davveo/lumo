@@ -14,8 +14,25 @@ func TestPaidCartConsumesOnceAndPreservesNewQuantities(t *testing.T) {
 		return c.call(t, ctx, service, action, id, key, "user", "demo", data)
 	}
 	call("cart", "add", "", "", map[string]any{"sku_id": "sku-watch", "quantity": 2})
-	q := call("pricing", "quote", "", "", map[string]any{"items": []any{map[string]any{"sku_id": "sku-watch", "quantity": 1}}})
-	placed := call("checkout", "submit", "", "cart-consume-once", map[string]any{"quote_id": platform.Text(q, "quote_id"), "source": "cart", "note": "Keep this delivery note", "address": map[string]any{"recipient": "Demo", "phone": "13800000000", "address": "Demo Street"}})
+	q := call(
+		"pricing",
+		"quote",
+		"",
+		"",
+		map[string]any{"items": []any{map[string]any{"sku_id": "sku-watch", "quantity": 1}}},
+	)
+	placed := call(
+		"checkout",
+		"submit",
+		"",
+		"cart-consume-once",
+		map[string]any{
+			"quote_id": platform.Text(q, "quote_id"),
+			"source":   "cart",
+			"note":     "Keep this delivery note",
+			"address":  map[string]any{"recipient": "Demo", "phone": "13800000000", "address": "Demo Street"},
+		},
+	)
 	oid := platform.Text(placed, "order_id")
 	// Another quantity added after checkout must remain after the purchased unit is consumed.
 	call("cart", "add", "", "", map[string]any{"sku_id": "sku-watch", "quantity": 1})

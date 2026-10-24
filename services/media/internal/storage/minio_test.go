@@ -11,7 +11,15 @@ import (
 )
 
 func TestSignUsesPublicEndpointAndBoundPOSTPolicy(t *testing.T) {
-	s, e := New(Config{Endpoint: "minio:9000", PublicEndpoint: "localhost:9001", AccessKey: "development-access", SecretKey: "development-secret-32-characters", Bucket: "lumo-media"})
+	s, e := New(
+		Config{
+			Endpoint:       "minio:9000",
+			PublicEndpoint: "localhost:9001",
+			AccessKey:      "development-access",
+			SecretKey:      "development-secret-32-characters",
+			Bucket:         "lumo-media",
+		},
+	)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -23,7 +31,8 @@ func TestSignUsesPublicEndpointAndBoundPOSTPolicy(t *testing.T) {
 	if e != nil || parsed.Host != "localhost:9001" || !strings.HasPrefix(parsed.Path, "/lumo-media") {
 		t.Fatalf("wrong signing endpoint %s %v", u.URL, e)
 	}
-	if u.Fields["key"] != "private/file_random" || u.Fields["Content-Type"] != "image/png" || u.Fields["x-amz-signature"] == "" {
+	if u.Fields["key"] != "private/file_random" || u.Fields["Content-Type"] != "image/png" ||
+		u.Fields["x-amz-signature"] == "" {
 		t.Fatalf("incomplete signed form %+v", u.Fields)
 	}
 	b, e := base64.StdEncoding.DecodeString(u.Fields["policy"])
@@ -55,7 +64,11 @@ func TestSignUsesPublicEndpointAndBoundPOSTPolicy(t *testing.T) {
 	}
 }
 func TestRejectsUnsafeEndpoint(t *testing.T) {
-	for _, raw := range []string{"http://user:password@localhost:9000", "http://localhost:9000/path", "localhost:9000?secret=x"} {
+	for _, raw := range []string{
+		"http://user:password@localhost:9000",
+		"http://localhost:9000/path",
+		"localhost:9000?secret=x",
+	} {
 		if _, _, e := endpoint(raw, false); e == nil {
 			t.Fatalf("unsafe endpoint accepted %q", raw)
 		}

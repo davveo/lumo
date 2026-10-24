@@ -9,12 +9,25 @@ UPDATE_INFRA=$3
 REQUESTED_SERVICES=$4
 INFRA_SERVICES='consul mysql redis rabbitmq minio jaeger otel-collector'
 BUILDABLE_INFRA='minio jaeger otel-collector'
-APP_SERVICES=$(for directory in services/*; do [ ! -f "$directory/service.go" ] || basename "$directory"; done; printf '%s\n' gateway)
+APP_SERVICES=$(
+  for directory in services/*; do
+    [ ! -f "$directory/service.go" ] || basename "$directory"
+  done
+  printf '%s\n' gateway
+)
 RUN_DIR=''
 LOCK_DIR=''
 LOCKED=0
-fail() { printf '\n错误：%s\n' "$1" >&2; exit 1; }
-compose() { docker compose --project-directory "$PROJECT_DIR" --env-file "$PROJECT_DIR/.env" -f "$PROJECT_DIR/compose.yaml" "$@"; }
+fail() {
+  printf '\n错误：%s\n' "$1" >&2
+  exit 1
+}
+compose() {
+  docker compose \
+    --project-directory "$PROJECT_DIR" \
+    --env-file "$PROJECT_DIR/.env" \
+    -f "$PROJECT_DIR/compose.yaml" "$@"
+}
 fingerprint() { sh "$PROJECT_DIR/scripts/source-fingerprint.sh" "$1"; }
 cleanup() {
   result=$?
@@ -47,16 +60,16 @@ mkdir -p "$STATE_DIR"
 LOCK_DIR="$STATE_DIR/lock"
 mkdir "$LOCK_DIR" 2>/dev/null || fail "已有启动任务或上次任务被强制终止；请检查 $LOCK_DIR/pid，确认任务结束后清理该lock目录"
 LOCKED=1
-printf '%s\n' "$$" > "$LOCK_DIR/pid"
+printf '%s\n' "$$" >"$LOCK_DIR/pid"
 RUN_DIR=$(mktemp -d "$STATE_DIR/run.XXXXXX") || fail '无法创建启动临时目录'
-compose config --hash '*' > "$RUN_DIR/config.hashes" || fail 'Compose不支持配置指纹；请更新Compose v2'
+compose config --hash '*' >"$RUN_DIR/config.hashes" || fail 'Compose不支持配置指纹；请更新Compose v2'
 # The canonical YAML is streamed, not saved: retain only image names, never env values.
 compose config | awk '
   /^services:$/ { active=1; next }
   active && /^[^ ]/ { active=0 }
   active && /^  [A-Za-z0-9_-]+:$/ { name=$1; sub(/:$/, "", name) }
   active && /^    image:/ { image=$2; gsub(/"/, "", image); print name, image }
-' > "$RUN_DIR/images"
+' >"$RUN_DIR/images"
 APP_IMAGE=$(awk '$1=="gateway"{print $2;exit}' "$RUN_DIR/images")
 MINIO_IMAGE=$(awk '$1=="minio"{print $2;exit}' "$RUN_DIR/images")
 [ -n "$APP_IMAGE" ] && [ -n "$MINIO_IMAGE" ] || fail '无法读取Compose应用/MinIO镜像名'
@@ -65,12 +78,22 @@ container() {
   SERVICE_ID=$(compose ps --all -q "$1") || fail "无法读取$1容器"
   SERVICE_COUNT=0
   if [ -z "$SERVICE_ID" ]; then
-    SERVICE_STATUS=missing; SERVICE_HEALTH=none; SERVICE_EXIT=0; SERVICE_IMAGE=none; SERVICE_CONFIG=none
+    SERVICE_STATUS=missing
+    SERVICE_HEALTH=none
+    SERVICE_EXIT=0
+    SERVICE_IMAGE=none
+    SERVICE_CONFIG=none
     return
   fi
-  SERVICE_STATUS=running; SERVICE_HEALTH=healthy; SERVICE_EXIT=0; SERVICE_IMAGE=''; SERVICE_CONFIG=''
+  SERVICE_STATUS=running
+  SERVICE_HEALTH=healthy
+  SERVICE_EXIT=0
+  SERVICE_IMAGE=''
+  SERVICE_CONFIG=''
   for instance in $SERVICE_ID; do
-    row=$(docker inspect --format '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}} {{.State.ExitCode}} {{.Image}} {{with index .Config.Labels "com.docker.compose.config-hash"}}{{.}}{{else}}none{{end}}' "$instance") || fail '无法检查服务实例'
+    row=$(docker inspect \
+      --format '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}} {{.State.ExitCode}} {{.Image}} {{with index .Config.Labels "com.docker.compose.config-hash"}}{{.}}{{else}}none{{end}}' \
+      "$instance") || fail '无法检查服务实例'
     set -- $row
     [ "$#" -eq 5 ] || fail 'Docker容器状态格式异常'
     SERVICE_COUNT=$((SERVICE_COUNT + 1))
@@ -78,7 +101,8 @@ container() {
     [ "$2" = healthy ] || SERVICE_HEALTH=$2
     [ "$3" = 0 ] || SERVICE_EXIT=$3
     if [ "$SERVICE_COUNT" -eq 1 ]; then
-      SERVICE_IMAGE=$4; SERVICE_CONFIG=$5
+      SERVICE_IMAGE=$4
+      SERVICE_CONFIG=$5
     else
       [ "$SERVICE_IMAGE" = "$4" ] || SERVICE_IMAGE=mixed
       [ "$SERVICE_CONFIG" = "$5" ] || SERVICE_CONFIG=mixed
@@ -102,8 +126,10 @@ for service in $SELECTED_APPS; do
   source=$(fingerprint "$service") || fail "计算${service}源码指纹失败"
   cfg=$(config_hash "$service")
   [ -n "$cfg" ] || fail "Compose中缺少$service"
-  printf '%s\n%s\n' "$source" "$cfg" > "$RUN_DIR/snapshot.$service"
-  old_source=''; old_cfg=''; old_image=''
+  printf '%s\n%s\n' "$source" "$cfg" >"$RUN_DIR/snapshot.$service"
+  old_source=''
+  old_cfg=''
+  old_image=''
   if [ -f "$STATE_DIR/$service.state" ]; then
     old_source=$(sed -n '1p' "$STATE_DIR/$service.state")
     old_cfg=$(sed -n '2p' "$STATE_DIR/$service.state")
@@ -114,8 +140,12 @@ for service in $SELECTED_APPS; do
   # updates. Inspect every instance so an unhealthy or stale replica is visible.
   replicas=$SERVICE_COUNT
   [ "$replicas" -gt 0 ] || replicas=1
-  printf '%s %s\n' "$service" "$replicas" >> "$RUN_DIR/replicas"
-  if [ -n "$REQUESTED_SERVICES" ] || [ "$source" != "$old_source" ] || [ "$cfg" != "$old_cfg" ] || [ "$SERVICE_IMAGE" != "$old_image" ] || [ "$SERVICE_CONFIG" != "$cfg" ]; then
+  printf '%s %s\n' "$service" "$replicas" >>"$RUN_DIR/replicas"
+  if [ -n "$REQUESTED_SERVICES" ] ||
+    [ "$source" != "$old_source" ] ||
+    [ "$cfg" != "$old_cfg" ] ||
+    [ "$SERVICE_IMAGE" != "$old_image" ] ||
+    [ "$SERVICE_CONFIG" != "$cfg" ]; then
     UPDATE_APPS="$UPDATE_APPS $service"
     [ -n "$old_source" ] || printf '%s：首次建立业务部署基线（中间件保持运行）。\n' "$service"
   elif ! ready; then
@@ -130,7 +160,7 @@ for service in $INFRA_SERVICES; do
   container "$service"
   if [ "$UPDATE_INFRA" -eq 1 ] || [ "$SERVICE_STATUS" != running ]; then
     INFRA_START="$INFRA_START $service"
-    case "$service" in minio|jaeger) NEED_STORAGE_INIT=1 ;; esac
+    case "$service" in minio | jaeger) NEED_STORAGE_INIT=1 ;; esac
     case " $BUILDABLE_INFRA " in
       *" $service "*)
         service_image=$(awk -v name="$service" '$1==name{print $2;exit}' "$RUN_DIR/images")
@@ -140,7 +170,8 @@ for service in $INFRA_SERVICES; do
           INFRA_BUILD="$INFRA_BUILD $service"
         elif [ "$UPDATE_INFRA" -eq 1 ]; then
           INFRA_BUILD="$INFRA_BUILD $service"
-        fi ;;
+        fi
+        ;;
     esac
   elif [ "$SERVICE_HEALTH" = none ]; then
     fail "${service}缺少健康检查；请应用新版Compose配置，本次不会自动重建它"
@@ -155,7 +186,8 @@ if [ -n "$UPDATE_APPS" ]; then
   if [ "$BUILD_IMAGES" -eq 1 ]; then
     APP_SOURCE=$(fingerprint --image)
     ACTUAL_IMAGE=$(image_id "$APP_IMAGE" || true)
-    CACHED_SOURCE=''; CACHED_IMAGE=''
+    CACHED_SOURCE=''
+    CACHED_IMAGE=''
     if [ -f "$STATE_DIR/app-image.state" ]; then
       CACHED_SOURCE=$(sed -n '1p' "$STATE_DIR/app-image.state")
       CACHED_IMAGE=$(sed -n '2p' "$STATE_DIR/app-image.state")
@@ -165,7 +197,7 @@ if [ -n "$UPDATE_APPS" ]; then
       compose build gateway || failure
       [ "$(fingerprint --image)" = "$APP_SOURCE" ] || fail '构建期间源码发生变化；业务容器尚未更新，请重新执行'
       ACTUAL_IMAGE=$(image_id "$APP_IMAGE") || fail '构建后无法读取应用镜像'
-      printf '%s\n%s\n' "$APP_SOURCE" "$ACTUAL_IMAGE" > "$RUN_DIR/app-image.state"
+      printf '%s\n%s\n' "$APP_SOURCE" "$ACTUAL_IMAGE" >"$RUN_DIR/app-image.state"
       mv "$RUN_DIR/app-image.state" "$STATE_DIR/app-image.state"
     else
       printf '复用已验证的当前代码镜像，无需再次构建。\n'
@@ -198,9 +230,13 @@ if [ -n "$INFRA_START" ]; then
 else
   printf '中间件均已运行，保持原容器，不执行重启。\n'
 fi
-for service in $INFRA_SERVICES; do container "$service"; ready || fail "${service}未就绪；请检查日志"; done
+for service in $INFRA_SERVICES; do
+  container "$service"
+  ready || fail "${service}未就绪；请检查日志"
+done
 up_apps() {
-  app_mode=$1; shift
+  app_mode=$1
+  shift
   app_list=$*
   set -- up -d --no-deps --no-build "$app_mode" --wait --wait-timeout "$WAIT_SECONDS"
   for app in $app_list; do
@@ -230,7 +266,7 @@ for service in $SELECTED_APPS; do
     fi
     source=$known_source
   fi
-  printf '%s\n%s\n%s\n' "$source" "$cfg" "$SERVICE_IMAGE" > "$RUN_DIR/state.$service"
+  printf '%s\n%s\n%s\n' "$source" "$cfg" "$SERVICE_IMAGE" >"$RUN_DIR/state.$service"
   mv "$RUN_DIR/state.$service" "$STATE_DIR/$service.state"
 done
 printf '\n启动/增量更新完成。\n'
@@ -244,28 +280,31 @@ MINIO_LOGIN_USER=$(login_env minio MINIO_ROOT_USER)
 MINIO_LOGIN_PASSWORD=$(login_env minio MINIO_ROOT_PASSWORD)
 show_login() {
   case "$1" in
-    customer|admin|debug)
+    customer | admin | debug)
       if [ "$IAM_DEMO_MODE" = true ]; then
-        case "$1" in customer|debug) printf '    初始演示顾客账号：demo  密码：Lumo@2026\n' ;; esac
-        case "$1" in admin|debug) printf '    初始演示管理员账号：admin  密码：Admin@2026\n' ;; esac
+        case "$1" in customer | debug) printf '    初始演示顾客账号：demo  密码：Lumo@2026\n' ;; esac
+        case "$1" in admin | debug) printf '    初始演示管理员账号：admin  密码：Admin@2026\n' ;; esac
       elif [ -n "$IAM_DEMO_MODE" ]; then
         printf '    登录：使用已有账号（演示模式未启用）\n'
       else
         printf '    登录：无法读取演示模式，请查看iam服务配置\n'
-      fi ;;
+      fi
+      ;;
     none) printf '    登录：默认无需账号密码\n' ;;
     rabbitmq)
       if [ -n "$RABBIT_LOGIN_USER" ] && [ -n "$RABBIT_LOGIN_PASSWORD" ]; then
         printf '    容器初始化账号：%s  密码：%s\n' "$RABBIT_LOGIN_USER" "$RABBIT_LOGIN_PASSWORD"
       else
         printf '    登录：无法读取RabbitMQ账号密码，请查看容器配置\n'
-      fi ;;
+      fi
+      ;;
     minio)
       if [ -n "$MINIO_LOGIN_USER" ] && [ -n "$MINIO_LOGIN_PASSWORD" ]; then
         printf '    账号（Access Key）：%s  密码（Secret Key）：%s\n' "$MINIO_LOGIN_USER" "$MINIO_LOGIN_PASSWORD"
       else
         printf '    登录：无法读取MinIO账号密码，请查看容器配置\n'
-      fi ;;
+      fi
+      ;;
   esac
 }
 printf '\n可访问地址（在Docker宿主机浏览器打开）：\n'
@@ -290,4 +329,3 @@ show_address RabbitMQ rabbitmq 15672 '' rabbitmq
 show_address MinIO接口 minio 9000 '' minio
 show_address MinIO控制台 minio 9001 '' minio
 printf '\n查看状态：docker compose ps\n停止并保留数据：sh scripts/down.sh\n'
-

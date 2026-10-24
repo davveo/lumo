@@ -40,7 +40,8 @@ func (s *Service) searchProducts(ctx context.Context, c platform.Command) (platf
 		max   int
 	}{{&input.Query, 120}, {&input.Category, 80}, {&input.Brand, 80}} {
 		*field.value = strings.TrimSpace(*field.value)
-		if !utf8.ValidString(*field.value) || utf8.RuneCountInString(*field.value) > field.max || strings.IndexFunc(*field.value, unicode.IsControl) >= 0 {
+		if !utf8.ValidString(*field.value) || utf8.RuneCountInString(*field.value) > field.max ||
+			strings.IndexFunc(*field.value, unicode.IsControl) >= 0 {
 			return nil, bad("invalid product search text")
 		}
 	}
@@ -51,11 +52,25 @@ func (s *Service) searchProducts(ctx context.Context, c platform.Command) (platf
 		return nil, bad("product search limit must be between 1 and 100")
 	}
 	switch input.Sort {
-	case constants.CatalogSortDefault, constants.CatalogSortPriceAsc, constants.CatalogSortPriceDesc, constants.CatalogSortSales, constants.CatalogSortSalesDesc, constants.CatalogSortNewest:
+	case constants.CatalogSortDefault,
+		constants.CatalogSortPriceAsc,
+		constants.CatalogSortPriceDesc,
+		constants.CatalogSortSales,
+		constants.CatalogSortSalesDesc,
+		constants.CatalogSortNewest:
 	default:
 		return nil, bad("invalid product search sort")
 	}
-	rows, err := s.repo.SearchProducts(ctx, repository.ProductSearch{Query: input.Query, Category: input.Category, Brand: input.Brand, Sort: input.Sort, Limit: input.Limit})
+	rows, err := s.repo.SearchProducts(
+		ctx,
+		repository.ProductSearch{
+			Query:    input.Query,
+			Category: input.Category,
+			Brand:    input.Brand,
+			Sort:     input.Sort,
+			Limit:    input.Limit,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}

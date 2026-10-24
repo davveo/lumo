@@ -75,11 +75,16 @@ func quoteBatchSetup(t *testing.T) (platform.Module, *quoteBatchCaller) {
 }
 
 func batchQuoteCommand() platform.Command {
-	return platform.Command{Action: "quote", UserID: "buyer", Role: "user", Data: map[string]any{"items": []platform.Result{
-		{"sku_id": "sku-a", "quantity": 2, "unit_price_cents": 1},
-		{"sku_id": "sku-b", "quantity": 3, "unit_price_cents": 1},
-		{"sku_id": "sku-a", "quantity": 1, "unit_price_cents": 1},
-	}}}
+	return platform.Command{
+		Action: "quote",
+		UserID: "buyer",
+		Role:   "user",
+		Data: map[string]any{"items": []platform.Result{
+			{"sku_id": "sku-a", "quantity": 2, "unit_price_cents": 1},
+			{"sku_id": "sku-b", "quantity": 3, "unit_price_cents": 1},
+			{"sku_id": "sku-a", "quantity": 1, "unit_price_cents": 1},
+		}},
+	}
 }
 
 func TestQuoteFreshCatalogBatchPreservesVariantsAndImmutablePriceSnapshot(t *testing.T) {
@@ -89,7 +94,9 @@ func TestQuoteFreshCatalogBatchPreservesVariantsAndImmutablePriceSnapshot(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rpc.batches != 1 || rpc.individual != 0 || !reflect.DeepEqual(rpc.ids, []string{"sku-a", "sku-b"}) || rpc.user != "buyer" || rpc.role != "user" {
+	if rpc.batches != 1 || rpc.individual != 0 || !reflect.DeepEqual(rpc.ids, []string{"sku-a", "sku-b"}) ||
+		rpc.user != "buyer" ||
+		rpc.role != "user" {
 		t.Fatalf("catalog reads were not batched with correct identity: %#v", rpc)
 	}
 	if platform.Int(q, "subtotal_cents") != 918 || platform.Int(q, "payable_cents") != 918 {
@@ -101,11 +108,16 @@ func TestQuoteFreshCatalogBatchPreservesVariantsAndImmutablePriceSnapshot(t *tes
 	if err := platform.Decode(q, &detail); err != nil {
 		t.Fatal(err)
 	}
-	if len(detail.Items) != 3 || platform.Int(detail.Items[0], "amount_cents") != 202 || platform.Int(detail.Items[1], "unit_price_cents") != 205 || platform.Text(detail.Items[2], "name") != "Variant A" {
+	if len(detail.Items) != 3 || platform.Int(detail.Items[0], "amount_cents") != 202 ||
+		platform.Int(detail.Items[1], "unit_price_cents") != 205 ||
+		platform.Text(detail.Items[2], "name") != "Variant A" {
 		t.Fatalf("quoted item snapshots changed: %v", q)
 	}
 	rpc.rows["sku-a"]["price_cents"] = int64(1000)
-	stored, err := m.Handle(ctx, platform.Command{Action: "get", ID: platform.Text(q, "quote_id"), UserID: "buyer", Role: "user"})
+	stored, err := m.Handle(
+		ctx,
+		platform.Command{Action: "get", ID: platform.Text(q, "quote_id"), UserID: "buyer", Role: "user"},
+	)
 	if err != nil || platform.Int(stored, "subtotal_cents") != 918 || rpc.batches != 1 {
 		t.Fatalf("stored quote reread current catalog: %v %v", stored, err)
 	}
@@ -123,8 +135,16 @@ func TestQuoteCatalogBatchRejectsMissingInactiveAndUnavailableDependencies(t *te
 	}{
 		{"missing", func(r *quoteBatchCaller) { delete(r.rows, "sku-b") }, codes.NotFound},
 		{"inactive", func(r *quoteBatchCaller) { r.rows["sku-b"]["active"] = false }, codes.FailedPrecondition},
-		{"invalid price", func(r *quoteBatchCaller) { r.rows["sku-b"]["price_cents"] = int64(0) }, codes.FailedPrecondition},
-		{"unavailable", func(r *quoteBatchCaller) { r.failure = status.Error(codes.Unavailable, "catalog offline") }, codes.Unavailable},
+		{
+			"invalid price",
+			func(r *quoteBatchCaller) { r.rows["sku-b"]["price_cents"] = int64(0) },
+			codes.FailedPrecondition,
+		},
+		{
+			"unavailable",
+			func(r *quoteBatchCaller) { r.failure = status.Error(codes.Unavailable, "catalog offline") },
+			codes.Unavailable,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			m, rpc := quoteBatchSetup(t)

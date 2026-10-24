@@ -28,7 +28,14 @@ func TestStorefrontStaticFilesAndDebugConsole(t *testing.T) {
 		path string
 		code int
 		text string
-	}{{"/", 200, "Storefront"}, {"/app.js", 200, "window.loaded"}, {"/debug", 200, "LUMO"}, {"/assets/", 404, ""}, {"/.private", 404, ""}, {"/missing.js", 404, ""}} {
+	}{
+		{"/", 200, "Storefront"},
+		{"/app.js", 200, "window.loaded"},
+		{"/debug", 200, "LUMO"},
+		{"/assets/", 404, ""},
+		{"/.private", 404, ""},
+		{"/missing.js", 404, ""},
+	} {
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, tc.path, nil))
 		if w.Code != tc.code || !strings.Contains(w.Body.String(), tc.text) {

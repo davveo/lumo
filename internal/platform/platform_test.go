@@ -64,7 +64,11 @@ func TestRPCTraceReachesEveryLayerAndSQL(t *testing.T) {
 		defer usecase.End()
 		ctx, repository := Start(ctx, "catalog.repository.Save")
 		defer repository.End()
-		return Result{"id": c.ID}, db.WithContext(ctx).Create(&privateRecord{ID: c.ID, Secret: "do-not-export-password"}).Error
+		return Result{
+			"id": c.ID,
+		}, db.WithContext(ctx).
+			Create(&privateRecord{ID: c.ID, Secret: "do-not-export-password"}).
+			Error
 	}}
 	server, err := NewRPCServer("test-internal-credential", module)
 	if err != nil {
@@ -102,7 +106,14 @@ func TestRPCTraceReachesEveryLayerAndSQL(t *testing.T) {
 			repositoryID = s.SpanContext.SpanID().String()
 		}
 	}
-	for _, name := range []string{"http.test.create", "rpc.client.catalog.create", "transport.grpc.catalog.create", "catalog.usecase.Create", "catalog.repository.Save", "SQL INSERT private_records"} {
+	for _, name := range []string{
+		"http.test.create",
+		"rpc.client.catalog.create",
+		"transport.grpc.catalog.create",
+		"catalog.usecase.Create",
+		"catalog.repository.Save",
+		"SQL INSERT private_records",
+	} {
 		if !found[name] {
 			t.Errorf("missing %s; spans=%v", name, found)
 		}
@@ -130,7 +141,8 @@ func TestRPCTraceReachesEveryLayerAndSQL(t *testing.T) {
 				t.Errorf("SQL parent is not repository")
 			}
 			for _, a := range s.Attributes {
-				if strings.Contains(a.Value.AsString(), "do-not-export-password") || strings.Contains(a.Value.AsString(), "bound-private-id") {
+				if strings.Contains(a.Value.AsString(), "do-not-export-password") ||
+					strings.Contains(a.Value.AsString(), "bound-private-id") {
 					t.Errorf("query variables leaked in %s", a.Key)
 				}
 			}
@@ -140,7 +152,10 @@ func TestRPCTraceReachesEveryLayerAndSQL(t *testing.T) {
 
 func TestRPCAuthenticationAndPublicHealth(t *testing.T) {
 	exporter, _ := tracing(t)
-	server, err := NewRPCServer("correct-token", Module{Name: "test", Handle: func(context.Context, Command) (Result, error) { return Result{"ok": true}, nil }})
+	server, err := NewRPCServer(
+		"correct-token",
+		Module{Name: "test", Handle: func(context.Context, Command) (Result, error) { return Result{"ok": true}, nil }},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +167,9 @@ func TestRPCAuthenticationAndPublicHealth(t *testing.T) {
 	t.Cleanup(server.Stop)
 	caller := NewCaller(map[string]string{"test": listener.Addr().String()}, "wrong-token")
 	t.Cleanup(func() { _ = caller.(*rpcCaller).Close() })
-	if _, err = caller.Call(context.Background(), "test", Command{Action: "read"}); status.Code(err) != codes.Unauthenticated {
+	if _, err = caller.Call(context.Background(), "test", Command{Action: "read"}); status.Code(
+		err,
+	) != codes.Unauthenticated {
 		t.Fatalf("expected unauthenticated, got %v", err)
 	}
 	conn, err := grpc.NewClient(listener.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -162,7 +179,8 @@ func TestRPCAuthenticationAndPublicHealth(t *testing.T) {
 	defer conn.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	if result, err := healthv1.NewHealthClient(conn).Check(ctx, &healthv1.HealthCheckRequest{}); err != nil || result.Status != healthv1.HealthCheckResponse_SERVING {
+	if result, err := healthv1.NewHealthClient(conn).Check(ctx, &healthv1.HealthCheckRequest{}); err != nil ||
+		result.Status != healthv1.HealthCheckResponse_SERVING {
 		t.Fatalf("health failed: %v %v", result, err)
 	}
 	for _, span := range awaitRPCTraceSpans(t, exporter, 4) {
@@ -188,7 +206,13 @@ func TestOutboxTransactionAndTraceCarrier(t *testing.T) {
 	db := testDB(t)
 	ctx, span := Start(context.Background(), "usecase.place")
 	defer span.End()
-	event := Event{ID: "event-1", Type: "OrderAwaitingPayment", AggregateID: "order-1", UserID: "demo", Data: map[string]any{"order_id": "order-1"}}
+	event := Event{
+		ID:          "event-1",
+		Type:        "OrderAwaitingPayment",
+		AggregateID: "order-1",
+		UserID:      "demo",
+		Data:        map[string]any{"order_id": "order-1"},
+	}
 	rollback := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := Enqueue(ctx, tx, event); err != nil {
 			return err
@@ -259,7 +283,9 @@ func TestInboxLeaseAndReplay(t *testing.T) {
 }
 
 func TestSQLTemplateDoesNotLeakLiterals(t *testing.T) {
-	got := SQLTemplate("SELECT * FROM users WHERE password = 'super-secret' AND id = 123 AND email = \"private@example.test\"")
+	got := SQLTemplate(
+		"SELECT * FROM users WHERE password = 'super-secret' AND id = 123 AND email = \"private@example.test\"",
+	)
 	for _, private := range []string{"super-secret", "123", "private@example.test"} {
 		if strings.Contains(got, private) {
 			t.Fatalf("leaked %q: %s", private, got)

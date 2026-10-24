@@ -50,7 +50,18 @@ func (f *popupRPC) Call(ctx context.Context, target string, c platform.Command) 
 			if state == "" {
 				state = "available"
 			}
-			items = append(items, platform.Result{"id": id, "name": "优惠券 " + id, "amount_cents": 1000, "min_cents": 10000, "claim_status": state, "claimable": state == "available", "expires_at": "2030-01-01T00:00:00Z"})
+			items = append(
+				items,
+				platform.Result{
+					"id":           id,
+					"name":         "优惠券 " + id,
+					"amount_cents": 1000,
+					"min_cents":    10000,
+					"claim_status": state,
+					"claimable":    state == "available",
+					"expires_at":   "2030-01-01T00:00:00Z",
+				},
+			)
 		}
 		return platform.Result{"items": items}, nil
 	case "claim":
@@ -91,7 +102,25 @@ func popupMap(v any) map[string]any {
 	return out
 }
 func popupTestConfig(id string) popupConfig {
-	return popupConfig{ID: id, Name: "测试弹窗", Status: "PUBLISHED", Priority: 100, Placements: []string{"home"}, Audience: popupAudience{Segments: []string{"all"}, NewMemberDays: 7}, Frequency: popupFrequency{MaxPerUser: 10, MaxPerDay: 10}, Content: popupContent{Title: "生活好物，见面有礼", Subtitle: "按人群送上专属礼券", Body: "以实际券面为准", Theme: "red", CouponTemplateID: "everyday-10", ButtonText: "立即领取", ActionType: "claim_coupon", ActionTarget: "#/coupons"}}
+	return popupConfig{
+		ID:         id,
+		Name:       "测试弹窗",
+		Status:     "PUBLISHED",
+		Priority:   100,
+		Placements: []string{"home"},
+		Audience:   popupAudience{Segments: []string{"all"}, NewMemberDays: 7},
+		Frequency:  popupFrequency{MaxPerUser: 10, MaxPerDay: 10},
+		Content: popupContent{
+			Title:            "生活好物，见面有礼",
+			Subtitle:         "按人群送上专属礼券",
+			Body:             "以实际券面为准",
+			Theme:            "red",
+			CouponTemplateID: "everyday-10",
+			ButtonText:       "立即领取",
+			ActionType:       "claim_coupon",
+			ActionTarget:     "#/coupons",
+		},
+	}
 }
 func popupAdmin(c popupConfig) platform.Command {
 	return platform.Command{Action: "popup_upsert", UserID: "admin", Role: "admin", Data: popupMap(c)}
@@ -105,7 +134,23 @@ func popupSave(t *testing.T, s *Service, p popupConfig) platform.Result {
 	return result
 }
 func popupCommand(user, session string) platform.Command {
-	return platform.Command{Action: "popup_decide", UserID: user, Role: "system", Data: map[string]any{"visitor_id": "visitor-0000000000000001", "session_id": "session-0000000000000" + session, "placement": "home", "profile": map[string]any{"registered_at": "2026-10-23T12:00:00Z", "level": "member", "growth": 100, "points": 500, "interest_categories": []string{"手机数码"}}}}
+	return platform.Command{
+		Action: "popup_decide",
+		UserID: user,
+		Role:   "system",
+		Data: map[string]any{
+			"visitor_id": "visitor-0000000000000001",
+			"session_id": "session-0000000000000" + session,
+			"placement":  "home",
+			"profile": map[string]any{
+				"registered_at":       "2026-10-23T12:00:00Z",
+				"level":               "member",
+				"growth":              100,
+				"points":              500,
+				"interest_categories": []string{"手机数码"},
+			},
+		},
+	}
 }
 func popupDecision(t *testing.T, s *Service, c platform.Command) platform.Result {
 	t.Helper()
@@ -137,7 +182,15 @@ func popupEventOK(t *testing.T, s *Service, c platform.Command, p platform.Resul
 }
 func popupSetGlobal(t *testing.T, s *Service, enabled bool, max, gap int) {
 	t.Helper()
-	_, err := s.Execute(context.Background(), platform.Command{Action: "popup_configure", UserID: "admin", Role: "admin", Data: map[string]any{"enabled": enabled, "max_per_session": max, "min_gap_seconds": gap}})
+	_, err := s.Execute(
+		context.Background(),
+		platform.Command{
+			Action: "popup_configure",
+			UserID: "admin",
+			Role:   "admin",
+			Data:   map[string]any{"enabled": enabled, "max_per_session": max, "min_gap_seconds": gap},
+		},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,7 +202,10 @@ func TestPopupPrivateConfigurationOptimisticUpdatesAndLifecycleInvalidation(t *t
 	p.Audience.IncludeUserIDs = []string{"buyer"}
 	saved := popupSave(t, s, p)
 	for _, action := range []string{"popup_list", "popup_upsert", "popup_configure"} {
-		_, err := s.Execute(context.Background(), platform.Command{Action: action, UserID: "buyer", Role: "user", Data: popupMap(p)})
+		_, err := s.Execute(
+			context.Background(),
+			platform.Command{Action: action, UserID: "buyer", Role: "user", Data: popupMap(p)},
+		)
 		if status.Code(err) != codes.PermissionDenied {
 			t.Fatalf("%s allowed shopper configuration: %v", action, err)
 		}
@@ -160,11 +216,16 @@ func TestPopupPrivateConfigurationOptimisticUpdatesAndLifecycleInvalidation(t *t
 			t.Fatalf("%s skipped internal boundary: %v", action, err)
 		}
 	}
-	list, err := s.Execute(context.Background(), platform.Command{Action: "list", Data: map[string]any{"kind": "popup"}})
+	list, err := s.Execute(
+		context.Background(),
+		platform.Command{Action: "list", Data: map[string]any{"kind": "popup"}},
+	)
 	if err != nil || len(list["items"].([]platform.Result)) != 0 {
 		t.Fatalf("private config leaked through public list: %v %v", list, err)
 	}
-	if _, err = s.Execute(context.Background(), platform.Command{Action: "get", ID: p.ID}); status.Code(err) != codes.NotFound {
+	if _, err = s.Execute(context.Background(), platform.Command{Action: "get", ID: p.ID}); status.Code(
+		err,
+	) != codes.NotFound {
 		t.Fatalf("private config leaked public get: %v", err)
 	}
 	c := popupCommand("buyer", "one")
@@ -185,7 +246,10 @@ func TestPopupPrivateConfigurationOptimisticUpdatesAndLifecycleInvalidation(t *t
 	if popupEventOK(t, s, c, delivery, "impression", "view-1") {
 		t.Fatal("paused stale delivery shown")
 	}
-	_, err = s.Execute(context.Background(), platform.Command{Action: "popup_upsert", UserID: "admin", Role: "admin", Data: stale})
+	_, err = s.Execute(
+		context.Background(),
+		platform.Command{Action: "popup_upsert", UserID: "admin", Role: "admin", Data: stale},
+	)
 	if status.Code(err) != codes.Aborted {
 		t.Fatalf("stale admin overwrite: %v", err)
 	}
@@ -214,7 +278,28 @@ func TestPopupPrivateConfigurationOptimisticUpdatesAndLifecycleInvalidation(t *t
 
 func TestPopupRejectsInvalidCampaignsBeforeWrite(t *testing.T) {
 	s, db, _, _ := popupFixture(t)
-	cases := map[string]func(*popupConfig){"unknown status": func(p *popupConfig) { p.Status = "ENABLED" }, "unknown segment": func(p *popupConfig) { p.Audience.Segments = []string{"purchaser"} }, "missing segment": func(p *popupConfig) { p.Audience.Segments = nil }, "payment placement": func(p *popupConfig) { p.Placements = []string{"payment"} }, "external target": func(p *popupConfig) { p.Content.ActionTarget = "https://attacker.invalid" }, "script target": func(p *popupConfig) { p.Content.ActionTarget = "javascript:alert(1)" }, "account target": func(p *popupConfig) { p.Content.ActionTarget = "#/member" }, "negative priority": func(p *popupConfig) { p.Priority = -1 }, "no template": func(p *popupConfig) { p.Content.CouponTemplateID = "" }, "invalid timing": func(p *popupConfig) { p.Content.AutoCloseSeconds = 1 }, "negative cap": func(p *popupConfig) { p.Frequency.MaxPerDay = -1 }, "reversed time": func(p *popupConfig) { p.StartsAt = "2026-10-25T00:00:00Z"; p.EndsAt = "2026-10-24T00:00:00Z" }, "reversed range": func(p *popupConfig) { p.Audience.MinGrowth = 50; p.Audience.MaxGrowth = 10 }, "oversized text": func(p *popupConfig) { p.Content.Title = strings.Repeat("字", 81) }, "oversized allowlist": func(p *popupConfig) { p.Audience.IncludeUserIDs = make([]string, 501) }}
+	cases := map[string]func(*popupConfig){
+		"unknown status":    func(p *popupConfig) { p.Status = "ENABLED" },
+		"unknown segment":   func(p *popupConfig) { p.Audience.Segments = []string{"purchaser"} },
+		"missing segment":   func(p *popupConfig) { p.Audience.Segments = nil },
+		"payment placement": func(p *popupConfig) { p.Placements = []string{"payment"} },
+		"external target":   func(p *popupConfig) { p.Content.ActionTarget = "https://attacker.invalid" },
+		"script target":     func(p *popupConfig) { p.Content.ActionTarget = "javascript:alert(1)" },
+		"account target":    func(p *popupConfig) { p.Content.ActionTarget = "#/member" },
+		"negative priority": func(p *popupConfig) { p.Priority = -1 },
+		"no template":       func(p *popupConfig) { p.Content.CouponTemplateID = "" },
+		"invalid timing":    func(p *popupConfig) { p.Content.AutoCloseSeconds = 1 },
+		"negative cap":      func(p *popupConfig) { p.Frequency.MaxPerDay = -1 },
+		"reversed time": func(
+			p *popupConfig,
+		) {
+			p.StartsAt = "2026-10-25T00:00:00Z"
+			p.EndsAt = "2026-10-24T00:00:00Z"
+		},
+		"reversed range":      func(p *popupConfig) { p.Audience.MinGrowth = 50; p.Audience.MaxGrowth = 10 },
+		"oversized text":      func(p *popupConfig) { p.Content.Title = strings.Repeat("字", 81) },
+		"oversized allowlist": func(p *popupConfig) { p.Audience.IncludeUserIDs = make([]string, 501) },
+	}
 	for name, mutate := range cases {
 		t.Run(name, func(t *testing.T) {
 			p := popupTestConfig("invalid")
@@ -248,7 +333,20 @@ func TestPopupAudienceMatchesTrustedAgeMembershipAndConditions(t *testing.T) {
 		name, segment, user, registered, level string
 		newGuest, want                         bool
 	}{
-		{"all guest", "all", "", "", "", true, true}, {"first visitor", "new_guest", "", "", "", true, true}, {"returning visitor", "new_guest", "", "", "", false, false}, {"returning visitor preset", "returning_guest", "", "", "", false, true}, {"member is not guest", "guest", "buyer", "", "", true, false}, {"new actual account", "new_member", "buyer", "2026-10-23T12:00:00Z", "member", false, true}, {"old actual account", "new_member", "buyer", "2025-01-01T00:00:00Z", "member", false, false}, {"old account matches old", "returning_member", "buyer", "2025-01-01T00:00:00Z", "member", false, true}, {"exact boundary is old", "returning_member", "buyer", "2026-10-17T12:00:00Z", "member", false, true}, {"unknown age not new", "new_member", "buyer", "", "member", false, false}, {"unknown age not old", "returning_member", "buyer", "", "member", false, false}, {"future account not new", "new_member", "buyer", "2027-01-01T00:00:00Z", "member", false, false}, {"gold member", "gold_member", "buyer", "", "gold", false, true}, {"ordinary member", "gold_member", "buyer", "", "member", false, false},
+		{"all guest", "all", "", "", "", true, true},
+		{"first visitor", "new_guest", "", "", "", true, true},
+		{"returning visitor", "new_guest", "", "", "", false, false},
+		{"returning visitor preset", "returning_guest", "", "", "", false, true},
+		{"member is not guest", "guest", "buyer", "", "", true, false},
+		{"new actual account", "new_member", "buyer", "2026-10-23T12:00:00Z", "member", false, true},
+		{"old actual account", "new_member", "buyer", "2025-01-01T00:00:00Z", "member", false, false},
+		{"old account matches old", "returning_member", "buyer", "2025-01-01T00:00:00Z", "member", false, true},
+		{"exact boundary is old", "returning_member", "buyer", "2026-10-17T12:00:00Z", "member", false, true},
+		{"unknown age not new", "new_member", "buyer", "", "member", false, false},
+		{"unknown age not old", "returning_member", "buyer", "", "member", false, false},
+		{"future account not new", "new_member", "buyer", "2027-01-01T00:00:00Z", "member", false, false},
+		{"gold member", "gold_member", "buyer", "", "gold", false, true},
+		{"ordinary member", "gold_member", "buyer", "", "member", false, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			p.Audience.Segments = []string{tc.segment}
@@ -263,7 +361,16 @@ func TestPopupAudienceMatchesTrustedAgeMembershipAndConditions(t *testing.T) {
 	}
 	c = popupCommand("buyer", "one")
 	_ = json.Unmarshal(b, &id.facts)
-	p.Audience = popupAudience{Segments: []string{"member", "guest"}, NewMemberDays: 7, MinGrowth: 100, MaxGrowth: 200, MinPoints: 500, MaxPoints: 1000, IncludeUserIDs: []string{"buyer"}, InterestCategories: []string{"手机数码"}}
+	p.Audience = popupAudience{
+		Segments:           []string{"member", "guest"},
+		NewMemberDays:      7,
+		MinGrowth:          100,
+		MaxGrowth:          200,
+		MinPoints:          500,
+		MaxPoints:          1000,
+		IncludeUserIDs:     []string{"buyer"},
+		InterestCategories: []string{"手机数码"},
+	}
 	if !popupMatches(p, c, id, now) {
 		t.Fatal("valid combined audience rejected")
 	}
@@ -361,7 +468,10 @@ func TestPopupImpressionSerializedAcrossDeliveriesAndViews(t *testing.T) {
 			if i%2 == 0 {
 				service = replica
 			}
-			r, err := service.Execute(context.Background(), popupEventCommand(c, p, "impression", fmt.Sprintf("view-%d", i)))
+			r, err := service.Execute(
+				context.Background(),
+				popupEventCommand(c, p, "impression", fmt.Sprintf("view-%d", i)),
+			)
 			mu.Lock()
 			defer mu.Unlock()
 			if err != nil {
@@ -412,7 +522,8 @@ func TestPopupFrequencyDailyCooldownAndLifetimePersist(t *testing.T) {
 	if !popupEventOK(t, s, c, delivery, "impression", "view-first") {
 		t.Fatal("first denied")
 	}
-	if !popupEventOK(t, s, c, delivery, "dismiss", "view-first") || !popupEventOK(t, s, c, delivery, "auto_close", "view-first") {
+	if !popupEventOK(t, s, c, delivery, "dismiss", "view-first") ||
+		!popupEventOK(t, s, c, delivery, "auto_close", "view-first") {
 		t.Fatal("dismiss retry failed")
 	}
 	if popupDecision(t, s, c) != nil {
@@ -588,7 +699,8 @@ func TestPopupCloseCooldownSessionAndGlobalGapBoundaries(t *testing.T) {
 	popupSave(t, s, p)
 	c := popupCommand("buyer", "one")
 	delivery := popupDecision(t, s, c)
-	if !popupEventOK(t, s, c, delivery, "impression", "view-1") || !popupEventOK(t, s, c, delivery, "dismiss", "view-1") {
+	if !popupEventOK(t, s, c, delivery, "impression", "view-1") ||
+		!popupEventOK(t, s, c, delivery, "dismiss", "view-1") {
 		t.Fatal("initial show/close failed")
 	}
 	*now = now.Add(61 * time.Second)
@@ -629,14 +741,34 @@ func TestPopupCloseCooldownSessionAndGlobalGapBoundaries(t *testing.T) {
 }
 
 func TestPopupTargetMatchesExistingShoppingRoutes(t *testing.T) {
-	for _, target := range []string{"#/", "#/coupons", "#/member/coupons", "#/promotions", "#/promotions/quantity_discount/all", "#/promotions/group/today", "#/product/sku_1:blue.2", "#/product/%E7%94%9F%E6%B4%BB"} {
+	for _, target := range []string{
+		"#/",
+		"#/coupons",
+		"#/member/coupons",
+		"#/promotions",
+		"#/promotions/quantity_discount/all",
+		"#/promotions/group/today",
+		"#/product/sku_1:blue.2",
+		"#/product/%E7%94%9F%E6%B4%BB",
+	} {
 		p := popupTestConfig("target")
 		p.Content.ActionTarget = target
 		if err := validatePopup(&p); err != nil {
 			t.Fatalf("safe shopping route %q rejected: %v", target, err)
 		}
 	}
-	for _, target := range []string{"#/category/appliances", "#/admin", "#/member", "#/promotions/mygroups", "#/promotions/unknown", "#/product/%ZZ", "#/product/%1", "https://example.invalid/", "//example.invalid/", "javascript:alert(1)"} {
+	for _, target := range []string{
+		"#/category/appliances",
+		"#/admin",
+		"#/member",
+		"#/promotions/mygroups",
+		"#/promotions/unknown",
+		"#/product/%ZZ",
+		"#/product/%1",
+		"https://example.invalid/",
+		"//example.invalid/",
+		"javascript:alert(1)",
+	} {
 		p := popupTestConfig("target")
 		p.Content.ActionTarget = target
 		if err := validatePopup(&p); err == nil {

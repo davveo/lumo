@@ -23,10 +23,37 @@ func TestPromotionKindsUseServerRulesAndIntegerCents(t *testing.T) {
 		{"reduction at threshold", "reduction-demo", "reduction", 30000, 1, 3000, true, ""},
 		{"nine tenths cents rounded conservatively", "discount-demo", "discount", 101, 1, 10, true, ""},
 		{"discount cannot create a zero cent benefit", "discount-demo", "discount", 1, 1, 0, false, "amount_too_small"},
-		{"discount preview cannot overflow", "discount-demo", "discount", math.MaxInt64, 1, math.MaxInt64 / 10, true, ""},
-		{"quantity discount needs two units", "quantity-discount-demo", "quantity_discount", 20000, 1, 0, false, "quantity_not_met"},
+		{
+			"discount preview cannot overflow",
+			"discount-demo",
+			"discount",
+			math.MaxInt64,
+			1,
+			math.MaxInt64 / 10,
+			true,
+			"",
+		},
+		{
+			"quantity discount needs two units",
+			"quantity-discount-demo",
+			"quantity_discount",
+			20000,
+			1,
+			0,
+			false,
+			"quantity_not_met",
+		},
 		{"quantity discount at two units", "quantity-discount-demo", "quantity_discount", 202, 2, 30, true, ""},
-		{"missing quantity cannot qualify", "quantity-discount-demo", "quantity_discount", 20000, 0, 0, false, "quantity_not_met"},
+		{
+			"missing quantity cannot qualify",
+			"quantity-discount-demo",
+			"quantity_discount",
+			20000,
+			0,
+			0,
+			false,
+			"quantity_not_met",
+		},
 		{"direct does not erase the order", "direct-demo", "direct", 2000, 1, 0, false, "amount_too_small"},
 		{"direct keeps at least one cent payable", "direct-demo", "direct", 2001, 1, 2000, true, ""},
 		{"legacy add-on unchanged without quantity", "addon-coffee", "addon", 100000, 0, 6000, true, ""},
@@ -34,8 +61,22 @@ func TestPromotionKindsUseServerRulesAndIntegerCents(t *testing.T) {
 		{"legacy group unchanged", "group-demo", "group", 100, 0, 0, true, ""},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			result := must(t, m, "evaluate", "", "demo", "user", map[string]any{"activity_id": test.activity, "subtotal_cents": test.subtotal, "quantity": test.quantity})
-			if result["eligible"] != test.eligible || platform.Int(result, "discount_cents") != test.discount || platform.Text(result, "kind") != test.kind || platform.Text(result, "reason") != test.reason {
+			result := must(
+				t,
+				m,
+				"evaluate",
+				"",
+				"demo",
+				"user",
+				map[string]any{
+					"activity_id":    test.activity,
+					"subtotal_cents": test.subtotal,
+					"quantity":       test.quantity,
+				},
+			)
+			if result["eligible"] != test.eligible || platform.Int(result, "discount_cents") != test.discount ||
+				platform.Text(result, "kind") != test.kind ||
+				platform.Text(result, "reason") != test.reason {
 				t.Fatalf("unexpected campaign decision: %v", result)
 			}
 			if test.kind != "addon" && test.kind != "flash" && test.kind != "group" {
@@ -46,7 +87,8 @@ func TestPromotionKindsUseServerRulesAndIntegerCents(t *testing.T) {
 		})
 	}
 	plain := must(t, m, "evaluate", "", "", "", map[string]any{"subtotal_cents": 50000, "quantity": 2})
-	if plain["eligible"] != true || platform.Int(plain, "discount_cents") != 0 || platform.Text(plain, "activity_id") != "" {
+	if plain["eligible"] != true || platform.Int(plain, "discount_cents") != 0 ||
+		platform.Text(plain, "activity_id") != "" {
 		t.Fatalf("ordinary purchases must not automatically gain a campaign: %v", plain)
 	}
 	for _, input := range []map[string]any{{"subtotal_cents": -1}, {"subtotal_cents": 20000, "quantity": -1}} {
@@ -58,7 +100,9 @@ func TestPromotionKindsUseServerRulesAndIntegerCents(t *testing.T) {
 
 func TestPromotionSeedsPreserveExistingConfigurationAndUsage(t *testing.T) {
 	db, m := setup(t, nil)
-	if err := db.Table("activities").Where("id = ?", "discount-demo").Updates(map[string]any{"quota": 7, "used": 2, "name": "运营保留的活动名称"}).Error; err != nil {
+	if err := db.Table("activities").Where("id = ?", "discount-demo").Updates(
+		map[string]any{"quota": 7, "used": 2, "name": "运营保留的活动名称"},
+	).Error; err != nil {
 		t.Fatal(err)
 	}
 	for range 2 {
@@ -110,7 +154,9 @@ func TestNewPromotionKindsRetainQuotaAndIdempotency(t *testing.T) {
 				must(t, m, "confirm", "order-paid", "buyer", "system", nil)
 			}
 			readUsage(0, 1)
-			if _, err := invoke(m, "reserve", "order-another", "buyer", "system", reserve); status.Code(err) != codes.ResourceExhausted {
+			if _, err := invoke(m, "reserve", "order-another", "buyer", "system", reserve); status.Code(
+				err,
+			) != codes.ResourceExhausted {
 				t.Fatalf("per-member campaign limit bypassed: %v", err)
 			}
 		})
@@ -131,8 +177,17 @@ func TestDisabledExhaustedAndInvalidDiscountRulesNeverQualify(t *testing.T) {
 			if err := db.Table("activities").Where("id = ?", "discount-demo").Updates(test.updates).Error; err != nil {
 				t.Fatal(err)
 			}
-			result := must(t, m, "evaluate", "", "buyer", "user", map[string]any{"activity_id": "discount-demo", "subtotal_cents": 10000, "quantity": 1})
-			if result["eligible"] != false || platform.Int(result, "discount_cents") != 0 || platform.Text(result, "reason") != test.reason {
+			result := must(
+				t,
+				m,
+				"evaluate",
+				"",
+				"buyer",
+				"user",
+				map[string]any{"activity_id": "discount-demo", "subtotal_cents": 10000, "quantity": 1},
+			)
+			if result["eligible"] != false || platform.Int(result, "discount_cents") != 0 ||
+				platform.Text(result, "reason") != test.reason {
 				t.Fatalf("bad rule qualified: %v", result)
 			}
 		})

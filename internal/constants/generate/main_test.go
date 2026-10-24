@@ -21,7 +21,8 @@ func TestGenerateAndCheckPreserveWireValuesAndDetectStaleOutput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(before), `"Creating": "CREATING"`) || !strings.Contains(string(before), `"Default": ""`) {
+	if !strings.Contains(string(before), `"Creating": "CREATING"`) ||
+		!strings.Contains(string(before), `"Default": ""`) {
 		t.Fatal("wire values or intentional empty enum changed", string(before))
 	}
 	if err := run(directory, output, true); err != nil {
@@ -49,7 +50,11 @@ func TestGeneratorRejectsAmbiguousDefinitionsWithoutWritingOutput(t *testing.T) 
 	} {
 		t.Run(name, func(t *testing.T) {
 			directory := t.TempDir()
-			if err := os.WriteFile(filepath.Join(directory, "enum.go"), []byte("package constants\n//enum:Probe\n"+declaration), 0600); err != nil {
+			if err := os.WriteFile(
+				filepath.Join(directory, "enum.go"),
+				[]byte("package constants\n//enum:Probe\n"+declaration),
+				0600,
+			); err != nil {
 				t.Fatal(err)
 			}
 			output := filepath.Join(directory, "constants.js")

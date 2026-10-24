@@ -20,7 +20,9 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	if kind == "" {
 		kind = constants.EngagementKindFavorite
 	}
-	if kind != constants.EngagementKindFavorite && kind != constants.EngagementKindCompare && kind != constants.EngagementKindHistory && kind != constants.EngagementKindSearch {
+	if kind != constants.EngagementKindFavorite && kind != constants.EngagementKindCompare &&
+		kind != constants.EngagementKindHistory &&
+		kind != constants.EngagementKindSearch {
 		return nil, bad("kind must be favorite, compare, history or search")
 	}
 	switch c.Action {
@@ -35,7 +37,12 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			return nil, bad("target required")
 		}
 		if kind != constants.EngagementKindSearch {
-			if _, e := call(ctx, s.rpc, constants.ServiceCatalog, child(c, constants.ActionGet, target, nil)); e != nil {
+			if _, e := call(
+				ctx,
+				s.rpc,
+				constants.ServiceCatalog,
+				child(c, constants.ActionGet, target, nil),
+			); e != nil {
 				return nil, e
 			}
 		}
@@ -56,7 +63,13 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 				}
 			}
 		}
-		r := record(stable(c.UserID, kind, target), c.UserID, kind, constants.EngagementStatusActive, map[string]any{"sku_id": target, "query": target})
+		r := record(
+			stable(c.UserID, kind, target),
+			c.UserID,
+			kind,
+			constants.EngagementStatusActive,
+			map[string]any{"sku_id": target, "query": target},
+		)
 		if e := s.repo.Save(ctx, &r, nil); e != nil {
 			return nil, e
 		}

@@ -45,7 +45,8 @@ func TestDemoAssortmentSeedPreservesAdminProductAndVariantChanges(t *testing.T) 
 		t.Fatalf("catalog/get lost demo provenance: %v", before)
 	}
 	matched := searchProducts(t, module, map[string]any{"query": before["name"], "category": before["category"]})
-	if len(matched) == 0 || matched[0]["demo"] != true || platform.Text(matched[0], "demo_source") != "category-assortment-v1" {
+	if len(matched) == 0 || matched[0]["demo"] != true ||
+		platform.Text(matched[0], "demo_source") != "category-assortment-v1" {
 		t.Fatalf("catalog/search lost demo provenance: %v", matched)
 	}
 	var presentation struct {
@@ -66,10 +67,13 @@ func TestDemoAssortmentSeedPreservesAdminProductAndVariantChanges(t *testing.T) 
 	if removed == "" {
 		t.Fatal("expected an independently priced nondefault SKU")
 	}
-	changed, err := module.Handle(ctx, platform.Command{Action: "upsert", ID: id, UserID: "admin", Role: "admin", Data: map[string]any{
-		"name": "管理员保留的商品名称", "category": before["category"], "brand": before["brand"], "price_cents": int64(12345),
-		"active": false, "colors": []string{"自定义颜色"}, "options": []string{"自定义规格"}, "defaultOption": "自定义规格",
-	}})
+	changed, err := module.Handle(
+		ctx,
+		platform.Command{Action: "upsert", ID: id, UserID: "admin", Role: "admin", Data: map[string]any{
+			"name": "管理员保留的商品名称", "category": before["category"], "brand": before["brand"], "price_cents": int64(12345),
+			"active": false, "colors": []string{"自定义颜色"}, "options": []string{"自定义规格"}, "defaultOption": "自定义规格",
+		}},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,13 +91,17 @@ func TestDemoAssortmentSeedPreservesAdminProductAndVariantChanges(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if platform.Text(after, "name") != "管理员保留的商品名称" || platform.Int(after, "price_cents") != 12345 || platform.Text(after, "status") != "DISABLED" || platform.Text(after, "created_at") != platform.Text(changed, "created_at") {
+	if platform.Text(after, "name") != "管理员保留的商品名称" || platform.Int(after, "price_cents") != 12345 ||
+		platform.Text(after, "status") != "DISABLED" ||
+		platform.Text(after, "created_at") != platform.Text(changed, "created_at") {
 		t.Fatalf("repeated seed overwrote administrator product: %v", after)
 	}
 	if _, err = module.Handle(ctx, platform.Command{Action: "get", ID: id}); status.Code(err) != codes.NotFound {
 		t.Fatalf("disabled product was reactivated: %v", err)
 	}
-	if _, err = module.Handle(ctx, platform.Command{Action: "get", ID: removed, Role: "admin"}); status.Code(err) != codes.NotFound {
+	if _, err = module.Handle(ctx, platform.Command{Action: "get", ID: removed, Role: "admin"}); status.Code(
+		err,
+	) != codes.NotFound {
 		t.Fatalf("removed old variant was recreated: %v", err)
 	}
 	var afterCount int64

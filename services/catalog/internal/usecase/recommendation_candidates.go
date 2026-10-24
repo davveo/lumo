@@ -72,7 +72,8 @@ func recallTerms(values []string, maxItems, maxLength int) ([]string, error) {
 	result, seen := []string{}, map[string]bool{}
 	for _, value := range values {
 		value = strings.TrimSpace(value)
-		if value == "" || !utf8.ValidString(value) || utf8.RuneCountInString(value) > maxLength || strings.IndexFunc(value, unicode.IsControl) >= 0 {
+		if value == "" || !utf8.ValidString(value) || utf8.RuneCountInString(value) > maxLength ||
+			strings.IndexFunc(value, unicode.IsControl) >= 0 {
 			return nil, bad("invalid recommendation interest")
 		}
 		if !seen[value] {

@@ -132,7 +132,8 @@ func validateCategoryNavigation(body string) (string, error) {
 		}
 		ids[group.ID] = true
 		var ok bool
-		if group.Category, ok = categoryText(group.Category, 80, true); !ok || categories[group.Category] || group.Category == "全部好物" {
+		if group.Category, ok = categoryText(group.Category, 80, true); !ok || categories[group.Category] ||
+			group.Category == "全部好物" {
 			return "", bad("category names must be unique nonempty text within 80 characters")
 		}
 		categories[group.Category] = true
@@ -225,9 +226,15 @@ func (s *Service) initializeCategoryNavigation(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("embedded category navigation: %w", err)
 	}
-	row := record(categoryNavigationID, "", constants.ContentKindStorefront, constants.ContentStatusPublished, map[string]any{
-		"title": "商城分类导航", "body": body, "version": time.Now().Unix(),
-	})
+	row := record(
+		categoryNavigationID,
+		"",
+		constants.ContentKindStorefront,
+		constants.ContentStatusPublished,
+		map[string]any{
+			"title": "商城分类导航", "body": body, "version": time.Now().Unix(),
+		},
+	)
 	_, err = s.repo.InsertOnce(ctx, &row, nil)
 	return err
 }

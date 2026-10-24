@@ -64,10 +64,13 @@ func resolverBackend(t *testing.T, name string) (string, *atomic.Int64) {
 func controllableResolverBackend(t *testing.T, name string) (string, *atomic.Int64, func()) {
 	t.Helper()
 	calls := &atomic.Int64{}
-	server, err := NewRPCServer("resolver-test-token", Module{Name: "catalog", Handle: func(context.Context, Command) (Result, error) {
-		calls.Add(1)
-		return Result{"backend": name}, nil
-	}})
+	server, err := NewRPCServer(
+		"resolver-test-token",
+		Module{Name: "catalog", Handle: func(context.Context, Command) (Result, error) {
+			calls.Add(1)
+			return Result{"backend": name}, nil
+		}},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,12 +125,20 @@ func TestConsulRPCRefreshesAndRemovesPreviouslyPassingInstances(t *testing.T) {
 	registry := httptest.NewServer(http.HandlerFunc(catalog.serve))
 	defer registry.Close()
 	caller := resolverCaller(t, registry.URL, map[string]string{"catalog": "consul:///catalog"})
-	awaitResolver(t, "initial Consul backend", func() bool { got, err := callResolverBackend(caller); return err == nil && got == "first" })
+	awaitResolver(
+		t,
+		"initial Consul backend",
+		func() bool { got, err := callResolverBackend(caller); return err == nil && got == "first" },
+	)
 
 	// The old TCP endpoint remains alive: switching must follow Consul rather
 	// than merely relying on connection failure to discover a replacement.
 	catalog.set([]string{second}, false)
-	awaitResolver(t, "replacement Consul backend", func() bool { got, err := callResolverBackend(caller); return err == nil && got == "second" })
+	awaitResolver(
+		t,
+		"replacement Consul backend",
+		func() bool { got, err := callResolverBackend(caller); return err == nil && got == "second" },
+	)
 	for range 5 {
 		got, err := callResolverBackend(caller)
 		if err != nil || got != "second" {
@@ -139,7 +150,11 @@ func TestConsulRPCRefreshesAndRemovesPreviouslyPassingInstances(t *testing.T) {
 		// Both a passing=[] result and an HTTP failure must withdraw the
 		// previously connected endpoint. The real RPC must stop reaching it.
 		catalog.set(nil, registryFailure)
-		awaitResolver(t, "no usable discovered endpoint", func() bool { _, err := callResolverBackend(caller); return status.Code(err) == codes.Unavailable })
+		awaitResolver(
+			t,
+			"no usable discovered endpoint",
+			func() bool { _, err := callResolverBackend(caller); return status.Code(err) == codes.Unavailable },
+		)
 		before := firstCalls.Load() + secondCalls.Load()
 		for range 5 {
 			if _, err := callResolverBackend(caller); status.Code(err) != codes.Unavailable {
@@ -150,7 +165,11 @@ func TestConsulRPCRefreshesAndRemovesPreviouslyPassingInstances(t *testing.T) {
 			t.Fatalf("removed instances received calls: before=%d after=%d", before, after)
 		}
 		catalog.set([]string{first}, false)
-		awaitResolver(t, "registry recovery", func() bool { got, err := callResolverBackend(caller); return err == nil && got == "first" })
+		awaitResolver(
+			t,
+			"registry recovery",
+			func() bool { got, err := callResolverBackend(caller); return err == nil && got == "first" },
+		)
 	}
 
 	catalog.set([]string{first, second}, false)

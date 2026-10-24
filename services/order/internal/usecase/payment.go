@@ -14,7 +14,10 @@ import (
 	"gorm.io/gorm"
 )
 
-func (s *Service) AcceptPayment(ctx context.Context, request AcceptPaymentRequest) (traceResult AcceptPaymentResult, traceErr error) {
+func (s *Service) AcceptPayment(
+	ctx context.Context,
+	request AcceptPaymentRequest,
+) (traceResult AcceptPaymentResult, traceErr error) {
 	ctx, span := platform.Start(ctx, "order.usecase.accept_payment")
 	defer span.End()
 	platform.TraceRequest(ctx, request)
@@ -41,7 +44,8 @@ func (s *Service) AcceptPayment(ctx context.Context, request AcceptPaymentReques
 		emit := ""
 		if order.PaymentID == request.PaymentID {
 			accepted = true
-		} else if order.PaymentID == "" && (order.Status == constants.OrderStatusPendingPayment || order.Status == constants.OrderStatusClosing) {
+		} else if order.PaymentID == "" &&
+			(order.Status == constants.OrderStatusPendingPayment || order.Status == constants.OrderStatusClosing) {
 			paidAt := request.PaidAt
 			if paidAt.IsZero() {
 				paidAt = time.Now().UTC()
@@ -55,19 +59,45 @@ func (s *Service) AcceptPayment(ctx context.Context, request AcceptPaymentReques
 		}
 		if !accepted {
 			emit = constants.EventPaymentRejected
-			if order.PaymentID == "" && (order.Status == constants.OrderStatusPendingPayment || order.Status == constants.OrderStatusClosing) {
+			if order.PaymentID == "" &&
+				(order.Status == constants.OrderStatusPendingPayment || order.Status == constants.OrderStatusClosing) {
 				order.Status = constants.OrderStatusClosed
-				if err = tx.Emit(platform.Event{ID: "OrderClosed-" + order.ID, Type: constants.EventOrderClosed, AggregateID: order.ID, UserID: order.UserID, Data: map[string]any{"order_id": order.ID, "reason": "payment_after_deadline"}}); err != nil {
+				if err = tx.Emit(
+					platform.Event{
+						ID:          "OrderClosed-" + order.ID,
+						Type:        constants.EventOrderClosed,
+						AggregateID: order.ID,
+						UserID:      order.UserID,
+						Data:        map[string]any{"order_id": order.ID, "reason": "payment_after_deadline"},
+					},
+				); err != nil {
 					return err
 				}
 			}
 		}
-		result = AcceptPaymentResult{Accepted: accepted, OrderID: order.ID, Status: order.Status, PaymentID: request.PaymentID}
+		result = AcceptPaymentResult{
+			Accepted:  accepted,
+			OrderID:   order.ID,
+			Status:    order.Status,
+			PaymentID: request.PaymentID,
+		}
 		if err = tx.Save(&order); err != nil {
 			return err
 		}
 		if emit != "" {
-			return tx.Emit(platform.Event{ID: emit + "-" + request.PaymentID, Type: emit, AggregateID: order.ID, UserID: order.UserID, Data: map[string]any{"order_id": order.ID, "payment_id": request.PaymentID, "amount_cents": request.AmountCents}})
+			return tx.Emit(
+				platform.Event{
+					ID:          emit + "-" + request.PaymentID,
+					Type:        emit,
+					AggregateID: order.ID,
+					UserID:      order.UserID,
+					Data: map[string]any{
+						"order_id":     order.ID,
+						"payment_id":   request.PaymentID,
+						"amount_cents": request.AmountCents,
+					},
+				},
+			)
 		}
 		return nil
 	})

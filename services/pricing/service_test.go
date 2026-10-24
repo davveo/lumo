@@ -67,7 +67,17 @@ func setup(t *testing.T) (platform.Module, *catalog) {
 func TestQuoteIgnoresFrontendPricesAndStaysImmutable(t *testing.T) {
 	m, p := setup(t)
 	ctx := context.Background()
-	v, e := m.Handle(ctx, platform.Command{Action: "quote", UserID: "demo", Role: "user", Data: map[string]any{"items": []any{map[string]any{"sku_id": "sku-test", "quantity": 1, "unit_price_cents": 1}}}})
+	v, e := m.Handle(
+		ctx,
+		platform.Command{
+			Action: "quote",
+			UserID: "demo",
+			Role:   "user",
+			Data: map[string]any{
+				"items": []any{map[string]any{"sku_id": "sku-test", "quantity": 1, "unit_price_cents": 1}},
+			},
+		},
+	)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -75,11 +85,17 @@ func TestQuoteIgnoresFrontendPricesAndStaysImmutable(t *testing.T) {
 		t.Fatalf("trusted frontend price: %v", v)
 	}
 	p.price = 2000
-	old, e := m.Handle(ctx, platform.Command{Action: "get", ID: platform.Text(v, "quote_id"), UserID: "demo", Role: "user"})
+	old, e := m.Handle(
+		ctx,
+		platform.Command{Action: "get", ID: platform.Text(v, "quote_id"), UserID: "demo", Role: "user"},
+	)
 	if e != nil || platform.Int(old, "payable_cents") != 1000 {
 		t.Fatalf("quote snapshot changed with catalog: %v %v", old, e)
 	}
-	_, e = m.Handle(ctx, platform.Command{Action: "get", ID: platform.Text(v, "quote_id"), UserID: "other", Role: "user"})
+	_, e = m.Handle(
+		ctx,
+		platform.Command{Action: "get", ID: platform.Text(v, "quote_id"), UserID: "other", Role: "user"},
+	)
 	if status.Code(e) != codes.PermissionDenied {
 		t.Fatalf("quote ownership bypass: %v", e)
 	}
@@ -87,15 +103,32 @@ func TestQuoteIgnoresFrontendPricesAndStaysImmutable(t *testing.T) {
 func TestAddonDoesNotCountTowardItsOwnThreshold(t *testing.T) {
 	m, p := setup(t)
 	p.price = 70000
-	_, e := m.Handle(context.Background(), platform.Command{Action: "quote", UserID: "demo", Role: "user", Data: map[string]any{"items": []any{map[string]any{"sku_id": "sku-test", "quantity": 1}}, "addon_sku_id": "sku-coffee"}})
+	_, e := m.Handle(
+		context.Background(),
+		platform.Command{
+			Action: "quote",
+			UserID: "demo",
+			Role:   "user",
+			Data: map[string]any{
+				"items":        []any{map[string]any{"sku_id": "sku-test", "quantity": 1}},
+				"addon_sku_id": "sku-coffee",
+			},
+		},
+	)
 	if status.Code(e) != codes.FailedPrecondition || p.lastThreshold != 70000 {
 		t.Fatalf("add-on self-qualified threshold=%d error=%v", p.lastThreshold, e)
 	}
 }
 func TestNegativeQuantityAndExcessPointsRejected(t *testing.T) {
 	m, _ := setup(t)
-	for _, data := range []map[string]any{{"items": []any{map[string]any{"sku_id": "sku-test", "quantity": -1}}}, {"items": []any{map[string]any{"sku_id": "sku-test", "quantity": 1}}, "points": 500}} {
-		if _, e := m.Handle(context.Background(), platform.Command{Action: "quote", UserID: "demo", Role: "user", Data: data}); e == nil {
+	for _, data := range []map[string]any{
+		{"items": []any{map[string]any{"sku_id": "sku-test", "quantity": -1}}},
+		{"items": []any{map[string]any{"sku_id": "sku-test", "quantity": 1}}, "points": 500},
+	} {
+		if _, e := m.Handle(
+			context.Background(),
+			platform.Command{Action: "quote", UserID: "demo", Role: "user", Data: data},
+		); e == nil {
 			t.Fatalf("invalid quote accepted: %v", data)
 		}
 	}

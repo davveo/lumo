@@ -71,7 +71,16 @@ func searchBatchSetup(t *testing.T) (platform.Module, *searchBatchCaller) {
 	t.Cleanup(func() { _ = raw.Close() })
 	rpc := &searchBatchCaller{}
 	for index := 0; index < 100; index++ {
-		rpc.products = append(rpc.products, platform.Result{"id": fmt.Sprintf("sku-%03d", index), "name": "Phone", "brand": "LUMO", "category": "数码", "price_cents": int64(1000 + index)})
+		rpc.products = append(
+			rpc.products,
+			platform.Result{
+				"id":          fmt.Sprintf("sku-%03d", index),
+				"name":        "Phone",
+				"brand":       "LUMO",
+				"category":    "数码",
+				"price_cents": int64(1000 + index),
+			},
+		)
 	}
 	m := searchmod.New(platform.Dependencies{DB: db, RPC: rpc})
 	if err := m.Migrate(context.Background()); err != nil {
@@ -85,7 +94,23 @@ func searchBatchSetup(t *testing.T) (platform.Module, *searchBatchCaller) {
 
 func TestSearchBatchesInventoryAndPreservesFilteringOrderingAndPaging(t *testing.T) {
 	m, rpc := searchBatchSetup(t)
-	result, err := m.Handle(context.Background(), platform.Command{Action: "query", UserID: "buyer", Role: "user", Data: map[string]any{"query": "phone", "brand": "LUMO", "category": "数码", "in_stock": true, "sort": "price_desc", "offset": 1, "limit": 3}})
+	result, err := m.Handle(
+		context.Background(),
+		platform.Command{
+			Action: "query",
+			UserID: "buyer",
+			Role:   "user",
+			Data: map[string]any{
+				"query":    "phone",
+				"brand":    "LUMO",
+				"category": "数码",
+				"in_stock": true,
+				"sort":     "price_desc",
+				"offset":   1,
+				"limit":    3,
+			},
+		},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +148,10 @@ func TestSearchBatchesInventoryAndPreservesFilteringOrderingAndPaging(t *testing
 
 func TestSearchAvoidsInventoryWhenNoCandidatesAndFailsClosedOnStockErrors(t *testing.T) {
 	m, rpc := searchBatchSetup(t)
-	_, err := m.Handle(context.Background(), platform.Command{Action: "query", Data: map[string]any{"query": "no-such-name"}})
+	_, err := m.Handle(
+		context.Background(),
+		platform.Command{Action: "query", Data: map[string]any{"query": "no-such-name"}},
+	)
 	if err != nil || rpc.stockCalls != 0 {
 		t.Fatalf("unmatched search read inventory: calls=%d error=%v", rpc.stockCalls, err)
 	}

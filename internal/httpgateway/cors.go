@@ -15,7 +15,10 @@ func corsOrigins(raw string) map[string]bool {
 	for _, part := range strings.Split(raw, ",") {
 		origin := strings.TrimSpace(part)
 		u, err := url.Parse(origin)
-		if err != nil || u == nil || u.Host == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || (u.Scheme != "https" && u.Scheme != "http") || strings.Contains(origin, "*") {
+		if err != nil || u == nil || u.Host == "" || u.User != nil || u.Path != "" || u.RawQuery != "" ||
+			u.Fragment != "" ||
+			(u.Scheme != "https" && u.Scheme != "http") ||
+			strings.Contains(origin, "*") {
 			continue
 		}
 		if u.Scheme+"://"+u.Host != origin {
@@ -26,7 +29,13 @@ func corsOrigins(raw string) map[string]bool {
 	return out
 }
 
-var corsHeaders = map[string]bool{"authorization": true, "content-type": true, "idempotency-key": true, "traceparent": true, "tracestate": true}
+var corsHeaders = map[string]bool{
+	"authorization":   true,
+	"content-type":    true,
+	"idempotency-key": true,
+	"traceparent":     true,
+	"tracestate":      true,
+}
 
 // applyCORS returns false when it has answered a preflight or denied an origin.
 // Bearer credentials are explicit headers; cross-origin cookie credentials are
@@ -64,7 +73,8 @@ func applyCORS(w http.ResponseWriter, r *http.Request, allowed map[string]bool) 
 	w.Header().Set("Access-Control-Expose-Headers", "X-Trace-ID")
 	if r.Method == http.MethodOptions {
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Idempotency-Key, traceparent, tracestate")
+		w.Header().
+			Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Idempotency-Key, traceparent, tracestate")
 		w.Header().Set("Access-Control-Max-Age", "600")
 		traceHTTPResponse(r.Context(), map[string]any{"status": http.StatusNoContent}, nil)
 		w.WriteHeader(http.StatusNoContent)

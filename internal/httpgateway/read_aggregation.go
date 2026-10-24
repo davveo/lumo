@@ -19,9 +19,16 @@ import (
 // These commands only read state. Do not infer safety from a verb such as
 // "quote": pricing/checkout quotes persist records and must remain independent.
 var aggregateReadActions = map[string]bool{
-	constants.ActionGet: true, constants.ActionList: true, constants.ActionQuery: true, constants.ActionEvaluate: true,
-	constants.ActionTemplates: true, constants.ActionTemplatesSnapshot: true, constants.ActionFaq: true, constants.ActionReversals: true,
-	constants.ActionBatchGet: true, constants.ActionPopupList: true,
+	constants.ActionGet:               true,
+	constants.ActionList:              true,
+	constants.ActionQuery:             true,
+	constants.ActionEvaluate:          true,
+	constants.ActionTemplates:         true,
+	constants.ActionTemplatesSnapshot: true,
+	constants.ActionFaq:               true,
+	constants.ActionReversals:         true,
+	constants.ActionBatchGet:          true,
+	constants.ActionPopupList:         true,
 }
 
 type readCommand struct {
@@ -40,7 +47,8 @@ func (g *gateway) storefront(ctx context.Context, c platform.Command) (platform.
 	if c.Action == constants.ActionRecent {
 		return g.storefrontRecent(ctx, c)
 	}
-	if c.Action == constants.ActionPopup || c.Action == constants.ActionPopupEvent || c.Action == constants.ActionPopupClaim {
+	if c.Action == constants.ActionPopup || c.Action == constants.ActionPopupEvent ||
+		c.Action == constants.ActionPopupClaim {
 		return g.storefrontPopup(ctx, c)
 	}
 	if c.Action == constants.ActionBootstrap {
@@ -70,7 +78,9 @@ func (g *gateway) storefront(ctx context.Context, c platform.Command) (platform.
 		if item.Command.Data == nil {
 			item.Command.Data = map[string]any{}
 		}
-		if (item.Service == constants.ServiceCatalog || item.Service == constants.ServiceInventory) && item.Action == constants.ActionGet && (len(item.Command.ID) > 150 || strings.TrimSpace(item.Command.ID) != item.Command.ID) {
+		if (item.Service == constants.ServiceCatalog || item.Service == constants.ServiceInventory) &&
+			item.Action == constants.ActionGet &&
+			(len(item.Command.ID) > 150 || strings.TrimSpace(item.Command.ID) != item.Command.ID) {
 			return nil, status.Error(codes.InvalidArgument, "invalid SKU ID")
 		}
 		if err := authorizeRead(*item, c); err != nil {
@@ -82,7 +92,9 @@ func (g *gateway) storefront(ctx context.Context, c platform.Command) (platform.
 
 func authorizeRead(item readRequest, principal platform.Command) error {
 	key := item.Service + "/" + item.Action
-	if item.Service == constants.ServiceStorefront || item.Service == constants.ServiceIAM || (!aggregateReadActions[item.Action] && key != constants.ServiceLogistics+"/"+constants.ActionQuote) || (!publicActions[key] && !userActions[key] && !adminActions[key]) {
+	if item.Service == constants.ServiceStorefront || item.Service == constants.ServiceIAM ||
+		(!aggregateReadActions[item.Action] && key != constants.ServiceLogistics+"/"+constants.ActionQuote) ||
+		(!publicActions[key] && !userActions[key] && !adminActions[key]) {
 		return status.Error(codes.PermissionDenied, "command is not an exposed read action")
 	}
 	if !publicActions[key] && principal.UserID == "" {
@@ -95,14 +107,21 @@ func authorizeRead(item readRequest, principal platform.Command) error {
 }
 
 func canonicalRead(item readRequest) string {
-	if item.Service == constants.ServiceCoupon && item.Action == constants.ActionTemplates && len(item.Command.Data) == 0 {
+	if item.Service == constants.ServiceCoupon && item.Action == constants.ActionTemplates &&
+		len(item.Command.Data) == 0 {
 		item.Command.Data = map[string]any{"page": 1, "page_size": 100}
 	}
 	b, _ := json.Marshal([]any{item.Service, item.Action, item.Command, item.auth})
 	return string(b)
 }
 func readResult(item readRequest, data platform.Result, err error) platform.Result {
-	result := platform.Result{"key": item.Key, "service": item.Service, "action": item.Action, "command": item.Command, "auth": item.auth}
+	result := platform.Result{
+		"key":     item.Key,
+		"service": item.Service,
+		"action":  item.Action,
+		"command": item.Command,
+		"auth":    item.auth,
+	}
 	if err == nil {
 		result["data"] = data
 		return result
@@ -111,7 +130,11 @@ func readResult(item readRequest, data platform.Result, err error) platform.Resu
 	if !ok {
 		s = status.New(codes.Internal, "internal service error")
 	}
-	result["error"] = platform.Result{"code": s.Code().String(), "message": s.Message(), "status": aggregateHTTPStatus(s.Code())}
+	result["error"] = platform.Result{
+		"code":    s.Code().String(),
+		"message": s.Message(),
+		"status":  aggregateHTTPStatus(s.Code()),
+	}
 	return result
 }
 func aggregateHTTPStatus(code codes.Code) int {
@@ -149,8 +172,14 @@ func (g *gateway) runReads(ctx context.Context, requests []readRequest, principa
 	duplicates := map[string][]int{}
 	bulk := map[string][]int{}
 	for i, item := range requests {
-		if (item.Service == constants.ServiceCatalog || item.Service == constants.ServiceInventory) && item.Action == constants.ActionGet && item.Command.ID != "" && len(item.Command.Data) == 0 {
-			bulk[fmt.Sprintf("%s:%t", item.Service, item.auth)] = append(bulk[fmt.Sprintf("%s:%t", item.Service, item.auth)], i)
+		if (item.Service == constants.ServiceCatalog || item.Service == constants.ServiceInventory) &&
+			item.Action == constants.ActionGet &&
+			item.Command.ID != "" &&
+			len(item.Command.Data) == 0 {
+			bulk[fmt.Sprintf("%s:%t", item.Service, item.auth)] = append(
+				bulk[fmt.Sprintf("%s:%t", item.Service, item.auth)],
+				i,
+			)
 		} else {
 			duplicates[canonicalRead(item)] = append(duplicates[canonicalRead(item)], i)
 		}
@@ -256,26 +285,80 @@ func (g *gateway) bootstrapReads(ctx context.Context, principal platform.Command
 		if data == nil {
 			data = map[string]any{}
 		}
-		plan = append(plan, readRequest{Key: fmt.Sprintf("bootstrap-%d", len(plan)), Service: service, Action: action, Command: readCommand{Data: data}, auth: auth})
+		plan = append(
+			plan,
+			readRequest{
+				Key:     fmt.Sprintf("bootstrap-%d", len(plan)),
+				Service: service,
+				Action:  action,
+				Command: readCommand{Data: data},
+				auth:    auth,
+			},
+		)
 	}
 	add(constants.ServiceCatalog, constants.ActionList, map[string]any{"limit": 100}, false)
-	add(constants.ServiceContent, constants.ActionList, map[string]any{"kind": constants.ContentKindStorefront, "limit": 100}, false)
-	add(constants.ServiceContent, constants.ActionList, map[string]any{"kind": constants.ContentKindFaq, "limit": 100}, false)
+	add(
+		constants.ServiceContent,
+		constants.ActionList,
+		map[string]any{"kind": constants.ContentKindStorefront, "limit": 100},
+		false,
+	)
+	add(
+		constants.ServiceContent,
+		constants.ActionList,
+		map[string]any{"kind": constants.ContentKindFaq, "limit": 100},
+		false,
+	)
 	add(constants.ServiceCampaign, constants.ActionList, nil, false)
 	add(constants.ServiceFlash, constants.ActionList, nil, false)
 	add(constants.ServiceGroup, constants.ActionList, nil, false)
-	add(constants.ServiceCoupon, constants.ActionTemplates, map[string]any{"page": 1, "page_size": 100}, principal.UserID != "")
+	add(
+		constants.ServiceCoupon,
+		constants.ActionTemplates,
+		map[string]any{"page": 1, "page_size": 100},
+		principal.UserID != "",
+	)
 	if principal.UserID != "" {
 		for _, entry := range []struct {
 			service, action string
 			data            map[string]any
 		}{
-			{constants.ServiceMember, constants.ActionGet, nil}, {constants.ServiceAddress, constants.ActionList, map[string]any{"limit": 100}}, {constants.ServiceCoupon, constants.ActionList, nil}, {constants.ServiceCoupon, constants.ActionTemplates, nil},
-			{constants.ServicePoints, constants.ActionGet, nil}, {constants.ServiceCart, constants.ActionList, nil}, {constants.ServiceOrder, constants.ActionList, nil},
-			{constants.ServiceEngagement, constants.ActionList, map[string]any{"kind": constants.EngagementKindFavorite, "limit": 100}}, {constants.ServiceEngagement, constants.ActionList, map[string]any{"kind": constants.EngagementKindHistory, "limit": 100}},
-			{constants.ServiceEngagement, constants.ActionList, map[string]any{"kind": constants.EngagementKindCompare, "limit": 100}}, {constants.ServiceEngagement, constants.ActionList, map[string]any{"kind": constants.EngagementKindSearch, "limit": 100}},
-			{constants.ServiceInteraction, constants.ActionList, map[string]any{"kind": constants.InteractionKindReview, "mine": true, "limit": 100}}, {constants.ServiceAftersale, constants.ActionList, nil},
-			{constants.ServiceNotification, constants.ActionList, map[string]any{"limit": 100}}, {constants.ServiceInvoice, constants.ActionList, nil}, {constants.ServiceHelpdesk, constants.ActionList, map[string]any{"limit": 100}},
+			{constants.ServiceMember, constants.ActionGet, nil},
+			{constants.ServiceAddress, constants.ActionList, map[string]any{"limit": 100}},
+			{constants.ServiceCoupon, constants.ActionList, nil},
+			{constants.ServiceCoupon, constants.ActionTemplates, nil},
+			{constants.ServicePoints, constants.ActionGet, nil},
+			{constants.ServiceCart, constants.ActionList, nil},
+			{constants.ServiceOrder, constants.ActionList, nil},
+			{
+				constants.ServiceEngagement,
+				constants.ActionList,
+				map[string]any{"kind": constants.EngagementKindFavorite, "limit": 100},
+			},
+			{
+				constants.ServiceEngagement,
+				constants.ActionList,
+				map[string]any{"kind": constants.EngagementKindHistory, "limit": 100},
+			},
+			{
+				constants.ServiceEngagement,
+				constants.ActionList,
+				map[string]any{"kind": constants.EngagementKindCompare, "limit": 100},
+			},
+			{
+				constants.ServiceEngagement,
+				constants.ActionList,
+				map[string]any{"kind": constants.EngagementKindSearch, "limit": 100},
+			},
+			{
+				constants.ServiceInteraction,
+				constants.ActionList,
+				map[string]any{"kind": constants.InteractionKindReview, "mine": true, "limit": 100},
+			},
+			{constants.ServiceAftersale, constants.ActionList, nil},
+			{constants.ServiceNotification, constants.ActionList, map[string]any{"limit": 100}},
+			{constants.ServiceInvoice, constants.ActionList, nil},
+			{constants.ServiceHelpdesk, constants.ActionList, map[string]any{"limit": 100}},
 		} {
 			add(entry.service, entry.action, entry.data, true)
 		}
@@ -334,7 +417,15 @@ func (g *gateway) bootstrapReads(ctx context.Context, principal platform.Command
 		}
 		sort.Strings(ordered)
 		for _, id := range ordered {
-			bulk = append(bulk, readRequest{Key: fmt.Sprintf("bootstrap-sku-%d", len(bulk)), Service: service, Action: constants.ActionGet, Command: readCommand{ID: id, Data: map[string]any{}}})
+			bulk = append(
+				bulk,
+				readRequest{
+					Key:     fmt.Sprintf("bootstrap-sku-%d", len(bulk)),
+					Service: service,
+					Action:  constants.ActionGet,
+					Command: readCommand{ID: id, Data: map[string]any{}},
+				},
+			)
 		}
 	}
 	results = append(results, g.runReads(ctx, bulk, principal)...)

@@ -69,7 +69,12 @@ func (p *peers) Call(ctx context.Context, name string, c platform.Command) (plat
 		if c.ID == "other-order" {
 			owner = "other"
 		}
-		return platform.Result{"id": c.ID, "user_id": owner, "status": "COMPLETED", "items": []map[string]any{{"sku_id": "sku-phone", "quantity": 1}}}, nil
+		return platform.Result{
+			"id":      c.ID,
+			"user_id": owner,
+			"status":  "COMPLETED",
+			"items":   []map[string]any{{"sku_id": "sku-phone", "quantity": 1}},
+		}, nil
 	}
 	m, ok := p.modules[name]
 	if !ok {
@@ -81,7 +86,22 @@ func setup(t *testing.T) *peers {
 	t.Helper()
 	t.Setenv("DEMO_MODE", "true")
 	p := &peers{modules: map[string]platform.Module{}}
-	factories := map[string]func(platform.Dependencies) platform.Module{"iam": iam.New, "member": member.New, "address": address.New, "catalog": catalog.New, "media": media.New, "interaction": interaction.New, "engagement": engagement.New, "search": search.New, "recommendation": recommendation.New, "content": content.New, "analytics": analytics.New, "cart": cart.New, "notification": notification.New, "helpdesk": helpdesk.New}
+	factories := map[string]func(platform.Dependencies) platform.Module{
+		"iam":            iam.New,
+		"member":         member.New,
+		"address":        address.New,
+		"catalog":        catalog.New,
+		"media":          media.New,
+		"interaction":    interaction.New,
+		"engagement":     engagement.New,
+		"search":         search.New,
+		"recommendation": recommendation.New,
+		"content":        content.New,
+		"analytics":      analytics.New,
+		"cart":           cart.New,
+		"notification":   notification.New,
+		"helpdesk":       helpdesk.New,
+	}
 	for name, f := range factories {
 		db, e := platform.OpenDB(context.Background(), "sqlite", filepath.Join(t.TempDir(), name+".db"))
 		if e != nil {
@@ -127,7 +147,13 @@ func items(t *testing.T, v platform.Result) []map[string]any {
 func TestIAMSessionLifecycle(t *testing.T) {
 	p := setup(t)
 	ctx := context.Background()
-	if _, e := p.Call(ctx, "iam", cmd("login", "", "", "", map[string]any{"username": "demo", "password": "wrong"})); status.Code(e) != codes.Unauthenticated {
+	if _, e := p.Call(
+		ctx,
+		"iam",
+		cmd("login", "", "", "", map[string]any{"username": "demo", "password": "wrong"}),
+	); status.Code(
+		e,
+	) != codes.Unauthenticated {
 		t.Fatalf("bad password: %v", e)
 	}
 	v := run(t, p, "iam", cmd("login", "", "", "", map[string]any{"username": "demo", "password": "Lumo@2026"}))
@@ -145,15 +171,55 @@ func TestIAMSessionLifecycle(t *testing.T) {
 	}
 	raw := platform.Text(next, "token")
 	run(t, p, "iam", cmd("logout", "", "demo", "user", map[string]any{"token": raw}))
-	if _, e := p.Call(ctx, "iam", cmd("validate", "", "", "", map[string]any{"token": raw})); status.Code(e) != codes.Unauthenticated {
+	if _, e := p.Call(ctx, "iam", cmd("validate", "", "", "", map[string]any{"token": raw})); status.Code(
+		e,
+	) != codes.Unauthenticated {
 		t.Fatal("revoked session accepted")
 	}
 }
 func TestAddressOwnershipAndDefault(t *testing.T) {
 	p := setup(t)
-	a := run(t, p, "address", cmd("create", "", "demo", "user", map[string]any{"recipient": "Demo", "phone": "13800000000", "address": "Test address A", "is_default": true}))
-	b := run(t, p, "address", cmd("create", "", "demo", "user", map[string]any{"recipient": "Demo", "phone": "13800000000", "address": "Test address B", "is_default": true}))
-	if _, e := p.Call(context.Background(), "address", cmd("get", platform.Text(a, "id"), "other", "user", nil)); status.Code(e) != codes.PermissionDenied {
+	a := run(
+		t,
+		p,
+		"address",
+		cmd(
+			"create",
+			"",
+			"demo",
+			"user",
+			map[string]any{
+				"recipient":  "Demo",
+				"phone":      "13800000000",
+				"address":    "Test address A",
+				"is_default": true,
+			},
+		),
+	)
+	b := run(
+		t,
+		p,
+		"address",
+		cmd(
+			"create",
+			"",
+			"demo",
+			"user",
+			map[string]any{
+				"recipient":  "Demo",
+				"phone":      "13800000000",
+				"address":    "Test address B",
+				"is_default": true,
+			},
+		),
+	)
+	if _, e := p.Call(
+		context.Background(),
+		"address",
+		cmd("get", platform.Text(a, "id"), "other", "user", nil),
+	); status.Code(
+		e,
+	) != codes.PermissionDenied {
 		t.Fatal("cross-account address read allowed")
 	}
 	all := items(t, run(t, p, "address", cmd("list", "", "demo", "user", nil)))
@@ -173,10 +239,22 @@ func TestAddressOwnershipAndDefault(t *testing.T) {
 func TestCartStockLimitAndIdempotentMerge(t *testing.T) {
 	p := setup(t)
 	run(t, p, "cart", cmd("add", "", "demo", "user", map[string]any{"sku_id": "sku-phone", "quantity": 2}))
-	if _, e := p.Call(context.Background(), "cart", cmd("add", "", "demo", "user", map[string]any{"sku_id": "sku-coffee", "quantity": 1})); status.Code(e) != codes.FailedPrecondition {
+	if _, e := p.Call(
+		context.Background(),
+		"cart",
+		cmd("add", "", "demo", "user", map[string]any{"sku_id": "sku-coffee", "quantity": 1}),
+	); status.Code(
+		e,
+	) != codes.FailedPrecondition {
 		t.Fatal("sold-out add accepted")
 	}
-	merge := cmd("merge", "", "demo", "user", map[string]any{"items": []map[string]any{{"sku_id": "sku-phone", "quantity": 5}}})
+	merge := cmd(
+		"merge",
+		"",
+		"demo",
+		"user",
+		map[string]any{"items": []map[string]any{{"sku_id": "sku-phone", "quantity": 5}}},
+	)
 	merge.IdempotencyKey = "merge-one"
 	run(t, p, "cart", merge)
 	run(t, p, "cart", merge)
@@ -184,7 +262,13 @@ func TestCartStockLimitAndIdempotentMerge(t *testing.T) {
 	if len(vs) != 1 || platform.Int(vs[0], "quantity") != 5 {
 		t.Fatalf("merge duplicated %+v", vs)
 	}
-	if _, e := p.Call(context.Background(), "cart", cmd("add", "", "demo", "user", map[string]any{"sku_id": "sku-phone", "quantity": 6})); status.Code(e) != codes.FailedPrecondition {
+	if _, e := p.Call(
+		context.Background(),
+		"cart",
+		cmd("add", "", "demo", "user", map[string]any{"sku_id": "sku-phone", "quantity": 6}),
+	); status.Code(
+		e,
+	) != codes.FailedPrecondition {
 		t.Fatal("per-SKU cart limit bypass")
 	}
 }
@@ -194,7 +278,9 @@ func TestSearchAndRecommendationUseRPC(t *testing.T) {
 	found := map[string]bool{}
 	for _, row := range items(t, v) {
 		found[platform.Text(row, "id")] = true
-		text := strings.ToLower(platform.Text(row, "name") + " " + platform.Text(row, "brand") + " " + platform.Text(row, "category"))
+		text := strings.ToLower(
+			platform.Text(row, "name") + " " + platform.Text(row, "brand") + " " + platform.Text(row, "category"),
+		)
 		if !strings.Contains(text, "apple") || platform.Int(row, "available") < 1 {
 			t.Fatalf("search returned unrelated or unavailable product: %v", row)
 		}
@@ -202,25 +288,52 @@ func TestSearchAndRecommendationUseRPC(t *testing.T) {
 	if !found["iphone"] || !found["macbook"] {
 		t.Fatal("search lost the original matching Apple products")
 	}
-	r := items(t, run(t, p, "recommendation", cmd("list", "", "demo", "user", map[string]any{"order_id": "owned-order"})))
+	r := items(
+		t,
+		run(t, p, "recommendation", cmd("list", "", "demo", "user", map[string]any{"order_id": "owned-order"})),
+	)
 	for _, x := range r {
 		if platform.Text(x, "id") == "sku-phone" || platform.Text(x, "id") == "sku-coffee" {
 			t.Fatal("bought/out-of-stock recommendation")
 		}
 	}
-	if _, e := p.Call(context.Background(), "recommendation", cmd("list", "", "demo", "user", map[string]any{"order_id": "other-order"})); status.Code(e) != codes.PermissionDenied {
+	if _, e := p.Call(
+		context.Background(),
+		"recommendation",
+		cmd("list", "", "demo", "user", map[string]any{"order_id": "other-order"}),
+	); status.Code(
+		e,
+	) != codes.PermissionDenied {
 		t.Fatal("cross-user order context accepted")
 	}
 }
 func TestReviewModerationAndHelpfulDedup(t *testing.T) {
 	p := setup(t)
-	create := cmd("create", "", "demo", "user", map[string]any{"kind": "review", "sku_id": "sku-phone", "order_id": "owned-order", "body": "Solid product", "rating": 5})
+	create := cmd(
+		"create",
+		"",
+		"demo",
+		"user",
+		map[string]any{
+			"kind":     "review",
+			"sku_id":   "sku-phone",
+			"order_id": "owned-order",
+			"body":     "Solid product",
+			"rating":   5,
+		},
+	)
 	r := run(t, p, "interaction", create)
 	id := platform.Text(r, "id")
 	if len(items(t, run(t, p, "interaction", cmd("list", "", "", "", map[string]any{"sku_id": "sku-phone"})))) != 0 {
 		t.Fatal("pending review leaked")
 	}
-	if _, e := p.Call(context.Background(), "interaction", cmd("moderate", id, "demo", "user", map[string]any{"approved": true})); status.Code(e) != codes.PermissionDenied {
+	if _, e := p.Call(
+		context.Background(),
+		"interaction",
+		cmd("moderate", id, "demo", "user", map[string]any{"approved": true}),
+	); status.Code(
+		e,
+	) != codes.PermissionDenied {
 		t.Fatal("user moderation allowed")
 	}
 	run(t, p, "interaction", cmd("moderate", id, "admin", "admin", map[string]any{"approved": true}))
@@ -239,7 +352,13 @@ func TestNotificationDedupReadAllAndMemberLedger(t *testing.T) {
 	ctx := context.Background()
 	n := p.modules["notification"]
 	for i := 0; i < 125; i++ {
-		e := platform.Event{ID: fmt.Sprint("event-", i), Type: "OrderCompleted", AggregateID: "order-one", UserID: "demo", Data: map[string]any{"payable_cents": 20000}}
+		e := platform.Event{
+			ID:          fmt.Sprint("event-", i),
+			Type:        "OrderCompleted",
+			AggregateID: "order-one",
+			UserID:      "demo",
+			Data:        map[string]any{"payable_cents": 20000},
+		}
 		if err := n.OnEvent(ctx, e); err != nil {
 			t.Fatal(err)
 		}
@@ -251,7 +370,13 @@ func TestNotificationDedupReadAllAndMemberLedger(t *testing.T) {
 	if platform.Int(out, "marked_read") != 125 {
 		t.Fatalf("read_all only read batch: %+v", out)
 	}
-	e := platform.Event{ID: "growth-once", Type: "OrderCompleted", AggregateID: "order-one", UserID: "demo", Data: map[string]any{"payable_cents": 20000}}
+	e := platform.Event{
+		ID:          "growth-once",
+		Type:        "OrderCompleted",
+		AggregateID: "order-one",
+		UserID:      "demo",
+		Data:        map[string]any{"payable_cents": 20000},
+	}
 	m := p.modules["member"]
 	for i := 0; i < 2; i++ {
 		if err := m.OnEvent(ctx, e); err != nil {
@@ -265,11 +390,19 @@ func TestNotificationDedupReadAllAndMemberLedger(t *testing.T) {
 }
 func TestHelpdeskOwnershipAndClosedReply(t *testing.T) {
 	p := setup(t)
-	c := cmd("create", "", "demo", "user", map[string]any{"title": "Order support", "body": "Help please", "order_id": "owned-order"})
+	c := cmd(
+		"create",
+		"",
+		"demo",
+		"user",
+		map[string]any{"title": "Order support", "body": "Help please", "order_id": "owned-order"},
+	)
 	c.IdempotencyKey = "ticket-one"
 	ticket := run(t, p, "helpdesk", c)
 	id := platform.Text(ticket, "id")
-	if _, e := p.Call(context.Background(), "helpdesk", cmd("get", id, "other", "user", nil)); status.Code(e) != codes.PermissionDenied {
+	if _, e := p.Call(context.Background(), "helpdesk", cmd("get", id, "other", "user", nil)); status.Code(
+		e,
+	) != codes.PermissionDenied {
 		t.Fatal("cross-account ticket read allowed")
 	}
 	reply := cmd("reply", id, "admin", "admin", map[string]any{"body": "We can help"})
@@ -313,7 +446,13 @@ func TestStorefrontLayerTraceReachesSQL(t *testing.T) {
 			names["SQL SELECT catalog_records"] = s
 		}
 	}
-	chain := []string{"http.request", "catalog.transport.get", "catalog.usecase.get", "catalog.repository.Get", "SQL SELECT catalog_records"}
+	chain := []string{
+		"http.request",
+		"catalog.transport.get",
+		"catalog.usecase.get",
+		"catalog.repository.Get",
+		"SQL SELECT catalog_records",
+	}
 	for i, name := range chain {
 		s, ok := names[name]
 		if !ok {
@@ -329,10 +468,37 @@ func TestStorefrontLayerTraceReachesSQL(t *testing.T) {
 
 func TestCatalogAdminUpdatePreservesCreationTime(t *testing.T) {
 	p := setup(t)
-	first := run(t, p, "catalog", cmd("upsert", "sku-upsert-test", "admin", "admin", map[string]any{"name": "Original", "price_cents": 100, "brand": "LUMO", "active": true}))
-	second := run(t, p, "catalog", cmd("upsert", "sku-upsert-test", "admin", "admin", map[string]any{"name": "Changed", "price_cents": 200, "brand": "LUMO", "active": true}))
-	if platform.Text(first, "created_at") == "" || strings.HasPrefix(platform.Text(second, "created_at"), "0001-") || platform.Text(first, "created_at") != platform.Text(second, "created_at") {
-		t.Fatalf("aggregate update changed or zeroed creation time: %v -> %v", first["created_at"], second["created_at"])
+	first := run(
+		t,
+		p,
+		"catalog",
+		cmd(
+			"upsert",
+			"sku-upsert-test",
+			"admin",
+			"admin",
+			map[string]any{"name": "Original", "price_cents": 100, "brand": "LUMO", "active": true},
+		),
+	)
+	second := run(
+		t,
+		p,
+		"catalog",
+		cmd(
+			"upsert",
+			"sku-upsert-test",
+			"admin",
+			"admin",
+			map[string]any{"name": "Changed", "price_cents": 200, "brand": "LUMO", "active": true},
+		),
+	)
+	if platform.Text(first, "created_at") == "" || strings.HasPrefix(platform.Text(second, "created_at"), "0001-") ||
+		platform.Text(first, "created_at") != platform.Text(second, "created_at") {
+		t.Fatalf(
+			"aggregate update changed or zeroed creation time: %v -> %v",
+			first["created_at"],
+			second["created_at"],
+		)
 	}
 	if platform.Text(second, "name") != "Changed" || platform.Int(second, "price_cents") != 200 {
 		t.Fatal("mutable product fields not updated")
@@ -348,7 +514,9 @@ func TestCatalogVariantsHaveAuthoritativePricesAndVisibility(t *testing.T) {
 	}
 	product := run(t, p, "catalog", cmd("get", "iphone", "", "", nil))
 	variant := run(t, p, "catalog", cmd("get", "iphone--1-2", "", "", nil))
-	if platform.Text(variant, "product_id") != "iphone" || platform.Text(variant, "color") != "蓝色钛金属" || platform.Text(variant, "option") != "512GB" || platform.Int(variant, "price_cents") != 999900 {
+	if platform.Text(variant, "product_id") != "iphone" || platform.Text(variant, "color") != "蓝色钛金属" ||
+		platform.Text(variant, "option") != "512GB" ||
+		platform.Int(variant, "price_cents") != 999900 {
 		t.Fatalf("wrong variant %+v", variant)
 	}
 	data := map[string]any{}
@@ -366,7 +534,9 @@ func TestCatalogVariantsHaveAuthoritativePricesAndVisibility(t *testing.T) {
 	}
 	data["active"] = false
 	run(t, p, "catalog", cmd("upsert", "iphone", "admin", "admin", data))
-	if _, e := p.Call(context.Background(), "catalog", cmd("get", "iphone--0-0", "demo", "user", nil)); status.Code(e) != codes.NotFound {
+	if _, e := p.Call(context.Background(), "catalog", cmd("get", "iphone--0-0", "demo", "user", nil)); status.Code(
+		e,
+	) != codes.NotFound {
 		t.Fatalf("disabled variant still purchasable: %v", e)
 	}
 	publicResult := run(t, p, "catalog", cmd("list", "", "", "", map[string]any{"limit": 100}))
@@ -378,7 +548,12 @@ func TestCatalogVariantsHaveAuthoritativePricesAndVisibility(t *testing.T) {
 			t.Fatal("disabled product leaked to public page")
 		}
 	}
-	adminResult := run(t, p, "catalog", cmd("list", "", "admin", "admin", map[string]any{"limit": 100, "include_disabled": true}))
+	adminResult := run(
+		t,
+		p,
+		"catalog",
+		cmd("list", "", "admin", "admin", map[string]any{"limit": 100, "include_disabled": true}),
+	)
 	if platform.Int(adminResult, "total") != int64(wantTotal) {
 		t.Fatal("admin cannot view disabled product")
 	}
@@ -389,32 +564,88 @@ func TestCatalogVariantsHaveAuthoritativePricesAndVisibility(t *testing.T) {
 func TestContentLargeStorefrontRetainsFAQBound(t *testing.T) {
 	p := setup(t)
 	body := strings.Repeat("x", 30000)
-	run(t, p, "content", cmd("upsert", "storefront-main", "admin", "admin", map[string]any{"kind": "storefront", "title": "Homepage", "body": body}))
-	if _, e := p.Call(context.Background(), "content", cmd("upsert", "large-faq", "admin", "admin", map[string]any{"kind": "faq", "title": "FAQ", "body": body})); status.Code(e) != codes.InvalidArgument {
+	run(
+		t,
+		p,
+		"content",
+		cmd(
+			"upsert",
+			"storefront-main",
+			"admin",
+			"admin",
+			map[string]any{"kind": "storefront", "title": "Homepage", "body": body},
+		),
+	)
+	if _, e := p.Call(
+		context.Background(),
+		"content",
+		cmd("upsert", "large-faq", "admin", "admin", map[string]any{"kind": "faq", "title": "FAQ", "body": body}),
+	); status.Code(
+		e,
+	) != codes.InvalidArgument {
 		t.Fatal("FAQ limit incorrectly expanded")
 	}
-	if _, e := p.Call(context.Background(), "content", cmd("upsert", "forbidden", "demo", "user", map[string]any{"kind": "storefront", "title": "Home", "body": "test"})); status.Code(e) != codes.PermissionDenied {
+	if _, e := p.Call(
+		context.Background(),
+		"content",
+		cmd(
+			"upsert",
+			"forbidden",
+			"demo",
+			"user",
+			map[string]any{"kind": "storefront", "title": "Home", "body": "test"},
+		),
+	); status.Code(
+		e,
+	) != codes.PermissionDenied {
 		t.Fatal("customer could publish homepage")
 	}
 }
 func TestInteractionPendingAdminAndHelpfulReadModel(t *testing.T) {
 	p := setup(t)
-	c := cmd("create", "", "demo", "user", map[string]any{"kind": "question", "sku_id": "iphone--1-2", "body": "Does the 512GB model support this color?"})
+	c := cmd(
+		"create",
+		"",
+		"demo",
+		"user",
+		map[string]any{"kind": "question", "sku_id": "iphone--1-2", "body": "Does the 512GB model support this color?"},
+	)
 	c.IdempotencyKey = "variant-question"
 	q := run(t, p, "interaction", c)
 	list := map[string]any{"kind": "question", "sku_id": "iphone", "include_pending": true}
-	if _, e := p.Call(context.Background(), "interaction", cmd("list", "", "demo", "user", list)); status.Code(e) != codes.PermissionDenied {
+	if _, e := p.Call(context.Background(), "interaction", cmd("list", "", "demo", "user", list)); status.Code(
+		e,
+	) != codes.PermissionDenied {
 		t.Fatal("customer can list others pending content")
 	}
 	pending := items(t, run(t, p, "interaction", cmd("list", "", "admin", "admin", list)))
 	if len(pending) != 1 {
 		t.Fatalf("parent product did not include variant question %+v", pending)
 	}
-	if len(items(t, run(t, p, "interaction", cmd("list", "", "", "", map[string]any{"kind": "question", "sku_id": "iphone"})))) != 0 {
+	if len(
+		items(
+			t,
+			run(t, p, "interaction", cmd("list", "", "", "", map[string]any{"kind": "question", "sku_id": "iphone"})),
+		),
+	) != 0 {
 		t.Fatal("unmoderated question leaked")
 	}
-	run(t, p, "interaction", cmd("answer", platform.Text(q, "id"), "admin", "admin", map[string]any{"answer": "Yes, this color is available in 512GB."}))
-	published := items(t, run(t, p, "interaction", cmd("list", "", "", "", map[string]any{"kind": "question", "sku_id": "iphone"})))
+	run(
+		t,
+		p,
+		"interaction",
+		cmd(
+			"answer",
+			platform.Text(q, "id"),
+			"admin",
+			"admin",
+			map[string]any{"answer": "Yes, this color is available in 512GB."},
+		),
+	)
+	published := items(
+		t,
+		run(t, p, "interaction", cmd("list", "", "", "", map[string]any{"kind": "question", "sku_id": "iphone"})),
+	)
 	if len(published) != 1 || platform.Text(published[0], "answer") == "" {
 		t.Fatal("moderated variant answer unavailable from product")
 	}

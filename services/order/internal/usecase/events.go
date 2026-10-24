@@ -13,14 +13,24 @@ import (
 )
 
 func (s *Service) Topics() []string {
-	return []string{constants.EventPaymentSucceeded, constants.EventRefundSucceeded, constants.EventShipmentDispatched, constants.EventDeliveryConfirmed, constants.EventGroupFormed, constants.EventGroupFailed}
+	return []string{
+		constants.EventPaymentSucceeded,
+		constants.EventRefundSucceeded,
+		constants.EventShipmentDispatched,
+		constants.EventDeliveryConfirmed,
+		constants.EventGroupFormed,
+		constants.EventGroupFailed,
+	}
 }
 func eventTime(data map[string]any, key string) time.Time {
 	value, _ := time.Parse(time.RFC3339Nano, platform.Text(data, key))
 	return value
 }
 func (s *Service) OnEvent(ctx context.Context, event platform.Event) error {
-	request := OrderRequest{Actor: Actor{UserID: event.UserID, Role: constants.RoleSystem}, ID: platform.Text(event.Data, "order_id")}
+	request := OrderRequest{
+		Actor: Actor{UserID: event.UserID, Role: constants.RoleSystem},
+		ID:    platform.Text(event.Data, "order_id"),
+	}
 	switch event.Type {
 	case constants.EventPaymentSucceeded:
 		_, err := s.AcceptPayment(ctx, AcceptPaymentRequest{
@@ -84,7 +94,16 @@ func (s *Service) Tick(ctx context.Context) error {
 		return err
 	}
 	for _, order := range rows {
-		_, err = s.rpc.Call(ctx, constants.ServiceCheckout, platform.Command{Action: constants.ActionCancel, ID: order.ID, UserID: order.UserID, Role: constants.RoleSystem})
+		_, err = s.rpc.Call(
+			ctx,
+			constants.ServiceCheckout,
+			platform.Command{
+				Action: constants.ActionCancel,
+				ID:     order.ID,
+				UserID: order.UserID,
+				Role:   constants.RoleSystem,
+			},
+		)
 		if err != nil && status.Code(err) != codes.FailedPrecondition {
 			return err
 		}

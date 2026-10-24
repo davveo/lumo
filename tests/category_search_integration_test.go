@@ -13,7 +13,10 @@ func TestHTTPCategorySearchReturnsActualProductsAndFreshStock(t *testing.T) {
 	server := httptest.NewServer(httpgateway.NewHandler(c.rpc, true, t.TempDir()))
 	defer server.Close()
 	h := &httpShop{t: t, server: server, client: server.Client(), coverage: map[string]int{}}
-	admin := platform.Text(h.call("", "iam", "login", "", "", map[string]any{"username": "admin", "password": "Admin@2026"}), "token")
+	admin := platform.Text(
+		h.call("", "iam", "login", "", "", map[string]any{"username": "admin", "password": "Admin@2026"}),
+		"token",
+	)
 	for _, product := range []struct {
 		id, name, category, brand string
 		stock                     int
@@ -22,21 +25,57 @@ func TestHTTPCategorySearchReturnsActualProductsAndFreshStock(t *testing.T) {
 		{"category-dog-food", "安心成年狗粮", "宠物生活", "Integration-Dog", 0},
 		{"category-other", "猫粮图鉴", "图书文娱", "Integration-Cat", 5},
 	} {
-		h.call(admin, "catalog", "upsert", product.id, "", map[string]any{"name": product.name, "category": product.category, "brand": product.brand, "price_cents": 1200, "active": true})
+		h.call(
+			admin,
+			"catalog",
+			"upsert",
+			product.id,
+			"",
+			map[string]any{
+				"name":        product.name,
+				"category":    product.category,
+				"brand":       product.brand,
+				"price_cents": 1200,
+				"active":      true,
+			},
+		)
 		h.call(admin, "inventory", "adjust", product.id, "", map[string]any{"on_hand": product.stock})
 	}
-	result := h.call("", "search", "query", "", "", map[string]any{"category": "宠物生活", "query": "猫粮", "brand": "Integration-Cat", "limit": 100})
+	result := h.call(
+		"",
+		"search",
+		"query",
+		"",
+		"",
+		map[string]any{"category": "宠物生活", "query": "猫粮", "brand": "Integration-Cat", "limit": 100},
+	)
 	items := mapItems(result)
 	stock := mapItems(platform.Result{"items": result["inventory_items"]})
-	if len(items) != 1 || items[0]["id"] != "category-cat-food" || items[0]["name"] != "友粮成年猫粮" || len(stock) != 1 || stock[0]["sku_id"] != "category-cat-food" || platform.Int(stock[0], "available") != 3 {
+	if len(items) != 1 || items[0]["id"] != "category-cat-food" || items[0]["name"] != "友粮成年猫粮" || len(stock) != 1 ||
+		stock[0]["sku_id"] != "category-cat-food" ||
+		platform.Int(stock[0], "available") != 3 {
 		t.Fatalf("category/name search lost full metadata or authoritative stock: %v", result)
 	}
-	brand := h.call("", "search", "query", "", "", map[string]any{"category": "宠物生活", "brand": "Integration-Dog", "limit": 100})
+	brand := h.call(
+		"",
+		"search",
+		"query",
+		"",
+		"",
+		map[string]any{"category": "宠物生活", "brand": "Integration-Dog", "limit": 100},
+	)
 	if rows := mapItems(brand); len(rows) != 1 || rows[0]["id"] != "category-dog-food" {
 		t.Fatalf("brand filter escaped its selected department: %v", brand)
 	}
 	available := func() platform.Result {
-		return h.call("", "search", "query", "", "", map[string]any{"category": "宠物生活", "brand": "Integration-Cat", "in_stock": true, "limit": 100})
+		return h.call(
+			"",
+			"search",
+			"query",
+			"",
+			"",
+			map[string]any{"category": "宠物生活", "brand": "Integration-Cat", "in_stock": true, "limit": 100},
+		)
 	}
 	if rows := mapItems(available()); len(rows) != 1 || rows[0]["id"] != "category-cat-food" {
 		t.Fatal("out of stock product survived category filter", rows)

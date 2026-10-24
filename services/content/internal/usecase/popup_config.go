@@ -66,7 +66,10 @@ type popupConfig struct {
 }
 
 var popupIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$`)
-var popupTargetPattern = regexp.MustCompile(`^#/(?:coupons|member/coupons|promotions(?:/(?:flash|group|exchange|reduction|discount|quantity_discount|direct)(?:/[A-Za-z0-9_-]+)?)?|product/(?:[A-Za-z0-9_.:-]|%[A-Fa-f0-9]{2}){1,180})?$`)
+
+var popupTargetPattern = regexp.MustCompile(
+	`^#/(?:coupons|member/coupons|promotions(?:/(?:flash|group|exchange|reduction|discount|quantity_discount|direct)(?:/[A-Za-z0-9_-]+)?)?|product/(?:[A-Za-z0-9_.:-]|%[A-Fa-f0-9]{2}){1,180})?$`,
+)
 
 func popupDecode(v any, out any) error {
 	b, err := json.Marshal(v)
@@ -94,7 +97,8 @@ func popupStrings(v []string, limit, width int, required bool) ([]string, error)
 	seen := map[string]bool{}
 	for _, s := range v {
 		s = strings.TrimSpace(s)
-		if s == "" || utf8.RuneCountInString(s) > width || strings.IndexFunc(s, func(r rune) bool { return r < 32 || r == 127 }) >= 0 {
+		if s == "" || utf8.RuneCountInString(s) > width ||
+			strings.IndexFunc(s, func(r rune) bool { return r < 32 || r == 127 }) >= 0 {
 			return nil, bad("invalid popup condition text")
 		}
 		if !seen[s] {
@@ -119,7 +123,8 @@ func validatePopup(p *popupConfig) error {
 	if p.Name, err = popupText(p.Name, 120, true); err != nil {
 		return err
 	}
-	if p.Status != constants.PopupStatusDraft && p.Status != constants.PopupStatusPublished && p.Status != constants.PopupStatusPaused {
+	if p.Status != constants.PopupStatusDraft && p.Status != constants.PopupStatusPublished &&
+		p.Status != constants.PopupStatusPaused {
 		return bad("invalid popup status")
 	}
 	if p.Priority < 0 || p.Priority > 1000 {
@@ -155,7 +160,16 @@ func validatePopup(p *popupConfig) error {
 	if a.Segments, err = popupStrings(a.Segments, 8, 32, true); err != nil {
 		return err
 	}
-	allowed := map[string]bool{constants.PopupSegmentAll: true, constants.PopupSegmentGuest: true, constants.PopupSegmentNewGuest: true, constants.PopupSegmentReturningGuest: true, constants.PopupSegmentMember: true, constants.PopupSegmentNewMember: true, constants.PopupSegmentReturningMember: true, constants.PopupSegmentGoldMember: true}
+	allowed := map[string]bool{
+		constants.PopupSegmentAll:             true,
+		constants.PopupSegmentGuest:           true,
+		constants.PopupSegmentNewGuest:        true,
+		constants.PopupSegmentReturningGuest:  true,
+		constants.PopupSegmentMember:          true,
+		constants.PopupSegmentNewMember:       true,
+		constants.PopupSegmentReturningMember: true,
+		constants.PopupSegmentGoldMember:      true,
+	}
 	for _, v := range a.Segments {
 		if !allowed[v] {
 			return bad("invalid popup audience segment")
@@ -167,7 +181,9 @@ func validatePopup(p *popupConfig) error {
 	if a.NewMemberDays < 1 || a.NewMemberDays > 365 {
 		return bad("new member period must be 1..365 days")
 	}
-	if a.MinGrowth < 0 || a.MaxGrowth < 0 || a.MinPoints < 0 || a.MaxPoints < 0 || a.MaxGrowth > 0 && a.MaxGrowth < a.MinGrowth || a.MaxPoints > 0 && a.MaxPoints < a.MinPoints {
+	if a.MinGrowth < 0 || a.MaxGrowth < 0 || a.MinPoints < 0 || a.MaxPoints < 0 ||
+		a.MaxGrowth > 0 && a.MaxGrowth < a.MinGrowth ||
+		a.MaxPoints > 0 && a.MaxPoints < a.MinPoints {
 		return bad("invalid popup membership range")
 	}
 	if a.IncludeUserIDs, err = popupStrings(a.IncludeUserIDs, 500, 128, false); err != nil {
@@ -180,7 +196,10 @@ func validatePopup(p *popupConfig) error {
 		return err
 	}
 	f := p.Frequency
-	if f.MaxPerUser < 1 || f.MaxPerUser > 100 || f.MaxPerDay < 1 || f.MaxPerDay > 10 || f.CooldownHours < 0 || f.CooldownHours > 8760 || f.CloseCooldownHours < 0 || f.CloseCooldownHours > 8760 {
+	if f.MaxPerUser < 1 || f.MaxPerUser > 100 || f.MaxPerDay < 1 || f.MaxPerDay > 10 || f.CooldownHours < 0 ||
+		f.CooldownHours > 8760 ||
+		f.CloseCooldownHours < 0 ||
+		f.CloseCooldownHours > 8760 {
 		return bad("invalid popup frequency limits")
 	}
 	c := &p.Content
@@ -196,13 +215,15 @@ func validatePopup(p *popupConfig) error {
 	if c.ButtonText, err = popupText(c.ButtonText, 24, true); err != nil {
 		return err
 	}
-	if c.Theme != constants.PopupThemeRed && c.Theme != constants.PopupThemePeach && c.Theme != constants.PopupThemePlum {
+	if c.Theme != constants.PopupThemeRed && c.Theme != constants.PopupThemePeach &&
+		c.Theme != constants.PopupThemePlum {
 		return bad("invalid popup theme")
 	}
 	if c.CouponTemplateID != "" && !popupIDPattern.MatchString(c.CouponTemplateID) {
 		return bad("invalid coupon template ID")
 	}
-	if c.ActionType != constants.PopupActionClaimCoupon && c.ActionType != constants.PopupActionCouponCenter && c.ActionType != constants.PopupActionLink {
+	if c.ActionType != constants.PopupActionClaimCoupon && c.ActionType != constants.PopupActionCouponCenter &&
+		c.ActionType != constants.PopupActionLink {
 		return bad("invalid popup action")
 	}
 	if c.ActionType == constants.PopupActionClaimCoupon && c.CouponTemplateID == "" {
@@ -214,13 +235,16 @@ func validatePopup(p *popupConfig) error {
 	if !popupTargetPattern.MatchString(c.ActionTarget) {
 		return bad("popup target must be an allowed internal shopping route")
 	}
-	if c.AutoCloseSeconds != 0 && (c.AutoCloseSeconds < 5 || c.AutoCloseSeconds > 60) || c.DelaySeconds < 0 || c.DelaySeconds > 30 {
+	if c.AutoCloseSeconds != 0 && (c.AutoCloseSeconds < 5 || c.AutoCloseSeconds > 60) || c.DelaySeconds < 0 ||
+		c.DelaySeconds > 30 {
 		return bad("invalid popup timing")
 	}
 	return nil
 }
 func popupPlacement(s string) bool {
-	return s == constants.PopupPlacementHome || s == constants.PopupPlacementCategory || s == constants.PopupPlacementProduct || s == constants.PopupPlacementCoupons
+	return s == constants.PopupPlacementHome || s == constants.PopupPlacementCategory ||
+		s == constants.PopupPlacementProduct ||
+		s == constants.PopupPlacementCoupons
 }
 func popupConfigFrom(row domain.PopupCampaign) (popupConfig, error) {
 	var p popupConfig
@@ -236,7 +260,12 @@ func popupCampaignView(row domain.PopupCampaign) platform.Result {
 	p.Version = row.Version
 	p.CreatedAt = row.CreatedAt.UTC().Format(time.RFC3339)
 	p.UpdatedAt = row.UpdatedAt.UTC().Format(time.RFC3339)
-	p.Stats = map[string]int64{"impressions": row.Impressions, "clicks": row.Clicks, "dismissals": row.Dismissals, "claims": row.Claims}
+	p.Stats = map[string]int64{
+		"impressions": row.Impressions,
+		"clicks":      row.Clicks,
+		"dismissals":  row.Dismissals,
+		"claims":      row.Claims,
+	}
 	b, _ := json.Marshal(p)
 	var out platform.Result
 	_ = json.Unmarshal(b, &out)
@@ -286,7 +315,14 @@ func (s *Service) popupUpsert(ctx context.Context, c platform.Command) (platform
 	p.CreatedAt = ""
 	p.UpdatedAt = ""
 	b, _ := json.Marshal(p)
-	row := domain.PopupCampaign{ID: p.ID, Name: p.Name, Status: p.Status, Priority: p.Priority, Payload: string(b), Version: version}
+	row := domain.PopupCampaign{
+		ID:       p.ID,
+		Name:     p.Name,
+		Status:   p.Status,
+		Priority: p.Priority,
+		Payload:  string(b),
+		Version:  version,
+	}
 	if err := s.repo.SavePopupCampaign(ctx, &row, false); err != nil {
 		return nil, err
 	}
@@ -309,7 +345,11 @@ func (s *Service) popupConfigure(ctx context.Context, c platform.Command) (platf
 	if err := s.repo.SavePopupSettings(ctx, v); err != nil {
 		return nil, err
 	}
-	return platform.Result{"enabled": v.Enabled, "max_per_session": v.MaxPerSession, "min_gap_seconds": v.MinGapSeconds}, nil
+	return platform.Result{
+		"enabled":         v.Enabled,
+		"max_per_session": v.MaxPerSession,
+		"min_gap_seconds": v.MinGapSeconds,
+	}, nil
 }
 func popupInternal(c platform.Command) error {
 	if c.Role != constants.RoleSystem {

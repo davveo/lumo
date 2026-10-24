@@ -26,7 +26,13 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	}
 	switch c.Action {
 	case constants.ActionGet, constants.ActionUpdate:
-		seed := record(id, id, constants.MemberKindProfile, constants.MemberStatusActive, map[string]any{"display_name": id, "avatar": "", "preferences": map[string]any{}})
+		seed := record(
+			id,
+			id,
+			constants.MemberKindProfile,
+			constants.MemberStatusActive,
+			map[string]any{"display_name": id, "avatar": "", "preferences": map[string]any{}},
+		)
 		r, e := s.repo.Mutate(ctx, seed, true, func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
 			if c.Action == constants.ActionUpdate {
 				d := payload(*v)
@@ -71,7 +77,13 @@ func (s *Service) event(ctx context.Context, e platform.Event) (traceErr error) 
 	if e.Type != constants.EventOrderCompleted || e.UserID == "" {
 		return nil
 	}
-	r := record(stable(e.ID, e.UserID), e.UserID, constants.MemberKindGrowth, constants.MemberStatusPosted, map[string]any{"order_id": e.AggregateID})
+	r := record(
+		stable(e.ID, e.UserID),
+		e.UserID,
+		constants.MemberKindGrowth,
+		constants.MemberStatusPosted,
+		map[string]any{"order_id": e.AggregateID},
+	)
 	r.Amount = platform.Int(e.Data, "payable_cents") / 10000
 	if r.Amount < 1 {
 		r.Amount = 1

@@ -46,14 +46,28 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		recipient := platform.Text(c.Data, "recipient")
 		phone := platform.Text(c.Data, "phone")
 		address := platform.Text(c.Data, "address")
-		if recipient == "" || len(recipient) > 100 || len(phone) < 5 || len(phone) > 30 || address == "" || len(address) > 1000 {
+		if recipient == "" || len(recipient) > 100 || len(phone) < 5 || len(phone) > 30 || address == "" ||
+			len(address) > 1000 {
 			return nil, bad("recipient, phone and address required")
 		}
 		owner := c.UserID
 		if c.Action == constants.ActionUpdate {
 			owner = r.UserID
 		}
-		v := record(c.ID, owner, constants.AddressKindAddress, constants.AddressStatusActive, map[string]any{"recipient": recipient, "phone": phone, "address": address, "province": platform.Text(c.Data, "province"), "city": platform.Text(c.Data, "city"), "district": platform.Text(c.Data, "district")})
+		v := record(
+			c.ID,
+			owner,
+			constants.AddressKindAddress,
+			constants.AddressStatusActive,
+			map[string]any{
+				"recipient": recipient,
+				"phone":     phone,
+				"address":   address,
+				"province":  platform.Text(c.Data, "province"),
+				"city":      platform.Text(c.Data, "city"),
+				"district":  platform.Text(c.Data, "district"),
+			},
+		)
 		v.IsDefault = r.IsDefault
 		if e := s.repo.Save(ctx, &v, nil); e != nil {
 			return nil, e

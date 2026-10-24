@@ -57,9 +57,19 @@ func TestMySQLListingCountUsesCoveringIndexWithoutChangingPageQuery(t *testing.T
 			ids = append(ids, row.ID)
 		}
 		if err != nil || total != test.total || !reflect.DeepEqual(ids, test.ids) {
-			t.Fatalf("listing changed for state=%q limit=%d offset=%d: %v/%d err=%v", test.state, test.limit, test.offset, ids, total, err)
+			t.Fatalf(
+				"listing changed for state=%q limit=%d offset=%d: %v/%d err=%v",
+				test.state,
+				test.limit,
+				test.offset,
+				ids,
+				total,
+				err,
+			)
 		}
-		if len(queries) != 2 || !strings.Contains(queries[0].sql, "FORCE INDEX (idx_catalog_page)") || !strings.Contains(strings.ToLower(queries[0].sql), "count(") || strings.Contains(queries[1].sql, "FORCE INDEX") {
+		if len(queries) != 2 || !strings.Contains(queries[0].sql, "FORCE INDEX (idx_catalog_page)") ||
+			!strings.Contains(strings.ToLower(queries[0].sql), "count(") ||
+			strings.Contains(queries[1].sql, "FORCE INDEX") {
 			t.Fatalf("hint must be confined to count, keeping page query untouched: %v", queries)
 		}
 		var plan []struct{ Key, Extra string }

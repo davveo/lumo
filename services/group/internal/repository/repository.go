@@ -21,7 +21,19 @@ func (r *Repository) Migrate(ctx context.Context) error {
 	return r.DB.WithContext(ctx).AutoMigrate(&domain.Team{}, &domain.Seat{})
 }
 func (r *Repository) Seed(ctx context.Context) error {
-	return r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&domain.Team{ID: "group-demo", SKUID: "sku-headphones", CreatorID: "demo", Required: 2, State: constants.GroupStatusOpen, ExpiresAt: time.Now().Add(24 * time.Hour)}).Error
+	return r.DB.WithContext(ctx).
+		Clauses(clause.OnConflict{DoNothing: true}).
+		Create(
+			&domain.Team{
+				ID:        "group-demo",
+				SKUID:     "sku-headphones",
+				CreatorID: "demo",
+				Required:  2,
+				State:     constants.GroupStatusOpen,
+				ExpiresAt: time.Now().Add(24 * time.Hour),
+			},
+		).
+		Error
 }
 func (r *Repository) List(ctx context.Context) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.group.List")
@@ -62,7 +74,14 @@ func (r *Repository) Create(ctx context.Context, c platform.Command) (platform.R
 			return nil, status.Error(codes.InvalidArgument, "idempotency key too long")
 		}
 	}
-	t := domain.Team{ID: id, SKUID: sku, CreatorID: c.UserID, Required: required, State: constants.GroupStatusOpen, ExpiresAt: time.Now().Add(30 * time.Minute)}
+	t := domain.Team{
+		ID:        id,
+		SKUID:     sku,
+		CreatorID: c.UserID,
+		Required:  required,
+		State:     constants.GroupStatusOpen,
+		ExpiresAt: time.Now().Add(30 * time.Minute),
+	}
 	e := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var old domain.Team
 		er := tx.WithContext(ctx).First(&old, "id = ?", id).Error
@@ -109,14 +128,25 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.
 			return er
 		}
 		var t domain.Team
-		if er = tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&t, "id = ?", gid).Error; er != nil {
+		if er = tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(
+			&t,
+			"id = ?",
+			gid,
+		).Error; er != nil {
 			return status.Error(codes.NotFound, "group not found")
 		}
 		if t.State != constants.GroupStatusOpen || time.Now().After(t.ExpiresAt) {
 			return status.Error(codes.FailedPrecondition, "group not open")
 		}
 		var prior int64
-		if er = tx.WithContext(ctx).Model(&domain.Seat{}).Where("group_id = ? AND user_id = ? AND state <> ?", gid, c.UserID, constants.GroupSeatStateCancelled).Count(&prior).Error; er != nil {
+		if er = tx.WithContext(ctx).Model(&domain.Seat{}).Where(
+			"group_id = ? AND user_id = ? AND state <> ?",
+			gid,
+			c.UserID,
+			constants.GroupSeatStateCancelled,
+		).Count(
+			&prior,
+		).Error; er != nil {
 			return er
 		}
 		if prior > 0 {
@@ -126,7 +156,10 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.
 		if er = tx.WithContext(ctx).Create(&seat).Error; er != nil {
 			return er
 		}
-		u := tx.WithContext(ctx).Model(&t).Where("occupied < required AND state = ?", constants.GroupStatusOpen).Update("occupied", gorm.Expr("occupied + 1"))
+		u := tx.WithContext(ctx).
+			Model(&t).
+			Where("occupied < required AND state = ?", constants.GroupStatusOpen).
+			Update("occupied", gorm.Expr("occupied + 1"))
 		if u.Error != nil {
 			return u.Error
 		}
@@ -139,11 +172,27 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.
 }
 func emit(ctx context.Context, tx *gorm.DB, t domain.Team, kind string) error {
 	var seats []domain.Seat
-	if e := tx.WithContext(ctx).Where("group_id = ? AND state IN ?", t.ID, []string{constants.GroupSeatStatePaid, constants.GroupSeatStateLatePaid}).Find(&seats).Error; e != nil {
+	if e := tx.WithContext(ctx).Where(
+		"group_id = ? AND state IN ?",
+		t.ID,
+		[]string{constants.GroupSeatStatePaid, constants.GroupSeatStateLatePaid},
+	).Find(
+		&seats,
+	).Error; e != nil {
 		return e
 	}
 	for _, s := range seats {
-		if e := platform.Enqueue(ctx, tx, platform.Event{ID: eventID(t.ID, kind, s.ID), Type: kind, AggregateID: s.ID, UserID: s.UserID, Data: map[string]any{"group_id": t.ID, "order_id": s.ID, "status": t.State}}); e != nil {
+		if e := platform.Enqueue(
+			ctx,
+			tx,
+			platform.Event{
+				ID:          eventID(t.ID, kind, s.ID),
+				Type:        kind,
+				AggregateID: s.ID,
+				UserID:      s.UserID,
+				Data:        map[string]any{"group_id": t.ID, "order_id": s.ID, "status": t.State},
+			},
+		); e != nil {
 			return e
 		}
 	}
@@ -165,7 +214,11 @@ func (r *Repository) Paid(ctx context.Context, c platform.Command) (platform.Res
 		if seat.UserID != c.UserID {
 			return status.Error(codes.PermissionDenied, "seat owner mismatch")
 		}
-		if er = tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&t, "id = ?", seat.GroupID).Error; er != nil {
+		if er = tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(
+			&t,
+			"id = ?",
+			seat.GroupID,
+		).Error; er != nil {
 			return er
 		}
 		if seat.State == constants.GroupSeatStatePaid || seat.State == constants.GroupSeatStateLatePaid {
@@ -184,10 +237,27 @@ func (r *Repository) Paid(ctx context.Context, c platform.Command) (platform.Res
 					return er
 				}
 			}
-			if er = tx.WithContext(ctx).Model(&seat).Update("state", constants.GroupSeatStateLatePaid).Error; er != nil {
+			if er = tx.WithContext(ctx).Model(&seat).Update(
+				"state",
+				constants.GroupSeatStateLatePaid,
+			).Error; er != nil {
 				return er
 			}
-			return platform.Enqueue(ctx, tx, platform.Event{ID: eventID(t.ID, constants.EventGroupFailed, seat.ID), Type: constants.EventGroupFailed, AggregateID: seat.ID, UserID: seat.UserID, Data: map[string]any{"group_id": t.ID, "order_id": seat.ID, "status": constants.GroupStatusFailed}})
+			return platform.Enqueue(
+				ctx,
+				tx,
+				platform.Event{
+					ID:          eventID(t.ID, constants.EventGroupFailed, seat.ID),
+					Type:        constants.EventGroupFailed,
+					AggregateID: seat.ID,
+					UserID:      seat.UserID,
+					Data: map[string]any{
+						"group_id": t.ID,
+						"order_id": seat.ID,
+						"status":   constants.GroupStatusFailed,
+					},
+				},
+			)
 		}
 		if t.State != constants.GroupStatusOpen {
 			return status.Error(codes.FailedPrecondition, "group closed")
@@ -238,7 +308,10 @@ func (r *Repository) Cancel(ctx context.Context, c platform.Command) (platform.R
 		if seat.State != constants.GroupSeatStateReserved {
 			return status.Error(codes.FailedPrecondition, "paid seat requires group/refund workflow")
 		}
-		if er = tx.WithContext(ctx).Model(&domain.Team{}).Where("id = ? AND occupied > 0", seat.GroupID).Update("occupied", gorm.Expr("occupied - 1")).Error; er != nil {
+		if er = tx.WithContext(ctx).Model(&domain.Team{}).Where("id = ? AND occupied > 0", seat.GroupID).Update(
+			"occupied",
+			gorm.Expr("occupied - 1"),
+		).Error; er != nil {
 			return er
 		}
 		if er = tx.WithContext(ctx).Model(&seat).Update("state", constants.GroupSeatStateCancelled).Error; er != nil {
@@ -253,14 +326,22 @@ func (r *Repository) Expire(ctx context.Context) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.group.Expire")
 	defer s.End()
 	var teams []domain.Team
-	if e := r.DB.WithContext(ctx).Where("state = ? AND expires_at <= ?", constants.GroupStatusOpen, time.Now()).Limit(100).Find(&teams).Error; e != nil {
+	if e := r.DB.WithContext(ctx).Where("state = ? AND expires_at <= ?", constants.GroupStatusOpen, time.Now()).Limit(
+		100,
+	).Find(
+		&teams,
+	).Error; e != nil {
 		return nil, e
 	}
 	count := 0
 	for _, team := range teams {
 		e := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 			var t domain.Team
-			if er := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&t, "id = ?", team.ID).Error; er != nil {
+			if er := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(
+				&t,
+				"id = ?",
+				team.ID,
+			).Error; er != nil {
 				return er
 			}
 			if t.State != constants.GroupStatusOpen || t.ExpiresAt.After(time.Now()) {

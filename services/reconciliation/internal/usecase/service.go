@@ -44,7 +44,11 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 		}
 		return platform.Result{"items": items}, nil
 	case constants.ActionRun:
-		payments, err := s.rpc.Call(ctx, constants.ServicePayment, platform.Command{Action: constants.ActionList, UserID: c.UserID, Role: constants.RoleSystem})
+		payments, err := s.rpc.Call(
+			ctx,
+			constants.ServicePayment,
+			platform.Command{Action: constants.ActionList, UserID: c.UserID, Role: constants.RoleSystem},
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -58,19 +62,50 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 			if platform.Text(p, "status") != constants.PaymentStatusSucceeded {
 				continue
 			}
-			o, e := s.rpc.Call(ctx, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: platform.Text(p, "order_id"), UserID: c.UserID, Role: constants.RoleSystem})
+			o, e := s.rpc.Call(
+				ctx,
+				constants.ServiceOrder,
+				platform.Command{
+					Action: constants.ActionGet,
+					ID:     platform.Text(p, "order_id"),
+					UserID: c.UserID,
+					Role:   constants.RoleSystem,
+				},
+			)
 			if e != nil {
-				diffs = append(diffs, platform.Result{"payment_id": p["id"], "kind": constants.ReconciliationDifferenceKindOrderUnavailable})
+				diffs = append(
+					diffs,
+					platform.Result{
+						"payment_id": p["id"],
+						"kind":       constants.ReconciliationDifferenceKindOrderUnavailable,
+					},
+				)
 				continue
 			}
 			if platform.Int(o, "payable_cents") != platform.Int(p, "amount_cents") {
-				diffs = append(diffs, platform.Result{"payment_id": p["id"], "kind": constants.ReconciliationDifferenceKindAmountMismatch})
+				diffs = append(
+					diffs,
+					platform.Result{
+						"payment_id": p["id"],
+						"kind":       constants.ReconciliationDifferenceKindAmountMismatch,
+					},
+				)
 			}
 			if platform.Text(o, "payment_id") != platform.Text(p, "id") {
-				diffs = append(diffs, platform.Result{"payment_id": p["id"], "kind": constants.ReconciliationDifferenceKindPaymentNotAcceptedOrPendingEvent})
+				diffs = append(
+					diffs,
+					platform.Result{
+						"payment_id": p["id"],
+						"kind":       constants.ReconciliationDifferenceKindPaymentNotAcceptedOrPendingEvent,
+					},
+				)
 			}
 		}
-		details := platform.Result{"checked_payments": len(rows), "differences": diffs, "scope": "internal-demo-ledgers; external channel bill adapter not configured"}
+		details := platform.Result{
+			"checked_payments": len(rows),
+			"differences":      diffs,
+			"scope":            "internal-demo-ledgers; external channel bill adapter not configured",
+		}
 		raw, _ := json.Marshal(details)
 		state := constants.ReconciliationStatusMatched
 		if len(diffs) > 0 {

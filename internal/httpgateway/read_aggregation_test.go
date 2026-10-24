@@ -72,7 +72,12 @@ func batchHTTP(t *testing.T, caller platform.Caller, action, token string, reque
 	return w.Code, out
 }
 func readItem(key, service, action, id string) map[string]any {
-	return map[string]any{"key": key, "service": service, "action": action, "command": map[string]any{"id": id, "data": map[string]any{}}}
+	return map[string]any{
+		"key":     key,
+		"service": service,
+		"action":  action,
+		"command": map[string]any{"id": id, "data": map[string]any{}},
+	}
 }
 
 func TestReadBatchPreflightsAllCommandsBeforeAnyDomainCall(t *testing.T) {
@@ -81,18 +86,62 @@ func TestReadBatchPreflightsAllCommandsBeforeAnyDomainCall(t *testing.T) {
 		items       []any
 		want        int
 	}{
-		{"write hidden among reads", "", []any{readItem("a", "catalog", "list", ""), readItem("b", "inventory", "adjust", "sku")}, 403},
-		{"quote persists a record", "buyer", []any{readItem("a", "catalog", "list", ""), readItem("b", "checkout", "quote", "")}, 403},
+		{
+			"write hidden among reads",
+			"",
+			[]any{readItem("a", "catalog", "list", ""), readItem("b", "inventory", "adjust", "sku")},
+			403,
+		},
+		{
+			"quote persists a record",
+			"buyer",
+			[]any{readItem("a", "catalog", "list", ""), readItem("b", "checkout", "quote", "")},
+			403,
+		},
 		{"admin cannot batch writes", "admin", []any{readItem("a", "catalog", "upsert", "sku")}, 403},
 		{"guest private read", "", []any{readItem("a", "member", "get", "")}, 401},
 		{"user admin read", "buyer", []any{readItem("a", "payment", "list", "")}, 403},
 		{"nested aggregation", "", []any{readItem("a", "storefront", "batch", "")}, 403},
 		{"internal recommendation ranking", "admin", []any{readItem("a", "recommendation", "rank_bootstrap", "")}, 403},
 		{"internal catalog search", "admin", []any{readItem("a", "catalog", "search_products", "")}, 403},
-		{"duplicate keys", "", []any{readItem("a", "catalog", "list", ""), readItem("a", "catalog", "get", "sku")}, 400},
-		{"invalid SKU cannot poison a shared bulk read", "", []any{readItem("a", "catalog", "list", ""), readItem("b", "inventory", "get", " sku")}, 400},
-		{"forged nested principal", "buyer", []any{map[string]any{"key": "a", "service": "member", "action": "get", "command": map[string]any{"user_id": "victim", "role": "admin"}}}, 400},
-		{"idempotent writes cannot hide in a read", "buyer", []any{map[string]any{"key": "a", "service": "member", "action": "get", "command": map[string]any{"idempotency_key": "fake"}}}, 400},
+		{
+			"duplicate keys",
+			"",
+			[]any{readItem("a", "catalog", "list", ""), readItem("a", "catalog", "get", "sku")},
+			400,
+		},
+		{
+			"invalid SKU cannot poison a shared bulk read",
+			"",
+			[]any{readItem("a", "catalog", "list", ""), readItem("b", "inventory", "get", " sku")},
+			400,
+		},
+		{
+			"forged nested principal",
+			"buyer",
+			[]any{
+				map[string]any{
+					"key":     "a",
+					"service": "member",
+					"action":  "get",
+					"command": map[string]any{"user_id": "victim", "role": "admin"},
+				},
+			},
+			400,
+		},
+		{
+			"idempotent writes cannot hide in a read",
+			"buyer",
+			[]any{
+				map[string]any{
+					"key":     "a",
+					"service": "member",
+					"action":  "get",
+					"command": map[string]any{"idempotency_key": "fake"},
+				},
+			},
+			400,
+		},
 		{"empty", "", []any{}, 400},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -119,33 +168,44 @@ func TestReadBatchPreflightsAllCommandsBeforeAnyDomainCall(t *testing.T) {
 }
 
 func TestReadBatchUsesOneBulkRPCAndKeepsPartialErrorsAndPrincipal(t *testing.T) {
-	caller := &aggregationCaller{handle: func(_ context.Context, service string, c platform.Command) (platform.Result, error) {
-		if c.UserID != "buyer" || c.Role != "user" {
-			t.Errorf("principal changed: %#v", c)
-		}
-		if c.Action == "batch_get" {
-			var payload struct {
-				IDs []string `json:"ids"`
+	caller := &aggregationCaller{
+		handle: func(_ context.Context, service string, c platform.Command) (platform.Result, error) {
+			if c.UserID != "buyer" || c.Role != "user" {
+				t.Errorf("principal changed: %#v", c)
 			}
-			_ = platform.Decode(c.Data, &payload)
-			rows := []platform.Result{}
-			for _, id := range payload.IDs {
-				if id != "missing" {
-					field := "id"
-					if service == "inventory" {
-						field = "sku_id"
-					}
-					rows = append(rows, platform.Result{field: id, "available": 7})
+			if c.Action == "batch_get" {
+				var payload struct {
+					IDs []string `json:"ids"`
 				}
+				_ = platform.Decode(c.Data, &payload)
+				rows := []platform.Result{}
+				for _, id := range payload.IDs {
+					if id != "missing" {
+						field := "id"
+						if service == "inventory" {
+							field = "sku_id"
+						}
+						rows = append(rows, platform.Result{field: id, "available": 7})
+					}
+				}
+				return platform.Result{"items": rows, "missing_ids": []string{"missing"}}, nil
 			}
-			return platform.Result{"items": rows, "missing_ids": []string{"missing"}}, nil
-		}
-		if service == "content" {
-			return nil, status.Error(codes.Unavailable, "content offline")
-		}
-		return platform.Result{"user_id": c.UserID}, nil
-	}}
-	items := []any{readItem("i1", "inventory", "get", "sku-a"), readItem("i2", "inventory", "get", "sku-a"), readItem("i3", "inventory", "get", "sku-b"), readItem("absent", "inventory", "get", "missing"), readItem("c", "catalog", "get", "sku-a"), readItem("m1", "member", "get", ""), readItem("m2", "member", "get", ""), readItem("error", "content", "list", "")}
+			if service == "content" {
+				return nil, status.Error(codes.Unavailable, "content offline")
+			}
+			return platform.Result{"user_id": c.UserID}, nil
+		},
+	}
+	items := []any{
+		readItem("i1", "inventory", "get", "sku-a"),
+		readItem("i2", "inventory", "get", "sku-a"),
+		readItem("i3", "inventory", "get", "sku-b"),
+		readItem("absent", "inventory", "get", "missing"),
+		readItem("c", "catalog", "get", "sku-a"),
+		readItem("m1", "member", "get", ""),
+		readItem("m2", "member", "get", ""),
+		readItem("error", "content", "list", ""),
+	}
 	code, body := batchHTTP(t, caller, "batch", "buyer", items)
 	if code != 200 {
 		t.Fatalf("%d: %v", code, body)
@@ -159,51 +219,66 @@ func TestReadBatchUsesOneBulkRPCAndKeepsPartialErrorsAndPrincipal(t *testing.T) 
 			t.Fatalf("result order/auth lost: %v", row)
 		}
 	}
-	if caller.count("inventory", "batch_get") != 1 || caller.count("inventory", "get") != 0 || caller.count("catalog", "batch_get") != 1 || caller.count("member", "get") != 1 {
+	if caller.count("inventory", "batch_get") != 1 || caller.count("inventory", "get") != 0 ||
+		caller.count("catalog", "batch_get") != 1 ||
+		caller.count("member", "get") != 1 {
 		t.Fatalf("N+1 not collapsed: %+v", caller.calls)
 	}
-	if platform.Map(results[3]["error"])["code"] != "NotFound" || platform.Map(results[7]["error"])["code"] != "Unavailable" || results[0]["data"] == nil {
+	if platform.Map(results[3]["error"])["code"] != "NotFound" ||
+		platform.Map(results[7]["error"])["code"] != "Unavailable" ||
+		results[0]["data"] == nil {
 		t.Fatalf("partial failure discarded good reads: %v", results)
 	}
 }
 
 func TestBootstrapIncludesPublicAndPersonalizedDataAndBulkSKUPrimer(t *testing.T) {
-	caller := &aggregationCaller{handle: func(_ context.Context, service string, c platform.Command) (platform.Result, error) {
-		if service == "catalog" && c.Action == "list" {
-			if c.UserID != "" || c.Role != "" || platform.Int(c.Data, "limit") != 100 {
-				t.Errorf("public catalog inherited privilege: %#v", c)
-			}
-			return platform.Result{"items": []platform.Result{{"id": "product", "variants": []platform.Result{{"sku_id": "variant-a"}, {"sku_id": "variant-b"}}}}}, nil
-		}
-		if service == "flash" {
-			return platform.Result{"items": []platform.Result{{"sku_id": "flash-sku"}, {"sku_id": "flash-sku"}}}, nil
-		}
-		if service == "cart" {
-			return platform.Result{"items": []platform.Result{{"sku_id": "cart-outside-catalog"}}}, nil
-		}
-		if c.Action == "batch_get" {
-			if c.UserID != "" || c.Role != "" {
-				t.Error("public SKU primer inherited principal")
-			}
-			var data struct {
-				IDs []string `json:"ids"`
-			}
-			_ = platform.Decode(c.Data, &data)
-			items := []platform.Result{}
-			for _, id := range data.IDs {
-				field := "id"
-				if service == "inventory" {
-					field = "sku_id"
+	caller := &aggregationCaller{
+		handle: func(_ context.Context, service string, c platform.Command) (platform.Result, error) {
+			if service == "catalog" && c.Action == "list" {
+				if c.UserID != "" || c.Role != "" || platform.Int(c.Data, "limit") != 100 {
+					t.Errorf("public catalog inherited privilege: %#v", c)
 				}
-				items = append(items, platform.Result{field: id, "available": 10})
+				return platform.Result{
+					"items": []platform.Result{
+						{
+							"id":       "product",
+							"variants": []platform.Result{{"sku_id": "variant-a"}, {"sku_id": "variant-b"}},
+						},
+					},
+				}, nil
 			}
-			return platform.Result{"items": items}, nil
-		}
-		if service == "member" && c.UserID != "buyer" {
-			t.Error("member read lost principal")
-		}
-		return platform.Result{"items": []any{}}, nil
-	}}
+			if service == "flash" {
+				return platform.Result{
+					"items": []platform.Result{{"sku_id": "flash-sku"}, {"sku_id": "flash-sku"}},
+				}, nil
+			}
+			if service == "cart" {
+				return platform.Result{"items": []platform.Result{{"sku_id": "cart-outside-catalog"}}}, nil
+			}
+			if c.Action == "batch_get" {
+				if c.UserID != "" || c.Role != "" {
+					t.Error("public SKU primer inherited principal")
+				}
+				var data struct {
+					IDs []string `json:"ids"`
+				}
+				_ = platform.Decode(c.Data, &data)
+				items := []platform.Result{}
+				for _, id := range data.IDs {
+					field := "id"
+					if service == "inventory" {
+						field = "sku_id"
+					}
+					items = append(items, platform.Result{field: id, "available": 10})
+				}
+				return platform.Result{"items": items}, nil
+			}
+			if service == "member" && c.UserID != "buyer" {
+				t.Error("member read lost principal")
+			}
+			return platform.Result{"items": []any{}}, nil
+		},
+	}
 	code, body := batchHTTP(t, caller, "bootstrap", "buyer", nil)
 	if code != 200 {
 		t.Fatalf("%d: %v", code, body)
@@ -226,7 +301,10 @@ func TestBootstrapIncludesPublicAndPersonalizedDataAndBulkSKUPrimer(t *testing.T
 	if !private || len(stocks) != 5 || !stocks["variant-b"] || !stocks["flash-sku"] || !stocks["cart-outside-catalog"] {
 		t.Fatalf("missing account/variant primer: %+v", results)
 	}
-	if caller.count("inventory", "batch_get") != 1 || caller.count("catalog", "batch_get") != 1 || caller.count("inventory", "get") != 0 || caller.count("catalog", "get") != 0 || caller.count("coupon", "templates") != 1 {
+	if caller.count("inventory", "batch_get") != 1 || caller.count("catalog", "batch_get") != 1 ||
+		caller.count("inventory", "get") != 0 ||
+		caller.count("catalog", "get") != 0 ||
+		caller.count("coupon", "templates") != 1 {
 		t.Fatalf("bootstrap duplicated SKU/template reads: %+v", caller.calls)
 	}
 	guest := &aggregationCaller{}
@@ -235,10 +313,13 @@ func TestBootstrapIncludesPublicAndPersonalizedDataAndBulkSKUPrimer(t *testing.T
 		t.Fatal(body)
 	}
 	for _, call := range guest.calls {
-		if call.service == "recommendation" && call.command.Action == "rank_bootstrap" && call.command.Role == "system" && call.command.UserID == "" {
+		if call.service == "recommendation" && call.command.Action == "rank_bootstrap" &&
+			call.command.Role == "system" &&
+			call.command.UserID == "" {
 			continue
 		}
-		if call.service == "content" && call.command.Action == "popup_decide" && call.command.Role == "system" && call.command.UserID == "" {
+		if call.service == "content" && call.command.Action == "popup_decide" && call.command.Role == "system" &&
+			call.command.UserID == "" {
 			continue // delivery decision is internal, but contains no private account reads
 		}
 		if !publicActions[call.service+"/"+call.command.Action] {
@@ -250,22 +331,32 @@ func TestBootstrapIncludesPublicAndPersonalizedDataAndBulkSKUPrimer(t *testing.T
 func TestReadAggregationBoundsFanoutAndPropagatesCancellation(t *testing.T) {
 	var mu sync.Mutex
 	active, maximum := 0, 0
-	caller := &aggregationCaller{handle: func(ctx context.Context, _ string, _ platform.Command) (platform.Result, error) {
-		mu.Lock()
-		active++
-		if active > maximum {
-			maximum = active
-		}
-		mu.Unlock()
-		<-ctx.Done()
-		mu.Lock()
-		active--
-		mu.Unlock()
-		return nil, status.FromContextError(ctx.Err()).Err()
-	}}
+	caller := &aggregationCaller{
+		handle: func(ctx context.Context, _ string, _ platform.Command) (platform.Result, error) {
+			mu.Lock()
+			active++
+			if active > maximum {
+				maximum = active
+			}
+			mu.Unlock()
+			<-ctx.Done()
+			mu.Lock()
+			active--
+			mu.Unlock()
+			return nil, status.FromContextError(ctx.Err()).Err()
+		},
+	}
 	requests := []readRequest{}
 	for i := 0; i < 40; i++ {
-		requests = append(requests, readRequest{Key: string(rune('a' + i)), Service: "content", Action: "get", Command: readCommand{ID: string(rune('a' + i)), Data: map[string]any{}}})
+		requests = append(
+			requests,
+			readRequest{
+				Key:     string(rune('a' + i)),
+				Service: "content",
+				Action:  "get",
+				Command: readCommand{ID: string(rune('a' + i)), Data: map[string]any{}},
+			},
+		)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
 	defer cancel()

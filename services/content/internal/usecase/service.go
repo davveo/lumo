@@ -52,7 +52,8 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		if kind == "" {
 			kind = constants.ContentKindFaq
 		}
-		if c.ID == categoryNavigationID || kind == constants.ContentKindCategoryNavigation || kind == constants.ContentKindCategories {
+		if c.ID == categoryNavigationID || kind == constants.ContentKindCategoryNavigation ||
+			kind == constants.ContentKindCategories {
 			if c.ID != categoryNavigationID || kind != constants.ContentKindStorefront {
 				return nil, bad("category navigation requires storefront-categories ID and storefront kind")
 			}
@@ -76,7 +77,13 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		if c.ID == "" {
 			c.ID = platform.ID("content")
 		}
-		r := record(c.ID, "", kind, constants.ContentStatusPublished, map[string]any{"title": title, "body": body, "version": time.Now().Unix()})
+		r := record(
+			c.ID,
+			"",
+			kind,
+			constants.ContentStatusPublished,
+			map[string]any{"title": title, "body": body, "version": time.Now().Unix()},
+		)
 		if e := s.repo.Save(ctx, &r, nil); e != nil {
 			return nil, e
 		}
@@ -89,7 +96,13 @@ func (s *Service) seed(ctx context.Context) error {
 	if !demo() {
 		return nil
 	}
-	r := record("faq-orders", "", constants.ContentKindFaq, constants.ContentStatusPublished, map[string]any{"title": "如何查看订单和申请售后？", "body": "在个人中心查看订单，付款后可按订单状态申请退款或退货。"})
+	r := record(
+		"faq-orders",
+		"",
+		constants.ContentKindFaq,
+		constants.ContentStatusPublished,
+		map[string]any{"title": "如何查看订单和申请售后？", "body": "在个人中心查看订单，付款后可按订单状态申请退款或退货。"},
+	)
 	if _, e := s.repo.InsertOnce(ctx, &r, nil); e != nil {
 		return e
 	}

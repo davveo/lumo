@@ -72,14 +72,25 @@ func (c *rpcCaller) connection(service string) (*grpc.ClientConn, error) {
 	if target == "" {
 		return nil, status.Errorf(codes.Unavailable, "unknown service %s", service)
 	}
-	options := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(rpcPayloadClientInterceptor), grpc.WithStatsHandler(&rpcPayloadStatsHandler{client: true, Handler: otelgrpc.NewClientHandler(otelgrpc.WithSpanAttributes(
-		attribute.String("peer.service", service), attribute.String("lumo.target_service", service),
-	))}), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(4 << 20))}
+	options := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(rpcPayloadClientInterceptor),
+		grpc.WithStatsHandler(
+			&rpcPayloadStatsHandler{client: true, Handler: otelgrpc.NewClientHandler(otelgrpc.WithSpanAttributes(
+				attribute.String("peer.service", service), attribute.String("lumo.target_service", service),
+			))},
+		),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(4 << 20)),
+	}
 	if strings.HasPrefix(target, consulResolverScheme+":") {
 		if c.consul == nil {
 			return nil, status.Error(codes.Unavailable, "Consul discovery is not configured")
 		}
-		options = append(options, grpc.WithResolvers(c.consul), grpc.WithDefaultServiceConfig(`{"loadBalancingConfig":[{"round_robin":{}}]}`))
+		options = append(
+			options,
+			grpc.WithResolvers(c.consul),
+			grpc.WithDefaultServiceConfig(`{"loadBalancingConfig":[{"round_robin":{}}]}`),
+		)
 	}
 	// NewClient does not perform resolution or network I/O; resolution starts
 	// lazily when the first RPC leaves the connection map lock.
@@ -128,7 +139,18 @@ func (c *rpcCaller) Call(ctx context.Context, service string, command Command) (
 			return out, typedErr
 		}
 	}
-	result, err := mallv1.NewDomainServiceClient(conn).Execute(ctx, &mallv1.Command{Action: command.Action, Id: command.ID, UserId: command.UserID, Role: command.Role, IdempotencyKey: command.IdempotencyKey, PayloadJson: payload})
+	result, err := mallv1.NewDomainServiceClient(conn).
+		Execute(
+			ctx,
+			&mallv1.Command{
+				Action:         command.Action,
+				Id:             command.ID,
+				UserId:         command.UserID,
+				Role:           command.Role,
+				IdempotencyKey: command.IdempotencyKey,
+				PayloadJson:    payload,
+			},
+		)
 	if err != nil {
 		span.SetStatus(otelcodes.Error, status.Code(err).String())
 		return nil, err
@@ -197,21 +219,46 @@ func (s *domainServer) Execute(ctx context.Context, in *mallv1.Command) (out *ma
 			return nil, status.Error(codes.InvalidArgument, "invalid JSON payload")
 		}
 	}
-	command := Command{Action: in.GetAction(), ID: in.GetId(), UserID: in.GetUserId(), Role: in.GetRole(), IdempotencyKey: in.GetIdempotencyKey(), Data: data}
+	command := Command{
+		Action:         in.GetAction(),
+		ID:             in.GetId(),
+		UserID:         in.GetUserId(),
+		Role:           in.GetRole(),
+		IdempotencyKey: in.GetIdempotencyKey(),
+		Data:           data,
+	}
 	started := time.Now()
 	result, err := s.module.Handle(ctx, command)
 	if err != nil {
 		err = rpcError(err)
 		code := status.Code(err)
 		span.SetStatus(otelcodes.Error, code.String())
-		Log(ctx, slog.LevelWarn, "rpc operation failed", "action", command.Action, "code", code.String(), "duration_ms", time.Since(started).Milliseconds())
+		Log(
+			ctx,
+			slog.LevelWarn,
+			"rpc operation failed",
+			"action",
+			command.Action,
+			"code",
+			code.String(),
+			"duration_ms",
+			time.Since(started).Milliseconds(),
+		)
 		return nil, err
 	}
 	b, err := json.Marshal(result)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "response serialization failed")
 	}
-	Log(ctx, slog.LevelInfo, "rpc operation completed", "action", command.Action, "duration_ms", time.Since(started).Milliseconds())
+	Log(
+		ctx,
+		slog.LevelInfo,
+		"rpc operation completed",
+		"action",
+		command.Action,
+		"duration_ms",
+		time.Since(started).Milliseconds(),
+	)
 	return &mallv1.Result{PayloadJson: b}, nil
 }
 
@@ -224,7 +271,15 @@ func NewRPCServer(token string, module Module) (*grpc.Server, error) {
 	if module.Handle == nil && module.RegisterRPC == nil {
 		return nil, fmt.Errorf("module %s has no RPC handler", module.Name)
 	}
-	interceptor := func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+	interceptor := func(
+		ctx context.Context,
+		req any,
+		info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler,
+	) (
+		any,
+		error,
+	) {
 		if info.FullMethod == "/grpc.health.v1.Health/Check" {
 			return handler(ctx, req)
 		}
@@ -238,13 +293,17 @@ func NewRPCServer(token string, module Module) (*grpc.Server, error) {
 		}
 		if info.FullMethod == mallv1.DomainService_Execute_FullMethodName {
 			if command, ok := req.(*mallv1.Command); ok {
-				trace.SpanFromContext(ctx).SetAttributes(attribute.String("lumo.action", rpcTraceAction(command.GetAction())))
+				trace.SpanFromContext(ctx).
+					SetAttributes(attribute.String("lumo.action", rpcTraceAction(command.GetAction())))
 			}
 		}
 		if action := module.RPCActions[info.FullMethod]; action != "" {
 			trace.SpanFromContext(ctx).SetAttributes(attribute.String("lumo.action", action))
 			ctx, span := Start(ctx, "transport.grpc."+module.Name+"."+action)
-			span.SetAttributes(attribute.String("lumo.target_service", module.Name), attribute.String("lumo.action", action))
+			span.SetAttributes(
+				attribute.String("lumo.target_service", module.Name),
+				attribute.String("lumo.action", action),
+			)
 			defer span.End()
 			TraceRequest(ctx, req)
 			started := time.Now()
@@ -256,12 +315,27 @@ func NewRPCServer(token string, module Module) (*grpc.Server, error) {
 				level, message = slog.LevelWarn, "rpc operation failed"
 				span.SetStatus(otelcodes.Error, status.Code(err).String())
 			}
-			Log(ctx, level, message, "action", action, "code", status.Code(err).String(), "duration_ms", time.Since(started).Milliseconds())
+			Log(
+				ctx,
+				level,
+				message,
+				"action",
+				action,
+				"code",
+				status.Code(err).String(),
+				"duration_ms",
+				time.Since(started).Milliseconds(),
+			)
 			return result, err
 		}
 		return handler(ctx, req)
 	}
-	server := grpc.NewServer(grpc.StatsHandler(&rpcPayloadStatsHandler{Handler: otelgrpc.NewServerHandler()}), grpc.UnaryInterceptor(interceptor), grpc.MaxRecvMsgSize(4<<20), grpc.MaxSendMsgSize(4<<20))
+	server := grpc.NewServer(
+		grpc.StatsHandler(&rpcPayloadStatsHandler{Handler: otelgrpc.NewServerHandler()}),
+		grpc.UnaryInterceptor(interceptor),
+		grpc.MaxRecvMsgSize(4<<20),
+		grpc.MaxSendMsgSize(4<<20),
+	)
 	if module.Handle != nil {
 		mallv1.RegisterDomainServiceServer(server, &domainServer{module: module})
 	}
@@ -282,7 +356,14 @@ type rpcTraceRequest struct{ value any }
 
 // Client interceptors run before the stats handler creates the automatic gRPC
 // span. Carry only the message, never metadata, into that handler's context.
-func rpcPayloadClientInterceptor(ctx context.Context, method string, request, reply any, connection *grpc.ClientConn, invoke grpc.UnaryInvoker, options ...grpc.CallOption) error {
+func rpcPayloadClientInterceptor(
+	ctx context.Context,
+	method string,
+	request, reply any,
+	connection *grpc.ClientConn,
+	invoke grpc.UnaryInvoker,
+	options ...grpc.CallOption,
+) error {
 	ctx = context.WithValue(ctx, rpcTraceRequestKey{}, rpcTraceRequest{value: request})
 	return invoke(ctx, method, request, reply, connection, options...)
 }

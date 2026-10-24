@@ -60,12 +60,24 @@ func (r *Repository) Create(ctx context.Context, x *domain.Record) error {
 		return nil
 	})
 }
-func (r *Repository) Transition(ctx context.Context, id string, allowed []string, next string, fields map[string]any, event *platform.Event) (*domain.Record, error) {
+
+func (r *Repository) Transition(
+	ctx context.Context,
+	id string,
+	allowed []string,
+	next string,
+	fields map[string]any,
+	event *platform.Event,
+) (*domain.Record, error) {
 	ctx, s := platform.Start(ctx, "repository.aftersale.Transition")
 	defer s.End()
 	var row domain.Record
 	err := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&row, "id = ?", id).Error; err != nil {
+		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(
+			&row,
+			"id = ?",
+			id,
+		).Error; err != nil {
 			return err
 		}
 		if row.Status == next {
@@ -85,7 +97,10 @@ func (r *Repository) Transition(ctx context.Context, id string, allowed []string
 		}
 		fields["status"] = next
 		fields["version"] = gorm.Expr("version + 1")
-		q := tx.WithContext(ctx).Model(&domain.Record{}).Where("id = ? AND version = ?", id, row.Version).Updates(fields)
+		q := tx.WithContext(ctx).
+			Model(&domain.Record{}).
+			Where("id = ? AND version = ?", id, row.Version).
+			Updates(fields)
 		if q.Error != nil {
 			return q.Error
 		}

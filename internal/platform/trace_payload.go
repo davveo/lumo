@@ -95,7 +95,9 @@ func tracePayload(span trace.Span, key string, value any) {
 		low, high := 0, min(len(encoded), tracePayloadMaxBytes)
 		for low < high {
 			middle := (low + high + 1) / 2
-			candidate, _ := json.Marshal(map[string]any{"_truncated": true, "preview": validPrefix(string(encoded), middle)})
+			candidate, _ := json.Marshal(
+				map[string]any{"_truncated": true, "preview": validPrefix(string(encoded), middle)},
+			)
 			if len(candidate) <= tracePayloadMaxBytes {
 				low = middle
 			} else {
@@ -104,7 +106,11 @@ func tracePayload(span trace.Span, key string, value any) {
 		}
 		encoded, _ = json.Marshal(map[string]any{"_truncated": true, "preview": validPrefix(string(encoded), low)})
 	}
-	span.SetAttributes(attribute.String(key, string(encoded)), attribute.Bool(key+".truncated", preview.truncated), attribute.Bool(key+".redacted", preview.redacted))
+	span.SetAttributes(
+		attribute.String(key, string(encoded)),
+		attribute.Bool(key+".truncated", preview.truncated),
+		attribute.Bool(key+".redacted", preview.redacted),
+	)
 }
 
 type payloadPreview struct {
@@ -126,7 +132,8 @@ func identityTraceKey(key string) bool {
 // id. Remember only bounded identity strings, never credential values, so a
 // second pass can redact those aliases independently of map or protobuf order.
 func (p *payloadPreview) rememberIdentity(key, value string) {
-	if !identityTraceKey(key) || value == "" || len(value) > tracePayloadMaxString || len(p.identities) >= tracePayloadMaxNodes {
+	if !identityTraceKey(key) || value == "" || len(value) > tracePayloadMaxString ||
+		len(p.identities) >= tracePayloadMaxNodes {
 		return
 	}
 	if p.identities == nil {
@@ -200,7 +207,35 @@ func normalizedTraceKey(key string) string {
 
 func sensitiveTraceKey(key string) bool {
 	key = normalizedTraceKey(key)
-	for _, part := range []string{"password", "passwd", "passphrase", "secret", "token", "credential", "authorization", "cookie", "signature", "privatekey", "accesskey", "apikey", "sessionid", "sessionhash", "idempotencykey", "phone", "mobile", "telephone", "email", "recipient", "receiver", "address", "bankaccount", "bankcard", "cardnumber", "idcard", "passport"} {
+	for _, part := range []string{
+		"password",
+		"passwd",
+		"passphrase",
+		"secret",
+		"token",
+		"credential",
+		"authorization",
+		"cookie",
+		"signature",
+		"privatekey",
+		"accesskey",
+		"apikey",
+		"sessionid",
+		"sessionhash",
+		"idempotencykey",
+		"phone",
+		"mobile",
+		"telephone",
+		"email",
+		"recipient",
+		"receiver",
+		"address",
+		"bankaccount",
+		"bankcard",
+		"cardnumber",
+		"idcard",
+		"passport",
+	} {
 		if strings.Contains(key, part) {
 			return true
 		}
@@ -216,18 +251,61 @@ func sensitiveTraceKey(key string) bool {
 	// boundary while keeping campaign IDs and targeting metadata useful.
 	case "visitorid", "deliveryid", "viewid", "includeuserids", "excludeuserids":
 		return true
-	case "pwd", "auth", "session", "policy", "uploadfields", "downloadurl", "uploadurl", "presignedurl", "signedurl", "userid", "uid", "username", "ownerid", "memberid", "customerid", "accountid", "realname", "fullname", "displayname", "nickname", "contact", "province", "city", "district", "street", "postcode", "zipcode", "taxid", "taxnumber", "ip", "ipaddress", "filename", "body", "message", "content", "comment", "note", "reason", "question", "answer", "feedback", "reply":
+	case "pwd",
+		"auth",
+		"session",
+		"policy",
+		"uploadfields",
+		"downloadurl",
+		"uploadurl",
+		"presignedurl",
+		"signedurl",
+		"userid",
+		"uid",
+		"username",
+		"ownerid",
+		"memberid",
+		"customerid",
+		"accountid",
+		"realname",
+		"fullname",
+		"displayname",
+		"nickname",
+		"contact",
+		"province",
+		"city",
+		"district",
+		"street",
+		"postcode",
+		"zipcode",
+		"taxid",
+		"taxnumber",
+		"ip",
+		"ipaddress",
+		"filename",
+		"body",
+		"message",
+		"content",
+		"comment",
+		"note",
+		"reason",
+		"question",
+		"answer",
+		"feedback",
+		"reply":
 		return true
 	}
 	return false
 }
 
 var (
-	traceEmail         = regexp.MustCompile(`(?i)[a-z0-9.!#$%&'*+/=?^_` + "`" + `{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+`)
-	tracePhone         = regexp.MustCompile(`(?:\+?86[- ]?)?1[3-9][0-9]{9}`)
-	traceBearer        = regexp.MustCompile(`(?i)\bBearer\s+[a-z0-9._~+/-]+=*`)
-	traceURL           = regexp.MustCompile(`(?i)https?://[^\s<>"']+`)
-	traceAssignment    = regexp.MustCompile(`(?i)(?:password|passwd|pwd|passphrase|secret|token|credential|authorization|cookie|api[_-]?key|access[_-]?key|private[_-]?key|密码|口令|密钥)["'\\]*\s*[:=]`)
+	traceEmail      = regexp.MustCompile(`(?i)[a-z0-9.!#$%&'*+/=?^_` + "`" + `{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+`)
+	tracePhone      = regexp.MustCompile(`(?:\+?86[- ]?)?1[3-9][0-9]{9}`)
+	traceBearer     = regexp.MustCompile(`(?i)\bBearer\s+[a-z0-9._~+/-]+=*`)
+	traceURL        = regexp.MustCompile(`(?i)https?://[^\s<>"']+`)
+	traceAssignment = regexp.MustCompile(
+		`(?i)(?:password|passwd|pwd|passphrase|secret|token|credential|authorization|cookie|api[_-]?key|access[_-]?key|private[_-]?key|密码|口令|密钥)["'\\]*\s*[:=]`,
+	)
 	traceRawType       = reflect.TypeOf(json.RawMessage(nil))
 	traceNumberType    = reflect.TypeOf(json.Number(""))
 	traceTimeType      = reflect.TypeOf(time.Time{})
@@ -360,7 +438,8 @@ func (p *payloadPreview) value(value reflect.Value, key string, depth int) any {
 			return "[STRING OMITTED: SIZE LIMIT]"
 		}
 		trimmed := strings.TrimSpace(raw)
-		if traceJSONKey(key) || strings.HasPrefix(trimmed, "{") || strings.HasPrefix(trimmed, "[") || strings.HasPrefix(trimmed, `"`) {
+		if traceJSONKey(key) || strings.HasPrefix(trimmed, "{") || strings.HasPrefix(trimmed, "[") ||
+			strings.HasPrefix(trimmed, `"`) {
 			return p.json([]byte(raw), depth)
 		}
 		return p.text(raw)
@@ -475,7 +554,8 @@ func (p *payloadPreview) readJSON(decoder *json.Decoder, key string, depth int) 
 	if !collection {
 		if text, ok := token.(string); ok {
 			trimmed := strings.TrimSpace(text)
-			if traceJSONKey(key) || strings.HasPrefix(trimmed, "{") || strings.HasPrefix(trimmed, "[") || strings.HasPrefix(trimmed, `"`) {
+			if traceJSONKey(key) || strings.HasPrefix(trimmed, "{") || strings.HasPrefix(trimmed, "[") ||
+				strings.HasPrefix(trimmed, `"`) {
 				return p.json([]byte(text), depth), nil
 			}
 			return p.text(text), nil
@@ -594,7 +674,12 @@ func (p *payloadPreview) message(message protoreflect.Message, depth int) any {
 	return result
 }
 
-func (p *payloadPreview) protoValue(field protoreflect.FieldDescriptor, value protoreflect.Value, key string, depth int) any {
+func (p *payloadPreview) protoValue(
+	field protoreflect.FieldDescriptor,
+	value protoreflect.Value,
+	key string,
+	depth int,
+) any {
 	if !p.enter(depth) {
 		return traceTruncated
 	}

@@ -35,7 +35,8 @@ func (a *consulTestAgent) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s := a.stored
-		_ = json.NewEncoder(w).Encode(consulAgentService{ID: s.ID, Service: s.Name, Address: s.Address, Port: s.Port, Meta: s.Meta})
+		_ = json.NewEncoder(w).
+			Encode(consulAgentService{ID: s.ID, Service: s.Name, Address: s.Address, Port: s.Port, Meta: s.Meta})
 	case r.Method == http.MethodPut && r.URL.Path == "/v1/agent/service/register":
 		if r.URL.Query().Get("replace-existing-checks") != "true" {
 			w.WriteHeader(http.StatusBadRequest)
@@ -72,7 +73,13 @@ func TestConsulEnvironmentAndEndpointValidation(t *testing.T) {
 	if c, err := ConsulFromEnv(); err != nil || c != nil {
 		t.Fatalf("unset Consul must preserve standalone mode: %v, %v", c, err)
 	}
-	for _, address := range []string{"", "ftp://localhost:8500", "http://user:secret@localhost:8500", "http://localhost:8500?token=secret", "http://localhost:8500#fragment"} {
+	for _, address := range []string{
+		"",
+		"ftp://localhost:8500",
+		"http://user:secret@localhost:8500",
+		"http://localhost:8500?token=secret",
+		"http://localhost:8500#fragment",
+	} {
 		if _, err := NewConsul(address, ""); err == nil {
 			t.Errorf("invalid endpoint accepted: %q", address)
 		}
@@ -87,8 +94,13 @@ func TestConsulEnvironmentAndEndpointValidation(t *testing.T) {
 
 func TestConsulResolveUsesPassingInstancesAndACL(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/proxy/v1/health/service/catalog" || r.URL.Query().Get("passing") != "true" || r.Header.Get("X-Consul-Token") != "test-acl-token" {
-			t.Errorf("incorrect discovery request: %s, token header present=%v", r.URL, r.Header.Get("X-Consul-Token") != "")
+		if r.URL.Path != "/proxy/v1/health/service/catalog" || r.URL.Query().Get("passing") != "true" ||
+			r.Header.Get("X-Consul-Token") != "test-acl-token" {
+			t.Errorf(
+				"incorrect discovery request: %s, token header present=%v",
+				r.URL,
+				r.Header.Get("X-Consul-Token") != "",
+			)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -125,7 +137,10 @@ func TestConsulRegistrationChecksRepairAndCleanup(t *testing.T) {
 			defer srv.Close()
 			c, _ := NewConsul(srv.URL, agent.token)
 			c.registerInterval = 10 * time.Millisecond
-			cleanup, err := c.Register(context.Background(), ConsulService{ID: "catalog-instance", Name: "catalog", Address: "::1", Port: 9000, Protocol: protocol})
+			cleanup, err := c.Register(
+				context.Background(),
+				ConsulService{ID: "catalog-instance", Name: "catalog", Address: "::1", Port: 9000, Protocol: protocol},
+			)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -136,7 +151,8 @@ func TestConsulRegistrationChecksRepairAndCleanup(t *testing.T) {
 			if check.Interval != "10s" || check.Timeout != "5s" || check.DeregisterCriticalServiceAfter != "2m" {
 				t.Fatalf("active health check missing: %+v", check)
 			}
-			if protocol == "grpc" && check.GRPC != "[::1]:9000" || protocol == "http" && check.HTTP != "http://[::1]:9000/readyz" {
+			if protocol == "grpc" && check.GRPC != "[::1]:9000" ||
+				protocol == "http" && check.HTTP != "http://[::1]:9000/readyz" {
 				t.Fatalf("wrong health target: %+v", check)
 			}
 			consulEventually(t, func() bool { agent.mu.Lock(); defer agent.mu.Unlock(); return agent.gets >= 3 })
@@ -165,7 +181,13 @@ func TestConsulOldProcessCannotRemoveOrOverwriteItsSuccessor(t *testing.T) {
 	defer srv.Close()
 	c, _ := NewConsul(srv.URL, "")
 	c.registerInterval = 10 * time.Millisecond
-	service := ConsulService{ID: "catalog-instance", Name: "catalog", Address: "127.0.0.1", Port: 9000, Protocol: "grpc"}
+	service := ConsulService{
+		ID:       "catalog-instance",
+		Name:     "catalog",
+		Address:  "127.0.0.1",
+		Port:     9000,
+		Protocol: "grpc",
+	}
 	oldCleanup, err := c.Register(context.Background(), service)
 	if err != nil {
 		t.Fatal(err)
@@ -197,7 +219,18 @@ func TestConsulFailuresEmptyResultsAndCancellation(t *testing.T) {
 		{"malformed", 200, `{`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(tc.code); _, _ = w.Write([]byte(tc.body)) }))
+			srv := httptest.NewServer(
+				http.HandlerFunc(
+					func(w http.ResponseWriter, r *http.Request) {
+						w.WriteHeader(
+							tc.code,
+						)
+						_, _ = w.Write(
+							[]byte(tc.body),
+						)
+					},
+				),
+			)
 			defer srv.Close()
 			c, _ := NewConsul(srv.URL, "")
 			addresses, err := c.Resolve(context.Background(), "catalog")
@@ -209,7 +242,10 @@ func TestConsulFailuresEmptyResultsAndCancellation(t *testing.T) {
 				t.Fatalf("missing or unsafe API error: %v", err)
 			}
 			if tc.code == 503 {
-				cleanup, err := c.Register(context.Background(), ConsulService{ID: "catalog-1", Name: "catalog", Address: "127.0.0.1", Port: 9000, Protocol: "grpc"})
+				cleanup, err := c.Register(
+					context.Background(),
+					ConsulService{ID: "catalog-1", Name: "catalog", Address: "127.0.0.1", Port: 9000, Protocol: "grpc"},
+				)
 				if err == nil || cleanup != nil {
 					t.Fatal("initial registration failure was ignored")
 				}
@@ -231,7 +267,11 @@ func TestConsulDoesNotForwardACLTokensThroughRedirects(t *testing.T) {
 	forwarded := false
 	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { forwarded = true }))
 	defer target.Close()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, target.URL, http.StatusFound) }))
+	srv := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, target.URL, http.StatusFound) },
+		),
+	)
 	defer srv.Close()
 	c, _ := NewConsul(srv.URL, "test-acl-token")
 	if _, err := c.Resolve(context.Background(), "catalog"); err == nil {

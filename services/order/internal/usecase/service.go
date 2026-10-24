@@ -61,7 +61,14 @@ type transition struct {
 	data      map[string]any
 }
 
-func (s *Service) update(ctx context.Context, operation string, request OrderRequest, access accessPolicy, apply func(*repository.Tx, *domain.Order) (transition, error), traceInput ...any) (traceResult domain.Order, traceErr error) {
+func (s *Service) update(
+	ctx context.Context,
+	operation string,
+	request OrderRequest,
+	access accessPolicy,
+	apply func(*repository.Tx, *domain.Order) (transition, error),
+	traceInput ...any,
+) (traceResult domain.Order, traceErr error) {
 	ctx, span := platform.Start(ctx, "order.usecase."+operation)
 	defer span.End()
 	input := any(request)
@@ -103,7 +110,15 @@ func (s *Service) update(ctx context.Context, operation string, request OrderReq
 				if data == nil {
 					data = map[string]any{"order_id": order.ID}
 				}
-				if err = tx.Emit(platform.Event{ID: change.eventType + "-" + order.ID, Type: change.eventType, AggregateID: order.ID, UserID: order.UserID, Data: data}); err != nil {
+				if err = tx.Emit(
+					platform.Event{
+						ID:          change.eventType + "-" + order.ID,
+						Type:        change.eventType,
+						AggregateID: order.ID,
+						UserID:      order.UserID,
+						Data:        data,
+					},
+				); err != nil {
 					return err
 				}
 			}

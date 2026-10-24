@@ -11,6 +11,18 @@ func (r *Repository) Pending(ctx context.Context) ([]domain.Record, error) {
 	ctx, span := platform.Start(ctx, "repository.fulfillment.PendingRecovery")
 	defer span.End()
 	rows := []domain.Record{}
-	err := r.DB.WithContext(ctx).Where("status IN ?", []string{constants.FulfillmentStatusDispatching, constants.FulfillmentStatusCancelRequested, constants.FulfillmentStatusWarehouseCancelConfirmed}).Order("updated_at asc").Limit(50).Find(&rows).Error
+	err := r.DB.WithContext(ctx).
+		Where(
+			"status IN ?",
+			[]string{
+				constants.FulfillmentStatusDispatching,
+				constants.FulfillmentStatusCancelRequested,
+				constants.FulfillmentStatusWarehouseCancelConfirmed,
+			},
+		).
+		Order("updated_at asc").
+		Limit(50).
+		Find(&rows).
+		Error
 	return rows, err
 }

@@ -1,7 +1,7 @@
 GOWORK ?= off
 export GOWORK
 
-.PHONY: up down test test-web build smoke proto
+.PHONY: up down test test-web build smoke proto format-tools format format-check
 up:
 	sh start.sh
 down:
@@ -17,3 +17,9 @@ smoke:
 	sh scripts/smoke.sh
 proto:
 	protoc --go_out=. --go_opt=module=github.com/davveo/lumo --go-grpc_out=. --go-grpc_opt=module=github.com/davveo/lumo api/mall/v1/*.proto
+format-tools:
+	python3 scripts/format.py --install
+format:
+	python3 scripts/format.py
+format-check:
+	python3 scripts/format.py --check

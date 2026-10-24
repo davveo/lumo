@@ -59,7 +59,16 @@ func (r *Repository) Save(ctx context.Context, v *domain.Record, event *platform
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Upsert mutable columns while preserving the original creation time.
 		// A newly assembled aggregate must not write a zero datetime on update.
-		if err := tx.WithContext(ctx).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "id"}}, DoUpdates: clause.AssignmentColumns([]string{"user_id", "parent_id", "kind", "status", "payload", "updated_at", "is_default"})}).Create(v).Error; err != nil {
+		if err := tx.WithContext(ctx).Clauses(
+			clause.OnConflict{
+				Columns: []clause.Column{{Name: "id"}},
+				DoUpdates: clause.AssignmentColumns(
+					[]string{"user_id", "parent_id", "kind", "status", "payload", "updated_at", "is_default"},
+				),
+			},
+		).Create(
+			v,
+		).Error; err != nil {
 			return err
 		}
 		if err := tx.WithContext(ctx).First(v, "id = ?", v.ID).Error; err != nil {
@@ -91,7 +100,12 @@ func (r *Repository) InsertOnce(ctx context.Context, v *domain.Record, event *pl
 
 // Mutate serializes a document transition in its local transaction. Extra child
 // records and the Outbox event commit atomically with the parent state.
-func (r *Repository) Mutate(ctx context.Context, seed domain.Record, create bool, fn func(*domain.Record) ([]domain.Record, *platform.Event, error)) (domain.Record, error) {
+func (r *Repository) Mutate(
+	ctx context.Context,
+	seed domain.Record,
+	create bool,
+	fn func(*domain.Record) ([]domain.Record, *platform.Event, error),
+) (domain.Record, error) {
 	ctx, s := platform.Start(ctx, "address.repository.Mutate")
 	defer s.End()
 	var got domain.Record
@@ -101,7 +115,11 @@ func (r *Repository) Mutate(ctx context.Context, seed domain.Record, create bool
 				return err
 			}
 		}
-		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&got, "id = ?", seed.ID).Error; err != nil {
+		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(
+			&got,
+			"id = ?",
+			seed.ID,
+		).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return status.Error(codes.NotFound, "record not found")
 			}
@@ -115,7 +133,9 @@ func (r *Repository) Mutate(ctx context.Context, seed domain.Record, create bool
 			return err
 		}
 		for i := range extra {
-			if err = tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&extra[i]).Error; err != nil {
+			if err = tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(
+				&extra[i],
+			).Error; err != nil {
 				return err
 			}
 		}
@@ -151,14 +171,31 @@ func (r *Repository) SetDefault(ctx context.Context, id, owner string) error {
 		if err := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&lock).Error; err != nil {
 			return err
 		}
-		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&lock, "id = ?", lock.ID).Error; err != nil {
+		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(
+			&lock,
+			"id = ?",
+			lock.ID,
+		).Error; err != nil {
 			return err
 		}
 		var v domain.Record
-		if err := tx.WithContext(ctx).First(&v, "id = ? AND user_id = ? AND kind = ?", id, owner, constants.AddressKindAddress).Error; err != nil {
+		if err := tx.WithContext(ctx).First(
+			&v,
+			"id = ? AND user_id = ? AND kind = ?",
+			id,
+			owner,
+			constants.AddressKindAddress,
+		).Error; err != nil {
 			return status.Error(codes.NotFound, "address not found")
 		}
-		if err := tx.WithContext(ctx).Model(&domain.Record{}).Where("user_id = ? AND kind = ?", owner, constants.AddressKindAddress).Update("is_default", false).Error; err != nil {
+		if err := tx.WithContext(ctx).Model(&domain.Record{}).Where(
+			"user_id = ? AND kind = ?",
+			owner,
+			constants.AddressKindAddress,
+		).Update(
+			"is_default",
+			false,
+		).Error; err != nil {
 			return err
 		}
 		return tx.WithContext(ctx).Model(&domain.Record{}).Where("id = ?", id).Update("is_default", true).Error

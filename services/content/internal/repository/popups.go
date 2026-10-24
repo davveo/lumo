@@ -28,7 +28,18 @@ func (r *Repository) SavePopupSettings(ctx context.Context, v domain.PopupSettin
 	ctx, span := platform.Start(ctx, "content.repository.SavePopupSettings")
 	defer span.End()
 	v.ID = "global"
-	return r.db.WithContext(ctx).Model(&domain.PopupSettings{}).Where("id = ?", "global").Updates(map[string]any{"enabled": v.Enabled, "max_per_session": v.MaxPerSession, "min_gap_seconds": v.MinGapSeconds, "updated_at": time.Now().UTC()}).Error
+	return r.db.WithContext(ctx).
+		Model(&domain.PopupSettings{}).
+		Where("id = ?", "global").
+		Updates(
+			map[string]any{
+				"enabled":         v.Enabled,
+				"max_per_session": v.MaxPerSession,
+				"min_gap_seconds": v.MinGapSeconds,
+				"updated_at":      time.Now().UTC(),
+			},
+		).
+		Error
 }
 func (r *Repository) PopupCampaigns(ctx context.Context, published bool) ([]domain.PopupCampaign, error) {
 	ctx, span := platform.Start(ctx, "content.repository.PopupCampaigns")
@@ -133,7 +144,11 @@ func (r *Repository) PopupSubject(ctx context.Context, id string) (domain.PopupS
 // PopupTransaction always locks the subject before the campaign and delivery.
 // This ordering serializes all impressions for the subject across replicas and
 // prevents two tabs/campaigns consuming the same session allowance.
-func (r *Repository) PopupTransaction(ctx context.Context, subject, campaign, delivery string, fn func(*PopupTx, *domain.PopupSubject, *domain.PopupCampaign, *domain.PopupDelivery) error) error {
+func (r *Repository) PopupTransaction(
+	ctx context.Context,
+	subject, campaign, delivery string,
+	fn func(*PopupTx, *domain.PopupSubject, *domain.PopupCampaign, *domain.PopupDelivery) error,
+) error {
 	ctx, span := platform.Start(ctx, "content.repository.PopupTransaction")
 	defer span.End()
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {

@@ -25,7 +25,10 @@ func projectedProductQuery(input ProductSearch) (string, []any) {
 		} else {
 			clauses = append(clauses, "search_long_v2 = 0")
 		}
-		for _, field := range []struct{ value, indexed, path string }{{input.Category, "search_category_v2", "$.category"}, {input.Brand, "search_brand_v2", "$.brand"}} {
+		for _, field := range []struct{ value, indexed, path string }{
+			{input.Category, "search_category_v2", "$.category"},
+			{input.Brand, "search_brand_v2", "$.brand"},
+		} {
 			if field.value == "" {
 				continue
 			}
@@ -37,7 +40,9 @@ func projectedProductQuery(input ProductSearch) (string, []any) {
 			args = append(args, field.value)
 		}
 		if input.Query != "" {
-			value := "%" + strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(strings.ToLower(input.Query)) + "%"
+			value := "%" + strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").
+				Replace(strings.ToLower(input.Query)) +
+				"%"
 			if !long {
 				clauses = append(clauses, "search_text_v2 LIKE ? ESCAPE '!'")
 				args = append(args, value)
@@ -79,20 +84,31 @@ func projectedProductQuery(input ProductSearch) (string, []any) {
 			rank = "CAST(" + expression + " AS SIGNED)"
 		}
 		conditions, args := where(long)
-		sql := "(SELECT id, created_at, " + rank + " AS sort_value FROM catalog_records FORCE INDEX (" + searchDocumentIndex + ") WHERE " + conditions + " ORDER BY " + order + " LIMIT ?)"
+		sql := "(SELECT id, created_at, " + rank + " AS sort_value FROM catalog_records FORCE INDEX (" +
+			searchDocumentIndex +
+			") WHERE " +
+			conditions +
+			" ORDER BY " +
+			order +
+			" LIMIT ?)"
 		return sql, append(args, input.Limit)
 	}
 	regular, regularArgs := branch(false)
 	long, longArgs := branch(true)
 	args := append(regularArgs, longArgs...)
 	args = append(args, input.Limit)
-	candidates := "SELECT id, created_at, sort_value FROM (" + regular + " UNION ALL " + long + ") AS branches ORDER BY " + order + " LIMIT ?"
+	candidates := "SELECT id, created_at, sort_value FROM (" + regular + " UNION ALL " + long +
+		") AS branches ORDER BY " +
+		order +
+		" LIMIT ?"
 	finalOrder := "hits.created_at DESC, hits.id DESC"
 	if field != "" {
 		finalOrder = "hits.sort_value " + direction + ", " + finalOrder
 	}
 	columns := "catalog_records.id, catalog_records.user_id, catalog_records.parent_id, catalog_records.kind, catalog_records.status, catalog_records.payload, catalog_records.created_at, catalog_records.updated_at"
-	return "SELECT " + columns + " FROM (" + candidates + ") AS hits JOIN catalog_records ON catalog_records.id = hits.id ORDER BY " + finalOrder, args
+	return "SELECT " + columns + " FROM (" + candidates +
+		") AS hits JOIN catalog_records ON catalog_records.id = hits.id ORDER BY " +
+		finalOrder, args
 }
 
 func (r *Repository) searchProjectedProducts(ctx context.Context, input ProductSearch) ([]domain.Record, error) {

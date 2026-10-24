@@ -45,8 +45,24 @@ func TestHTTPTraceRecordsTargetWithoutChangingGatewayIdentity(t *testing.T) {
 		status                                   int
 	}{
 		{"public", "/api/v1/catalog/list", "catalog", "list", "", "catalog/list", 200},
-		{"authenticated", "/api/v1/member/get", "member", "get", "private-browser-token", "iam/validate member/get", 200},
-		{"mapped-action", "/api/v1/iam/current", "iam", "current", "private-browser-token", "iam/validate iam/validate", 200},
+		{
+			"authenticated",
+			"/api/v1/member/get",
+			"member",
+			"get",
+			"private-browser-token",
+			"iam/validate member/get",
+			200,
+		},
+		{
+			"mapped-action",
+			"/api/v1/iam/current",
+			"iam",
+			"current",
+			"private-browser-token",
+			"iam/validate iam/validate",
+			200,
+		},
 		{"unauthenticated", "/api/v1/order/list", "order", "list", "", "", 401},
 		{"unexposed", "/api/v1/inventory/reserve", "", "", "", "", 403},
 		{"unknown", "/api/v1/private-route/unknown-action", "", "", "", "", 403},
@@ -56,17 +72,23 @@ func TestHTTPTraceRecordsTargetWithoutChangingGatewayIdentity(t *testing.T) {
 			exporter.Reset()
 			var calls []string
 			const incomingTrace = "0123456789abcdef0123456789abcdef"
-			caller := traceTestCaller(func(ctx context.Context, service string, cmd platform.Command) (platform.Result, error) {
-				calls = append(calls, service+"/"+cmd.Action)
-				if trace.SpanContextFromContext(ctx).TraceID().String() != incomingTrace {
-					t.Error("HTTP trace context was not forwarded")
-				}
-				if service == "iam" {
-					return platform.Result{"user_id": "private-user-id", "role": "user"}, nil
-				}
-				return platform.Result{"items": []any{}}, nil
-			})
-			req := httptest.NewRequest(http.MethodPost, tc.path, strings.NewReader(`{"data":{"secret":"private-request-body"}}`))
+			caller := traceTestCaller(
+				func(ctx context.Context, service string, cmd platform.Command) (platform.Result, error) {
+					calls = append(calls, service+"/"+cmd.Action)
+					if trace.SpanContextFromContext(ctx).TraceID().String() != incomingTrace {
+						t.Error("HTTP trace context was not forwarded")
+					}
+					if service == "iam" {
+						return platform.Result{"user_id": "private-user-id", "role": "user"}, nil
+					}
+					return platform.Result{"items": []any{}}, nil
+				},
+			)
+			req := httptest.NewRequest(
+				http.MethodPost,
+				tc.path,
+				strings.NewReader(`{"data":{"secret":"private-request-body"}}`),
+			)
 			req.Header.Set("traceparent", "00-"+incomingTrace+"-0123456789abcdef-01")
 			if tc.token != "" {
 				req.Header.Set("Authorization", "Bearer "+tc.token)

@@ -13,5 +13,12 @@ func New(d platform.Dependencies) platform.Module {
 	r := &repository.Repository{DB: d.DB}
 	u := &usecase.Service{Repo: r, RPC: d.RPC, Redis: d.Redis}
 	h := &transport.Handler{App: u}
-	return platform.Module{Name: constants.ServiceFlash, Migrate: r.Migrate, Seed: r.Seed, Handle: h.Handle, Topics: []string{constants.EventFlashOrderRequested}, OnEvent: u.OnEvent}
+	return platform.Module{
+		Name:    constants.ServiceFlash,
+		Migrate: r.Migrate,
+		Seed:    r.Seed,
+		Handle:  h.Handle,
+		Topics:  []string{constants.EventFlashOrderRequested},
+		OnEvent: u.OnEvent,
+	}
 }

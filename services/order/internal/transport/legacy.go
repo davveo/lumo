@@ -46,7 +46,10 @@ func (a legacyAdapter) create(ctx context.Context, command platform.Command) (pl
 	address, _ := json.Marshal(command.Data["address"])
 	order, err := a.service.Create(ctx, usecase.CreateOrderRequest{OrderRequest: legacyRequest(command),
 		Quote: quote, Address: address, Note: platform.Text(command.Data, "note"),
-		Source: platform.Text(command.Data, "source"), ExpiresAt: legacyTime(platform.Text(command.Data, "expires_at"))})
+		Source: platform.Text(
+			command.Data,
+			"source",
+		), ExpiresAt: legacyTime(platform.Text(command.Data, "expires_at"))})
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +62,12 @@ func (a legacyAdapter) acceptPayment(ctx context.Context, command platform.Comma
 	if err != nil {
 		return nil, err
 	}
-	return platform.Result{"accepted": result.Accepted, "order_id": result.OrderID, "status": result.Status, "payment_id": result.PaymentID}, nil
+	return platform.Result{
+		"accepted":   result.Accepted,
+		"order_id":   result.OrderID,
+		"status":     result.Status,
+		"payment_id": result.PaymentID,
+	}, nil
 }
 func (a legacyAdapter) refunded(ctx context.Context, command platform.Command) (platform.Result, error) {
 	order, err := a.service.Refunded(ctx, usecase.RecordRefundRequest{OrderRequest: legacyRequest(command),

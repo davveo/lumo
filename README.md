@@ -104,6 +104,16 @@ RPC、业务层、仓储层、SQL 都沿传入的 `context.Context` 关联。MQ 
 
 ## 验证与当前边界
 
+源码排版以120列为目标，长结构体、参数、条件、字典及调用按层级拆行。首次安装开发工具需要 Go 1.26+、Node.js 22+、Python 3.10+：
+
+```sh
+make format-tools  # 安装固定版本开发工具，不修改业务 go.mod
+make format        # 统一 Go、JS/CSS、Python 和 Shell 排版
+make format-check  # 只检查，不写源码；不符合时返回非零
+```
+
+工具版本由 `package.json` 固定，排版规则见 `.editorconfig`、`.prettierrc.json` 和 `pyproject.toml`。Go 使用 golines + gofmt；前端使用 Prettier；Python 使用 Black；Shell 使用 shfmt。依赖只保存在开发目录，不进入应用镜像。生成的 protobuf、前端常量及演示资产由原生成器维护。SQL、URL、模板等原始字符串不为行宽强行切断，HTML 标签属性可以换行，但文本节点空白需保留。
+
 ```sh
 GOWORK=off go test ./...
 GOWORK=off go build -buildvcs=false ./cmd/server ./cmd/gateway

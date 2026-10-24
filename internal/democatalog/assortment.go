@@ -90,7 +90,18 @@ func BuildAssortmentFixture(raw []byte) ([]byte, error) {
 				return fmt.Errorf("duplicate demo product term in category %s: %s", group.ID, query)
 			}
 			identities[identity] = true
-			fixture.Terms = append(fixture.Terms, assortmentTerm{Group: group.ID, Category: group.Category, Section: section, Label: label, Query: query, Bundle: bundle, Brands: brands})
+			fixture.Terms = append(
+				fixture.Terms,
+				assortmentTerm{
+					Group:    group.ID,
+					Category: group.Category,
+					Section:  section,
+					Label:    label,
+					Query:    query,
+					Bundle:   bundle,
+					Brands:   brands,
+				},
+			)
 			return nil
 		}
 		for _, row := range group.Rows {
@@ -175,7 +186,14 @@ func expandAssortment(fixture assortmentFixture) []map[string]any {
 			count = 1
 		}
 		for edition := 0; edition < count; edition++ {
-			identity := fmt.Sprintf("%s\x00%s\x00%s\x00%s\x00%d", term.Group, term.Section, term.Label, term.Query, edition)
+			identity := fmt.Sprintf(
+				"%s\x00%s\x00%s\x00%s\x00%d",
+				term.Group,
+				term.Section,
+				term.Label,
+				term.Query,
+				edition,
+			)
 			digest := sha256.Sum256([]byte(identity))
 			id := "demo-assortment-" + hex.EncodeToString(digest[:10])
 			number := int(digest[0])*256 + int(digest[1])
@@ -196,14 +214,35 @@ func expandAssortment(fixture assortmentFixture) []map[string]any {
 			}
 			extra := max(5, price/5)
 			products = append(products, map[string]any{
-				"id": id, "name": name, "sub": term.Section + " · 演示商品，便于体验搜索与购买流程", "category": term.Category,
-				"image": assortmentImage(term), "price": float64(price), "old": float64(price + max(10, price/4)),
-				"sales": number%950 + 20, "label": []string{"新品精选", "日常好物", "品质之选"}[edition],
-				"colors": []any{"经典款"}, "options": options, "defaultOption": options[0], "prices": []any{float64(price), float64(price + extra)},
-				"highlights": []any{term.Label, term.Section, "两种规格", "演示商品"},
-				"highSubs":   []any{"按需选择", "分类精选", "独立库存", "用于功能体验"},
-				"specs":      []any{[]any{"商品名称", name}, []any{"所属品类", term.Category}, []any{"细分类目", term.Label}, []any{"商品性质", "演示商品，名称、价格、销量及库存仅供功能体验"}},
-				"brand":      brand, "stock": 50, "visible": true, "active": true, "demo": true, "demo_source": "category-assortment-v1",
+				"id":       id,
+				"name":     name,
+				"sub":      term.Section + " · 演示商品，便于体验搜索与购买流程",
+				"category": term.Category,
+				"image":    assortmentImage(term),
+				"price":    float64(price),
+				"old":      float64(price + max(10, price/4)),
+				"sales":    number%950 + 20,
+				"label":    []string{"新品精选", "日常好物", "品质之选"}[edition],
+				"colors": []any{
+					"经典款",
+				},
+				"options":       options,
+				"defaultOption": options[0],
+				"prices":        []any{float64(price), float64(price + extra)},
+				"highlights":    []any{term.Label, term.Section, "两种规格", "演示商品"},
+				"highSubs":      []any{"按需选择", "分类精选", "独立库存", "用于功能体验"},
+				"specs": []any{
+					[]any{"商品名称", name},
+					[]any{"所属品类", term.Category},
+					[]any{"细分类目", term.Label},
+					[]any{"商品性质", "演示商品，名称、价格、销量及库存仅供功能体验"},
+				},
+				"brand":       brand,
+				"stock":       50,
+				"visible":     true,
+				"active":      true,
+				"demo":        true,
+				"demo_source": "category-assortment-v1",
 			})
 		}
 	}
@@ -217,9 +256,15 @@ func assortmentBrand(term assortmentTerm, edition int) string {
 		q := strings.ToLower(term.Query)
 		switch strings.ToLower(brand) {
 		case "apple":
-			return strings.Contains(q, "iphone") || strings.Contains(q, "笔记本") && term.Section != "文具耗材" || strings.Contains(q, "平板电脑") || strings.Contains(q, "一体机") || strings.Contains(q, "充电器") || strings.Contains(q, "数据线")
+			return strings.Contains(q, "iphone") || strings.Contains(q, "笔记本") && term.Section != "文具耗材" ||
+				strings.Contains(q, "平板电脑") ||
+				strings.Contains(q, "一体机") ||
+				strings.Contains(q, "充电器") ||
+				strings.Contains(q, "数据线")
 		case "sony":
-			return strings.Contains(q, "耳机") || strings.Contains(q, "相机") || strings.Contains(q, "镜头") || strings.Contains(q, "音箱") || strings.Contains(q, "游戏手机")
+			return strings.Contains(q, "耳机") || strings.Contains(q, "相机") || strings.Contains(q, "镜头") ||
+				strings.Contains(q, "音箱") ||
+				strings.Contains(q, "游戏手机")
 		case "chanel":
 			return term.Section == "彩妆香氛" || strings.Contains(q, "香水")
 		case "nike":
@@ -296,9 +341,35 @@ type priceBand struct{ minimum, maximum int }
 
 func assortmentPrice(term assortmentTerm, edition, entropy int) int {
 	bands := map[string]priceBand{
-		"appliances": {999, 5999}, "computers": {129, 899}, "digital": {99, 1299}, "small-appliances": {99, 899}, "food": {19, 129}, "beauty": {39, 399},
-		"fashion": {69, 399}, "sports": {79, 499}, "home": {49, 599}, "kitchen": {39, 299}, "renovation": {29, 399}, "baby": {39, 399}, "pets": {19, 199},
-		"books": {29, 149}, "jewelry": {99, 999}, "shoes": {49, 399}, "automotive": {39, 499}, "industrial": {29, 399}, "garden": {19, 199}, "wellness": {39, 399},
+		"appliances": {
+			999,
+			5999,
+		},
+		"computers":        {129, 899},
+		"digital":          {99, 1299},
+		"small-appliances": {99, 899},
+		"food":             {19, 129},
+		"beauty":           {39, 399},
+		"fashion": {
+			69,
+			399,
+		},
+		"sports":     {79, 499},
+		"home":       {49, 599},
+		"kitchen":    {39, 299},
+		"renovation": {29, 399},
+		"baby":       {39, 399},
+		"pets":       {19, 199},
+		"books": {
+			29,
+			149,
+		},
+		"jewelry":    {99, 999},
+		"shoes":      {49, 399},
+		"automotive": {39, 499},
+		"industrial": {29, 399},
+		"garden":     {19, 199},
+		"wellness":   {39, 399},
 	}
 	band, ok := bands[term.Group]
 	if !ok {

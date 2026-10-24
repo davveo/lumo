@@ -53,7 +53,16 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		if s.RPC == nil {
 			return nil, status.Error(codes.Unavailable, "pricing service unavailable")
 		}
-		q, e := s.RPC.Call(ctx, constants.ServicePricing, platform.Command{Action: constants.ActionGet, ID: platform.Text(c.Data, "quote_id"), UserID: c.UserID, Role: c.Role})
+		q, e := s.RPC.Call(
+			ctx,
+			constants.ServicePricing,
+			platform.Command{
+				Action: constants.ActionGet,
+				ID:     platform.Text(c.Data, "quote_id"),
+				UserID: c.UserID,
+				Role:   c.Role,
+			},
+		)
 		if e != nil {
 			return nil, e
 		}
@@ -121,7 +130,17 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 	if er = json.Unmarshal([]byte(v.PayloadJSON), &data); er != nil {
 		return er
 	}
-	result, er := s.RPC.Call(ctx, constants.ServiceCheckout, platform.Command{Action: constants.ActionSubmit, UserID: v.UserID, Role: constants.RoleSystem, IdempotencyKey: "flash:" + v.ID, Data: data})
+	result, er := s.RPC.Call(
+		ctx,
+		constants.ServiceCheckout,
+		platform.Command{
+			Action:         constants.ActionSubmit,
+			UserID:         v.UserID,
+			Role:           constants.RoleSystem,
+			IdempotencyKey: "flash:" + v.ID,
+			Data:           data,
+		},
+	)
 	if er != nil {
 		switch status.Code(er) {
 		case codes.Unavailable, codes.DeadlineExceeded, codes.Internal, codes.Aborted:
@@ -135,7 +154,14 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 	}
 	orderState := platform.Text(result, "status")
 	switch orderState {
-	case constants.OrderStatusPendingPayment, constants.OrderStatusPaidConfirming, constants.OrderStatusPaidWaitGroup, constants.OrderStatusReadyToFulfill, constants.OrderStatusShipped, constants.OrderStatusCompleted, constants.OrderStatusPartiallyRefunded, constants.OrderStatusRefunded:
+	case constants.OrderStatusPendingPayment,
+		constants.OrderStatusPaidConfirming,
+		constants.OrderStatusPaidWaitGroup,
+		constants.OrderStatusReadyToFulfill,
+		constants.OrderStatusShipped,
+		constants.OrderStatusCompleted,
+		constants.OrderStatusPartiallyRefunded,
+		constants.OrderStatusRefunded:
 	case constants.OrderStatusCancelled, constants.OrderStatusClosed, constants.OrderStatusCreateFailed:
 		return s.Repo.Finish(ctx, v.ID, order, "order creation ended in "+orderState)
 	default:

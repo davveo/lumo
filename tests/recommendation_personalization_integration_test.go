@@ -16,7 +16,10 @@ func TestHTTPRecommendationsUseOwnedPreferencesAndActualSimilarProducts(t *testi
 	defer server.Close()
 	h := &httpShop{t: t, server: server, client: server.Client(), coverage: map[string]int{}}
 	login := func(name, password string) string {
-		return platform.Text(h.call("", "iam", "login", "", "", map[string]any{"username": name, "password": password}), "token")
+		return platform.Text(
+			h.call("", "iam", "login", "", "", map[string]any{"username": name, "password": password}),
+			"token",
+		)
 	}
 	buyer, admin := login("demo", "Lumo@2026"), login("admin", "Admin@2026")
 	for _, product := range []struct {
@@ -28,7 +31,20 @@ func TestHTTPRecommendationsUseOwnedPreferencesAndActualSimilarProducts(t *testi
 		{"rec-hearth-one", "Hearth 智能蒸汽烤箱", "Hearth", "家用电器", 25000},
 		{"rec-hearth-two", "Hearth 智能蒸汽微波炉", "Hearth", "家用电器", 26000},
 	} {
-		h.call(admin, "catalog", "upsert", product.id, "", map[string]any{"name": product.name, "brand": product.brand, "category": product.category, "price_cents": product.price, "active": true})
+		h.call(
+			admin,
+			"catalog",
+			"upsert",
+			product.id,
+			"",
+			map[string]any{
+				"name":        product.name,
+				"brand":       product.brand,
+				"category":    product.category,
+				"price_cents": product.price,
+				"active":      true,
+			},
+		)
 		h.call(admin, "inventory", "adjust", product.id, "", map[string]any{"on_hand": 20})
 	}
 	interest := func(token, favorite, history, query string) {
@@ -62,12 +78,23 @@ func TestHTTPRecommendationsUseOwnedPreferencesAndActualSimilarProducts(t *testi
 		}
 		return rows[0]
 	}
-	if buyerHome["personalized"] != true || adminHome["personalized"] != true || platform.Text(first(buyerHome), "brand") != "Orion" || platform.Text(first(adminHome), "brand") != "Hearth" {
+	if buyerHome["personalized"] != true || adminHome["personalized"] != true ||
+		platform.Text(first(buyerHome), "brand") != "Orion" ||
+		platform.Text(first(adminHome), "brand") != "Hearth" {
 		t.Fatalf("different users did not receive their own ranking: buyer=%v admin=%v", buyerHome, adminHome)
 	}
 	// An outer validated identity is authoritative even when an admin account
 	// exists, and user-supplied signal/catalog snapshots cannot replace it.
-	forged := rank(buyer, map[string]any{"scene": "home", "limit": 8, "user_id": "admin", "signals": map[string]any{"favorite": []any{map[string]any{"sku_id": "rec-hearth-one"}}}, "catalog_items": []any{map[string]any{"id": "fabricated", "price_cents": 1}}})
+	forged := rank(
+		buyer,
+		map[string]any{
+			"scene":         "home",
+			"limit":         8,
+			"user_id":       "admin",
+			"signals":       map[string]any{"favorite": []any{map[string]any{"sku_id": "rec-hearth-one"}}},
+			"catalog_items": []any{map[string]any{"id": "fabricated", "price_cents": 1}},
+		},
+	)
 	if platform.Text(first(forged), "id") != platform.Text(first(buyerHome), "id") {
 		t.Fatal("nested user/signals changed the recommendation principal", forged)
 	}
@@ -102,7 +129,8 @@ func TestHTTPRecommendationsUseOwnedPreferencesAndActualSimilarProducts(t *testi
 		}
 		found = true
 		data := platform.Map(row["data"])
-		if row["auth"] != true || data["personalized"] != true || platform.Text(first(data), "brand") != "Orion" || data["stock_snapshot"] != nil {
+		if row["auth"] != true || data["personalized"] != true || platform.Text(first(data), "brand") != "Orion" ||
+			data["stock_snapshot"] != nil {
 			t.Fatal("bootstrap ranking did not reuse the current buyer's actual signals", row)
 		}
 	}

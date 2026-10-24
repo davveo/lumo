@@ -34,7 +34,10 @@ func setup(t *testing.T, caller platform.Caller) (*gorm.DB, platform.Module) {
 	return db, m
 }
 func invoke(m platform.Module, action, id, user, role string, data map[string]any) (platform.Result, error) {
-	return m.Handle(context.Background(), platform.Command{Action: action, ID: id, UserID: user, Role: role, Data: data})
+	return m.Handle(
+		context.Background(),
+		platform.Command{Action: action, ID: id, UserID: user, Role: role, Data: data},
+	)
 }
 func must(t *testing.T, m platform.Module, action, id, user, role string, data map[string]any) platform.Result {
 	t.Helper()
@@ -61,7 +64,9 @@ func TestGroupPaidSeatsAndPerOrderEvents(t *testing.T) {
 	}
 	must(t, m, "paid", "o2", "bob", "system", nil)
 	var n int64
-	if e := db.WithContext(context.Background()).Model(&platform.Outbox{}).Where("event_type = ?", "GroupFormed").Count(&n).Error; e != nil {
+	if e := db.WithContext(context.Background()).Model(&platform.Outbox{}).Where("event_type = ?", "GroupFormed").Count(
+		&n,
+	).Error; e != nil {
 		t.Fatal(e)
 	}
 	if n != 2 {

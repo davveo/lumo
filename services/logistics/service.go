@@ -13,5 +13,11 @@ func New(d platform.Dependencies) platform.Module {
 	r := &repository.Repository{DB: d.DB}
 	u := &usecase.Service{Repo: r, RPC: d.RPC}
 	h := &transport.Handler{Service: u}
-	return platform.Module{Name: constants.ServiceLogistics, Migrate: r.Migrate, Handle: h.Handle, Topics: u.Topics(), OnEvent: u.OnEvent}
+	return platform.Module{
+		Name:    constants.ServiceLogistics,
+		Migrate: r.Migrate,
+		Handle:  h.Handle,
+		Topics:  u.Topics(),
+		OnEvent: u.OnEvent,
+	}
 }

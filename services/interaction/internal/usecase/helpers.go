@@ -74,7 +74,15 @@ func (s *Service) list(ctx context.Context, c platform.Command, owner, kind, st 
 			}
 		}
 	}
-	vs, err := s.repo.ListSKUs(ctx, owner, kind, st, skus, int(platform.Int(c.Data, "limit")), int(platform.Int(c.Data, "offset")))
+	vs, err := s.repo.ListSKUs(
+		ctx,
+		owner,
+		kind,
+		st,
+		skus,
+		int(platform.Int(c.Data, "limit")),
+		int(platform.Int(c.Data, "offset")),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +119,13 @@ func child(c platform.Command, action, id string, data map[string]any) platform.
 	c.Data = data
 	return c
 }
-func demo() bool                                                       { return os.Getenv("DEMO_MODE") == "true" || os.Getenv("DEMO_MODE") == "1" }
+
+func demo() bool {
+	return os.Getenv(
+		"DEMO_MODE",
+	) == "true" || os.Getenv(
+		"DEMO_MODE",
+	) == "1"
+}
 func (s *Service) Seed(ctx context.Context) error                      { return s.seed(ctx) }
 func (s *Service) OnEvent(ctx context.Context, e platform.Event) error { return s.event(ctx, e) }

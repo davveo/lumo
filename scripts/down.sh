@@ -7,4 +7,7 @@ cd "$PROJECT_DIR"
   exit 1
 }
 # Keep volumes, data and traces by default. Destructive reset is never implicit.
-exec docker compose --project-directory "$PROJECT_DIR" --env-file "$PROJECT_DIR/.env" -f "$PROJECT_DIR/compose.yaml" down
+exec docker compose \
+  --project-directory "$PROJECT_DIR" \
+  --env-file "$PROJECT_DIR/.env" \
+  -f "$PROJECT_DIR/compose.yaml" down

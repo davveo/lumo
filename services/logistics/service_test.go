@@ -53,7 +53,13 @@ func expectCode(t *testing.T, err error, code codes.Code) {
 
 func TestCarrierOwnershipDeliveryAndOutbox(t *testing.T) {
 	m, db := setup(t, &fakeCaller{})
-	c := platform.Command{Action: "create", ID: "o1", UserID: "demo", Role: "system", Data: map[string]any{"order_id": "o1", "kind": "ORDER"}}
+	c := platform.Command{
+		Action: "create",
+		ID:     "o1",
+		UserID: "demo",
+		Role:   "system",
+		Data:   map[string]any{"order_id": "o1", "kind": "ORDER"},
+	}
 	first := run(t, m, c)
 	again := run(t, m, c)
 	if first["tracking_id"] != again["tracking_id"] {
@@ -68,7 +74,12 @@ func TestCarrierOwnershipDeliveryAndOutbox(t *testing.T) {
 		t.Fatal(out)
 	}
 	var count int64
-	if err = db.WithContext(context.Background()).Model(&platform.Outbox{}).Where("event_type = ?", "DeliveryConfirmed").Count(&count).Error; err != nil {
+	if err = db.WithContext(context.Background()).Model(&platform.Outbox{}).Where(
+		"event_type = ?",
+		"DeliveryConfirmed",
+	).Count(
+		&count,
+	).Error; err != nil {
 		t.Fatal(err)
 	}
 	if count != 1 {

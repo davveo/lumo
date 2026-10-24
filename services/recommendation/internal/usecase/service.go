@@ -60,7 +60,8 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			in.Scene = constants.RecommendationScenePostPurchase
 		}
 	}
-	if in.Scene != constants.RecommendationSceneHome && in.Scene != constants.RecommendationSceneSimilar && in.Scene != constants.RecommendationScenePostPurchase {
+	if in.Scene != constants.RecommendationSceneHome && in.Scene != constants.RecommendationSceneSimilar &&
+		in.Scene != constants.RecommendationScenePostPurchase {
 		return nil, bad("scene must be home, similar or post_purchase")
 	}
 	if in.Limit == 0 {
@@ -89,7 +90,8 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	degraded := false
 	if internal {
 		var input bootstrapInput
-		if err := platform.Decode(c.Data, &input); err != nil || len(input.Catalog) > 500 || len(input.Inventory) > 1000 {
+		if err := platform.Decode(c.Data, &input); err != nil || len(input.Catalog) > 500 ||
+			len(input.Inventory) > 1000 {
 			return nil, bad("invalid bootstrap recommendation input")
 		}
 		base, stockRows, signals = input.Catalog, input.Inventory, input.Signals
@@ -118,7 +120,12 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		if err := platform.RequireUser(c); err != nil {
 			return nil, err
 		}
-		result, err := call(ctx, s.rpc, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: in.OrderID, UserID: c.UserID, Role: constants.RoleUser})
+		result, err := call(
+			ctx,
+			s.rpc,
+			constants.ServiceOrder,
+			platform.Command{Action: constants.ActionGet, ID: in.OrderID, UserID: c.UserID, Role: constants.RoleUser},
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -214,7 +221,16 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	categories, brands, queries := profile.recall(contextProduct, contextOrder, metadata)
 	recalled := []map[string]any{}
 	if len(categories)+len(brands)+len(queries) > 0 {
-		recall, err := call(ctx, s.rpc, constants.ServiceCatalog, platform.Command{Action: constants.ActionRecommendationCandidates, Role: constants.RoleSystem, Data: map[string]any{"categories": categories, "brands": brands, "queries": queries, "limit": 200}})
+		recall, err := call(
+			ctx,
+			s.rpc,
+			constants.ServiceCatalog,
+			platform.Command{
+				Action: constants.ActionRecommendationCandidates,
+				Role:   constants.RoleSystem,
+				Data:   map[string]any{"categories": categories, "brands": brands, "queries": queries, "limit": 200},
+			},
+		)
 		if err != nil {
 			if ctx.Err() != nil {
 				return nil, status.FromContextError(ctx.Err()).Err()
@@ -264,7 +280,11 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		}
 	}
 	if len(stockIDs) > 0 {
-		rows, err := s.peerRows(ctx, constants.ServiceInventory, platform.Command{Action: constants.ActionBatchGet, Data: map[string]any{"ids": stockIDs}})
+		rows, err := s.peerRows(
+			ctx,
+			constants.ServiceInventory,
+			platform.Command{Action: constants.ActionBatchGet, Data: map[string]any{"ids": stockIDs}},
+		)
 		if err != nil {
 			if !internal || len(stocks) == 0 {
 				return nil, err
@@ -300,7 +320,16 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			selectedStock = append(selectedStock, stock)
 		}
 	}
-	out := platform.Result{"items": items, "inventory_items": selectedStock, "strategy": strategy, "personalized": profile.count > 0, "personalized_model": false, "degraded": degraded, "signal_count": profile.count, "scene": in.Scene}
+	out := platform.Result{
+		"items":              items,
+		"inventory_items":    selectedStock,
+		"strategy":           strategy,
+		"personalized":       profile.count > 0,
+		"personalized_model": false,
+		"degraded":           degraded,
+		"signal_count":       profile.count,
+		"scene":              in.Scene,
+	}
 	if internal {
 		ids := make([]string, 0, len(stocks))
 		for id := range stocks {
@@ -340,7 +369,11 @@ func (s *Service) peerRows(ctx context.Context, target string, c platform.Comman
 	return out.Items, nil
 }
 func (s *Service) catalogRows(ctx context.Context, action string, data map[string]any) ([]map[string]any, error) {
-	return s.peerRows(ctx, constants.ServiceCatalog, platform.Command{Action: action, Role: constants.RoleSystem, Data: data})
+	return s.peerRows(
+		ctx,
+		constants.ServiceCatalog,
+		platform.Command{Action: action, Role: constants.RoleSystem, Data: data},
+	)
 }
 
 func (s *Service) readSignals(ctx context.Context, c platform.Command) (signalRows, bool) {
@@ -350,7 +383,13 @@ func (s *Service) readSignals(ctx context.Context, c platform.Command) (signalRo
 	var degraded bool
 	var mu sync.Mutex
 	var wg sync.WaitGroup
-	for _, kind := range []string{constants.RecommendationSignalFavorite, constants.RecommendationSignalHistory, constants.RecommendationSignalCompare, constants.RecommendationSignalSearch, constants.RecommendationSignalOrders} {
+	for _, kind := range []string{
+		constants.RecommendationSignalFavorite,
+		constants.RecommendationSignalHistory,
+		constants.RecommendationSignalCompare,
+		constants.RecommendationSignalSearch,
+		constants.RecommendationSignalOrders,
+	} {
 		kind := kind
 		wg.Add(1)
 		go func() {
@@ -360,7 +399,11 @@ func (s *Service) readSignals(ctx context.Context, c platform.Command) (signalRo
 				target = "order"
 				data = map[string]any{"limit": 100}
 			}
-			rows, err := s.peerRows(ctx, target, platform.Command{Action: constants.ActionList, UserID: c.UserID, Role: constants.RoleUser, Data: data})
+			rows, err := s.peerRows(
+				ctx,
+				target,
+				platform.Command{Action: constants.ActionList, UserID: c.UserID, Role: constants.RoleUser, Data: data},
+			)
 			mu.Lock()
 			defer mu.Unlock()
 			if err != nil {
@@ -403,7 +446,13 @@ func ownedSignals(in signalRows, user string) (signalRows, bool) {
 		}
 		return out
 	}
-	return signalRows{Favorite: filter(in.Favorite), History: filter(in.History), Compare: filter(in.Compare), Search: filter(in.Search), Orders: filter(in.Orders)}, foreign
+	return signalRows{
+		Favorite: filter(in.Favorite),
+		History:  filter(in.History),
+		Compare:  filter(in.Compare),
+		Search:   filter(in.Search),
+		Orders:   filter(in.Orders),
+	}, foreign
 }
 
 func seedIDs(signals signalRows, order map[string]any, productID string) []string {
@@ -452,7 +501,13 @@ func excludedProduct(p product, excluded map[string]bool) bool {
 }
 
 func (s *Service) seed(ctx context.Context) error {
-	r := record("recommendation-policy", "", constants.RecommendationKindPolicy, constants.RecommendationStatusActive, map[string]any{"strategy": strategy, "personalized_model": false})
+	r := record(
+		"recommendation-policy",
+		"",
+		constants.RecommendationKindPolicy,
+		constants.RecommendationStatusActive,
+		map[string]any{"strategy": strategy, "personalized_model": false},
+	)
 	_, err := s.repo.InsertOnce(ctx, &r, nil)
 	return err
 }

@@ -28,23 +28,42 @@ func TestCatalogBatchGetUsesOneSQLAndKeepsVisibilityRules(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, id := range []string{"active", "disabled"} {
-		_, err = module.Handle(ctx, platform.Command{Action: "upsert", ID: id, UserID: "admin", Role: "admin", Data: map[string]any{"name": id, "price_cents": 1234, "active": id == "active"}})
+		_, err = module.Handle(
+			ctx,
+			platform.Command{
+				Action: "upsert",
+				ID:     id,
+				UserID: "admin",
+				Role:   "admin",
+				Data:   map[string]any{"name": id, "price_cents": 1234, "active": id == "active"},
+			},
+		)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 	queries := 0
-	if err = db.Callback().Query().Before("gorm:query").Register("catalog-batch-query-count", func(*gorm.DB) { queries++ }); err != nil {
+	if err = db.Callback().Query().Before("gorm:query").Register(
+		"catalog-batch-query-count",
+		func(*gorm.DB) { queries++ },
+	); err != nil {
 		t.Fatal(err)
 	}
-	command := platform.Command{Action: "batch_get", Data: map[string]any{"ids": []string{"disabled", "active", "missing", "active"}}}
+	command := platform.Command{
+		Action: "batch_get",
+		Data:   map[string]any{"ids": []string{"disabled", "active", "missing", "active"}},
+	}
 	out, err := module.Handle(ctx, command)
 	if err != nil {
 		t.Fatal(err)
 	}
 	items := out["items"].([]platform.Result)
 	missing := out["missing_ids"].([]string)
-	if queries != 1 || len(items) != 1 || platform.Text(items[0], "id") != "active" || platform.Int(items[0], "price_cents") != 1234 || len(missing) != 2 || missing[0] != "disabled" || missing[1] != "missing" {
+	if queries != 1 || len(items) != 1 || platform.Text(items[0], "id") != "active" ||
+		platform.Int(items[0], "price_cents") != 1234 ||
+		len(missing) != 2 ||
+		missing[0] != "disabled" ||
+		missing[1] != "missing" {
 		t.Fatalf("public visibility/order or query count wrong: queries=%d rows=%v", queries, out)
 	}
 	queries = 0

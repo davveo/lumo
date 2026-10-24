@@ -1,0 +1,20 @@
+{
+  "name": "lumo-format-tools",
+  "private": true,
+  "description": "Development-only source formatting tools for LUMO",
+  "scripts": {
+    "format": "python3 scripts/format.py",
+    "format:check": "python3 scripts/format.py --check"
+  },
+  "config": {
+    "golinesVersion": "v0.13.0",
+    "shfmtVersion": "v3.14.1",
+    "blackVersion": "26.10.1"
+  },
+  "devDependencies": {
+    "prettier": "3.9.10"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

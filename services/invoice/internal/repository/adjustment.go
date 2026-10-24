@@ -17,7 +17,10 @@ func (r *Repository) ApplyRefund(ctx context.Context, orderID, refundID, userID 
 	defer span.End()
 	return r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var row domain.Record
-		err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&row, "order_id = ?", orderID).Error
+		err := tx.WithContext(ctx).
+			Clauses(clause.Locking{Strength: "UPDATE"}).
+			First(&row, "order_id = ?", orderID).
+			Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil
 		}
@@ -49,7 +52,14 @@ func (r *Repository) ApplyRefund(ctx context.Context, orderID, refundID, userID 
 			return nil
 		}
 		row.RefundedCents += amount
-		adjustment := domain.Reversal{ID: row.ID + ":" + refundID, InvoiceID: row.ID, RefundID: refundID, OriginalNumber: row.Number, AmountCents: amount, Status: constants.InvoiceReversalStatusCancelledUnissued}
+		adjustment := domain.Reversal{
+			ID:             row.ID + ":" + refundID,
+			InvoiceID:      row.ID,
+			RefundID:       refundID,
+			OriginalNumber: row.Number,
+			AmountCents:    amount,
+			Status:         constants.InvoiceReversalStatusCancelledUnissued,
+		}
 		if row.Number != "" {
 			row.Status = constants.InvoiceStatusReversalPending
 			adjustment.Status = constants.InvoiceReversalStatusPendingExternalAdjustment
@@ -71,7 +81,11 @@ func (r *Repository) IssueDemo(ctx context.Context, id, number string) (*domain.
 	defer span.End()
 	var row domain.Record
 	err := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&row, "id = ?", id).Error; err != nil {
+		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(
+			&row,
+			"id = ?",
+			id,
+		).Error; err != nil {
 			return err
 		}
 		if row.Status == constants.InvoiceStatusIssued {
@@ -92,7 +106,19 @@ func (r *Repository) IssueDemo(ctx context.Context, id, number string) (*domain.
 		if err := tx.WithContext(ctx).Save(&row).Error; err != nil {
 			return err
 		}
-		event := platform.Event{ID: row.ID + ":issued", Type: constants.EventInvoiceIssued, AggregateID: row.ID, UserID: row.UserID, Data: map[string]any{"order_id": row.OrderID, "invoice_id": row.ID, "number": number, "amount_cents": net, "provider": constants.InvoiceProviderLocalDemoOnly}}
+		event := platform.Event{
+			ID:          row.ID + ":issued",
+			Type:        constants.EventInvoiceIssued,
+			AggregateID: row.ID,
+			UserID:      row.UserID,
+			Data: map[string]any{
+				"order_id":     row.OrderID,
+				"invoice_id":   row.ID,
+				"number":       number,
+				"amount_cents": net,
+				"provider":     constants.InvoiceProviderLocalDemoOnly,
+			},
+		}
 		return platform.Enqueue(ctx, tx, event)
 	})
 	return &row, err
@@ -109,7 +135,11 @@ func (r *Repository) CompleteDemoAdjustments(ctx context.Context, id string) (*d
 	defer span.End()
 	var row domain.Record
 	err := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&row, "id = ?", id).Error; err != nil {
+		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(
+			&row,
+			"id = ?",
+			id,
+		).Error; err != nil {
 			return err
 		}
 		if row.Status == constants.InvoiceStatusAdjusted {
@@ -118,7 +148,14 @@ func (r *Repository) CompleteDemoAdjustments(ctx context.Context, id string) (*d
 		if row.Status != constants.InvoiceStatusReversalPending {
 			return status.Error(codes.FailedPrecondition, "no pending invoice adjustment")
 		}
-		if err := tx.WithContext(ctx).Model(&domain.Reversal{}).Where("invoice_id = ? AND status = ?", id, constants.InvoiceReversalStatusPendingExternalAdjustment).Update("status", constants.InvoiceReversalStatusDemoAdjusted).Error; err != nil {
+		if err := tx.WithContext(ctx).Model(&domain.Reversal{}).Where(
+			"invoice_id = ? AND status = ?",
+			id,
+			constants.InvoiceReversalStatusPendingExternalAdjustment,
+		).Update(
+			"status",
+			constants.InvoiceReversalStatusDemoAdjusted,
+		).Error; err != nil {
 			return err
 		}
 		row.Status = constants.InvoiceStatusAdjusted

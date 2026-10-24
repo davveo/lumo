@@ -42,7 +42,9 @@ func (r *promotionRouter) Call(ctx context.Context, service string, c platform.C
 		}
 		return row(c.ID), nil
 	case "coupon":
-		return platform.Result{"items": []map[string]any{{"id": "coupon-test", "status": "AVAILABLE", "amount_cents": int64(500)}}}, nil
+		return platform.Result{
+			"items": []map[string]any{{"id": "coupon-test", "status": "AVAILABLE", "amount_cents": int64(500)}},
+		}, nil
 	case "points":
 		return platform.Result{"available": int64(5000)}, nil
 	case "group":
@@ -54,9 +56,15 @@ func (r *promotionRouter) Call(ctx context.Context, service string, c platform.C
 func setupPromotions(t *testing.T) (*promotionRouter, *gorm.DB) {
 	t.Helper()
 	ctx := context.Background()
-	r := &promotionRouter{modules: map[string]platform.Module{}, prices: map[string]int64{"sku-a": 10001, "sku-b": 19999, "sku-coffee": 39900}}
+	r := &promotionRouter{
+		modules: map[string]platform.Module{},
+		prices:  map[string]int64{"sku-a": 10001, "sku-b": 19999, "sku-coffee": 39900},
+	}
 	var campaignDB *gorm.DB
-	for name, factory := range map[string]func(platform.Dependencies) platform.Module{"campaign": campaignmod.New, "pricing": pricingmod.New} {
+	for name, factory := range map[string]func(platform.Dependencies) platform.Module{
+		"campaign": campaignmod.New,
+		"pricing":  pricingmod.New,
+	} {
 		db, err := platform.OpenDB(ctx, "sqlite", filepath.Join(t.TempDir(), name+".db"))
 		if err != nil {
 			t.Fatal(err)
@@ -84,11 +92,18 @@ func setupPromotions(t *testing.T) (*promotionRouter, *gorm.DB) {
 }
 
 func (r *promotionRouter) quote(data map[string]any) (platform.Result, error) {
-	return r.Call(context.Background(), "pricing", platform.Command{Action: "quote", UserID: "buyer", Role: "user", Data: data})
+	return r.Call(
+		context.Background(),
+		"pricing",
+		platform.Command{Action: "quote", UserID: "buyer", Role: "user", Data: data},
+	)
 }
 
 func promotionItems() []any {
-	return []any{map[string]any{"sku_id": "sku-a", "quantity": 1, "unit_price_cents": 1}, map[string]any{"sku_id": "sku-b", "quantity": 1}}
+	return []any{
+		map[string]any{"sku_id": "sku-a", "quantity": 1, "unit_price_cents": 1},
+		map[string]any{"sku_id": "sku-b", "quantity": 1},
+	}
 }
 
 func TestQuotesApplyAllNewPromotionKindsUsingRealSKUAmounts(t *testing.T) {
@@ -108,10 +123,13 @@ func TestQuotesApplyAllNewPromotionKindsUsingRealSKUAmounts(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if platform.Int(q, "subtotal_cents") != 30000 || platform.Int(q, "campaign_discount_cents") != test.discount || platform.Int(q, "payable_cents") != 30000-test.discount {
+			if platform.Int(q, "subtotal_cents") != 30000 ||
+				platform.Int(q, "campaign_discount_cents") != test.discount ||
+				platform.Int(q, "payable_cents") != 30000-test.discount {
 				t.Fatalf("quote trusted browser prices or calculated the wrong campaign: %v", q)
 			}
-			if platform.Text(q, "activity_kind") != test.kind || platform.Text(q, "activity_name") == "" || platform.Int(q, "pay_rate_bps") != test.rate {
+			if platform.Text(q, "activity_kind") != test.kind || platform.Text(q, "activity_name") == "" ||
+				platform.Int(q, "pay_rate_bps") != test.rate {
 				t.Fatalf("quote lacks campaign snapshot metadata: %v", q)
 			}
 		})
@@ -120,8 +138,16 @@ func TestQuotesApplyAllNewPromotionKindsUsingRealSKUAmounts(t *testing.T) {
 	if err != nil || platform.Int(plain, "payable_cents") != 30000 || platform.Text(plain, "activity_id") != "" {
 		t.Fatalf("new campaigns changed ordinary purchases: %v %v", plain, err)
 	}
-	stacked, err := r.quote(map[string]any{"items": promotionItems(), "activity_id": "reduction-demo", "coupon_id": "coupon-test", "points": 100})
-	if err != nil || platform.Int(stacked, "payable_cents") != 26400 || platform.Int(stacked, "coupon_discount_cents") != 500 {
+	stacked, err := r.quote(
+		map[string]any{
+			"items":       promotionItems(),
+			"activity_id": "reduction-demo",
+			"coupon_id":   "coupon-test",
+			"points":      100,
+		},
+	)
+	if err != nil || platform.Int(stacked, "payable_cents") != 26400 ||
+		platform.Int(stacked, "coupon_discount_cents") != 500 {
 		t.Fatalf("ordinary coupon/points stacking changed: %v %v", stacked, err)
 	}
 }
@@ -132,15 +158,23 @@ func TestPromotionQuotesStayImmutableWhenRulesAndCatalogChange(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := db.Table("activities").Where("id = ?", "discount-demo").Updates(map[string]any{"pay_rate_bps": 8000, "name": "更新后的活动"}).Error; err != nil {
+	if err := db.Table("activities").Where("id = ?", "discount-demo").Updates(
+		map[string]any{"pay_rate_bps": 8000, "name": "更新后的活动"},
+	).Error; err != nil {
 		t.Fatal(err)
 	}
 	r.prices["sku-a"] = 40000
-	stored, err := r.Call(context.Background(), "pricing", platform.Command{Action: "get", ID: platform.Text(q, "quote_id"), UserID: "buyer", Role: "user"})
+	stored, err := r.Call(
+		context.Background(),
+		"pricing",
+		platform.Command{Action: "get", ID: platform.Text(q, "quote_id"), UserID: "buyer", Role: "user"},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if platform.Int(stored, "subtotal_cents") != 30000 || platform.Int(stored, "campaign_discount_cents") != 3000 || platform.Int(stored, "pay_rate_bps") != 9000 || platform.Text(stored, "activity_name") != "折扣特惠" {
+	if platform.Int(stored, "subtotal_cents") != 30000 || platform.Int(stored, "campaign_discount_cents") != 3000 ||
+		platform.Int(stored, "pay_rate_bps") != 9000 ||
+		platform.Text(stored, "activity_name") != "折扣特惠" {
 		t.Fatalf("quote snapshot changed after a catalog/rule update: %v", stored)
 	}
 }
@@ -161,7 +195,8 @@ func TestPromotionQuotesRejectForgedQuantityAndIncompatibleCampaigns(t *testing.
 		}
 	}
 	group, err := r.quote(map[string]any{"items": single, "group_id": "team-test"})
-	if err != nil || platform.Text(group, "activity_id") != "group-demo" || platform.Text(group, "activity_kind") != "group" {
+	if err != nil || platform.Text(group, "activity_id") != "group-demo" ||
+		platform.Text(group, "activity_kind") != "group" {
 		t.Fatalf("existing group quote no longer works: %v %v", group, err)
 	}
 	flash, err := r.quote(map[string]any{"items": single, "activity_id": "flash-demo"})

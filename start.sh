@@ -24,21 +24,41 @@ LUMO 商城 Docker 一键启动
 HELP
 }
 
-fail() { printf '\n错误：%s\n' "$1" >&2; exit 1; }
+fail() {
+  printf '\n错误：%s\n' "$1" >&2
+  exit 1
+}
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    --no-build) BUILD_IMAGES=0; shift ;;
-    --update-infra) UPDATE_INFRA=1; shift ;;
+    --no-build)
+      BUILD_IMAGES=0
+      shift
+      ;;
+    --update-infra)
+      UPDATE_INFRA=1
+      shift
+      ;;
     --wait-timeout)
       [ "$#" -ge 2 ] || fail '--wait-timeout 后需要秒数'
-      WAIT_SECONDS=$2; shift 2 ;;
-    -h|--help) usage; exit 0 ;;
-    --*) usage >&2; fail "不支持的参数：$1" ;;
-    *) case "$1" in ''|*[!a-z0-9_-]*) fail "服务名无效：$1" ;; esac
-       REQUESTED_SERVICES="$REQUESTED_SERVICES $1"; shift ;;
+      WAIT_SECONDS=$2
+      shift 2
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    --*)
+      usage >&2
+      fail "不支持的参数：$1"
+      ;;
+    *)
+      case "$1" in '' | *[!a-z0-9_-]*) fail "服务名无效：$1" ;; esac
+      REQUESTED_SERVICES="$REQUESTED_SERVICES $1"
+      shift
+      ;;
   esac
 done
-case "$WAIT_SECONDS" in ''|*[!0-9]*) fail '等待秒数必须是1到86400的整数' ;; esac
+case "$WAIT_SECONDS" in '' | *[!0-9]*) fail '等待秒数必须是1到86400的整数' ;; esac
 [ "${#WAIT_SECONDS}" -le 5 ] || fail '等待秒数必须是1到86400的整数'
 [ "$WAIT_SECONDS" -gt 0 ] && [ "$WAIT_SECONDS" -le 86400 ] || fail '等待秒数必须是1到86400的整数'
 
@@ -46,7 +66,15 @@ cd "$PROJECT_DIR"
 for service in $REQUESTED_SERVICES; do
   [ "$service" = gateway ] || [ -f "services/$service/service.go" ] || fail "未知业务服务：$service"
 done
-for required in compose.yaml Dockerfile .env.example go.mod web/dist/index.html web/dist/admin.html scripts/source-fingerprint.sh scripts/start-incremental.sh; do
+for required in \
+  compose.yaml \
+  Dockerfile \
+  .env.example \
+  go.mod \
+  web/dist/index.html \
+  web/dist/admin.html \
+  scripts/source-fingerprint.sh \
+  scripts/start-incremental.sh; do
   [ -f "$required" ] || fail "缺少 $required；请在完整工程中运行此脚本"
 done
 command -v docker >/dev/null 2>&1 || fail '未找到Docker；请先安装并启动Docker Desktop或Docker Engine（含Compose v2）'
@@ -56,7 +84,11 @@ UP_HELP=$(docker compose up --help) || fail '无法读取Compose启动选项'
 case "$UP_HELP" in *--wait-timeout*) ;; *) fail '当前Compose不支持健康等待超时；请更新Docker Desktop或Compose v2' ;; esac
 
 if [ ! -e .env ]; then
-  (umask 077; set -C; cat .env.example > .env) || fail '无法创建.env；请检查工程目录写入权限'
+  (
+    umask 077
+    set -C
+    cat .env.example >.env
+  ) || fail '无法创建.env；请检查工程目录写入权限'
   printf '已从.env.example创建.env。\n'
 else
   [ -f .env ] && [ -r .env ] || fail '.env必须是可读取的文件'
@@ -69,4 +101,5 @@ compose() {
 }
 compose config --quiet || fail 'Compose配置无效，请按上方错误检查.env与compose.yaml'
 
-exec sh "$PROJECT_DIR/scripts/start-incremental.sh" "$BUILD_IMAGES" "$WAIT_SECONDS" "$UPDATE_INFRA" "$REQUESTED_SERVICES"
+exec sh "$PROJECT_DIR/scripts/start-incremental.sh" \
+  "$BUILD_IMAGES" "$WAIT_SECONDS" "$UPDATE_INFRA" "$REQUESTED_SERVICES"

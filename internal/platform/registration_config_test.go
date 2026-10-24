@@ -10,7 +10,9 @@ func TestRegistrationUsesReachableAdvertisedAddressAndListenerPort(t *testing.T)
 	t.Setenv("CONSUL_SERVICE_ADDRESS", "catalog-instance.internal")
 	t.Setenv("CONSUL_SERVICE_ID", "catalog-instance")
 	spec, err := consulServiceFromEnv("catalog", "0.0.0.0:9000", "grpc")
-	if err != nil || spec.Address != "catalog-instance.internal" || spec.Port != 9000 || spec.ID != "catalog-instance" || spec.Protocol != "grpc" {
+	if err != nil || spec.Address != "catalog-instance.internal" || spec.Port != 9000 ||
+		spec.ID != "catalog-instance" ||
+		spec.Protocol != "grpc" {
 		t.Fatalf("unexpected advertised service: %+v, %v", spec, err)
 	}
 	t.Setenv("CONSUL_SERVICE_ADDRESS", "")

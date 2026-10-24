@@ -24,7 +24,11 @@ func TestCouponCenterPublicBrowseAndAuthenticatedClaim(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			caller := &demoPaymentCaller{}
-			req := httptest.NewRequest(tc.method, "/api/v1/coupon/"+tc.action, strings.NewReader(`{"user_id":"victim","role":"admin","data":{"template_id":"welcome-100"}}`))
+			req := httptest.NewRequest(
+				tc.method,
+				"/api/v1/coupon/"+tc.action,
+				strings.NewReader(`{"user_id":"victim","role":"admin","data":{"template_id":"welcome-100"}}`),
+			)
 			if tc.token != "" {
 				req.Header.Set("Authorization", "Bearer "+tc.token)
 			}
@@ -39,7 +43,8 @@ func TestCouponCenterPublicBrowseAndAuthenticatedClaim(t *testing.T) {
 				}
 				return
 			}
-			if len(caller.forwarded) != 1 || caller.forwarded[0].UserID != tc.user || caller.forwarded[0].Action != tc.action {
+			if len(caller.forwarded) != 1 || caller.forwarded[0].UserID != tc.user ||
+				caller.forwarded[0].Action != tc.action {
 				t.Fatalf("incorrect coupon principal or action: %#v", caller.forwarded)
 			}
 			if role := caller.forwarded[0].Role; (tc.user == "" && role != "") || (tc.user != "" && role != "user") {

@@ -20,7 +20,14 @@ func (h *Handler) Handle(ctx context.Context, c platform.Command) (traceResult p
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	switch c.Action {
-	case constants.ActionGet, constants.ActionBatchGet, constants.ActionReserve, constants.ActionConfirm, constants.ActionCancel, constants.ActionDispatch, constants.ActionRestock, constants.ActionAdjust:
+	case constants.ActionGet,
+		constants.ActionBatchGet,
+		constants.ActionReserve,
+		constants.ActionConfirm,
+		constants.ActionCancel,
+		constants.ActionDispatch,
+		constants.ActionRestock,
+		constants.ActionAdjust:
 		return h.App.Execute(ctx, c)
 	default:
 		return nil, status.Error(codes.Unimplemented, "unsupported inventory action")

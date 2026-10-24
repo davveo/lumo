@@ -41,7 +41,14 @@ func (p *peers) Call(ctx context.Context, name string, c platform.Command) (plat
 		for _, item := range items {
 			total += platform.Int(item, "quantity") * platform.Int(item, "unit_price_cents")
 		}
-		return platform.Result{"quote_id": "quote-fixed", "user_id": "demo", "expires_at": time.Now().Add(time.Hour).UTC().Format(time.RFC3339Nano), "payable_cents": total, "subtotal_cents": total, "items": items}, nil
+		return platform.Result{
+			"quote_id":       "quote-fixed",
+			"user_id":        "demo",
+			"expires_at":     time.Now().Add(time.Hour).UTC().Format(time.RFC3339Nano),
+			"payable_cents":  total,
+			"subtotal_cents": total,
+			"items":          items,
+		}, nil
 	case "catalog":
 		if c.Action == "batch_get" {
 			p.catalogBatches++
@@ -58,7 +65,9 @@ func (p *peers) Call(ctx context.Context, name string, c platform.Command) (plat
 			}
 			rows := p.catalogRows
 			if rows == nil {
-				rows = map[string]platform.Result{"sku-test": {"id": "sku-test", "price_cents": int64(1000), "active": true}}
+				rows = map[string]platform.Result{
+					"sku-test": {"id": "sku-test", "price_cents": int64(1000), "active": true},
+				}
 			}
 			items, missing := []platform.Result{}, []string{}
 			for _, id := range data.IDs {
@@ -121,7 +130,16 @@ func TestUnknownReservationIsCompensated(t *testing.T) {
 	m, p := setup(t)
 	p.failReserve = true
 	ctx := context.Background()
-	c := platform.Command{Action: "submit", UserID: "demo", Role: "user", IdempotencyKey: "lost-response", Data: map[string]any{"quote_id": "quote-fixed", "address": map[string]any{"recipient": "Demo", "phone": "00000000000", "address": "Demo street"}}}
+	c := platform.Command{
+		Action:         "submit",
+		UserID:         "demo",
+		Role:           "user",
+		IdempotencyKey: "lost-response",
+		Data: map[string]any{
+			"quote_id": "quote-fixed",
+			"address":  map[string]any{"recipient": "Demo", "phone": "00000000000", "address": "Demo street"},
+		},
+	}
 	_, e := m.Handle(ctx, c)
 	if status.Code(e) != codes.DeadlineExceeded {
 		t.Fatalf("wrong failure: %v", e)
@@ -143,7 +161,16 @@ func TestUnknownReservationIsCompensated(t *testing.T) {
 func TestSubmitIdempotencyPreservesSnapshot(t *testing.T) {
 	m, p := setup(t)
 	ctx := context.Background()
-	c := platform.Command{Action: "submit", UserID: "demo", Role: "user", IdempotencyKey: "same-request", Data: map[string]any{"quote_id": "quote-fixed", "address": map[string]any{"recipient": "Demo", "phone": "00000000000", "address": "Demo street"}}}
+	c := platform.Command{
+		Action:         "submit",
+		UserID:         "demo",
+		Role:           "user",
+		IdempotencyKey: "same-request",
+		Data: map[string]any{
+			"quote_id": "quote-fixed",
+			"address":  map[string]any{"recipient": "Demo", "phone": "00000000000", "address": "Demo street"},
+		},
+	}
 	first, e := m.Handle(ctx, c)
 	if e != nil {
 		t.Fatal(e)
@@ -161,7 +188,16 @@ func TestSubmitIdempotencyPreservesSnapshot(t *testing.T) {
 
 func TestMissingAddressRejectedBeforeReservation(t *testing.T) {
 	m, p := setup(t)
-	_, e := m.Handle(context.Background(), platform.Command{Action: "submit", UserID: "demo", Role: "user", IdempotencyKey: "no-address", Data: map[string]any{"quote_id": "quote-fixed"}})
+	_, e := m.Handle(
+		context.Background(),
+		platform.Command{
+			Action:         "submit",
+			UserID:         "demo",
+			Role:           "user",
+			IdempotencyKey: "no-address",
+			Data:           map[string]any{"quote_id": "quote-fixed"},
+		},
+	)
 	if status.Code(e) != codes.InvalidArgument || p.reserves != 0 {
 		t.Fatalf("missing address accepted: %v reserves=%d", e, p.reserves)
 	}

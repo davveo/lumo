@@ -37,7 +37,14 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 	if id == "" || orderID == "" {
 		return status.Error(codes.InvalidArgument, "refund event requires identities")
 	}
-	return s.Repo.ApplyRefund(ctx, orderID, id, e.UserID, platform.Int(e.Data, "amount_cents"), platform.Int(e.Data, "refunded_total_cents"))
+	return s.Repo.ApplyRefund(
+		ctx,
+		orderID,
+		id,
+		e.UserID,
+		platform.Int(e.Data, "amount_cents"),
+		platform.Int(e.Data, "refunded_total_cents"),
+	)
 }
 func privileged(c platform.Command) bool {
 	return c.Role == constants.RoleAdmin || c.Role == constants.RoleSystem
@@ -84,16 +91,33 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 		if row.Status == constants.InvoiceStatusIssued {
 			return platform.Map(row), nil
 		}
-		order, err := s.RPC.Call(ctx, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: row.OrderID, UserID: row.UserID, Role: constants.RoleSystem})
+		order, err := s.RPC.Call(
+			ctx,
+			constants.ServiceOrder,
+			platform.Command{
+				Action: constants.ActionGet,
+				ID:     row.OrderID,
+				UserID: row.UserID,
+				Role:   constants.RoleSystem,
+			},
+		)
 		if err != nil {
 			return nil, err
 		}
 		state := platform.Text(order, "status")
-		if state != constants.OrderStatusReadyToFulfill && state != constants.OrderStatusShipped && state != constants.OrderStatusCompleted {
+		if state != constants.OrderStatusReadyToFulfill && state != constants.OrderStatusShipped &&
+			state != constants.OrderStatusCompleted {
 			return nil, status.Error(codes.FailedPrecondition, "order is not ready for invoicing")
 		}
 		if total := refundTotal(order); total > row.RefundedCents {
-			if err = s.Repo.ApplyRefund(ctx, row.OrderID, fmt.Sprintf("snapshot:%s:%d", row.OrderID, total), row.UserID, 0, total); err != nil {
+			if err = s.Repo.ApplyRefund(
+				ctx,
+				row.OrderID,
+				fmt.Sprintf("snapshot:%s:%d", row.OrderID, total),
+				row.UserID,
+				0,
+				total,
+			); err != nil {
 				return nil, err
 			}
 		}
@@ -121,13 +145,18 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 		kind = constants.InvoiceKindPersonal
 	}
 	taxID := strings.ToUpper(strings.TrimSpace(platform.Text(c.Data, "tax_id")))
-	if orderID == "" || title == "" || len(title) > 200 || (kind != constants.InvoiceKindPersonal && kind != constants.InvoiceKindCompany) {
+	if orderID == "" || title == "" || len(title) > 200 ||
+		(kind != constants.InvoiceKindPersonal && kind != constants.InvoiceKindCompany) {
 		return nil, status.Error(codes.InvalidArgument, "order, valid title and invoice kind required")
 	}
 	if kind == constants.InvoiceKindCompany && !regexp.MustCompile(`^[A-Z0-9]{18}$`).MatchString(taxID) {
 		return nil, status.Error(codes.InvalidArgument, "company tax_id must contain 18 letters or digits")
 	}
-	order, err := s.RPC.Call(ctx, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: orderID, UserID: c.UserID, Role: c.Role})
+	order, err := s.RPC.Call(
+		ctx,
+		constants.ServiceOrder,
+		platform.Command{Action: constants.ActionGet, ID: orderID, UserID: c.UserID, Role: c.Role},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +165,10 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 		return nil, status.Error(codes.PermissionDenied, "order ownership mismatch")
 	}
 	state := platform.Text(order, "status")
-	if state != constants.OrderStatusReadyToFulfill && state != constants.OrderStatusShipped && state != constants.OrderStatusCompleted && state != constants.OrderStatusPaidWaitGroup && state != constants.OrderStatusPaidConfirming {
+	if state != constants.OrderStatusReadyToFulfill && state != constants.OrderStatusShipped &&
+		state != constants.OrderStatusCompleted &&
+		state != constants.OrderStatusPaidWaitGroup &&
+		state != constants.OrderStatusPaidConfirming {
 		return nil, status.Error(codes.FailedPrecondition, "order is not paid")
 	}
 	refunded := refundTotal(order)
@@ -144,18 +176,40 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 	if amount-refunded <= 0 {
 		return nil, status.Error(codes.FailedPrecondition, "no invoiceable amount")
 	}
-	row := &domain.Record{ID: "inv:" + orderID, OrderID: orderID, UserID: user, Kind: kind, Title: title, TaxID: taxID, Status: constants.InvoiceStatusRequested, AmountCents: amount, RefundedCents: refunded, Provider: constants.InvoiceProviderUnsubmitted}
+	row := &domain.Record{
+		ID:            "inv:" + orderID,
+		OrderID:       orderID,
+		UserID:        user,
+		Kind:          kind,
+		Title:         title,
+		TaxID:         taxID,
+		Status:        constants.InvoiceStatusRequested,
+		AmountCents:   amount,
+		RefundedCents: refunded,
+		Provider:      constants.InvoiceProviderUnsubmitted,
+	}
 	if err = s.Repo.Create(ctx, row); err != nil {
 		return nil, err
 	}
 	// A refund may have arrived before this invoice existed. Re-read the owner
 	// snapshot; cumulative totals also make a later duplicated event harmless.
-	fresh, err := s.RPC.Call(ctx, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: orderID, UserID: user, Role: constants.RoleSystem})
+	fresh, err := s.RPC.Call(
+		ctx,
+		constants.ServiceOrder,
+		platform.Command{Action: constants.ActionGet, ID: orderID, UserID: user, Role: constants.RoleSystem},
+	)
 	if err != nil {
 		return nil, err
 	}
 	if total := refundTotal(fresh); total > row.RefundedCents {
-		if err = s.Repo.ApplyRefund(ctx, orderID, fmt.Sprintf("snapshot:%s:%d", orderID, total), user, 0, total); err != nil {
+		if err = s.Repo.ApplyRefund(
+			ctx,
+			orderID,
+			fmt.Sprintf("snapshot:%s:%d", orderID, total),
+			user,
+			0,
+			total,
+		); err != nil {
 			return nil, err
 		}
 		row, err = s.Repo.Get(ctx, row.ID)

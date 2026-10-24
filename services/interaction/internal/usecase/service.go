@@ -98,7 +98,18 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		} else {
 			return nil, bad("kind must be review or question")
 		}
-		r := record(c.ID, c.UserID, kind, constants.InteractionStatusPending, map[string]any{"sku_id": sku, "body": body, "rating": platform.Int(c.Data, "rating"), "order_id": platform.Text(c.Data, "order_id")})
+		r := record(
+			c.ID,
+			c.UserID,
+			kind,
+			constants.InteractionStatusPending,
+			map[string]any{
+				"sku_id":   sku,
+				"body":     body,
+				"rating":   platform.Int(c.Data, "rating"),
+				"order_id": platform.Text(c.Data, "order_id"),
+			},
+		)
 		r.ParentID = sku
 		inserted, e := s.repo.InsertOnce(ctx, &r, nil)
 		if e != nil {
@@ -115,31 +126,42 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		if e := platform.RequireAdmin(c); e != nil {
 			return nil, e
 		}
-		r, e := s.repo.Mutate(ctx, domain.Record{ID: c.ID}, false, func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
-			approved, ok := c.Data["approved"].(bool)
-			if c.Action == constants.ActionAnswer {
-				approved = true
-				ok = true
-				if platform.Text(c.Data, "answer") == "" {
-					return nil, nil, bad("answer required")
+		r, e := s.repo.Mutate(
+			ctx,
+			domain.Record{ID: c.ID},
+			false,
+			func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
+				approved, ok := c.Data["approved"].(bool)
+				if c.Action == constants.ActionAnswer {
+					approved = true
+					ok = true
+					if platform.Text(c.Data, "answer") == "" {
+						return nil, nil, bad("answer required")
+					}
+					d := payload(*v)
+					d["answer"] = platform.Text(c.Data, "answer")
+					v.Payload = record(v.ID, v.UserID, v.Kind, v.Status, d).Payload
 				}
-				d := payload(*v)
-				d["answer"] = platform.Text(c.Data, "answer")
-				v.Payload = record(v.ID, v.UserID, v.Kind, v.Status, d).Payload
-			}
-			if !ok {
-				return nil, nil, bad("approved boolean required")
-			}
-			v.Status = constants.InteractionStatusRejected
-			if approved {
-				v.Status = constants.InteractionStatusPublished
-			}
-			evt := &platform.Event{ID: platform.ID("evt"), Type: "QAChanged", AggregateID: v.ID, UserID: v.UserID, Data: view(*v)}
-			if v.Kind == constants.InteractionKindReview {
-				evt.Type = constants.EventReviewPublished
-			}
-			return nil, evt, nil
-		})
+				if !ok {
+					return nil, nil, bad("approved boolean required")
+				}
+				v.Status = constants.InteractionStatusRejected
+				if approved {
+					v.Status = constants.InteractionStatusPublished
+				}
+				evt := &platform.Event{
+					ID:          platform.ID("evt"),
+					Type:        "QAChanged",
+					AggregateID: v.ID,
+					UserID:      v.UserID,
+					Data:        view(*v),
+				}
+				if v.Kind == constants.InteractionKindReview {
+					evt.Type = constants.EventReviewPublished
+				}
+				return nil, evt, nil
+			},
+		)
 		if e != nil {
 			return nil, e
 		}
@@ -155,7 +177,13 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		if target.Status != constants.InteractionStatusPublished || target.Kind != constants.InteractionKindReview {
 			return nil, status.Error(codes.FailedPrecondition, "published review required")
 		}
-		r := record(stable(c.UserID, constants.InteractionKindLike, c.ID), c.UserID, constants.InteractionKindLike, constants.InteractionStatusActive, nil)
+		r := record(
+			stable(c.UserID, constants.InteractionKindLike, c.ID),
+			c.UserID,
+			constants.InteractionKindLike,
+			constants.InteractionStatusActive,
+			nil,
+		)
 		r.ParentID = c.ID
 		if _, e = s.repo.InsertOnce(ctx, &r, nil); e != nil {
 			return nil, e

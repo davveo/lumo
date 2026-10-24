@@ -10,18 +10,30 @@ import (
 )
 
 func categoryContentRow() platform.Result {
-	return platform.Result{"id": storefrontCategoriesID, "kind": "storefront", "status": "PUBLISHED", "body": `{"version":1,"groups":[]}`}
+	return platform.Result{
+		"id":     storefrontCategoriesID,
+		"kind":   "storefront",
+		"status": "PUBLISHED",
+		"body":   `{"version":1,"groups":[]}`,
+	}
 }
 
 func categoryListFragment(items []platform.Result, err error) platform.Result {
-	request := readRequest{Key: "content-page", Service: "content", Action: "list", Command: readCommand{Data: map[string]any{"kind": "storefront", "limit": 100}}}
+	request := readRequest{
+		Key:     "content-page",
+		Service: "content",
+		Action:  "list",
+		Command: readCommand{Data: map[string]any{"kind": "storefront", "limit": 100}},
+	}
 	return readResult(request, platform.Result{"items": items}, err)
 }
 
 func assertCategoryCacheKey(t *testing.T, row platform.Result) {
 	t.Helper()
 	command, ok := row["command"].(readCommand)
-	if row["service"] != "content" || row["action"] != "get" || row["auth"] != false || !ok || command.ID != storefrontCategoriesID || len(command.Data) != 0 {
+	if row["service"] != "content" || row["action"] != "get" || row["auth"] != false || !ok ||
+		command.ID != storefrontCategoriesID ||
+		len(command.Data) != 0 {
 		t.Fatalf("category fragment cannot prime the exact public content/get cache key: %#v", row)
 	}
 }
@@ -30,8 +42,17 @@ func TestBootstrapCategoryNavigationReusesExistingStorefrontList(t *testing.T) {
 	caller := &aggregationCaller{}
 	g := &gateway{rpc: caller}
 	config := categoryContentRow()
-	fragments := []platform.Result{categoryListFragment([]platform.Result{{"id": "storefront-main", "kind": "storefront", "body": `{}`}, config}, nil)}
-	got := g.bootstrapCategoryNavigation(context.Background(), fragments, platform.Command{UserID: "admin", Role: "admin"})
+	fragments := []platform.Result{
+		categoryListFragment(
+			[]platform.Result{{"id": "storefront-main", "kind": "storefront", "body": `{}`}, config},
+			nil,
+		),
+	}
+	got := g.bootstrapCategoryNavigation(
+		context.Background(),
+		fragments,
+		platform.Command{UserID: "admin", Role: "admin"},
+	)
 	if len(got) != 2 || len(caller.calls) != 0 {
 		t.Fatalf("existing content read was repeated: %#v calls=%#v", got, caller.calls)
 	}
@@ -46,18 +67,36 @@ func TestBootstrapCategoryNavigationUsesOneBoundedPublicLookupWhenListOmitsIt(t 
 		name string
 		list platform.Result
 	}{
-		{"more than one content page", categoryListFragment([]platform.Result{{"id": "other-page", "kind": "storefront"}}, nil)},
-		{"list temporarily failed", categoryListFragment(nil, status.Error(codes.Unavailable, "content list unavailable"))},
-		{"wrong kind cannot prime navigation", categoryListFragment([]platform.Result{{"id": storefrontCategoriesID, "kind": "faq"}}, nil)},
+		{
+			"more than one content page",
+			categoryListFragment([]platform.Result{{"id": "other-page", "kind": "storefront"}}, nil),
+		},
+		{
+			"list temporarily failed",
+			categoryListFragment(nil, status.Error(codes.Unavailable, "content list unavailable")),
+		},
+		{
+			"wrong kind cannot prime navigation",
+			categoryListFragment([]platform.Result{{"id": storefrontCategoriesID, "kind": "faq"}}, nil),
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			caller := &aggregationCaller{handle: func(_ context.Context, service string, command platform.Command) (platform.Result, error) {
-				if service != "content" || command.Action != "get" || command.ID != storefrontCategoriesID || command.UserID != "" || command.Role != "" || len(command.Data) != 0 {
-					t.Fatalf("fallback changed target or inherited principal: %#v", command)
-				}
-				return categoryContentRow(), nil
-			}}
-			got := (&gateway{rpc: caller}).bootstrapCategoryNavigation(context.Background(), []platform.Result{test.list}, platform.Command{UserID: "admin", Role: "admin"})
+			caller := &aggregationCaller{
+				handle: func(_ context.Context, service string, command platform.Command) (platform.Result, error) {
+					if service != "content" || command.Action != "get" || command.ID != storefrontCategoriesID ||
+						command.UserID != "" ||
+						command.Role != "" ||
+						len(command.Data) != 0 {
+						t.Fatalf("fallback changed target or inherited principal: %#v", command)
+					}
+					return categoryContentRow(), nil
+				},
+			}
+			got := (&gateway{rpc: caller}).bootstrapCategoryNavigation(
+				context.Background(),
+				[]platform.Result{test.list},
+				platform.Command{UserID: "admin", Role: "admin"},
+			)
 			if len(got) != 2 || caller.count("content", "get") != 1 {
 				t.Fatalf("lookup was not bounded: results=%#v calls=%#v", got, caller.calls)
 			}
@@ -74,7 +113,8 @@ func TestBootstrapCategoryNavigationKeepsReadFailureWithoutInventedDefaults(t *t
 		return nil, status.Error(codes.NotFound, "navigation not configured")
 	}}
 	got := (&gateway{rpc: caller}).bootstrapCategoryNavigation(context.Background(), nil, platform.Command{})
-	if len(got) != 1 || caller.count("content", "get") != 1 || got[0]["data"] != nil || platform.Text(platform.Map(got[0]["error"]), "code") != "NotFound" {
+	if len(got) != 1 || caller.count("content", "get") != 1 || got[0]["data"] != nil ||
+		platform.Text(platform.Map(got[0]["error"]), "code") != "NotFound" {
 		t.Fatalf("failure was replaced by fallback display data: %#v", got)
 	}
 	assertCategoryCacheKey(t, got[0])

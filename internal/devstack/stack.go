@@ -40,7 +40,9 @@ type Stack struct {
 // tests). An existing data directory preserves orders and sessions across runs.
 func Start(ctx context.Context, dataDir, token string) (*Stack, error) {
 	if !sqliteRuntimeAvailable {
-		return nil, fmt.Errorf("devstack SQLite requires CGO_ENABLED=1 and a C compiler; use Docker Compose for the normal MySQL runtime")
+		return nil, fmt.Errorf(
+			"devstack SQLite requires CGO_ENABLED=1 and a C compiler; use Docker Compose for the normal MySQL runtime",
+		)
 	}
 	if os.Getenv("DEMO_MODE") != "true" {
 		return nil, fmt.Errorf("devstack requires explicit DEMO_MODE=true")
@@ -153,7 +155,17 @@ func (s *Stack) Pump(ctx context.Context) error {
 		count := 0
 		for _, producer := range bootstrap.Names {
 			var rows []platform.Outbox
-			if err := s.dbs[producer].WithContext(ctx).Where("state = ? AND next_attempt_at <= ?", constants.OutboxStatePending, time.Now().UTC()).Order("created_at ASC").Limit(100).Find(&rows).Error; err != nil {
+			if err := s.dbs[producer].WithContext(ctx).Where(
+				"state = ? AND next_attempt_at <= ?",
+				constants.OutboxStatePending,
+				time.Now().UTC(),
+			).Order(
+				"created_at ASC",
+			).Limit(
+				100,
+			).Find(
+				&rows,
+			).Error; err != nil {
 				return err
 			}
 			for _, row := range rows {
@@ -182,32 +194,69 @@ func (s *Stack) Pump(ctx context.Context) error {
 					}
 					db := s.dbs[consumer]
 					var seen int64
-					if err := db.WithContext(ctx).Model(&platform.Inbox{}).Where("consumer = ? AND event_id = ? AND state = ?", consumer, event.ID, constants.InboxStateDone).Count(&seen).Error; err != nil {
+					if err := db.WithContext(ctx).Model(&platform.Inbox{}).Where(
+						"consumer = ? AND event_id = ? AND state = ?",
+						consumer,
+						event.ID,
+						constants.InboxStateDone,
+					).Count(
+						&seen,
+					).Error; err != nil {
 						return err
 					}
 					if seen > 0 {
 						continue
 					}
 					eventCtx := otel.GetTextMapPropagator().Extract(ctx, carrier)
-					eventCtx, sp := otel.Tracer("lumo/devstack").Start(eventCtx, "localmq.consume."+event.Type, trace.WithSpanKind(trace.SpanKindConsumer), trace.WithAttributes(attribute.String("messaging.consumer", consumer), attribute.String("messaging.system", "local-durable-outbox")))
+					eventCtx, sp := otel.Tracer("lumo/devstack").
+						Start(
+							eventCtx,
+							"localmq.consume."+event.Type,
+							trace.WithSpanKind(trace.SpanKindConsumer),
+							trace.WithAttributes(
+								attribute.String("messaging.consumer", consumer),
+								attribute.String("messaging.system", "local-durable-outbox"),
+							),
+						)
 					platform.TraceRequest(eventCtx, event)
 					err := m.OnEvent(eventCtx, event)
 					if err != nil {
 						platform.TraceResponse(eventCtx, nil, err)
 						sp.End()
-						_ = s.dbs[producer].WithContext(ctx).Model(&platform.Outbox{}).Where("id = ?", row.ID).Updates(map[string]any{"attempts": gorm.Expr("attempts + 1"), "next_attempt_at": time.Now().UTC().Add(time.Second)}).Error
+						_ = s.dbs[producer].WithContext(ctx).
+							Model(&platform.Outbox{}).
+							Where("id = ?", row.ID).
+							Updates(
+								map[string]any{
+									"attempts":        gorm.Expr("attempts + 1"),
+									"next_attempt_at": time.Now().UTC().Add(time.Second),
+								},
+							).
+							Error
 						return fmt.Errorf("%s -> %s (%s): %w", producer, consumer, event.Type, err)
 					}
-					inbox := platform.Inbox{Consumer: consumer, EventID: event.ID, State: constants.InboxStateDone, Attempts: 1, UpdatedAt: time.Now().UTC()}
+					inbox := platform.Inbox{
+						Consumer:  consumer,
+						EventID:   event.ID,
+						State:     constants.InboxStateDone,
+						Attempts:  1,
+						UpdatedAt: time.Now().UTC(),
+					}
 					err = db.WithContext(eventCtx).Clauses(clause.OnConflict{DoNothing: true}).Create(&inbox).Error
-					platform.TraceResponse(eventCtx, platform.Result{"event_id": event.ID, "inbox_recorded": err == nil}, err)
+					platform.TraceResponse(
+						eventCtx,
+						platform.Result{"event_id": event.ID, "inbox_recorded": err == nil},
+						err,
+					)
 					sp.End()
 					if err != nil {
 						return err
 					}
 				}
 				now := time.Now().UTC()
-				if err := s.dbs[producer].WithContext(ctx).Model(&platform.Outbox{}).Where("id = ?", row.ID).Updates(map[string]any{"state": constants.OutboxStatePublished, "published_at": now}).Error; err != nil {
+				if err := s.dbs[producer].WithContext(ctx).Model(&platform.Outbox{}).Where("id = ?", row.ID).Updates(
+					map[string]any{"state": constants.OutboxStatePublished, "published_at": now},
+				).Error; err != nil {
 					return err
 				}
 			}

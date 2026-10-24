@@ -20,7 +20,15 @@ func (h *Handler) Handle(ctx context.Context, c platform.Command) (traceResult p
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	switch c.Action {
-	case constants.ActionList, constants.ActionTemplates, constants.ActionTemplatesSnapshot, constants.ActionTemplatesByIds, constants.ActionClaim, constants.ActionReserve, constants.ActionConfirm, constants.ActionCancel, constants.ActionRefund:
+	case constants.ActionList,
+		constants.ActionTemplates,
+		constants.ActionTemplatesSnapshot,
+		constants.ActionTemplatesByIds,
+		constants.ActionClaim,
+		constants.ActionReserve,
+		constants.ActionConfirm,
+		constants.ActionCancel,
+		constants.ActionRefund:
 		return h.App.Execute(ctx, c)
 	default:
 		return nil, status.Error(codes.Unimplemented, "unsupported coupon action")

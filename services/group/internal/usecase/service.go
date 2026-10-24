@@ -31,7 +31,16 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	}
 	if c.Action == constants.ActionCreate {
 		if s.RPC != nil {
-			_, e := s.RPC.Call(ctx, constants.ServiceCatalog, platform.Command{Action: constants.ActionGet, ID: platform.Text(c.Data, "sku_id"), UserID: c.UserID, Role: c.Role})
+			_, e := s.RPC.Call(
+				ctx,
+				constants.ServiceCatalog,
+				platform.Command{
+					Action: constants.ActionGet,
+					ID:     platform.Text(c.Data, "sku_id"),
+					UserID: c.UserID,
+					Role:   c.Role,
+				},
+			)
 			if e != nil {
 				return nil, e
 			}
@@ -61,7 +70,10 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
 	if er != nil || !exists {
 		return er
 	}
-	_, er = s.Execute(ctx, platform.Command{Action: constants.ActionPaid, ID: e.AggregateID, UserID: e.UserID, Role: constants.RoleSystem})
+	_, er = s.Execute(
+		ctx,
+		platform.Command{Action: constants.ActionPaid, ID: e.AggregateID, UserID: e.UserID, Role: constants.RoleSystem},
+	)
 	return er
 }
 func (s *Service) Tick(ctx context.Context) error { _, e := s.Repo.Expire(ctx); return e }

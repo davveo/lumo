@@ -1,17 +1,25 @@
 syntax = "proto3";
+
 package mall.v1;
+
 option go_package = "github.com/davveo/lumo/api/mall/v1;mallv1";
 
 // One transport contract per independently deployed domain service.
 // Business action payloads are validated by the service transport layer;
 // supported actions and schemas are documented in docs/api.md.
 message Command {
- string action = 1;
- string id = 2;
- string user_id = 3;
- string role = 4;
- string idempotency_key = 5;
- bytes payload_json = 6;
+  string action = 1;
+  string id = 2;
+  string user_id = 3;
+  string role = 4;
+  string idempotency_key = 5;
+  bytes payload_json = 6;
 }
-message Result { bytes payload_json = 1; }
-service DomainService { rpc Execute(Command) returns (Result); }
+
+message Result {
+  bytes payload_json = 1;
+}
+
+service DomainService {
+  rpc Execute(Command) returns (Result);
+}

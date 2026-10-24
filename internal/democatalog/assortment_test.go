@@ -97,7 +97,13 @@ func TestExpandedAssortmentCoversEveryConfiguredSearch(t *testing.T) {
 	if leaves != 586 {
 		t.Fatalf("expected all 586 fine categories; got %d", leaves)
 	}
-	t.Logf("covered %d categories, %d leaves with %d products and %d independently stocked SKUs", len(categories), leaves, len(products), len(ExpandedSKUs()))
+	t.Logf(
+		"covered %d categories, %d leaves with %d products and %d independently stocked SKUs",
+		len(categories),
+		leaves,
+		len(products),
+		len(ExpandedSKUs()),
+	)
 }
 
 func TestAssortmentFixtureTracksBackendSource(t *testing.T) {
@@ -143,10 +149,12 @@ func TestAssortmentProductsHaveValidVariantsAssetsAndDemoMetadata(t *testing.T) 
 		}
 		price := product["price"].(float64)
 		prices := product["prices"].([]any)
-		if price < 1 || product["old"].(float64) <= price || len(prices) != 2 || prices[0] != price || prices[1].(float64) <= price {
+		if price < 1 || product["old"].(float64) <= price || len(prices) != 2 || prices[0] != price ||
+			prices[1].(float64) <= price {
 			t.Errorf("invalid independently priced variant presentation for %s", id)
 		}
-		if len(product["colors"].([]any)) != 1 || len(product["options"].([]any)) != 2 || product["defaultOption"] != product["options"].([]any)[0] {
+		if len(product["colors"].([]any)) != 1 || len(product["options"].([]any)) != 2 ||
+			product["defaultOption"] != product["options"].([]any)[0] {
 			t.Errorf("unexpected variant selection for %s", id)
 		}
 		image := product["image"].(string)
@@ -231,7 +239,9 @@ func TestAssortmentIDsSurviveNavigationReorderingAndReturnFreshCopies(t *testing
 }
 
 func TestCurrentConfigurationCanGenerateNewLeafAndShortcutProducts(t *testing.T) {
-	raw := []byte(`{"version":1,"groups":[{"id":"pets","category":"宠物生活","rows":[{"title":"猫咪用品","query":"猫咪用品","items":[{"label":"猫窝","query":"猫窝"}]}],"shortcuts":[{"label":"初次养猫","query":"养猫入门"}],"brands":[{"brand":"LUMO"}]}]}`)
+	raw := []byte(
+		`{"version":1,"groups":[{"id":"pets","category":"宠物生活","rows":[{"title":"猫咪用品","query":"猫咪用品","items":[{"label":"猫窝","query":"猫窝"}]}],"shortcuts":[{"label":"初次养猫","query":"养猫入门"}],"brands":[{"brand":"LUMO"}]}]}`,
+	)
 	products, err := ProductsFromNavigation(raw)
 	if err != nil {
 		t.Fatal(err)

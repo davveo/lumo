@@ -31,7 +31,14 @@ func (r *Repository) migrateSearchCategory(ctx context.Context) error {
 	}
 	readColumn := func() ([]column, error) {
 		rows := []column{}
-		err := r.db.WithContext(ctx).Raw("SELECT DATA_TYPE AS data_type, CHARACTER_MAXIMUM_LENGTH AS character_maximum_length, EXTRA AS extra, GENERATION_EXPRESSION AS generation_expression FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?", "catalog_records", "search_category_v1").Scan(&rows).Error
+		err := r.db.WithContext(ctx).
+			Raw(
+				"SELECT DATA_TYPE AS data_type, CHARACTER_MAXIMUM_LENGTH AS character_maximum_length, EXTRA AS extra, GENERATION_EXPRESSION AS generation_expression FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?",
+				"catalog_records",
+				"search_category_v1",
+			).
+			Scan(&rows).
+			Error
 		return rows, err
 	}
 	columns, err := readColumn()
@@ -39,7 +46,11 @@ func (r *Repository) migrateSearchCategory(ctx context.Context) error {
 		return fmt.Errorf("inspect catalog search category: %w", err)
 	}
 	if len(columns) == 0 {
-		if err = r.db.WithContext(ctx).Exec("ALTER TABLE catalog_records ADD COLUMN search_category_v1 VARCHAR(80) GENERATED ALWAYS AS (" + searchCategoryExpression + ") VIRTUAL, ALGORITHM=INPLACE, LOCK=NONE").Error; err != nil {
+		if err = r.db.WithContext(ctx).Exec(
+			"ALTER TABLE catalog_records ADD COLUMN search_category_v1 VARCHAR(80) GENERATED ALWAYS AS (" +
+				searchCategoryExpression +
+				") VIRTUAL, ALGORITHM=INPLACE, LOCK=NONE",
+		).Error; err != nil {
 			return fmt.Errorf("create catalog search category online: %w", err)
 		}
 		columns, err = readColumn()
@@ -47,7 +58,14 @@ func (r *Repository) migrateSearchCategory(ctx context.Context) error {
 			return fmt.Errorf("verify catalog search category: %w", err)
 		}
 	}
-	if len(columns) != 1 || strings.ToLower(columns[0].DataType) != "varchar" || columns[0].CharacterMaximumLength != 80 || !strings.Contains(strings.ToUpper(columns[0].Extra), "VIRTUAL GENERATED") || normalizeGeneratedExpression(columns[0].GenerationExpression) != normalizeGeneratedExpression(searchCategoryExpression) {
+	if len(columns) != 1 || strings.ToLower(columns[0].DataType) != "varchar" ||
+		columns[0].CharacterMaximumLength != 80 ||
+		!strings.Contains(strings.ToUpper(columns[0].Extra), "VIRTUAL GENERATED") ||
+		normalizeGeneratedExpression(
+			columns[0].GenerationExpression,
+		) != normalizeGeneratedExpression(
+			searchCategoryExpression,
+		) {
 		return fmt.Errorf("catalog search_category_v1 has an unexpected schema; refusing to trust or replace it")
 	}
 	type indexColumn struct {
@@ -56,7 +74,14 @@ func (r *Repository) migrateSearchCategory(ctx context.Context) error {
 	}
 	readIndex := func() ([]indexColumn, error) {
 		rows := []indexColumn{}
-		err := r.db.WithContext(ctx).Raw("SELECT COLUMN_NAME AS column_name, SUB_PART AS sub_part FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ? ORDER BY SEQ_IN_INDEX", "catalog_records", searchCategoryIndex).Scan(&rows).Error
+		err := r.db.WithContext(ctx).
+			Raw(
+				"SELECT COLUMN_NAME AS column_name, SUB_PART AS sub_part FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ? ORDER BY SEQ_IN_INDEX",
+				"catalog_records",
+				searchCategoryIndex,
+			).
+			Scan(&rows).
+			Error
 		return rows, err
 	}
 	indexes, err := readIndex()
@@ -64,7 +89,10 @@ func (r *Repository) migrateSearchCategory(ctx context.Context) error {
 		return fmt.Errorf("inspect catalog category index: %w", err)
 	}
 	if len(indexes) == 0 {
-		if err = r.db.WithContext(ctx).Exec("ALTER TABLE catalog_records ADD INDEX " + searchCategoryIndex + " (kind,parent_id,status,search_category_v1,created_at,id), ALGORITHM=INPLACE, LOCK=NONE").Error; err != nil {
+		if err = r.db.WithContext(ctx).Exec(
+			"ALTER TABLE catalog_records ADD INDEX " + searchCategoryIndex +
+				" (kind,parent_id,status,search_category_v1,created_at,id), ALGORITHM=INPLACE, LOCK=NONE",
+		).Error; err != nil {
 			return fmt.Errorf("create catalog category index online: %w", err)
 		}
 		indexes, err = readIndex()

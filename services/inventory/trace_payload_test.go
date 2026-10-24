@@ -24,7 +24,11 @@ func TestInventoryTransportAndUsecaseTraceRecordSuccessfulAndFailedCalls(t *test
 		_ = provider.Shutdown(context.Background())
 		otel.SetTracerProvider(previous)
 	})
-	command := platform.Command{Action: "get", ID: "sku-phone", Data: map[string]any{"password": "inventory-trace-private-value"}}
+	command := platform.Command{
+		Action: "get",
+		ID:     "sku-phone",
+		Data:   map[string]any{"password": "inventory-trace-private-value"},
+	}
 	result, err := module.Handle(context.Background(), command)
 	if err != nil || platform.Int(result, "available") != 50 {
 		t.Fatalf("public inventory read changed: %v %v", result, err)
@@ -54,7 +58,13 @@ func TestInventoryTransportAndUsecaseTraceRecordSuccessfulAndFailedCalls(t *test
 			if attributes["lumo.error.code"] != codes.NotFound.String() {
 				t.Fatalf("not-found code missing from %s", span.Name)
 			}
-		} else if !strings.Contains(request, "sku-phone") || !strings.Contains(response, `"available":50`) || attributes["lumo.error.code"] != codes.OK.String() {
+		} else if !strings.Contains(
+			request,
+			"sku-phone",
+		) || !strings.Contains(
+			response,
+			`"available":50`,
+		) || attributes["lumo.error.code"] != codes.OK.String() {
 			t.Fatalf("successful values missing from %s: %v", span.Name, attributes)
 		}
 	}

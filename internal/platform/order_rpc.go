@@ -41,12 +41,29 @@ var orderRPCs = map[string]orderRPC{
 	constants.ActionPending: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		return orderResult(client.MarkPending(ctx, orderRequest(c)))
 	},
-	constants.ActionCreateFailed: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionCreateFailed: func(
+		ctx context.Context,
+		client mallv1.OrderServiceClient,
+		c Command,
+	) (
+		Result,
+		error,
+	) {
 		return orderResult(client.MarkCreateFailed(ctx, orderRequest(c)))
 	},
-	constants.ActionAcceptPayment: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionAcceptPayment: func(
+		ctx context.Context,
+		client mallv1.OrderServiceClient,
+		c Command,
+	) (
+		Result,
+		error,
+	) {
 		response, err := client.AcceptPayment(ctx, &mallv1.AcceptPaymentRequest{Actor: orderActor(c), Id: c.ID,
-			PaymentId: Text(c.Data, "payment_id"), AmountCents: Int(c.Data, "amount_cents"), PaidAt: orderTime(Text(c.Data, "paid_at"))})
+			PaymentId: Text(
+				c.Data,
+				"payment_id",
+			), AmountCents: Int(c.Data, "amount_cents"), PaidAt: orderTime(Text(c.Data, "paid_at"))})
 		if err != nil {
 			return nil, err
 		}
@@ -61,13 +78,34 @@ var orderRPCs = map[string]orderRPC{
 	constants.ActionCloseBegin: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		return orderResult(client.BeginClose(ctx, orderRequest(c)))
 	},
-	constants.ActionCloseComplete: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionCloseComplete: func(
+		ctx context.Context,
+		client mallv1.OrderServiceClient,
+		c Command,
+	) (
+		Result,
+		error,
+	) {
 		return orderResult(client.CompleteClose(ctx, orderRequest(c)))
 	},
-	constants.ActionGroupFormed: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionGroupFormed: func(
+		ctx context.Context,
+		client mallv1.OrderServiceClient,
+		c Command,
+	) (
+		Result,
+		error,
+	) {
 		return orderResult(client.MarkGroupFormed(ctx, orderRequest(c)))
 	},
-	constants.ActionGroupFailed: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionGroupFailed: func(
+		ctx context.Context,
+		client mallv1.OrderServiceClient,
+		c Command,
+	) (
+		Result,
+		error,
+	) {
 		return orderResult(client.MarkGroupFailed(ctx, orderRequest(c)))
 	},
 	constants.ActionShipped: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
@@ -104,7 +142,8 @@ func missingOrderRPC(err error) bool {
 	}
 	for method := range orderwire.Actions() {
 		name := method[strings.LastIndex(method, "/")+1:]
-		if message == "method "+name+" not implemented" || message == "unknown method "+name+" for service mall.v1.OrderService" {
+		if message == "method "+name+" not implemented" ||
+			message == "unknown method "+name+" for service mall.v1.OrderService" {
 			return true
 		}
 	}

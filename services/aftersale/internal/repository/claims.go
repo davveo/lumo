@@ -23,7 +23,11 @@ func (r *Repository) Claim(ctx context.Context, row *domain.Record, purchased ma
 		if err := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&guard).Error; err != nil {
 			return err
 		}
-		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&guard, "order_id = ?", row.OrderID).Error; err != nil {
+		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(
+			&guard,
+			"order_id = ?",
+			row.OrderID,
+		).Error; err != nil {
 			return err
 		}
 		var old domain.Record
@@ -42,7 +46,13 @@ func (r *Repository) Claim(ctx context.Context, row *domain.Record, purchased ma
 			return err
 		}
 		existing := []domain.Record{}
-		if err = tx.WithContext(ctx).Where("order_id = ? AND status NOT IN ?", row.OrderID, []string{constants.AftersaleStatusRejected, constants.AftersaleStatusCancelled}).Find(&existing).Error; err != nil {
+		if err = tx.WithContext(ctx).Where(
+			"order_id = ? AND status NOT IN ?",
+			row.OrderID,
+			[]string{constants.AftersaleStatusRejected, constants.AftersaleStatusCancelled},
+		).Find(
+			&existing,
+		).Error; err != nil {
 			return err
 		}
 		used := map[string]int64{}
@@ -90,7 +100,11 @@ func (r *Repository) Claim(ctx context.Context, row *domain.Record, purchased ma
 		if err = tx.WithContext(ctx).Create(row).Error; err != nil {
 			return err
 		}
-		return tx.WithContext(ctx).Model(&domain.OrderGuard{}).Where("order_id = ?", guard.OrderID).UpdateColumn("version", gorm.Expr("version + 1")).Error
+		return tx.WithContext(ctx).
+			Model(&domain.OrderGuard{}).
+			Where("order_id = ?", guard.OrderID).
+			UpdateColumn("version", gorm.Expr("version + 1")).
+			Error
 	})
 }
 func (r *Repository) ByReplacement(ctx context.Context, id string) (*domain.Record, error) {

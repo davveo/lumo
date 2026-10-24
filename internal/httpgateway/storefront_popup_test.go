@@ -33,29 +33,52 @@ func (c *popupTestCaller) Call(ctx context.Context, service string, command plat
 		return platform.Result{"user_id": "buyer", "role": role, "registered_at": "2026-01-01T00:00:00Z"}, nil
 	}
 	if service == "member" {
-		return platform.Result{"growth": 1350, "level": "gold", "preferences": platform.Result{"categories": []string{"家居生活"}}}, nil
+		return platform.Result{
+			"growth":      1350,
+			"level":       "gold",
+			"preferences": platform.Result{"categories": []string{"家居生活"}},
+		}, nil
 	}
 	if service == "points" {
 		return platform.Result{"available": 6500}, nil
 	}
 	if service == "catalog" && command.Action == "list" {
-		return platform.Result{"items": []platform.Result{{"id": "owned-history", "category": "手机数码"}, {"id": "foreign-history", "category": "食品生鲜"}}}, nil
+		return platform.Result{
+			"items": []platform.Result{
+				{"id": "owned-history", "category": "手机数码"},
+				{"id": "foreign-history", "category": "食品生鲜"},
+			},
+		}, nil
 	}
 	if service == "engagement" && platform.Text(command.Data, "kind") == "history" {
-		return platform.Result{"items": []platform.Result{{"user_id": "buyer", "sku_id": "owned-history"}, {"user_id": "victim", "sku_id": "foreign-history"}}}, nil
+		return platform.Result{
+			"items": []platform.Result{
+				{"user_id": "buyer", "sku_id": "owned-history"},
+				{"user_id": "victim", "sku_id": "foreign-history"},
+			},
+		}, nil
 	}
 	if service == "content" && command.Action == "popup_decide" {
 		if c.fail {
 			return nil, status.Error(codes.Unavailable, "content down")
 		}
-		return platform.Result{"popup": platform.Result{"delivery_id": "delivery-test", "content": platform.Result{"title": "专属好礼"}}}, nil
+		return platform.Result{
+			"popup": platform.Result{"delivery_id": "delivery-test", "content": platform.Result{"title": "专属好礼"}},
+		}, nil
 	}
 	if service == "content" && (command.Action == "popup_event" || command.Action == "popup_claim") {
 		return platform.Result{"allowed": true}, nil
 	}
 	return platform.Result{"items": []any{}}, nil
 }
-func popupRequest(t *testing.T, handler http.Handler, action, token string, data map[string]any, cookies []*http.Cookie) *httptest.ResponseRecorder {
+
+func popupRequest(
+	t *testing.T,
+	handler http.Handler,
+	action, token string,
+	data map[string]any,
+	cookies []*http.Cookie,
+) *httptest.ResponseRecorder {
 	t.Helper()
 	body, _ := json.Marshal(platform.Command{UserID: "victim", Role: "admin", Data: data})
 	request := httptest.NewRequest(http.MethodPost, "https://shop.example/api/v1/"+action, bytes.NewReader(body))
@@ -101,7 +124,8 @@ func TestPopupCookiesAreOpaqueStableAndNeverAuthenticate(t *testing.T) {
 		t.Fatalf("missing browser identity cookies: %v", cookies)
 	}
 	for _, cookie := range cookies {
-		if !validPopupCookie(cookie.Value) || !cookie.HttpOnly || !cookie.Secure || cookie.Path != "/" || cookie.SameSite != http.SameSiteLaxMode {
+		if !validPopupCookie(cookie.Value) || !cookie.HttpOnly || !cookie.Secure || cookie.Path != "/" ||
+			cookie.SameSite != http.SameSiteLaxMode {
 			t.Fatal("unsafe identity cookie", cookie.Name)
 		}
 		if cookie.Name == popupSessionCookie && cookie.MaxAge != 0 {
@@ -120,11 +144,28 @@ func TestPopupCookiesAreOpaqueStableAndNeverAuthenticate(t *testing.T) {
 	if first.Data["visitor_id"] != second.Data["visitor_id"] || first.Data["session_id"] != second.Data["session_id"] {
 		t.Fatal("frequency scope changed")
 	}
-	response = popupRequest(t, handler, "storefront/popup_claim", "", map[string]any{"delivery_id": "d", "view_id": "v"}, cookies)
+	response = popupRequest(
+		t,
+		handler,
+		"storefront/popup_claim",
+		"",
+		map[string]any{"delivery_id": "d", "view_id": "v"},
+		cookies,
+	)
 	if response.Code != 401 || len(popupCalls(caller, "content", "popup_claim")) != 0 {
 		t.Fatal("cookie-only claim allowed")
 	}
-	response = popupRequest(t, handler, "storefront/popup", "", nil, []*http.Cookie{{Name: popupVisitorCookie, Value: "forged"}, {Name: popupSessionCookie, Value: strings.Repeat("g", 64)}})
+	response = popupRequest(
+		t,
+		handler,
+		"storefront/popup",
+		"",
+		nil,
+		[]*http.Cookie{
+			{Name: popupVisitorCookie, Value: "forged"},
+			{Name: popupSessionCookie, Value: strings.Repeat("g", 64)},
+		},
+	)
 	if len(response.Result().Cookies()) != 2 {
 		t.Fatal("malformed cookie identity accepted")
 	}
@@ -132,7 +173,18 @@ func TestPopupCookiesAreOpaqueStableAndNeverAuthenticate(t *testing.T) {
 func TestBootstrapPopupUsesTrustedExistingFragmentsWithoutRepeatingProfileReads(t *testing.T) {
 	caller := &popupTestCaller{}
 	handler := NewHandler(caller, false, t.TempDir())
-	response := popupRequest(t, handler, "storefront/bootstrap", "buyer", map[string]any{"placement": "home", "profile": map[string]any{"registered_at": "2099-01-01T00:00:00Z", "points": 999999}, "visitor_id": "forged"}, nil)
+	response := popupRequest(
+		t,
+		handler,
+		"storefront/bootstrap",
+		"buyer",
+		map[string]any{
+			"placement":  "home",
+			"profile":    map[string]any{"registered_at": "2099-01-01T00:00:00Z", "points": 999999},
+			"visitor_id": "forged",
+		},
+		nil,
+	)
 	if response.Code != 200 || popupBody(t, response)["popup"] == nil {
 		t.Fatal(response.Body.String())
 	}
@@ -142,7 +194,10 @@ func TestBootstrapPopupUsesTrustedExistingFragmentsWithoutRepeatingProfileReads(
 	}
 	command := calls[0]
 	profile := platform.Map(command.Data["profile"])
-	if command.UserID != "buyer" || command.Role != "system" || profile["registered_at"] != "2026-01-01T00:00:00Z" || platform.Int(profile, "growth") != 1350 || platform.Int(profile, "points") != 6500 || profile["level"] != "gold" {
+	if command.UserID != "buyer" || command.Role != "system" || profile["registered_at"] != "2026-01-01T00:00:00Z" ||
+		platform.Int(profile, "growth") != 1350 ||
+		platform.Int(profile, "points") != 6500 ||
+		profile["level"] != "gold" {
 		t.Fatalf("forged or incomplete targeting profile: %v", command)
 	}
 	values := popupStringList(profile["interest_categories"])
@@ -170,13 +225,23 @@ func TestPopupEndpointsEnforceBoundaryAndPrincipal(t *testing.T) {
 		code        int
 	}{
 		{"storefront/popup", "", map[string]any{"profile": map[string]any{"points": 99999}}, 400},
-		{"storefront/popup_event", "buyer", map[string]any{"event": "impression", "delivery_id": "d", "view_id": "v", "user_id": "victim"}, 400},
+		{
+			"storefront/popup_event",
+			"buyer",
+			map[string]any{"event": "impression", "delivery_id": "d", "view_id": "v", "user_id": "victim"},
+			400,
+		},
 		{"storefront/popup", "", map[string]any{"placement": "checkout"}, 400},
 		{"storefront/popup_event", "", map[string]any{"event": "claim", "delivery_id": "d", "view_id": "v"}, 400},
-		{"content/popup_decide", "admin", nil, 403}, {"content/popup_event", "admin", nil, 403}, {"content/popup_claim", "admin", nil, 403},
+		{"content/popup_decide", "admin", nil, 403},
+		{"content/popup_event", "admin", nil, 403},
+		{"content/popup_claim", "admin", nil, 403},
 		{"coupon/templates_by_ids", "admin", map[string]any{"ids": []string{"welcome-100"}}, 403},
-		{"content/popup_list", "buyer", nil, 403}, {"content/popup_list", "", nil, 401}, {"content/popup_list", "admin", nil, 200},
-		{"content/popup_upsert", "admin", nil, 200}, {"content/popup_configure", "admin", nil, 200},
+		{"content/popup_list", "buyer", nil, 403},
+		{"content/popup_list", "", nil, 401},
+		{"content/popup_list", "admin", nil, 200},
+		{"content/popup_upsert", "admin", nil, 200},
+		{"content/popup_configure", "admin", nil, 200},
 	} {
 		t.Run(test.path+test.token, func(t *testing.T) {
 			caller := &popupTestCaller{}
@@ -189,15 +254,31 @@ func TestPopupEndpointsEnforceBoundaryAndPrincipal(t *testing.T) {
 	caller := &popupTestCaller{}
 	handler := NewHandler(caller, false, t.TempDir())
 	for _, action := range []string{"popup_event", "popup_claim"} {
-		response := popupRequest(t, handler, "storefront/"+action, "buyer", map[string]any{"delivery_id": "delivery-1", "view_id": "view-1", "event": "impression"}, nil)
+		response := popupRequest(
+			t,
+			handler,
+			"storefront/"+action,
+			"buyer",
+			map[string]any{"delivery_id": "delivery-1", "view_id": "view-1", "event": "impression"},
+			nil,
+		)
 		if action == "popup_claim" {
-			response = popupRequest(t, handler, "storefront/"+action, "buyer", map[string]any{"delivery_id": "delivery-1", "view_id": "view-1"}, nil)
+			response = popupRequest(
+				t,
+				handler,
+				"storefront/"+action,
+				"buyer",
+				map[string]any{"delivery_id": "delivery-1", "view_id": "view-1"},
+				nil,
+			)
 		}
 		if response.Code != 200 {
 			t.Fatal(response.Body.String())
 		}
 		command := popupCalls(caller, "content", action)[0]
-		if command.UserID != "buyer" || command.Role != "system" || command.Data["delivery_id"] != "delivery-1" || command.Data["profile"] != nil || !validPopupCookie(platform.Text(command.Data, "visitor_id")) {
+		if command.UserID != "buyer" || command.Role != "system" || command.Data["delivery_id"] != "delivery-1" ||
+			command.Data["profile"] != nil ||
+			!validPopupCookie(platform.Text(command.Data, "visitor_id")) {
 			t.Fatal("principal or delivery changed", command)
 		}
 	}
@@ -217,13 +298,24 @@ func TestPopupEndpointsEnforceBoundaryAndPrincipal(t *testing.T) {
 }
 func TestPopupPrivateCommandsCannotHideInReadBatch(t *testing.T) {
 	for _, item := range []readRequest{
-		{Service: "content", Action: "popup_decide"}, {Service: "content", Action: "popup_event"}, {Service: "content", Action: "popup_claim"}, {Service: "content", Action: "popup_upsert"}, {Service: "content", Action: "popup_configure"}, {Service: "coupon", Action: "templates_by_ids"}, {Service: "storefront", Action: "popup"},
+		{Service: "content", Action: "popup_decide"},
+		{Service: "content", Action: "popup_event"},
+		{Service: "content", Action: "popup_claim"},
+		{Service: "content", Action: "popup_upsert"},
+		{Service: "content", Action: "popup_configure"},
+		{Service: "coupon", Action: "templates_by_ids"},
+		{Service: "storefront", Action: "popup"},
 	} {
-		if err := authorizeRead(item, platform.Command{UserID: "admin", Role: "admin"}); status.Code(err) != codes.PermissionDenied {
+		if err := authorizeRead(item, platform.Command{UserID: "admin", Role: "admin"}); status.Code(
+			err,
+		) != codes.PermissionDenied {
 			t.Fatal("write/private action batched", item, err)
 		}
 	}
-	if err := authorizeRead(readRequest{Service: "content", Action: "popup_list"}, platform.Command{UserID: "admin", Role: "admin"}); err != nil {
+	if err := authorizeRead(
+		readRequest{Service: "content", Action: "popup_list"},
+		platform.Command{UserID: "admin", Role: "admin"},
+	); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -235,15 +327,24 @@ func TestPopupCookiesDoNotEnableCrossOriginOrGETMutations(t *testing.T) {
 	first := popupRequest(t, handler, "storefront/popup", "", nil, nil)
 	cookies := first.Result().Cookies()
 	for _, origin := range []string{"https://evil.example", "null"} {
-		request := httptest.NewRequest(http.MethodPost, "https://shop.example/api/v1/storefront/popup_event", strings.NewReader(`{"data":{"delivery_id":"delivery-test","view_id":"v","event":"impression"}}`))
+		request := httptest.NewRequest(
+			http.MethodPost,
+			"https://shop.example/api/v1/storefront/popup_event",
+			strings.NewReader(`{"data":{"delivery_id":"delivery-test","view_id":"v","event":"impression"}}`),
+		)
 		request.Header.Set("Origin", origin)
 		for _, cookie := range cookies {
 			request.AddCookie(cookie)
 		}
 		response := httptest.NewRecorder()
 		handler.ServeHTTP(response, request)
-		if response.Code != http.StatusForbidden || len(popupCalls(caller, "content", "popup_event")) != 0 || len(response.Result().Cookies()) != 0 {
-			t.Fatalf("cross-origin request reached identity/domain handling: %d %s", response.Code, response.Body.String())
+		if response.Code != http.StatusForbidden || len(popupCalls(caller, "content", "popup_event")) != 0 ||
+			len(response.Result().Cookies()) != 0 {
+			t.Fatalf(
+				"cross-origin request reached identity/domain handling: %d %s",
+				response.Code,
+				response.Body.String(),
+			)
 		}
 	}
 	// The configured external frontend may use explicit Bearer headers, but the
@@ -258,7 +359,11 @@ func TestPopupCookiesDoNotEnableCrossOriginOrGETMutations(t *testing.T) {
 		t.Fatal("cross-origin credential policy changed")
 	}
 	for _, action := range []string{"popup", "popup_event", "popup_claim"} {
-		request := httptest.NewRequest(http.MethodGet, "https://shop.example/api/v1/storefront/"+action+"?event=impression&delivery_id=delivery-test&view_id=v", nil)
+		request := httptest.NewRequest(
+			http.MethodGet,
+			"https://shop.example/api/v1/storefront/"+action+"?event=impression&delivery_id=delivery-test&view_id=v",
+			nil,
+		)
 		request.Header.Set("Authorization", "Bearer buyer")
 		for _, cookie := range cookies {
 			request.AddCookie(cookie)
@@ -269,36 +374,48 @@ func TestPopupCookiesDoNotEnableCrossOriginOrGETMutations(t *testing.T) {
 			t.Fatalf("GET %s was allowed: %d", action, response.Code)
 		}
 	}
-	if len(popupCalls(caller, "content", "popup_event")) != 0 || len(popupCalls(caller, "content", "popup_claim")) != 0 {
+	if len(popupCalls(caller, "content", "popup_event")) != 0 ||
+		len(popupCalls(caller, "content", "popup_claim")) != 0 {
 		t.Fatal("GET caused popup mutation")
 	}
 }
 
 func TestPopupInterestQualificationUsesOneBoundedCatalogBatch(t *testing.T) {
-	caller := &aggregationCaller{handle: func(_ context.Context, service string, command platform.Command) (platform.Result, error) {
-		if service != "catalog" || command.Action != "batch_get" || command.UserID != "" || command.Role != "" {
-			t.Errorf("interest qualification performed unrelated or per-SKU read: %s/%s", service, command.Action)
-		}
-		var input struct {
-			IDs []string `json:"ids"`
-		}
-		if err := platform.Decode(command.Data, &input); err != nil || len(input.IDs) != 50 {
-			t.Errorf("interest batch was not bounded: %d %v", len(input.IDs), err)
-		}
-		items := []platform.Result{}
-		for _, id := range input.IDs {
-			items = append(items, platform.Result{"id": id, "category": "手机数码"})
-		}
-		return platform.Result{"items": items}, nil
-	}}
+	caller := &aggregationCaller{
+		handle: func(_ context.Context, service string, command platform.Command) (platform.Result, error) {
+			if service != "catalog" || command.Action != "batch_get" || command.UserID != "" || command.Role != "" {
+				t.Errorf("interest qualification performed unrelated or per-SKU read: %s/%s", service, command.Action)
+			}
+			var input struct {
+				IDs []string `json:"ids"`
+			}
+			if err := platform.Decode(command.Data, &input); err != nil || len(input.IDs) != 50 {
+				t.Errorf("interest batch was not bounded: %d %v", len(input.IDs), err)
+			}
+			items := []platform.Result{}
+			for _, id := range input.IDs {
+				items = append(items, platform.Result{"id": id, "category": "手机数码"})
+			}
+			return platform.Result{"items": items}, nil
+		},
+	}
 	rows := []platform.Result{}
 	for index := 0; index < 100; index++ {
 		rows = append(rows, platform.Result{"user_id": "buyer", "sku_id": strings.Repeat("a", index+1)})
 	}
 	rows = append([]platform.Result{{"user_id": "victim", "sku_id": "foreign-id"}}, rows...)
-	request := readRequest{Service: "engagement", Action: "list", Command: readCommand{Data: map[string]any{"kind": "history"}}, auth: true}
+	request := readRequest{
+		Service: "engagement",
+		Action:  "list",
+		Command: readCommand{Data: map[string]any{"kind": "history"}},
+		auth:    true,
+	}
 	fragments := []platform.Result{readResult(request, platform.Result{"items": rows}, nil)}
-	fragments = (&gateway{rpc: caller}).popupInterestProducts(context.Background(), fragments, platform.Command{UserID: "buyer", Role: "user"})
+	fragments = (&gateway{rpc: caller}).popupInterestProducts(
+		context.Background(),
+		fragments,
+		platform.Command{UserID: "buyer", Role: "user"},
+	)
 	if caller.count("catalog", "batch_get") != 1 || caller.count("catalog", "get") != 0 || len(caller.calls) != 1 {
 		t.Fatal("qualification introduced N+1 or stock reads", caller.calls)
 	}

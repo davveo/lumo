@@ -36,11 +36,22 @@ func TestDemoPaymentSubmitGatewayRequiresDemoAndBuyerSession(t *testing.T) {
 		{"no session", http.MethodPost, "submit_demo", "", true, http.StatusUnauthorized},
 		{"invalid session", http.MethodPost, "submit_demo", "invalid-session", true, http.StatusUnauthorized},
 		{"mutation cannot use GET", http.MethodGet, "submit_demo", "buyer-session", true, http.StatusBadRequest},
-		{"administrator confirmation remains restricted", http.MethodPost, "confirm_demo", "buyer-session", true, http.StatusForbidden},
+		{
+			"administrator confirmation remains restricted",
+			http.MethodPost,
+			"confirm_demo",
+			"buyer-session",
+			true,
+			http.StatusForbidden,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			caller := &demoPaymentCaller{}
-			request := httptest.NewRequest(tc.method, "/api/v1/payment/"+tc.action, strings.NewReader(`{"id":"pay-test","user_id":"victim","role":"admin"}`))
+			request := httptest.NewRequest(
+				tc.method,
+				"/api/v1/payment/"+tc.action,
+				strings.NewReader(`{"id":"pay-test","user_id":"victim","role":"admin"}`),
+			)
 			if tc.token != "" {
 				request.Header.Set("Authorization", "Bearer "+tc.token)
 			}

@@ -24,7 +24,11 @@ type aggregateCountingCaller struct {
 	calls []aggregateObservedCall
 }
 
-func (c *aggregateCountingCaller) Call(ctx context.Context, service string, command platform.Command) (platform.Result, error) {
+func (c *aggregateCountingCaller) Call(
+	ctx context.Context,
+	service string,
+	command platform.Command,
+) (platform.Result, error) {
 	c.mu.Lock()
 	c.calls = append(c.calls, aggregateObservedCall{service: service, command: command})
 	c.mu.Unlock()
@@ -121,19 +125,33 @@ func TestHTTPReadAggregationBatchesFreshReadsAndIsolatesPrincipals(t *testing.T)
 	}
 	assertGuest := func(rows []map[string]any) {
 		t.Helper()
-		public := map[string]bool{"catalog": true, "inventory": true, "content": true, "campaign": true, "flash": true, "group": true, "coupon": true, "recommendation": true, "storefront": true}
+		public := map[string]bool{
+			"catalog":        true,
+			"inventory":      true,
+			"content":        true,
+			"campaign":       true,
+			"flash":          true,
+			"group":          true,
+			"coupon":         true,
+			"recommendation": true,
+			"storefront":     true,
+		}
 		for _, row := range rows {
-			if row["auth"] != false || !public[platform.Text(row, "service")] || (row["service"] == "coupon" && row["action"] != "templates") {
+			if row["auth"] != false || !public[platform.Text(row, "service")] ||
+				(row["service"] == "coupon" && row["action"] != "templates") {
 				t.Fatalf("guest received private fragment: %#v", row)
 			}
 		}
 		for _, call := range counted.snapshot() {
-			if call.service == "recommendation" && call.command.Action == "rank_bootstrap" && call.command.UserID == "" && call.command.Role == "system" {
+			if call.service == "recommendation" && call.command.Action == "rank_bootstrap" &&
+				call.command.UserID == "" &&
+				call.command.Role == "system" {
 				continue
 			}
 			// Anonymous popup decisions use trusted gateway facts and opaque
 			// visitor cookies, never an authenticated shopper principal.
-			if call.service == "content" && call.command.Action == "popup_decide" && call.command.UserID == "" && call.command.Role == "system" {
+			if call.service == "content" && call.command.Action == "popup_decide" && call.command.UserID == "" &&
+				call.command.Role == "system" {
 				continue
 			}
 			if call.command.UserID != "" || call.command.Role != "" {
@@ -175,7 +193,10 @@ func TestHTTPReadAggregationBatchesFreshReadsAndIsolatesPrincipals(t *testing.T)
 
 	login := func(name, password string) string {
 		t.Helper()
-		token := platform.Text(h.call("", "iam", "login", "", "", map[string]any{"username": name, "password": password}), "token")
+		token := platform.Text(
+			h.call("", "iam", "login", "", "", map[string]any{"username": name, "password": password}),
+			"token",
+		)
 		if token == "" {
 			t.Fatal("login returned an empty token")
 		}
@@ -187,7 +208,19 @@ func TestHTTPReadAggregationBatchesFreshReadsAndIsolatesPrincipals(t *testing.T)
 	if claimID == "" {
 		t.Fatal("claim returned no coupon ID", claimed)
 	}
-	h.call(user, "address", "create", "", "", map[string]any{"recipient": "Aggregation demo", "phone": "13800000000", "address": "Integration Street", "city": "Shenzhen"})
+	h.call(
+		user,
+		"address",
+		"create",
+		"",
+		"",
+		map[string]any{
+			"recipient": "Aggregation demo",
+			"phone":     "13800000000",
+			"address":   "Integration Street",
+			"city":      "Shenzhen",
+		},
+	)
 
 	counted.reset()
 	member := aggregateRows(t, h.call(user, "storefront", "bootstrap", "", "", nil))
@@ -219,7 +252,8 @@ func TestHTTPReadAggregationBatchesFreshReadsAndIsolatesPrincipals(t *testing.T)
 		t.Fatal("bootstrap coupon templates lost member claim personalization")
 	}
 	for _, call := range counted.snapshot() {
-		if call.service == "member" || call.service == "address" || (call.service == "coupon" && call.command.Action == "list") {
+		if call.service == "member" || call.service == "address" ||
+			(call.service == "coupon" && call.command.Action == "list") {
 			if call.command.UserID != "demo" || call.command.Role != "user" {
 				t.Fatalf("private RPC lost authenticated principal: %#v", call)
 			}
@@ -232,7 +266,12 @@ func TestHTTPReadAggregationBatchesFreshReadsAndIsolatesPrincipals(t *testing.T)
 	assertGuest(guest)
 
 	request := func(key, service, action, id string, data map[string]any) map[string]any {
-		return map[string]any{"key": key, "service": service, "action": action, "command": map[string]any{"id": id, "data": data}}
+		return map[string]any{
+			"key":     key,
+			"service": service,
+			"action":  action,
+			"command": map[string]any{"id": id, "data": data},
+		}
 	}
 	assertNoDomainCalls := func() {
 		t.Helper()
@@ -243,7 +282,12 @@ func TestHTTPReadAggregationBatchesFreshReadsAndIsolatesPrincipals(t *testing.T)
 	}
 	counted.reset()
 	h.expect(400, user, "storefront", "batch", "", "", map[string]any{"requests": []any{
-		map[string]any{"key": "forged", "service": "member", "action": "get", "command": map[string]any{"user_id": "victim", "role": "admin", "data": map[string]any{}}},
+		map[string]any{
+			"key":     "forged",
+			"service": "member",
+			"action":  "get",
+			"command": map[string]any{"user_id": "victim", "role": "admin", "data": map[string]any{}},
+		},
 	}})
 	assertNoDomainCalls()
 
@@ -284,7 +328,8 @@ func TestHTTPReadAggregationBatchesFreshReadsAndIsolatesPrincipals(t *testing.T)
 			switch row["key"] {
 			case "missing":
 				err := platform.Map(row["error"])
-				if platform.Text(err, "code") != "NotFound" || platform.Int(err, "status") != 404 || row["data"] != nil {
+				if platform.Text(err, "code") != "NotFound" || platform.Int(err, "status") != 404 ||
+					row["data"] != nil {
 					t.Fatalf("missing SKU did not return an independent 404: %#v", row)
 				}
 			case "stock", "stock-duplicate":

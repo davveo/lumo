@@ -51,7 +51,13 @@ func TestListingIndexMigratesExistingCatalogAndCoversCount(t *testing.T) {
 		{ID: "product-b", Kind: "sku", Status: "ACTIVE", CreatedAt: first.Add(time.Hour)},
 		{ID: "product-c", Kind: "sku", Status: "ACTIVE", CreatedAt: first.Add(time.Hour)},
 		{ID: "product-disabled", Kind: "sku", Status: "DISABLED", CreatedAt: first.Add(2 * time.Hour)},
-		{ID: "product-child", ParentID: "product-a", Kind: "sku", Status: "ACTIVE", CreatedAt: first.Add(3 * time.Hour)},
+		{
+			ID:        "product-child",
+			ParentID:  "product-a",
+			Kind:      "sku",
+			Status:    "ACTIVE",
+			CreatedAt: first.Add(3 * time.Hour),
+		},
 		{ID: "sku-legacy", ParentID: "__legacy__", Kind: "sku", Status: "ACTIVE", CreatedAt: first.Add(4 * time.Hour)},
 		{ID: "catalog-policy", Kind: "policy", Status: "ACTIVE", CreatedAt: first.Add(5 * time.Hour)},
 	}
@@ -73,7 +79,13 @@ func TestListingIndexMigratesExistingCatalogAndCoversCount(t *testing.T) {
 	if err := repository.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	for _, index := range []string{"idx_catalog_page", "idx_catalog_records_user_id", "idx_catalog_records_parent_id", "idx_catalog_records_kind", "idx_catalog_records_status"} {
+	for _, index := range []string{
+		"idx_catalog_page",
+		"idx_catalog_records_user_id",
+		"idx_catalog_records_parent_id",
+		"idx_catalog_records_kind",
+		"idx_catalog_records_status",
+	} {
 		if !db.Migrator().HasIndex(&domain.Record{}, index) {
 			t.Errorf("migration did not retain/create %s", index)
 		}
@@ -118,7 +130,10 @@ func TestListingIndexMigratesExistingCatalogAndCoversCount(t *testing.T) {
 	var queries []query
 	if err := db.Callback().Query().After("gorm:query").Register("test:listing_plan", func(tx *gorm.DB) {
 		if tx.Statement.Table == "catalog_records" {
-			queries = append(queries, query{sql: tx.Statement.SQL.String(), args: append([]any(nil), tx.Statement.Vars...)})
+			queries = append(
+				queries,
+				query{sql: tx.Statement.SQL.String(), args: append([]any(nil), tx.Statement.Vars...)},
+			)
 		}
 	}); err != nil {
 		t.Fatal(err)
@@ -127,7 +142,8 @@ func TestListingIndexMigratesExistingCatalogAndCoversCount(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if totalBefore != 3 || totalAfter != totalBefore || len(after) != 1 || after[0].ID != "product-b" || !reflect.DeepEqual(before, after) {
+	if totalBefore != 3 || totalAfter != totalBefore || len(after) != 1 || after[0].ID != "product-b" ||
+		!reflect.DeepEqual(before, after) {
 		t.Fatalf("public pagination changed: before=%v/%d after=%v/%d", before, totalBefore, after, totalAfter)
 	}
 	if len(queries) != 2 {

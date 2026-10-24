@@ -25,7 +25,10 @@ func (s *Service) Tick(ctx context.Context) (traceErr error) {
 		if row.Status == constants.FulfillmentStatusDispatching {
 			action = constants.ActionDispatch
 		}
-		if _, err = s.Handle(ctx, platform.Command{Action: action, ID: row.ID, UserID: row.UserID, Role: constants.RoleSystem}); err != nil {
+		if _, err = s.Handle(
+			ctx,
+			platform.Command{Action: action, ID: row.ID, UserID: row.UserID, Role: constants.RoleSystem},
+		); err != nil {
 			failures = append(failures, err)
 		}
 	}

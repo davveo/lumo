@@ -63,7 +63,12 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		if include, _ := c.Data["include_disabled"].(bool); c.Role == constants.RoleAdmin && include {
 			st = ""
 		}
-		vs, total, err := s.repo.ListProducts(ctx, st, int(platform.Int(c.Data, "limit")), int(platform.Int(c.Data, "offset")))
+		vs, total, err := s.repo.ListProducts(
+			ctx,
+			st,
+			int(platform.Int(c.Data, "limit")),
+			int(platform.Int(c.Data, "offset")),
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -105,7 +110,13 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		if e != nil {
 			return nil, e
 		}
-		evt := platform.Event{ID: platform.ID("evt"), Type: constants.EventProductChanged, AggregateID: c.ID, UserID: c.UserID, Data: view(rows[0])}
+		evt := platform.Event{
+			ID:          platform.ID("evt"),
+			Type:        constants.EventProductChanged,
+			AggregateID: c.ID,
+			UserID:      c.UserID,
+			Data:        view(rows[0]),
+		}
 		if e = s.repo.SaveProduct(ctx, c.ID, rows, &evt); e != nil {
 			return nil, e
 		}
@@ -133,8 +144,26 @@ func (s *Service) seed(ctx context.Context) error {
 		{"sku-watch", "智能运动手表", "LUMO", "服饰箱包", 114900},
 		{"sku-coffee", "全自动咖啡机", "LUMO", "家用电器", 39900},
 	} {
-		r := record(p.ID, "", constants.CatalogKindSku, constants.CatalogStatusActive, map[string]any{"name": p.Name, "price_cents": p.Price, "brand": p.Brand, "category": p.Category, "active": true, "catalog_visible": false})
-		aliases := map[string]string{"sku-phone": "iphone", "sku-headphones": "headphones", "sku-watch": "watch", "sku-coffee": "coffee"}
+		r := record(
+			p.ID,
+			"",
+			constants.CatalogKindSku,
+			constants.CatalogStatusActive,
+			map[string]any{
+				"name":            p.Name,
+				"price_cents":     p.Price,
+				"brand":           p.Brand,
+				"category":        p.Category,
+				"active":          true,
+				"catalog_visible": false,
+			},
+		)
+		aliases := map[string]string{
+			"sku-phone":      "iphone",
+			"sku-headphones": "headphones",
+			"sku-watch":      "watch",
+			"sku-coffee":     "coffee",
+		}
 		if alias := aliases[p.ID]; alias != "" {
 			d := payload(r)
 			d["product_id"] = alias
@@ -284,7 +313,23 @@ func catalogRows(id string, data map[string]any, state string) ([]domain.Record,
 		}
 	}
 	attrs := map[string]any{}
-	for _, k := range []string{"name", "brand", "category", "description", "sub", "image", "old", "sales", "label", "highlights", "highSubs", "specs", "image_file_id", "demo", "demo_source"} {
+	for _, k := range []string{
+		"name",
+		"brand",
+		"category",
+		"description",
+		"sub",
+		"image",
+		"old",
+		"sales",
+		"label",
+		"highlights",
+		"highSubs",
+		"specs",
+		"image_file_id",
+		"demo",
+		"demo_source",
+	} {
 		if v, ok := data[k]; ok {
 			attrs[k] = v
 		}

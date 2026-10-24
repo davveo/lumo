@@ -15,7 +15,13 @@ import (
 const maxUploadSize int64 = 10 * 1024 * 1024
 const signedTTL = 10 * time.Minute
 
-var allowedMIME = map[string]bool{constants.MediaContentTypeJPEG: true, constants.MediaContentTypePNG: true, constants.MediaContentTypeWebP: true, constants.MediaContentTypePDF: true, constants.MediaContentTypePlainText: true}
+var allowedMIME = map[string]bool{
+	constants.MediaContentTypeJPEG:      true,
+	constants.MediaContentTypePNG:       true,
+	constants.MediaContentTypeWebP:      true,
+	constants.MediaContentTypePDF:       true,
+	constants.MediaContentTypePlainText: true,
+}
 
 func contentType(v string) (string, error) {
 	typ, _, e := mime.ParseMediaType(strings.TrimSpace(v))
@@ -54,7 +60,15 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		key := "private/" + id // never derive an object key from user-supplied names
 		mode := constants.MediaStorageModeMetadataOnly
 		st := constants.MediaStatusRegistered
-		data := map[string]any{"file_name": name, "content_type": ct, "mime_type": ct, "size_bytes": size, "size": size, "object_key": key, "upload_supported": s.store != nil}
+		data := map[string]any{
+			"file_name":        name,
+			"content_type":     ct,
+			"mime_type":        ct,
+			"size_bytes":       size,
+			"size":             size,
+			"object_key":       key,
+			"upload_supported": s.store != nil,
+		}
 		var signed domain.SignedUpload
 		if s.store != nil {
 			mode = constants.MediaStorageModeMinio
@@ -112,17 +126,29 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		key := platform.Text(data, "object_key")
 		info, e := s.store.Stat(ctx, key)
 		if e != nil {
-			return nil, status.Error(codes.FailedPrecondition, "object not uploaded or storage verification unavailable")
+			return nil, status.Error(
+				codes.FailedPrecondition,
+				"object not uploaded or storage verification unavailable",
+			)
 		}
 		ct, e := contentType(info.ContentType)
-		if e != nil || ct != platform.Text(data, "content_type") || info.Size != platform.Int(data, "size_bytes") || info.Size > maxUploadSize {
-			if _, saveErr := s.repo.Mutate(ctx, r, false, func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
-				v.Status = constants.MediaStatusRejected
-				return nil, nil, nil
-			}); saveErr != nil {
+		if e != nil || ct != platform.Text(data, "content_type") || info.Size != platform.Int(data, "size_bytes") ||
+			info.Size > maxUploadSize {
+			if _, saveErr := s.repo.Mutate(
+				ctx,
+				r,
+				false,
+				func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
+					v.Status = constants.MediaStatusRejected
+					return nil, nil, nil
+				},
+			); saveErr != nil {
 				return nil, saveErr
 			}
-			return nil, status.Error(codes.FailedPrecondition, "uploaded object size or content type does not match registration")
+			return nil, status.Error(
+				codes.FailedPrecondition,
+				"uploaded object size or content type does not match registration",
+			)
 		}
 		if c.Action == constants.ActionComplete {
 			r, e = s.repo.Mutate(ctx, r, false, func(v *domain.Record) ([]domain.Record, *platform.Event, error) {

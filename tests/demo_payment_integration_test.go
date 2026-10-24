@@ -26,7 +26,11 @@ func TestMemberDemoPaymentCompletesCheckoutExactlyOnce(t *testing.T) {
 	placed := c.call(t, ctx, "checkout", "submit", "", "member-demo-payment", "user", "demo", map[string]any{
 		"quote_id": platform.Text(quote, "quote_id"),
 		"source":   "cart",
-		"address":  map[string]any{"recipient": "Demo Buyer", "phone": "13800000000", "address": "Integration Demo Street"},
+		"address": map[string]any{
+			"recipient": "Demo Buyer",
+			"phone":     "13800000000",
+			"address":   "Integration Demo Street",
+		},
 	})
 	orderID := platform.Text(placed, "order_id")
 	if orderID == "" {
@@ -40,13 +44,21 @@ func TestMemberDemoPaymentCompletesCheckoutExactlyOnce(t *testing.T) {
 	if order := call("order", "get", orderID, nil); platform.Text(order, "status") != "PENDING_PAYMENT" {
 		t.Fatalf("creating a payment request must not mark the order paid: %v", order)
 	}
-	if _, err := c.rpc.Call(ctx, "fulfillment", platform.Command{Action: "get", ID: orderID, UserID: "demo", Role: "user"}); status.Code(err) != codes.NotFound {
+	if _, err := c.rpc.Call(
+		ctx,
+		"fulfillment",
+		platform.Command{Action: "get", ID: orderID, UserID: "demo", Role: "user"},
+	); status.Code(
+		err,
+	) != codes.NotFound {
 		t.Fatalf("unpaid order unexpectedly has warehouse work: %v", err)
 	}
 
 	// The buyer completes the explicit demo channel without an administrator.
 	submitted := call("payment", "submit_demo", paymentID, nil)
-	if platform.Text(submitted, "status") != "SUCCEEDED" || platform.Text(submitted, "receipt") == "" || platform.Text(submitted, "paid_at") == "" || platform.Int(submitted, "amount_cents") != platform.Int(quote, "payable_cents") {
+	if platform.Text(submitted, "status") != "SUCCEEDED" || platform.Text(submitted, "receipt") == "" ||
+		platform.Text(submitted, "paid_at") == "" ||
+		platform.Int(submitted, "amount_cents") != platform.Int(quote, "payable_cents") {
 		t.Fatalf("demo channel did not persist its successful receipt: %v", submitted)
 	}
 	assertReceiptUnchanged := func(result platform.Result) {
@@ -64,19 +76,28 @@ func TestMemberDemoPaymentCompletesCheckoutExactlyOnce(t *testing.T) {
 		t.Helper()
 		order := call("order", "get", orderID, nil)
 		committed, _ := order["resources_committed"].(bool)
-		if platform.Text(order, "status") != "READY_TO_FULFILL" || platform.Text(order, "payment_id") != paymentID || !committed {
+		if platform.Text(order, "status") != "READY_TO_FULFILL" || platform.Text(order, "payment_id") != paymentID ||
+			!committed {
 			t.Fatalf("payment acceptance did not finish the resource saga: %v", order)
 		}
 		warehouse := call("fulfillment", "get", orderID, nil)
-		if platform.Text(warehouse, "status") != "READY" || platform.Text(warehouse, "order_id") != orderID || platform.Text(warehouse, "reservation_id") != orderID {
+		if platform.Text(warehouse, "status") != "READY" || platform.Text(warehouse, "order_id") != orderID ||
+			platform.Text(warehouse, "reservation_id") != orderID {
 			t.Fatalf("paid order did not create matching warehouse work: %v", warehouse)
 		}
 		stock := call("inventory", "get", "sku-watch", nil)
-		if platform.Int(stock, "on_hand") != platform.Int(stockBefore, "on_hand") || platform.Int(stock, "reserved") != platform.Int(stockBefore, "reserved") || platform.Int(stock, "allocated") != platform.Int(stockBefore, "allocated")+2 {
-			t.Fatalf("paid goods must be allocated once, without premature dispatch: before=%v after=%v", stockBefore, stock)
+		if platform.Int(stock, "on_hand") != platform.Int(stockBefore, "on_hand") ||
+			platform.Int(stock, "reserved") != platform.Int(stockBefore, "reserved") ||
+			platform.Int(stock, "allocated") != platform.Int(stockBefore, "allocated")+2 {
+			t.Fatalf(
+				"paid goods must be allocated once, without premature dispatch: before=%v after=%v",
+				stockBefore,
+				stock,
+			)
 		}
 		points := call("points", "get", "", nil)
-		if platform.Int(points, "available") != platform.Int(pointsBefore, "available")-500 || platform.Int(points, "frozen") != 0 {
+		if platform.Int(points, "available") != platform.Int(pointsBefore, "available")-500 ||
+			platform.Int(points, "frozen") != 0 {
 			t.Fatalf("payment did not consume the reserved points exactly once: %v", points)
 		}
 		couponUsed := false
@@ -94,16 +115,22 @@ func TestMemberDemoPaymentCompletesCheckoutExactlyOnce(t *testing.T) {
 		}
 		paidNotifications := 0
 		for _, notification := range mapItems(call("notification", "list", "", nil)) {
-			if platform.Text(notification, "event_type") == "OrderPaymentAccepted" && platform.Text(notification, "business_id") == orderID {
+			if platform.Text(notification, "event_type") == "OrderPaymentAccepted" &&
+				platform.Text(notification, "business_id") == orderID {
 				paidNotifications++
 			}
 		}
 		if paidNotifications != 1 {
 			t.Fatalf("expected one payment-accepted notification, got %d", paidNotifications)
 		}
-		for service, eventType := range map[string]string{"payment": "PaymentSucceeded", "order": "OrderPaymentAccepted"} {
+		for service, eventType := range map[string]string{
+			"payment": "PaymentSucceeded",
+			"order":   "OrderPaymentAccepted",
+		} {
 			var count int64
-			if err := c.dbs[service].Model(&platform.Outbox{}).Where("event_type = ?", eventType).Count(&count).Error; err != nil {
+			if err := c.dbs[service].Model(&platform.Outbox{}).Where("event_type = ?", eventType).Count(
+				&count,
+			).Error; err != nil {
 				t.Fatal(err)
 			}
 			if count != 1 {

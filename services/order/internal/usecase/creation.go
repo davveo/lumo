@@ -72,7 +72,19 @@ func (s *Service) Create(ctx context.Context, request CreateOrderRequest) (trace
 		if expiresAt.IsZero() {
 			expiresAt = time.Now().UTC().Add(30 * time.Minute)
 		}
-		order = domain.Order{ID: request.ID, UserID: request.Actor.UserID, Status: constants.OrderStatusCreating, Version: 1, Payable: amount, Quote: string(request.Quote), Address: string(address), Note: request.Note, Source: request.Source, GroupID: platform.Text(quote, "group_id"), ExpiresAt: expiresAt}
+		order = domain.Order{
+			ID:        request.ID,
+			UserID:    request.Actor.UserID,
+			Status:    constants.OrderStatusCreating,
+			Version:   1,
+			Payable:   amount,
+			Quote:     string(request.Quote),
+			Address:   string(address),
+			Note:      request.Note,
+			Source:    request.Source,
+			GroupID:   platform.Text(quote, "group_id"),
+			ExpiresAt: expiresAt,
+		}
 		if err = tx.Create(&order); err != nil {
 			return err
 		}
@@ -82,22 +94,34 @@ func (s *Service) Create(ctx context.Context, request CreateOrderRequest) (trace
 	return result, err
 }
 func (s *Service) Pending(ctx context.Context, request OrderRequest) (domain.Order, error) {
-	return s.update(ctx, constants.ActionPending, request, internalAccess, func(_ *repository.Tx, order *domain.Order) (transition, error) {
-		if order.Status == constants.OrderStatusPendingPayment {
-			return transition{unchanged: true}, nil
-		}
-		if order.Status != constants.OrderStatusCreating {
-			return transition{}, status.Error(codes.FailedPrecondition, "order cannot become payable")
-		}
-		order.Status = constants.OrderStatusPendingPayment
-		return transition{eventType: constants.EventOrderAwaitingPayment}, nil
-	})
+	return s.update(
+		ctx,
+		constants.ActionPending,
+		request,
+		internalAccess,
+		func(_ *repository.Tx, order *domain.Order) (transition, error) {
+			if order.Status == constants.OrderStatusPendingPayment {
+				return transition{unchanged: true}, nil
+			}
+			if order.Status != constants.OrderStatusCreating {
+				return transition{}, status.Error(codes.FailedPrecondition, "order cannot become payable")
+			}
+			order.Status = constants.OrderStatusPendingPayment
+			return transition{eventType: constants.EventOrderAwaitingPayment}, nil
+		},
+	)
 }
 func (s *Service) CreateFailed(ctx context.Context, request OrderRequest) (domain.Order, error) {
-	return s.update(ctx, constants.ActionCreateFailed, request, internalAccess, func(_ *repository.Tx, order *domain.Order) (transition, error) {
-		if order.Status == constants.OrderStatusCreating {
-			order.Status = constants.OrderStatusCreateFailed
-		}
-		return transition{}, nil
-	})
+	return s.update(
+		ctx,
+		constants.ActionCreateFailed,
+		request,
+		internalAccess,
+		func(_ *repository.Tx, order *domain.Order) (transition, error) {
+			if order.Status == constants.OrderStatusCreating {
+				order.Status = constants.OrderStatusCreateFailed
+			}
+			return transition{}, nil
+		},
+	)
 }

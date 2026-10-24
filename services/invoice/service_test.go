@@ -55,10 +55,24 @@ func expectCode(t *testing.T, err error, code codes.Code) {
 func TestIssuedInvoiceRetainsOriginalAndDeduplicatesRefund(t *testing.T) {
 	total := int64(0)
 	rpc := &fakeCaller{fn: func(ctx context.Context, svc string, c platform.Command) (platform.Result, error) {
-		return platform.Result{"id": c.ID, "user_id": "demo", "status": "READY_TO_FULFILL", "payable_cents": int64(10000), "refunded_total_cents": total}, nil
+		return platform.Result{
+			"id":                   c.ID,
+			"user_id":              "demo",
+			"status":               "READY_TO_FULFILL",
+			"payable_cents":        int64(10000),
+			"refunded_total_cents": total,
+		}, nil
 	}}
 	m, _ := setup(t, rpc)
-	row := run(t, m, platform.Command{Action: "create", UserID: "demo", Data: map[string]any{"order_id": "o1", "title": "个人", "kind": "personal"}})
+	row := run(
+		t,
+		m,
+		platform.Command{
+			Action: "create",
+			UserID: "demo",
+			Data:   map[string]any{"order_id": "o1", "title": "个人", "kind": "personal"},
+		},
+	)
 	id := platform.Text(row, "id")
 	_, err := m.Handle(context.Background(), platform.Command{Action: "issue_demo", ID: id, UserID: "demo"})
 	expectCode(t, err, codes.PermissionDenied)
@@ -68,7 +82,16 @@ func TestIssuedInvoiceRetainsOriginalAndDeduplicatesRefund(t *testing.T) {
 		t.Fatal(row)
 	}
 	total = 4000
-	e := platform.Event{Type: "RefundSucceeded", UserID: "demo", Data: map[string]any{"order_id": "o1", "refund_id": "r1", "amount_cents": int64(4000), "refunded_total_cents": total}}
+	e := platform.Event{
+		Type:   "RefundSucceeded",
+		UserID: "demo",
+		Data: map[string]any{
+			"order_id":             "o1",
+			"refund_id":            "r1",
+			"amount_cents":         int64(4000),
+			"refunded_total_cents": total,
+		},
+	}
 	if err = m.OnEvent(context.Background(), e); err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +99,8 @@ func TestIssuedInvoiceRetainsOriginalAndDeduplicatesRefund(t *testing.T) {
 		t.Fatal(err)
 	}
 	row = run(t, m, platform.Command{Action: "get", ID: id, UserID: "demo"})
-	if row["status"] != "REVERSAL_PENDING" || platform.Text(row, "number") != number || platform.Int(row, "refunded_cents") != 4000 {
+	if row["status"] != "REVERSAL_PENDING" || platform.Text(row, "number") != number ||
+		platform.Int(row, "refunded_cents") != 4000 {
 		t.Fatal(row)
 	}
 	reversals := run(t, m, platform.Command{Action: "reversals", ID: id, UserID: "demo"})
@@ -97,15 +121,37 @@ func TestRefundBeforeInvoiceApplicationUsesCumulativeSnapshot(t *testing.T) {
 		} else {
 			total = 2500
 		}
-		return platform.Result{"id": c.ID, "user_id": "demo", "status": "READY_TO_FULFILL", "payable_cents": int64(10000), "refunded_total_cents": total}, nil
+		return platform.Result{
+			"id":                   c.ID,
+			"user_id":              "demo",
+			"status":               "READY_TO_FULFILL",
+			"payable_cents":        int64(10000),
+			"refunded_total_cents": total,
+		}, nil
 	}}
 	m, _ := setup(t, rpc)
-	row := run(t, m, platform.Command{Action: "create", UserID: "demo", Data: map[string]any{"order_id": "o2", "title": "个人"}})
+	row := run(
+		t,
+		m,
+		platform.Command{Action: "create", UserID: "demo", Data: map[string]any{"order_id": "o2", "title": "个人"}},
+	)
 	id := platform.Text(row, "id")
 	if platform.Int(row, "refunded_cents") != 2500 {
 		t.Fatal(row)
 	}
-	if err := m.OnEvent(context.Background(), platform.Event{Type: "RefundSucceeded", UserID: "demo", Data: map[string]any{"order_id": "o2", "refund_id": "r-old", "amount_cents": int64(2500), "refunded_total_cents": int64(2500)}}); err != nil {
+	if err := m.OnEvent(
+		context.Background(),
+		platform.Event{
+			Type:   "RefundSucceeded",
+			UserID: "demo",
+			Data: map[string]any{
+				"order_id":             "o2",
+				"refund_id":            "r-old",
+				"amount_cents":         int64(2500),
+				"refunded_total_cents": int64(2500),
+			},
+		},
+	); err != nil {
 		t.Fatal(err)
 	}
 	row = run(t, m, platform.Command{Action: "issue_demo", ID: id, UserID: "admin", Role: "admin"})

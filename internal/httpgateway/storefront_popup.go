@@ -43,7 +43,14 @@ func preparePopupIdentity(ctx context.Context, w http.ResponseWriter, r *http.Re
 		}
 		value := hex.EncodeToString(raw)
 		*entry.target = value
-		cookie := &http.Cookie{Name: entry.name, Value: value, Path: "/", HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteLaxMode}
+		cookie := &http.Cookie{
+			Name:     entry.name,
+			Value:    value,
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   r.TLS != nil,
+			SameSite: http.SameSiteLaxMode,
+		}
 		if entry.persistent {
 			cookie.MaxAge = 365 * 24 * 60 * 60
 			cookie.Expires = time.Now().UTC().AddDate(1, 0, 0)
@@ -69,14 +76,26 @@ func popupPlacement(data map[string]any) (string, error) {
 		placement = constants.PopupPlacementHome
 	}
 	switch placement {
-	case constants.PopupPlacementHome, constants.PopupPlacementCategory, constants.PopupPlacementProduct, constants.PopupPlacementCoupons, constants.PopupPlacementNone:
+	case constants.PopupPlacementHome,
+		constants.PopupPlacementCategory,
+		constants.PopupPlacementProduct,
+		constants.PopupPlacementCoupons,
+		constants.PopupPlacementNone:
 		return placement, nil
 	}
 	return "", status.Error(codes.InvalidArgument, "unsupported popup placement")
 }
-func popupCommand(ctx context.Context, principal platform.Command, action, placement string, profile platform.Result) (platform.Command, bool) {
+
+func popupCommand(
+	ctx context.Context,
+	principal platform.Command,
+	action, placement string,
+	profile platform.Result,
+) (platform.Command, bool) {
 	identity, ok := ctx.Value(popupIdentityContextKey{}).(popupIdentity)
-	if !ok || !validPopupCookie(identity.visitor) || !validPopupCookie(identity.session) || principal.Role == constants.RoleAdmin || placement == constants.PopupPlacementNone {
+	if !ok || !validPopupCookie(identity.visitor) || !validPopupCookie(identity.session) ||
+		principal.Role == constants.RoleAdmin ||
+		placement == constants.PopupPlacementNone {
 		return platform.Command{}, false
 	}
 	data := map[string]any{"placement": placement, "visitor_id": identity.visitor, "session_id": identity.session}
@@ -93,7 +112,13 @@ func (g *gateway) bootstrapPopup(ctx context.Context, principal platform.Command
 	if err != nil {
 		return nil
 	}
-	command, ok := popupCommand(ctx, principal, constants.ActionPopupDecide, placement, popupProfile(ctx, principal, results))
+	command, ok := popupCommand(
+		ctx,
+		principal,
+		constants.ActionPopupDecide,
+		placement,
+		popupProfile(ctx, principal, results),
+	)
 	if !ok {
 		return nil
 	}
@@ -129,7 +154,11 @@ func (g *gateway) storefrontPopup(ctx context.Context, principal platform.Comman
 	if err != nil {
 		return nil, err
 	}
-	action := map[string]string{constants.ActionPopup: constants.ActionPopupDecide, constants.ActionPopupEvent: constants.ActionPopupEvent, constants.ActionPopupClaim: constants.ActionPopupClaim}[principal.Action]
+	action := map[string]string{
+		constants.ActionPopup:      constants.ActionPopupDecide,
+		constants.ActionPopupEvent: constants.ActionPopupEvent,
+		constants.ActionPopupClaim: constants.ActionPopupClaim,
+	}[principal.Action]
 	command, ok := popupCommand(ctx, principal, action, placement, nil)
 	if !ok {
 		if principal.Action == constants.ActionPopup {
@@ -141,10 +170,34 @@ func (g *gateway) storefrontPopup(ctx context.Context, principal platform.Comman
 		fragments := []platform.Result{}
 		if principal.UserID != "" {
 			plan := []readRequest{
-				{Key: "popup-member", Service: constants.ServiceMember, Action: constants.ActionGet, Command: readCommand{Data: map[string]any{}}, auth: true},
-				{Key: "popup-points", Service: constants.ServicePoints, Action: constants.ActionGet, Command: readCommand{Data: map[string]any{}}, auth: true},
-				{Key: "popup-history", Service: constants.ServiceEngagement, Action: constants.ActionList, Command: readCommand{Data: map[string]any{"kind": constants.EngagementKindHistory, "limit": 100}}, auth: true},
-				{Key: "popup-favorite", Service: constants.ServiceEngagement, Action: constants.ActionList, Command: readCommand{Data: map[string]any{"kind": constants.EngagementKindFavorite, "limit": 100}}, auth: true},
+				{
+					Key:     "popup-member",
+					Service: constants.ServiceMember,
+					Action:  constants.ActionGet,
+					Command: readCommand{Data: map[string]any{}},
+					auth:    true,
+				},
+				{
+					Key:     "popup-points",
+					Service: constants.ServicePoints,
+					Action:  constants.ActionGet,
+					Command: readCommand{Data: map[string]any{}},
+					auth:    true,
+				},
+				{
+					Key:     "popup-history",
+					Service: constants.ServiceEngagement,
+					Action:  constants.ActionList,
+					Command: readCommand{Data: map[string]any{"kind": constants.EngagementKindHistory, "limit": 100}},
+					auth:    true,
+				},
+				{
+					Key:     "popup-favorite",
+					Service: constants.ServiceEngagement,
+					Action:  constants.ActionList,
+					Command: readCommand{Data: map[string]any{"kind": constants.EngagementKindFavorite, "limit": 100}},
+					auth:    true,
+				},
 			}
 			fragments = g.runReads(ctx, plan, principal)
 			// Hydrate up to 50 interest products with one catalog batch, without stock reads.
@@ -163,7 +216,10 @@ func (g *gateway) storefrontPopup(ctx context.Context, principal platform.Comman
 	if principal.Action == constants.ActionPopupEvent {
 		event := platform.Text(principal.Data, "event")
 		switch event {
-		case constants.PopupEventImpression, constants.PopupEventClick, constants.PopupEventDismiss, constants.PopupEventAutoClose:
+		case constants.PopupEventImpression,
+			constants.PopupEventClick,
+			constants.PopupEventDismiss,
+			constants.PopupEventAutoClose:
 		default:
 			return nil, status.Error(codes.InvalidArgument, "invalid popup event")
 		}
@@ -278,20 +334,36 @@ func popupStringList(value any) []string {
 
 // Popup qualification needs product categories, not stock or full page hydration.
 // Resolve a bounded set in one catalog batch instead of issuing per-SKU calls.
-func (g *gateway) popupInterestProducts(ctx context.Context, fragments []platform.Result, principal platform.Command) []platform.Result {
+func (g *gateway) popupInterestProducts(
+	ctx context.Context,
+	fragments []platform.Result,
+	principal platform.Command,
+) []platform.Result {
 	plan := []readRequest{}
 	seen := map[string]bool{}
 	for _, fragment := range fragments {
-		if platform.Text(fragment, "service") != constants.ServiceEngagement || fragment["error"] != nil || fragment["auth"] != true {
+		if platform.Text(fragment, "service") != constants.ServiceEngagement || fragment["error"] != nil ||
+			fragment["auth"] != true {
 			continue
 		}
 		for _, row := range resultRows(platform.Map(fragment["data"])) {
 			id := platform.Text(row, "sku_id")
-			if platform.Text(row, "user_id") != principal.UserID || id == "" || len(id) > 150 || strings.TrimSpace(id) != id || seen[id] || len(plan) >= 50 {
+			if platform.Text(row, "user_id") != principal.UserID || id == "" || len(id) > 150 ||
+				strings.TrimSpace(id) != id ||
+				seen[id] ||
+				len(plan) >= 50 {
 				continue
 			}
 			seen[id] = true
-			plan = append(plan, readRequest{Key: "popup-interest-" + id, Service: constants.ServiceCatalog, Action: constants.ActionGet, Command: readCommand{ID: id, Data: map[string]any{}}})
+			plan = append(
+				plan,
+				readRequest{
+					Key:     "popup-interest-" + id,
+					Service: constants.ServiceCatalog,
+					Action:  constants.ActionGet,
+					Command: readCommand{ID: id, Data: map[string]any{}},
+				},
+			)
 		}
 	}
 	return append(fragments, g.runReads(ctx, plan, principal)...)

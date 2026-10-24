@@ -15,7 +15,12 @@ import (
 // WithServiceStartupLock serializes schema migration and optional seeding among
 // replicas of the same service. MySQL DDL commits implicitly, so a transaction
 // cannot provide this guard. The named lock stays on one dedicated connection.
-func WithServiceStartupLock(ctx context.Context, db *gorm.DB, service string, initialize func(context.Context) error) error {
+func WithServiceStartupLock(
+	ctx context.Context,
+	db *gorm.DB,
+	service string,
+	initialize func(context.Context) error,
+) error {
 	_, err := withServiceDatabaseLock(ctx, db, service, "startup", 60, initialize)
 	return err
 }
@@ -33,7 +38,13 @@ func databaseLockName(namespace, service, purpose string) string {
 	return "lumo:" + purpose + ":" + hex.EncodeToString(sum[:20])
 }
 
-func withServiceDatabaseLock(ctx context.Context, db *gorm.DB, service, purpose string, waitSeconds int, work func(context.Context) error) (bool, error) {
+func withServiceDatabaseLock(
+	ctx context.Context,
+	db *gorm.DB,
+	service, purpose string,
+	waitSeconds int,
+	work func(context.Context) error,
+) (bool, error) {
 	// SQLite is only the isolated local/test runtime; deployed replicas use MySQL.
 	if db.Dialector.Name() != "mysql" {
 		return true, work(ctx)
@@ -74,7 +85,11 @@ func withServiceDatabaseLock(ctx context.Context, db *gorm.DB, service, purpose 
 		releaseCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 		var released sql.NullInt64
-		if releaseErr := conn.QueryRowContext(releaseCtx, "SELECT RELEASE_LOCK(?)", name).Scan(&released); releaseErr != nil || !released.Valid || released.Int64 != 1 {
+		if releaseErr := conn.QueryRowContext(releaseCtx, "SELECT RELEASE_LOCK(?)", name).Scan(
+			&released,
+		); releaseErr != nil ||
+			!released.Valid ||
+			released.Int64 != 1 {
 			discardLockConnection(conn)
 		}
 	}()

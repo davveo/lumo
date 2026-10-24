@@ -53,7 +53,8 @@ func TestProductionStatusesUseCentralDefinitions(t *testing.T) {
 				}
 				return nil
 			}
-			if !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") || strings.HasSuffix(path, ".pb.go") {
+			if !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") ||
+				strings.HasSuffix(path, ".pb.go") {
 				return nil
 			}
 			positions := token.NewFileSet()
@@ -65,7 +66,11 @@ func TestProductionStatusesUseCentralDefinitions(t *testing.T) {
 				if literal, ok := node.(*ast.BasicLit); ok && literal.Kind == token.STRING {
 					value, _ := strconv.Unquote(literal.Value)
 					if statuses[value] {
-						t.Errorf("%s: inline business status %q; use its domain constant", positions.Position(literal.Pos()), value)
+						t.Errorf(
+							"%s: inline business status %q; use its domain constant",
+							positions.Position(literal.Pos()),
+							value,
+						)
 					}
 				}
 				return true

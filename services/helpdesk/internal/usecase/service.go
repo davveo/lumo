@@ -15,7 +15,12 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	if c.Action == constants.ActionFaq {
-		return call(ctx, s.rpc, constants.ServiceContent, child(c, constants.ActionList, "", map[string]any{"kind": constants.ContentKindFaq, "limit": 100}))
+		return call(
+			ctx,
+			s.rpc,
+			constants.ServiceContent,
+			child(c, constants.ActionList, "", map[string]any{"kind": constants.ContentKindFaq, "limit": 100}),
+		)
 	}
 	if e := platform.RequireUser(c); e != nil {
 		return nil, e
@@ -65,7 +70,13 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 				return nil, status.Error(codes.PermissionDenied, "order belongs to another user")
 			}
 		}
-		r := record(stable(c.UserID, constants.HelpdeskKindTicket, c.IdempotencyKey), c.UserID, constants.HelpdeskKindTicket, constants.HelpdeskStatusOpen, map[string]any{"title": title, "body": body, "order_id": oid})
+		r := record(
+			stable(c.UserID, constants.HelpdeskKindTicket, c.IdempotencyKey),
+			c.UserID,
+			constants.HelpdeskKindTicket,
+			constants.HelpdeskStatusOpen,
+			map[string]any{"title": title, "body": body, "order_id": oid},
+		)
 		inserted, e := s.repo.InsertOnce(ctx, &r, nil)
 		if e != nil {
 			return nil, e
@@ -78,35 +89,52 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		}
 		return view(r), nil
 	case constants.ActionReply, constants.ActionClose:
-		r, e := s.repo.Mutate(ctx, domain.Record{ID: c.ID}, false, func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
-			if e := own(c, *v); e != nil {
-				return nil, nil, e
-			}
-			if c.Action == constants.ActionClose {
-				v.Status = constants.HelpdeskStatusClosed
-				return nil, nil, nil
-			}
-			if v.Status == constants.HelpdeskStatusClosed {
-				return nil, nil, status.Error(codes.FailedPrecondition, "ticket is closed")
-			}
-			body := platform.Text(c.Data, "body")
-			if body == "" || len(body) > 10000 {
-				return nil, nil, bad("reply body required")
-			}
-			if c.IdempotencyKey == "" {
-				return nil, nil, bad("reply idempotency_key required")
-			}
-			id := stable(c.UserID, v.ID, c.IdempotencyKey)
-			msg := record(id, c.UserID, constants.HelpdeskKindMessage, constants.HelpdeskStatusSent, map[string]any{"body": body, "role": c.Role})
-			msg.ParentID = v.ID
-			evt := &platform.Event{ID: id, Type: constants.EventTicketReplied, AggregateID: v.ID, UserID: v.UserID, Data: map[string]any{"ticket_id": v.ID}}
-			if c.Role == constants.RoleAdmin {
-				v.Status = constants.HelpdeskStatusReplied
-			} else {
-				v.Status = constants.HelpdeskStatusOpen
-			}
-			return []domain.Record{msg}, evt, nil
-		})
+		r, e := s.repo.Mutate(
+			ctx,
+			domain.Record{ID: c.ID},
+			false,
+			func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
+				if e := own(c, *v); e != nil {
+					return nil, nil, e
+				}
+				if c.Action == constants.ActionClose {
+					v.Status = constants.HelpdeskStatusClosed
+					return nil, nil, nil
+				}
+				if v.Status == constants.HelpdeskStatusClosed {
+					return nil, nil, status.Error(codes.FailedPrecondition, "ticket is closed")
+				}
+				body := platform.Text(c.Data, "body")
+				if body == "" || len(body) > 10000 {
+					return nil, nil, bad("reply body required")
+				}
+				if c.IdempotencyKey == "" {
+					return nil, nil, bad("reply idempotency_key required")
+				}
+				id := stable(c.UserID, v.ID, c.IdempotencyKey)
+				msg := record(
+					id,
+					c.UserID,
+					constants.HelpdeskKindMessage,
+					constants.HelpdeskStatusSent,
+					map[string]any{"body": body, "role": c.Role},
+				)
+				msg.ParentID = v.ID
+				evt := &platform.Event{
+					ID:          id,
+					Type:        constants.EventTicketReplied,
+					AggregateID: v.ID,
+					UserID:      v.UserID,
+					Data:        map[string]any{"ticket_id": v.ID},
+				}
+				if c.Role == constants.RoleAdmin {
+					v.Status = constants.HelpdeskStatusReplied
+				} else {
+					v.Status = constants.HelpdeskStatusOpen
+				}
+				return []domain.Record{msg}, evt, nil
+			},
+		)
 		if e != nil {
 			return nil, e
 		}

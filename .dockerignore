@@ -10,3 +10,4 @@ toolchains
 coverage.out
 
 .local
+node_modules

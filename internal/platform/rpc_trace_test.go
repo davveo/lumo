@@ -57,13 +57,20 @@ func TestRPCTraceIdentifiesEachTargetInFanout(t *testing.T) {
 		return Result{"ok": true}, nil
 	}})
 	var caller Caller
-	checkout := rpcTraceServer(t, Module{Name: "checkout", Handle: func(ctx context.Context, command Command) (Result, error) {
-		return caller.Call(ctx, "pricing", Command{Action: "quote"})
-	}})
+	checkout := rpcTraceServer(
+		t,
+		Module{Name: "checkout", Handle: func(ctx context.Context, command Command) (Result, error) {
+			return caller.Call(ctx, "pricing", Command{Action: "quote"})
+		}},
+	)
 	caller = NewCaller(map[string]string{"checkout": checkout, "pricing": pricing}, "trace-internal-token")
 	t.Cleanup(func() { _ = caller.(*rpcCaller).Close() })
 	ctx, root := Start(context.Background(), "http.test.submit")
-	_, err := caller.Call(ctx, "checkout", Command{Action: "submit", Data: map[string]any{"secret": "do-not-export-command-body"}})
+	_, err := caller.Call(
+		ctx,
+		"checkout",
+		Command{Action: "submit", Data: map[string]any{"secret": "do-not-export-command-body"}},
+	)
 	root.End()
 	if err != nil {
 		t.Fatal(err)
@@ -76,7 +83,8 @@ func TestRPCTraceIdentifiesEachTargetInFanout(t *testing.T) {
 		}
 		attrs := rpcSpanAttributes(span)
 		for _, value := range attrs {
-			if strings.Contains(value, "trace-internal-token") || strings.Contains(value, "do-not-export-command-body") {
+			if strings.Contains(value, "trace-internal-token") ||
+				strings.Contains(value, "do-not-export-command-body") {
 				t.Errorf("request credential/body leaked in %s", span.Name)
 			}
 		}
@@ -125,7 +133,9 @@ func TestRPCTraceBoundsInvalidActionNames(t *testing.T) {
 	caller := NewCaller(map[string]string{"catalog": addr}, "trace-internal-token")
 	t.Cleanup(func() { _ = caller.(*rpcCaller).Close() })
 	invalid := strings.Repeat("unbounded-input", 100)
-	if _, err := caller.Call(context.Background(), "catalog", Command{Action: invalid}); status.Code(err) != codes.InvalidArgument {
+	if _, err := caller.Call(context.Background(), "catalog", Command{Action: invalid}); status.Code(
+		err,
+	) != codes.InvalidArgument {
 		t.Fatalf("expected invalid argument, got %v", err)
 	}
 	for _, span := range awaitRPCTraceSpans(t, exporter, 4) {

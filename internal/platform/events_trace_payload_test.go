@@ -19,7 +19,13 @@ func TestMQTraceRecordsEventArgumentsAndDeliveryOutcomes(t *testing.T) {
 	db := testDB(t)
 	exporter, _ := tracing(t)
 	ctx := context.Background()
-	event := Event{ID: "trace-event", Type: "TracePayloadTest", AggregateID: "trace-aggregate", UserID: "buyer", Data: map[string]any{"sku_id": "sku-phone", "password": "mq-trace-private-value"}}
+	event := Event{
+		ID:          "trace-event",
+		Type:        "TracePayloadTest",
+		AggregateID: "trace-aggregate",
+		UserID:      "buyer",
+		Data:        map[string]any{"sku_id": "sku-phone", "password": "mq-trace-private-value"},
+	}
 	if err := Enqueue(ctx, db, event); err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +40,11 @@ func TestMQTraceRecordsEventArgumentsAndDeliveryOutcomes(t *testing.T) {
 		t.Fatalf("completed outbox entry should not be republished: %v", err)
 	}
 	calls := 0
-	module := Module{Name: "trace-consumer", Topics: []string{event.Type}, OnEvent: func(context.Context, Event) error { calls++; return nil }}
+	module := Module{
+		Name:    "trace-consumer",
+		Topics:  []string{event.Type},
+		OnEvent: func(context.Context, Event) error { calls++; return nil },
+	}
 	body, err := json.Marshal(event)
 	if err != nil {
 		t.Fatal(err)
@@ -55,7 +65,8 @@ func TestMQTraceRecordsEventArgumentsAndDeliveryOutcomes(t *testing.T) {
 			continue
 		}
 		attributes := rpcSpanAttributes(span)
-		if !json.Valid([]byte(attributes["lumo.request"])) || !json.Valid([]byte(attributes["lumo.response"])) || !strings.Contains(attributes["lumo.request"], "sku-phone") {
+		if !json.Valid([]byte(attributes["lumo.request"])) || !json.Valid([]byte(attributes["lumo.response"])) ||
+			!strings.Contains(attributes["lumo.request"], "sku-phone") {
 			t.Fatalf("MQ request/response missing from %s: %v", span.Name, attributes)
 		}
 		for _, value := range attributes {

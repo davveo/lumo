@@ -43,7 +43,13 @@ func (r *Repository) Get(ctx context.Context, id string) (platform.Result, error
 	if e := r.DB.WithContext(ctx).First(&v, "sku_id = ?", id).Error; e != nil {
 		return nil, status.Error(codes.NotFound, "stock not found")
 	}
-	return platform.Result{"sku_id": v.SKUID, "on_hand": v.OnHand, "reserved": v.Reserved, "allocated": v.Allocated, "available": v.OnHand - v.Reserved - v.Allocated}, nil
+	return platform.Result{
+		"sku_id":    v.SKUID,
+		"on_hand":   v.OnHand,
+		"reserved":  v.Reserved,
+		"allocated": v.Allocated,
+		"available": v.OnHand - v.Reserved - v.Allocated,
+	}, nil
 }
 func (r *Repository) GetMany(ctx context.Context, ids []string) (platform.Result, error) {
 	ctx, span := platform.Start(ctx, "repository.inventory.GetMany")
@@ -59,7 +65,16 @@ func (r *Repository) GetMany(ctx context.Context, ids []string) (platform.Result
 	items, missing := []platform.Result{}, []string{}
 	for _, id := range ids {
 		if row, ok := byID[id]; ok {
-			items = append(items, platform.Result{"sku_id": row.SKUID, "on_hand": row.OnHand, "reserved": row.Reserved, "allocated": row.Allocated, "available": row.OnHand - row.Reserved - row.Allocated})
+			items = append(
+				items,
+				platform.Result{
+					"sku_id":    row.SKUID,
+					"on_hand":   row.OnHand,
+					"reserved":  row.Reserved,
+					"allocated": row.Allocated,
+					"available": row.OnHand - row.Reserved - row.Allocated,
+				},
+			)
 		} else {
 			missing = append(missing, id)
 		}
@@ -87,7 +102,13 @@ func normalized(lines []domain.Line) ([]domain.Line, error) {
 	sort.Slice(out, func(i, j int) bool { return out[i].SKUID < out[j].SKUID })
 	return out, nil
 }
-func (r *Repository) Reserve(ctx context.Context, c platform.Command, order string, lines []domain.Line) (platform.Result, error) {
+
+func (r *Repository) Reserve(
+	ctx context.Context,
+	c platform.Command,
+	order string,
+	lines []domain.Line,
+) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.inventory.Reserve")
 	defer s.End()
 	if c.ID == "" || order == "" {
@@ -118,12 +139,21 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command, order stri
 		if !errors.Is(er, gorm.ErrRecordNotFound) {
 			return er
 		}
-		out = domain.Reservation{ID: c.ID, UserID: c.UserID, OrderID: order, State: constants.InventoryReservationStateReserved, LinesJSON: string(b)}
+		out = domain.Reservation{
+			ID:        c.ID,
+			UserID:    c.UserID,
+			OrderID:   order,
+			State:     constants.InventoryReservationStateReserved,
+			LinesJSON: string(b),
+		}
 		if er = tx.WithContext(ctx).Create(&out).Error; er != nil {
 			return er
 		}
 		for _, l := range ls {
-			v := tx.WithContext(ctx).Model(&domain.Stock{}).Where("sku_id = ? AND on_hand - reserved - allocated >= ?", l.SKUID, l.Quantity).Update("reserved", gorm.Expr("reserved + ?", l.Quantity))
+			v := tx.WithContext(ctx).
+				Model(&domain.Stock{}).
+				Where("sku_id = ? AND on_hand - reserved - allocated >= ?", l.SKUID, l.Quantity).
+				Update("reserved", gorm.Expr("reserved + ?", l.Quantity))
 			if v.Error != nil {
 				return v.Error
 			}
@@ -148,7 +178,12 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 	e := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		er := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&out, "id = ?", c.ID).Error
 		if errors.Is(er, gorm.ErrRecordNotFound) && c.Action == constants.ActionCancel {
-			out = domain.Reservation{ID: c.ID, UserID: c.UserID, State: constants.InventoryReservationStateCancelled, LinesJSON: "[]"}
+			out = domain.Reservation{
+				ID:        c.ID,
+				UserID:    c.UserID,
+				State:     constants.InventoryReservationStateCancelled,
+				LinesJSON: "[]",
+			}
 			return tx.WithContext(ctx).Create(&out).Error
 		}
 		if er != nil {
@@ -172,7 +207,8 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 		if out.State == target {
 			return nil
 		}
-		if out.State == constants.InventoryReservationStateCancelled || out.State == constants.InventoryReservationStateDispatched {
+		if out.State == constants.InventoryReservationStateCancelled ||
+			out.State == constants.InventoryReservationStateDispatched {
 			return status.Error(codes.FailedPrecondition, "terminal reservation")
 		}
 		var ls []domain.Line
@@ -204,7 +240,9 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 					u["reserved"] = gorm.Expr("reserved - ?", l.Quantity)
 				}
 			}
-			if er = tx.WithContext(ctx).Model(&domain.Stock{}).Where("sku_id = ?", l.SKUID).Updates(u).Error; er != nil {
+			if er = tx.WithContext(ctx).Model(&domain.Stock{}).Where("sku_id = ?", l.SKUID).Updates(
+				u,
+			).Error; er != nil {
 				return er
 			}
 			if er = movement(ctx, tx, c.ID, c.UserID, l, target); er != nil {
@@ -225,7 +263,9 @@ func (r *Repository) Restock(ctx context.Context, c platform.Command) (platform.
 	sku := platform.Text(c.Data, "sku_id")
 	qty := platform.Int(c.Data, "quantity")
 	condition := platform.Text(c.Data, "condition")
-	if c.ID == "" || sku == "" || qty < 1 || qty > 100000 || (condition != constants.StockConditionSellable && condition != constants.StockConditionDamaged && condition != constants.StockConditionUnsellable) {
+	if c.ID == "" || sku == "" || qty < 1 || qty > 100000 ||
+		(condition != constants.StockConditionSellable && condition != constants.StockConditionDamaged &&
+			condition != constants.StockConditionUnsellable) {
 		return nil, status.Error(codes.InvalidArgument, "valid inspection, SKU, quantity, condition required")
 	}
 	l := domain.Ledger{ID: c.ID, ReferenceID: c.ID, UserID: c.UserID, SKUID: sku, Quantity: qty, Kind: condition}
@@ -247,7 +287,11 @@ func (r *Repository) Restock(ctx context.Context, c platform.Command) (platform.
 			return er
 		}
 		if condition == constants.StockConditionSellable {
-			return tx.WithContext(ctx).Model(&domain.Stock{}).Where("sku_id = ?", sku).Update("on_hand", gorm.Expr("on_hand + ?", qty)).Error
+			return tx.WithContext(ctx).
+				Model(&domain.Stock{}).
+				Where("sku_id = ?", sku).
+				Update("on_hand", gorm.Expr("on_hand + ?", qty)).
+				Error
 		}
 		return nil
 	})
@@ -281,6 +325,13 @@ func (r *Repository) Adjust(ctx context.Context, c platform.Command) (platform.R
 }
 func movement(ctx context.Context, tx *gorm.DB, ref, user string, line domain.Line, kind string) error {
 	sum := sha256.Sum256([]byte(ref + "\x00" + line.SKUID + "\x00" + kind))
-	v := domain.Ledger{ID: "move-" + hex.EncodeToString(sum[:]), ReferenceID: ref, UserID: user, SKUID: line.SKUID, Quantity: line.Quantity, Kind: kind}
+	v := domain.Ledger{
+		ID:          "move-" + hex.EncodeToString(sum[:]),
+		ReferenceID: ref,
+		UserID:      user,
+		SKUID:       line.SKUID,
+		Quantity:    line.Quantity,
+		Kind:        kind,
+	}
 	return tx.WithContext(ctx).Create(&v).Error
 }

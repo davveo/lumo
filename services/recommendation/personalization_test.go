@@ -84,7 +84,10 @@ func (f *personalizedCaller) Call(ctx context.Context, target string, c platform
 		rows := []platform.Result{}
 		for _, id := range data.IDs {
 			if !f.missing[id] {
-				rows = append(rows, platform.Result{"sku_id": id, "available": 10, "on_hand": 10, "reserved": 0, "allocated": 0})
+				rows = append(
+					rows,
+					platform.Result{"sku_id": id, "available": 10, "on_hand": 10, "reserved": 0, "allocated": 0},
+				)
 			}
 		}
 		return platform.Result{"items": rows}, nil
@@ -104,10 +107,22 @@ func (f *personalizedCaller) count(service, action string) int {
 }
 func (f *personalizedCaller) reset() { f.mu.Lock(); defer f.mu.Unlock(); f.calls = nil }
 func recoProduct(id, name, category, brand string, price int) platform.Result {
-	return platform.Result{"id": id, "name": name, "active": true, "status": "ACTIVE", "price_cents": price, "attributes": map[string]any{"category": category, "brand": brand, "image": "coffee.jpg"}, "created_at": time.Now().Add(-48 * time.Hour).UTC().Format(time.RFC3339)}
+	return platform.Result{
+		"id":          id,
+		"name":        name,
+		"active":      true,
+		"status":      "ACTIVE",
+		"price_cents": price,
+		"attributes":  map[string]any{"category": category, "brand": brand, "image": "coffee.jpg"},
+		"created_at":  time.Now().Add(-48 * time.Hour).UTC().Format(time.RFC3339),
+	}
 }
 func recoSignal(owner, id string, age time.Duration) platform.Result {
-	return platform.Result{"user_id": owner, "sku_id": id, "updated_at": time.Now().Add(-age).UTC().Format(time.RFC3339)}
+	return platform.Result{
+		"user_id":    owner,
+		"sku_id":     id,
+		"updated_at": time.Now().Add(-age).UTC().Format(time.RFC3339),
+	}
 }
 func personalSetup(t *testing.T) (platform.Module, *personalizedCaller) {
 	t.Helper()
@@ -117,8 +132,18 @@ func personalSetup(t *testing.T) (platform.Module, *personalizedCaller) {
 	}
 	sql, _ := db.DB()
 	t.Cleanup(func() { _ = sql.Close() })
-	f := &personalizedCaller{metadata: map[string]platform.Result{}, signals: map[string]map[string][]platform.Result{}, orders: map[string][]platform.Result{}, missing: map[string]bool{}, fail: map[string]error{}}
-	f.base = []platform.Result{recoProduct("phone", "无线降噪耳机", "手机数码", "Sony", 100000), recoProduct("coffee", "香醇咖啡豆", "食品生鲜", "LUMO", 10000), recoProduct("sofa", "布艺沙发", "家居生活", "HOME", 200000)}
+	f := &personalizedCaller{
+		metadata: map[string]platform.Result{},
+		signals:  map[string]map[string][]platform.Result{},
+		orders:   map[string][]platform.Result{},
+		missing:  map[string]bool{},
+		fail:     map[string]error{},
+	}
+	f.base = []platform.Result{
+		recoProduct("phone", "无线降噪耳机", "手机数码", "Sony", 100000),
+		recoProduct("coffee", "香醇咖啡豆", "食品生鲜", "LUMO", 10000),
+		recoProduct("sofa", "布艺沙发", "家居生活", "HOME", 200000),
+	}
 	for _, p := range f.base {
 		f.metadata[platform.Text(p, "id")] = p
 	}
@@ -168,12 +193,29 @@ func TestRecommendationRealUserPreferencesChangeRankingAndCannotBeInjected(t *te
 	if a["personalized"] != true || a["personalized_model"] != false || a["strategy"] != "hybrid_content_v2" {
 		t.Fatalf("dishonest/missing strategy: %v", a)
 	}
-	injected := recoList(t, m, "bob", map[string]any{"user_id": "alice", "signals": map[string]any{"favorite": []platform.Result{recoSignal("alice", "seed-phone", 0)}}, "catalog_items": []platform.Result{recoProduct("injected", "fake", "phone", "Sony", 1)}})
+	injected := recoList(
+		t,
+		m,
+		"bob",
+		map[string]any{
+			"user_id":       "alice",
+			"signals":       map[string]any{"favorite": []platform.Result{recoSignal("alice", "seed-phone", 0)}},
+			"catalog_items": []platform.Result{recoProduct("injected", "fake", "phone", "Sony", 1)},
+		},
+	)
 	if recoIDs(t, injected)[0] != "coffee" {
 		t.Fatalf("client-supplied profile/catalog was trusted: %v", injected)
 	}
 	f.reset()
-	guest := recoList(t, m, "", map[string]any{"user_id": "alice", "signals": map[string]any{"favorite": []platform.Result{recoSignal("alice", "seed-phone", 0)}}})
+	guest := recoList(
+		t,
+		m,
+		"",
+		map[string]any{
+			"user_id": "alice",
+			"signals": map[string]any{"favorite": []platform.Result{recoSignal("alice", "seed-phone", 0)}},
+		},
+	)
 	if guest["personalized"] != false || f.count("engagement", "list") != 0 || f.count("order", "list") != 0 {
 		t.Fatalf("guest fetched personal profile: %v", guest)
 	}
@@ -181,11 +223,15 @@ func TestRecommendationRealUserPreferencesChangeRankingAndCannotBeInjected(t *te
 
 func TestRecommendationTimeDecayAndSearchIntent(t *testing.T) {
 	m, f := personalSetup(t)
-	f.signals["alice"] = map[string][]platform.Result{"history": {recoSignal("alice", "seed-phone", 180*24*time.Hour), recoSignal("alice", "seed-coffee", 0)}}
+	f.signals["alice"] = map[string][]platform.Result{
+		"history": {recoSignal("alice", "seed-phone", 180*24*time.Hour), recoSignal("alice", "seed-coffee", 0)},
+	}
 	if got := recoIDs(t, recoList(t, m, "alice", nil))[0]; got != "coffee" {
 		t.Fatalf("recent browsing did not outweigh old interest: %s", got)
 	}
-	f.signals["alice"] = map[string][]platform.Result{"search": {{"user_id": "alice", "query": "咖啡", "created_at": time.Now().UTC().Format(time.RFC3339)}}}
+	f.signals["alice"] = map[string][]platform.Result{
+		"search": {{"user_id": "alice", "query": "咖啡", "created_at": time.Now().UTC().Format(time.RFC3339)}},
+	}
 	r := recoList(t, m, "alice", nil)
 	if recoIDs(t, r)[0] != "coffee" {
 		t.Fatalf("recent search was ignored: %v", r)
@@ -208,7 +254,12 @@ func TestRecommendationSimilarityUsesActualMetadataAndExcludesAnchor(t *testing.
 			t.Fatal("anchor recommended to itself")
 		}
 	}
-	if _, err := m.Handle(context.Background(), platform.Command{Action: "list", Data: map[string]any{"scene": "similar", "product_id": "unknown"}}); status.Code(err) != codes.NotFound {
+	if _, err := m.Handle(
+		context.Background(),
+		platform.Command{Action: "list", Data: map[string]any{"scene": "similar", "product_id": "unknown"}},
+	); status.Code(
+		err,
+	) != codes.NotFound {
 		t.Fatalf("missing anchor accepted: %v", err)
 	}
 }
@@ -218,21 +269,31 @@ func TestRecommendationPaidOrdersExcludeCanonicalProductButPendingAndRefundedDoN
 	variant := recoProduct("phone--blue", "Blue phone", "手机数码", "Sony", 100000)
 	variant["product_id"] = "phone"
 	f.metadata["phone--blue"] = variant
-	f.orders["alice"] = []platform.Result{{"user_id": "alice", "status": "COMPLETED", "items": []platform.Result{{"sku_id": "phone--blue"}}}, {"user_id": "alice", "status": "PENDING_PAYMENT", "items": []platform.Result{{"sku_id": "coffee"}}}, {"user_id": "alice", "status": "REFUNDED", "items": []platform.Result{{"sku_id": "sofa"}}}}
+	f.orders["alice"] = []platform.Result{
+		{"user_id": "alice", "status": "COMPLETED", "items": []platform.Result{{"sku_id": "phone--blue"}}},
+		{"user_id": "alice", "status": "PENDING_PAYMENT", "items": []platform.Result{{"sku_id": "coffee"}}},
+		{"user_id": "alice", "status": "REFUNDED", "items": []platform.Result{{"sku_id": "sofa"}}},
+	}
 	r := recoList(t, m, "alice", nil)
 	ids := recoIDs(t, r)
 	if strings.Contains(strings.Join(ids, ","), "phone") || len(ids) != 2 {
 		t.Fatalf("paid variant parent exclusion wrong: %v", ids)
 	}
-	if f.count("catalog", "batch_get") > 2 || f.count("inventory", "batch_get") != 1 || f.count("catalog", "get") != 0 || f.count("inventory", "get") != 0 {
+	if f.count("catalog", "batch_get") > 2 || f.count("inventory", "batch_get") != 1 ||
+		f.count("catalog", "get") != 0 ||
+		f.count("inventory", "get") != 0 {
 		t.Fatalf("recommendation fanned out: %v", f.calls)
 	}
 }
 
 func TestRecommendationOwnerIsolationAlsoForAdminsAndExplicitOrders(t *testing.T) {
 	m, f := personalSetup(t)
-	f.signals["admin"] = map[string][]platform.Result{"favorite": {recoSignal("admin", "seed-coffee", 0), recoSignal("victim", "seed-phone", 0)}}
-	f.orders["admin"] = []platform.Result{{"user_id": "victim", "status": "COMPLETED", "items": []platform.Result{{"sku_id": "coffee"}}}}
+	f.signals["admin"] = map[string][]platform.Result{
+		"favorite": {recoSignal("admin", "seed-coffee", 0), recoSignal("victim", "seed-phone", 0)},
+	}
+	f.orders["admin"] = []platform.Result{
+		{"user_id": "victim", "status": "COMPLETED", "items": []platform.Result{{"sku_id": "coffee"}}},
+	}
 	r, err := m.Handle(context.Background(), platform.Command{Action: "list", UserID: "admin", Role: "admin"})
 	if err != nil {
 		t.Fatal(err)
@@ -247,8 +308,22 @@ func TestRecommendationOwnerIsolationAlsoForAdminsAndExplicitOrders(t *testing.T
 			}
 		}
 	}
-	f.contextOrder = platform.Result{"user_id": "victim", "status": "COMPLETED", "items": []platform.Result{{"sku_id": "coffee"}}}
-	if _, err = m.Handle(context.Background(), platform.Command{Action: "list", UserID: "admin", Role: "admin", Data: map[string]any{"order_id": "victim-order"}}); status.Code(err) != codes.PermissionDenied {
+	f.contextOrder = platform.Result{
+		"user_id": "victim",
+		"status":  "COMPLETED",
+		"items":   []platform.Result{{"sku_id": "coffee"}},
+	}
+	if _, err = m.Handle(
+		context.Background(),
+		platform.Command{
+			Action: "list",
+			UserID: "admin",
+			Role:   "admin",
+			Data:   map[string]any{"order_id": "victim-order"},
+		},
+	); status.Code(
+		err,
+	) != codes.PermissionDenied {
 		t.Fatalf("another user's order used as profile: %v", err)
 	}
 }
@@ -259,18 +334,34 @@ func TestRecommendationBootstrapReusesTrustedReadsAndOnlyExportsSelectedInventor
 	for _, p := range f.base {
 		stocks = append(stocks, platform.Result{"sku_id": p["id"], "available": 10})
 	}
-	data := map[string]any{"scene": "home", "limit": 2, "catalog_items": f.base, "inventory_items": stocks, "signals": map[string]any{"favorite": []platform.Result{recoSignal("alice", "coffee", 0)}}}
-	r, err := m.Handle(context.Background(), platform.Command{Action: "rank_bootstrap", UserID: "alice", Role: "system", Data: data})
+	data := map[string]any{
+		"scene":           "home",
+		"limit":           2,
+		"catalog_items":   f.base,
+		"inventory_items": stocks,
+		"signals":         map[string]any{"favorite": []platform.Result{recoSignal("alice", "coffee", 0)}},
+	}
+	r, err := m.Handle(
+		context.Background(),
+		platform.Command{Action: "rank_bootstrap", UserID: "alice", Role: "system", Data: data},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if recoIDs(t, r)[0] != "coffee" || f.count("engagement", "list") != 0 || f.count("order", "list") != 0 || f.count("catalog", "list") != 0 || f.count("inventory", "batch_get") != 0 {
+	if recoIDs(t, r)[0] != "coffee" || f.count("engagement", "list") != 0 || f.count("order", "list") != 0 ||
+		f.count("catalog", "list") != 0 ||
+		f.count("inventory", "batch_get") != 0 {
 		t.Fatalf("bootstrap re-read trusted dependencies: %v calls=%v", r, f.calls)
 	}
 	if len(r["inventory_items"].([]map[string]any)) != 2 || len(r["stock_snapshot"].([]map[string]any)) != 3 {
 		t.Fatalf("selected/all stock response mismatch: %v", r)
 	}
-	if _, err = m.Handle(context.Background(), platform.Command{Action: "rank_bootstrap", UserID: "alice", Role: "user", Data: data}); status.Code(err) != codes.PermissionDenied {
+	if _, err = m.Handle(
+		context.Background(),
+		platform.Command{Action: "rank_bootstrap", UserID: "alice", Role: "user", Data: data},
+	); status.Code(
+		err,
+	) != codes.PermissionDenied {
 		t.Fatalf("public user injected trusted profile: %v", err)
 	}
 	public := recoList(t, m, "", nil)
@@ -304,15 +395,26 @@ func TestRecommendationBoundedRecallDegradationAndDeterministicDiversity(t *test
 		t.Fatalf("auxiliary failure broke safe recommendations: %v", r)
 	}
 	f.fail["inventory/batch_get"] = status.Error(codes.Unavailable, "stock offline")
-	if _, err := m.Handle(context.Background(), platform.Command{Action: "list"}); status.Code(err) != codes.Unavailable {
+	if _, err := m.Handle(context.Background(), platform.Command{Action: "list"}); status.Code(
+		err,
+	) != codes.Unavailable {
 		t.Fatalf("failed authoritative inventory invented availability: %v", err)
 	}
 }
 
 func TestRecommendationValidationAndCancellation(t *testing.T) {
 	m, _ := personalSetup(t)
-	for _, data := range []map[string]any{{"scene": "unknown"}, {"scene": "similar"}, {"scene": "post_purchase"}, {"limit": 21}, {"limit": -1}, {"product_id": "bad\nID"}} {
-		if _, err := m.Handle(context.Background(), platform.Command{Action: "list", Data: data}); status.Code(err) != codes.InvalidArgument {
+	for _, data := range []map[string]any{
+		{"scene": "unknown"},
+		{"scene": "similar"},
+		{"scene": "post_purchase"},
+		{"limit": 21},
+		{"limit": -1},
+		{"product_id": "bad\nID"},
+	} {
+		if _, err := m.Handle(context.Background(), platform.Command{Action: "list", Data: data}); status.Code(
+			err,
+		) != codes.InvalidArgument {
 			t.Fatalf("invalid request accepted: %v -> %v", data, err)
 		}
 	}
@@ -366,7 +468,17 @@ func TestRecommendationPurchasedVariantBeyondSeedLimitStillExcludesParent(t *tes
 	attributes := f.base[0]["attributes"].(map[string]any)
 	attributes["variants"] = []map[string]any{{"sku_id": "phone--late"}}
 	for i := 0; i < 100; i++ {
-		f.orders["alice"] = append(f.orders["alice"], platform.Result{"user_id": "alice", "status": "COMPLETED", "items": []platform.Result{{"sku_id": fmt.Sprintf("old-%d-a", i)}, {"sku_id": fmt.Sprintf("old-%d-b", i)}}})
+		f.orders["alice"] = append(
+			f.orders["alice"],
+			platform.Result{
+				"user_id": "alice",
+				"status":  "COMPLETED",
+				"items": []platform.Result{
+					{"sku_id": fmt.Sprintf("old-%d-a", i)},
+					{"sku_id": fmt.Sprintf("old-%d-b", i)},
+				},
+			},
+		)
 	}
 	last := f.orders["alice"][99]
 	last["items"] = append(last["items"].([]platform.Result), platform.Result{"sku_id": "phone--late"})

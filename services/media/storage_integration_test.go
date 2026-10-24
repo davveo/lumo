@@ -41,8 +41,21 @@ func TestMinIORealUploadDownload(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	process := exec.Command(binary, "server", filepath.Join(dataDir, "objects"), "--address", "127.0.0.1:19001", "--console-address", "127.0.0.1:19002")
-	process.Env = append(os.Environ(), "MINIO_ROOT_USER=integration-access", "MINIO_ROOT_PASSWORD=integration-secret-32-characters", "MINIO_BROWSER=off")
+	process := exec.Command(
+		binary,
+		"server",
+		filepath.Join(dataDir, "objects"),
+		"--address",
+		"127.0.0.1:19001",
+		"--console-address",
+		"127.0.0.1:19002",
+	)
+	process.Env = append(
+		os.Environ(),
+		"MINIO_ROOT_USER=integration-access",
+		"MINIO_ROOT_PASSWORD=integration-secret-32-characters",
+		"MINIO_BROWSER=off",
+	)
 	process.Stdout = log
 	process.Stderr = log
 	if e = process.Start(); e != nil {
@@ -113,7 +126,14 @@ func TestMinIORealUploadDownload(t *testing.T) {
 		t.Fatal(e)
 	}
 	original := encoded.Bytes()
-	result, e := m.Handle(ctx, platform.Command{Action: "create", UserID: "demo", Data: map[string]any{"file_name": "receipt.png", "content_type": "image/png", "size": len(original)}})
+	result, e := m.Handle(
+		ctx,
+		platform.Command{
+			Action: "create",
+			UserID: "demo",
+			Data:   map[string]any{"file_name": "receipt.png", "content_type": "image/png", "size": len(original)},
+		},
+	)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -186,11 +206,16 @@ func TestMinIORealUploadDownload(t *testing.T) {
 	if e != nil || response.StatusCode != http.StatusOK || !bytes.Equal(body, original) {
 		t.Fatalf("download byte comparison failed: status=%d bytes=%d err=%v", response.StatusCode, len(body), e)
 	}
-	if _, e = m.Handle(ctx, platform.Command{Action: "download", ID: id, UserID: "other"}); status.Code(e) != codes.PermissionDenied {
+	if _, e = m.Handle(ctx, platform.Command{Action: "download", ID: id, UserID: "other"}); status.Code(
+		e,
+	) != codes.PermissionDenied {
 		t.Fatalf("cross-user download was not denied: %v", e)
 	}
-	if code := upload(append(append([]byte(nil), original...), 1)); code != http.StatusBadRequest && code != http.StatusForbidden {
+	if code := upload(append(append([]byte(nil), original...), 1)); code != http.StatusBadRequest &&
+		code != http.StatusForbidden {
 		t.Fatalf("object store accepted a length outside the signed POST policy: %d", code)
 	}
-	t.Log("Verified real S3 POST upload, Stat completion, signed GET byte equality, cross-user denial and signed-length enforcement")
+	t.Log(
+		"Verified real S3 POST upload, Stat completion, signed GET byte equality, cross-user denial and signed-length enforcement",
+	)
 }

@@ -37,7 +37,38 @@ import (
 	"github.com/davveo/lumo/services/search"
 )
 
-var Names = []string{constants.ServiceIAM, constants.ServiceMember, constants.ServiceAddress, constants.ServiceCatalog, constants.ServiceMedia, constants.ServiceInteraction, constants.ServiceEngagement, constants.ServiceSearch, constants.ServiceRecommendation, constants.ServiceContent, constants.ServiceAnalytics, constants.ServiceCart, constants.ServicePricing, constants.ServiceCheckout, constants.ServiceOrder, constants.ServiceCampaign, constants.ServiceCoupon, constants.ServicePoints, constants.ServiceGroup, constants.ServiceFlash, constants.ServiceInventory, constants.ServiceFulfillment, constants.ServiceLogistics, constants.ServiceAftersale, constants.ServicePayment, constants.ServiceRefund, constants.ServiceInvoice, constants.ServiceReconciliation, constants.ServiceNotification, constants.ServiceHelpdesk}
+var Names = []string{
+	constants.ServiceIAM,
+	constants.ServiceMember,
+	constants.ServiceAddress,
+	constants.ServiceCatalog,
+	constants.ServiceMedia,
+	constants.ServiceInteraction,
+	constants.ServiceEngagement,
+	constants.ServiceSearch,
+	constants.ServiceRecommendation,
+	constants.ServiceContent,
+	constants.ServiceAnalytics,
+	constants.ServiceCart,
+	constants.ServicePricing,
+	constants.ServiceCheckout,
+	constants.ServiceOrder,
+	constants.ServiceCampaign,
+	constants.ServiceCoupon,
+	constants.ServicePoints,
+	constants.ServiceGroup,
+	constants.ServiceFlash,
+	constants.ServiceInventory,
+	constants.ServiceFulfillment,
+	constants.ServiceLogistics,
+	constants.ServiceAftersale,
+	constants.ServicePayment,
+	constants.ServiceRefund,
+	constants.ServiceInvoice,
+	constants.ServiceReconciliation,
+	constants.ServiceNotification,
+	constants.ServiceHelpdesk,
+}
 
 func New(name string, d platform.Dependencies) (platform.Module, error) {
 	switch name {

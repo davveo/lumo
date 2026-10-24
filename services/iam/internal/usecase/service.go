@@ -21,7 +21,13 @@ type Service struct{ repo *repository.Repository }
 
 func New(r *repository.Repository) *Service          { return &Service{repo: r} }
 func (s *Service) Migrate(ctx context.Context) error { return s.repo.Migrate(ctx) }
-func hash(v string) string                           { sum := sha256.Sum256([]byte(v)); return hex.EncodeToString(sum[:]) }
+
+func hash(
+	v string,
+) string {
+	sum := sha256.Sum256([]byte(v))
+	return hex.EncodeToString(sum[:])
+}
 func token() (string, error) {
 	b := make([]byte, 32)
 	if _, e := rand.Read(b); e != nil {
@@ -33,7 +39,10 @@ func (s *Service) Seed(ctx context.Context) error {
 	if os.Getenv("DEMO_MODE") != "true" && os.Getenv("DEMO_MODE") != "1" {
 		return nil
 	}
-	for _, v := range []struct{ User, Password, Role string }{{"demo", "Lumo@2026", constants.RoleUser}, {constants.RoleAdmin, "Admin@2026", constants.RoleAdmin}} {
+	for _, v := range []struct{ User, Password, Role string }{
+		{"demo", "Lumo@2026", constants.RoleUser},
+		{constants.RoleAdmin, "Admin@2026", constants.RoleAdmin},
+	} {
 		b, e := bcrypt.GenerateFromPassword([]byte(v.Password), bcrypt.DefaultCost)
 		if e != nil {
 			return e
@@ -69,7 +78,14 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		if e = s.repo.CreateSession(ctx, &sess); e != nil {
 			return nil, e
 		}
-		return platform.Result{"token": raw, "token_type": constants.IAMTokenTypeBearer, "expires_at": sess.ExpiresAt.Format(time.RFC3339), "user_id": a.ID, "role": a.Role, "registered_at": a.CreatedAt.UTC().Format(time.RFC3339)}, nil
+		return platform.Result{
+			"token":         raw,
+			"token_type":    constants.IAMTokenTypeBearer,
+			"expires_at":    sess.ExpiresAt.Format(time.RFC3339),
+			"user_id":       a.ID,
+			"role":          a.Role,
+			"registered_at": a.CreatedAt.UTC().Format(time.RFC3339),
+		}, nil
 	case constants.ActionValidate, constants.ActionRefresh, constants.ActionLogout:
 		raw := platform.Text(c.Data, "token")
 		if len(raw) != 64 {
@@ -101,9 +117,22 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			if e = s.repo.Rotate(ctx, sess.Digest, &v); e != nil {
 				return nil, e
 			}
-			return platform.Result{"token": next, "token_type": constants.IAMTokenTypeBearer, "user_id": a.ID, "role": a.Role, "expires_at": v.ExpiresAt.Format(time.RFC3339), "registered_at": a.CreatedAt.UTC().Format(time.RFC3339)}, nil
+			return platform.Result{
+				"token":         next,
+				"token_type":    constants.IAMTokenTypeBearer,
+				"user_id":       a.ID,
+				"role":          a.Role,
+				"expires_at":    v.ExpiresAt.Format(time.RFC3339),
+				"registered_at": a.CreatedAt.UTC().Format(time.RFC3339),
+			}, nil
 		}
-		return platform.Result{"user_id": a.ID, "role": a.Role, "session_valid": true, "expires_at": sess.ExpiresAt.Format(time.RFC3339), "registered_at": a.CreatedAt.UTC().Format(time.RFC3339)}, nil
+		return platform.Result{
+			"user_id":       a.ID,
+			"role":          a.Role,
+			"session_valid": true,
+			"expires_at":    sess.ExpiresAt.Format(time.RFC3339),
+			"registered_at": a.CreatedAt.UTC().Format(time.RFC3339),
+		}, nil
 	case constants.ActionLogoutAll:
 		if e := platform.RequireUser(c); e != nil {
 			return nil, e

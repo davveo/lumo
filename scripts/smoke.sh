@@ -2,16 +2,22 @@
 set -eu
 BASE_URL="${BASE_URL:-http://localhost:8080}"
 TOKEN=''
-command -v python3 >/dev/null || { echo 'smoke.sh 需要 Python 3 解析 JSON（启动服务本身不需要）' >&2; exit 1; }
+command -v python3 >/dev/null || {
+  echo 'smoke.sh 需要 Python 3 解析 JSON（启动服务本身不需要）' >&2
+  exit 1
+}
 json_field() { python3 -c 'import json,sys; v=json.load(sys.stdin); keys=sys.argv[1].split(".");
 for k in keys: v=v[k]
 print(v)' "$1"; }
 request() {
- if [ -n "$TOKEN" ]; then
-  curl --fail-with-body --silent --show-error "$BASE_URL/api/v1/$1/$2" -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" --data "$3"
- else
-  curl --fail-with-body --silent --show-error "$BASE_URL/api/v1/$1/$2" -H 'Content-Type: application/json' --data "$3"
- fi
+  if [ -n "$TOKEN" ]; then
+    curl --fail-with-body --silent --show-error "$BASE_URL/api/v1/$1/$2" \
+      -H 'Content-Type: application/json' \
+      -H "Authorization: Bearer $TOKEN" \
+      --data "$3"
+  else
+    curl --fail-with-body --silent --show-error "$BASE_URL/api/v1/$1/$2" -H 'Content-Type: application/json' --data "$3"
+  fi
 }
 curl --fail --silent --show-error "$BASE_URL/readyz" >/dev/null
 LOGIN=$(request iam login '{"data":{"username":"demo","password":"Lumo@2026"}}')

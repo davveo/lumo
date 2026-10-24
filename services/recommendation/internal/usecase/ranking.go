@@ -56,7 +56,19 @@ func productFrom(row map[string]any) product {
 		active = false
 	}
 	created, _ := time.Parse(time.RFC3339, text("created_at"))
-	return product{id: id, rawID: rawID, name: text("name"), category: text("category"), brand: text("brand"), price: price, sales: sales, created: created, active: active, raw: row, tokens: grams(text("name"))}
+	return product{
+		id:       id,
+		rawID:    rawID,
+		name:     text("name"),
+		category: text("category"),
+		brand:    text("brand"),
+		price:    price,
+		sales:    sales,
+		created:  created,
+		active:   active,
+		raw:      row,
+		tokens:   grams(text("name")),
+	}
 }
 
 type interest struct {
@@ -92,7 +104,15 @@ func decay(now, timeAt time.Time, halfLife float64) float64 {
 }
 func paidOrder(row map[string]any) bool {
 	switch platform.Text(row, "status") {
-	case constants.OrderStatusPaid, constants.OrderStatusPaidConfirming, constants.OrderStatusPaidWaitGroup, constants.OrderStatusReadyToFulfill, constants.OrderStatusShipped, constants.OrderStatusCompleted, constants.OrderStatusAwaitingGroup, constants.OrderStatusWaitingGroup, constants.OrderStatusFulfilling:
+	case constants.OrderStatusPaid,
+		constants.OrderStatusPaidConfirming,
+		constants.OrderStatusPaidWaitGroup,
+		constants.OrderStatusReadyToFulfill,
+		constants.OrderStatusShipped,
+		constants.OrderStatusCompleted,
+		constants.OrderStatusAwaitingGroup,
+		constants.OrderStatusWaitingGroup,
+		constants.OrderStatusFulfilling:
 		return true
 	}
 	return false
@@ -119,7 +139,11 @@ func buildProfile(rows signalRows, metadata map[string]product, now time.Time) p
 		rows   []map[string]any
 		kind   string
 		weight float64
-	}{{rows.Favorite, constants.RecommendationSignalFavorite, 8}, {rows.Compare, constants.RecommendationSignalCompare, 5}, {rows.History, constants.RecommendationSignalHistory, 3}} {
+	}{
+		{rows.Favorite, constants.RecommendationSignalFavorite, 8},
+		{rows.Compare, constants.RecommendationSignalCompare, 5},
+		{rows.History, constants.RecommendationSignalHistory, 3},
+	} {
 		for _, row := range signal.rows {
 			add(platform.Text(row, "sku_id"), signal.kind, signal.weight, signalTime(row))
 		}
@@ -176,7 +200,12 @@ func validInterest(value string, max int) bool {
 	}
 	return true
 }
-func (p preference) recall(contextProduct *product, order map[string]any, metadata map[string]product) ([]string, []string, []string) {
+
+func (p preference) recall(
+	contextProduct *product,
+	order map[string]any,
+	metadata map[string]product,
+) ([]string, []string, []string) {
 	categories, brands := map[string]float64{}, map[string]float64{}
 	add := func(v product, w float64) {
 		if validInterest(v.category, 64) {
@@ -299,7 +328,16 @@ type scoredProduct struct {
 	reasons []string
 }
 
-func rankProducts(products []product, profile preference, contextProduct *product, order map[string]any, metadata map[string]product, scene string, limit int, now time.Time) []platform.Result {
+func rankProducts(
+	products []product,
+	profile preference,
+	contextProduct *product,
+	order map[string]any,
+	metadata map[string]product,
+	scene string,
+	limit int,
+	now time.Time,
+) []platform.Result {
 	ranked := []scoredProduct{}
 	anchors := []product{}
 	for _, line := range rowsOf(order["items"]) {
@@ -330,7 +368,12 @@ func rankProducts(products []product, profile preference, contextProduct *produc
 			score += personal * 6
 			if personal > .15 {
 				reasons = append(reasons, constants.RecommendationReasonPreferenceAffinity)
-				reason = map[string]string{constants.RecommendationSignalFavorite: "根据你收藏的好物推荐", constants.RecommendationSignalCompare: "根据你对比过的商品推荐", constants.RecommendationSignalHistory: "根据你近期浏览的偏好推荐", constants.RecommendationSignalPurchase: "根据你已购商品的偏好推荐"}[bestKind]
+				reason = map[string]string{
+					constants.RecommendationSignalFavorite: "根据你收藏的好物推荐",
+					constants.RecommendationSignalCompare:  "根据你对比过的商品推荐",
+					constants.RecommendationSignalHistory:  "根据你近期浏览的偏好推荐",
+					constants.RecommendationSignalPurchase: "根据你已购商品的偏好推荐",
+				}[bestKind]
 			}
 		}
 		searchScore := 0.
@@ -374,7 +417,8 @@ func rankProducts(products []product, profile preference, contextProduct *produc
 		best, bestAdjusted := 0, math.Inf(-1)
 		for i, row := range ranked {
 			adjusted := row.score - .65*float64(categoryCounts[row.p.category]) - .3*float64(brandCounts[row.p.brand])
-			if adjusted > bestAdjusted+1e-9 || (math.Abs(adjusted-bestAdjusted) < 1e-9 && row.p.id < ranked[best].p.id) {
+			if adjusted > bestAdjusted+1e-9 ||
+				(math.Abs(adjusted-bestAdjusted) < 1e-9 && row.p.id < ranked[best].p.id) {
 				best, bestAdjusted = i, adjusted
 			}
 		}

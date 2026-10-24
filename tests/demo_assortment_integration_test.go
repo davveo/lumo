@@ -38,7 +38,14 @@ func TestDemoAssortmentCoversNavigationAndCanCompletePayment(t *testing.T) {
 				})
 				items := mapItems(result)
 				if len(items) < minimum {
-					t.Fatalf("navigation target has insufficient actual products: category=%q query=%q brand=%q got=%d want>=%d", category, keyword, brand, len(items), minimum)
+					t.Fatalf(
+						"navigation target has insufficient actual products: category=%q query=%q brand=%q got=%d want>=%d",
+						category,
+						keyword,
+						brand,
+						len(items),
+						minimum,
+					)
 				}
 				stocks := mapItems(platform.Result{"items": result["inventory_items"]})
 				available := map[string]int64{}
@@ -47,7 +54,9 @@ func TestDemoAssortmentCoversNavigationAndCanCompletePayment(t *testing.T) {
 				}
 				for _, product := range items {
 					id := platform.Text(product, "id")
-					if platform.Text(product, "category") != category || platform.Int(product, "price_cents") < 1 || platform.Text(product, "image") == "" || available[id] < 1 {
+					if platform.Text(product, "category") != category || platform.Int(product, "price_cents") < 1 ||
+						platform.Text(product, "image") == "" ||
+						available[id] < 1 {
 						t.Fatalf("search result lost category, price, image or live stock: %v", product)
 					}
 					if brand != "" && platform.Text(product, "brand") != brand {
@@ -78,7 +87,14 @@ func TestDemoAssortmentCoversNavigationAndCanCompletePayment(t *testing.T) {
 	if leafCount != 586 || rowCount != 93 {
 		t.Fatalf("navigation coverage unexpectedly shrank: leaves=%d rows=%d", leafCount, rowCount)
 	}
-	t.Logf("actual search covered %d departments, %d rows, %d leaves, %d shortcuts and %d configured brands", len(groups), rowCount, leafCount, shortcutCount, brandCount)
+	t.Logf(
+		"actual search covered %d departments, %d rows, %d leaves, %d shortcuts and %d configured brands",
+		len(groups),
+		rowCount,
+		leafCount,
+		shortcutCount,
+		brandCount,
+	)
 
 	products := democatalog.ExpandedProducts()
 	ids := make([]string, 0, len(products))
@@ -89,7 +105,11 @@ func TestDemoAssortmentCoversNavigationAndCanCompletePayment(t *testing.T) {
 		expected[id] = product
 	}
 	if len(products) < leafCount*3 || len(expected) != len(products) {
-		t.Fatalf("expanded assortment is insufficient or has duplicate IDs: products=%d unique=%d", len(products), len(expected))
+		t.Fatalf(
+			"expanded assortment is insufficient or has duplicate IDs: products=%d unique=%d",
+			len(products),
+			len(expected),
+		)
 	}
 	variants := map[string]bool{}
 	for start := 0; start < len(ids); start += 500 {
@@ -103,7 +123,9 @@ func TestDemoAssortmentCoversNavigationAndCanCompletePayment(t *testing.T) {
 			id := platform.Text(product, "id")
 			seed := expected[id]
 			wantCents := int64(math.Round(seed["price"].(float64) * 100))
-			if platform.Text(product, "name") != platform.Text(seed, "name") || platform.Text(product, "category") != platform.Text(seed, "category") || platform.Int(product, "price_cents") != wantCents {
+			if platform.Text(product, "name") != platform.Text(seed, "name") ||
+				platform.Text(product, "category") != platform.Text(seed, "category") ||
+				platform.Int(product, "price_cents") != wantCents {
 				t.Fatalf("catalog materialization differs from the development definition: %v", product)
 			}
 			for _, variant := range mapItems(platform.Result{"items": product["variants"]}) {
@@ -127,7 +149,8 @@ func TestDemoAssortmentCoversNavigationAndCanCompletePayment(t *testing.T) {
 			t.Fatalf("expanded inventory batch is incomplete: %d..%d returned %d", start, end, len(stocks))
 		}
 		for _, stock := range stocks {
-			if !variants[platform.Text(stock, "sku_id")] || platform.Int(stock, "on_hand") < 1 || platform.Int(stock, "available") < 1 {
+			if !variants[platform.Text(stock, "sku_id")] || platform.Int(stock, "on_hand") < 1 ||
+				platform.Int(stock, "available") < 1 {
 				t.Fatalf("expanded SKU is not backed by usable stock: %v", stock)
 			}
 		}
@@ -139,18 +162,32 @@ func TestDemoAssortmentCoversNavigationAndCanCompletePayment(t *testing.T) {
 	server := httptest.NewServer(httpgateway.NewHandler(c.rpc, true, t.TempDir()))
 	defer server.Close()
 	h := &httpShop{t: t, server: server, client: server.Client(), coverage: map[string]int{}}
-	token := platform.Text(h.call("", "iam", "login", "", "", map[string]any{"username": "demo", "password": "Lumo@2026"}), "token")
+	token := platform.Text(
+		h.call("", "iam", "login", "", "", map[string]any{"username": "demo", "password": "Lumo@2026"}),
+		"token",
+	)
 	defer h.call(token, "iam", "logout", "", "", nil)
 	sku := skus[len(skus)-1]
 	stockBefore := h.call("", "inventory", "get", sku, "", nil)
 	h.call(token, "cart", "add", "", "", map[string]any{"sku_id": sku, "quantity": 1})
-	quote := h.call(token, "pricing", "quote", "", "", map[string]any{"items": []any{map[string]any{"sku_id": sku, "quantity": 1}}})
+	quote := h.call(
+		token,
+		"pricing",
+		"quote",
+		"",
+		"",
+		map[string]any{"items": []any{map[string]any{"sku_id": sku, "quantity": 1}}},
+	)
 	if platform.Int(quote, "subtotal_cents") < 1 || platform.Int(quote, "payable_cents") < 1 {
 		t.Fatalf("expanded variant has no authoritative quote: %v", quote)
 	}
 	orderID := platform.Text(h.call(token, "checkout", "submit", "", "demo-assortment-purchase", map[string]any{
 		"quote_id": platform.Text(quote, "quote_id"), "source": "cart",
-		"address": map[string]any{"recipient": "Assortment Buyer", "phone": "13800000000", "address": "Integration Assortment Street"},
+		"address": map[string]any{
+			"recipient": "Assortment Buyer",
+			"phone":     "13800000000",
+			"address":   "Integration Assortment Street",
+		},
 	}), "order_id")
 	payment := h.call(token, "payment", "create", orderID, "", nil)
 	h.call(token, "payment", "submit_demo", platform.Text(payment, "id"), "", nil)
@@ -158,10 +195,15 @@ func TestDemoAssortmentCoversNavigationAndCanCompletePayment(t *testing.T) {
 	order := h.call(token, "order", "get", orderID, "", nil)
 	warehouse := h.call(token, "fulfillment", "get", orderID, "", nil)
 	if platform.Text(order, "status") != "READY_TO_FULFILL" || platform.Text(warehouse, "status") != "READY" {
-		t.Fatalf("expanded variant could not finish payment and resource confirmation: order=%v warehouse=%v", order, warehouse)
+		t.Fatalf(
+			"expanded variant could not finish payment and resource confirmation: order=%v warehouse=%v",
+			order,
+			warehouse,
+		)
 	}
 	stockPaid := h.call("", "inventory", "get", sku, "", nil)
-	if platform.Int(stockPaid, "allocated") != platform.Int(stockBefore, "allocated")+1 || platform.Int(stockPaid, "available") != platform.Int(stockBefore, "available")-1 {
+	if platform.Int(stockPaid, "allocated") != platform.Int(stockBefore, "allocated")+1 ||
+		platform.Int(stockPaid, "available") != platform.Int(stockBefore, "available")-1 {
 		t.Fatalf("expanded purchase did not allocate real stock: before=%v after=%v", stockBefore, stockPaid)
 	}
 	for _, name := range []string{"catalog", "inventory"} {
