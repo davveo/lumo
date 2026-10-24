@@ -1,6 +1,6 @@
 # LUMO 商城完整工程
 
-已将原商城前端接入 Go + GORM + gRPC 多服务项目，包含完整商城、独立管理页面、30 个领域服务与配套依赖。30 个领域服务独立运行，HTTP 网关接入前端，MySQL 按服务隔离 schema / 数据库账号，RabbitMQ 承接领域事件，Redis 用于缓存与秒杀准入。OpenTelemetry + Collector + Jaeger 将调用关联到 SQL。
+已将原商城前端接入 Go + GORM + gRPC 多服务项目，包含完整商城、独立管理页面、30 个领域服务与配套依赖。30 个领域服务独立运行，通过 Consul 注册、健康检查与服务发现连接；HTTP 网关接入前端，MySQL 按服务隔离 schema / 数据库账号，RabbitMQ 承接领域事件，Redis 用于缓存与秒杀准入。OpenTelemetry + Collector + Jaeger 将调用关联到 SQL。
 
 ## 放到桌面并一键启动
 
@@ -19,7 +19,7 @@ macOS 也可以直接双击项目根目录的 `start.command`。命令行可在�
 
 若已经在其他位置解压，可执行 `sh scripts/install-to-desktop.command` 将完整目录复制到桌面；脚本遇到已有同名目录会停止，避免覆盖。
 
-请先启动 Docker Desktop（含 Compose v2）。完整环境默认启动 **30 个业务服务 + HTTP 网关 + MySQL、Redis、RabbitMQ、MinIO、Collector、Jaeger**；建议为 Docker 分配至少 8 GB 内存进行开发联调。镜像和依赖首次下载需要网络。`start.sh` 首次以受限文件权限从 `.env.example` 创建 `.env`，之后保留现有配置。
+请先启动 Docker Desktop（含 Compose v2）。完整环境默认启动 **30 个业务服务 + HTTP 网关 + Consul、MySQL、Redis、RabbitMQ、MinIO、Collector、Jaeger**；建议为 Docker 分配至少 8 GB 内存进行开发联调。镜像和依赖首次下载需要网络。`start.sh` 首次以受限文件权限从 `.env.example` 创建 `.env`，之后保留现有配置。
 
 `start.sh` 首次构建并启动完整环境，以后根据源码与配置指纹，只更新变化的业务容器；运行中的中间件保持原容器。没有变化时不构建、不重建，已停止的服务会补启动。业务共用一次应用镜像构建，但使用明确服务列表更新，避免共享镜像标签改变导致其他容器一起更新。默认等待健康检查600秒，失败返回非零状态，数据库、MQ、Redis和追踪卷保留。`sh scripts/down.sh` 停止环境并保留数据。
 
@@ -30,6 +30,7 @@ macOS 也可以直接双击项目根目录的 `start.command`。命令行可在�
 | 商城 | http://localhost:8080 | 商品、营销、购物车、下单、支付结果及个人中心 |
 | 管理端 | http://localhost:8080/admin.html | 演示收款、发货、售后、退款、发票、审核和对账 |
 | API 联调台 | http://localhost:8080/debug | 按权限发送业务请求并查看 trace_id |
+| Consul 注册中心 | http://localhost:8500/ui/ | 查看30个领域服务、网关及其实例健康状态 |
 | Jaeger | http://localhost:16686 | 按服务、操作或 trace_id 查询完整链路 |
 | RabbitMQ 管理 | http://localhost:15672 | 领域队列、消费、重试与死信 |
 | MinIO API / 控制台 | http://localhost:9001 / http://localhost:9002 | 私有附件上传与授权下载 |
@@ -59,7 +60,7 @@ lumo-backend/
 │   │       ├── domain/           # 领域模型、状态、规则
 │   │       ├── repository/       # GORM 持久化与事务
 │   │       ├── usecase/          # 业务流程与跨服务 RPC 编排
-│   │       └── transport/        # RPC action 校验和分发
+│   │       └── transport/        # RPC 请求映射、校验与兼容适配
 │   └── ...                      # 共30个服务
 ├── deploy/                       # MySQL 初始化、Collector、Jaeger
 ├── scripts/                      # 一键启停与冒烟检查
@@ -75,7 +76,11 @@ lumo-backend/
 └── go.mod / go.sum
 ```
 
-服务不直接写其他服务的表，也不在实现代码中导入其他服务的 usecase。同步交互通过 gRPC，异步交互通过持久化 Outbox / RabbitMQ；接口由 RPC 命令信封承载，业务 payload 在服务 transport 层校验。调用动作和示例见 [docs/api.md](docs/api.md)。
+服务不直接写其他服务的表，也不在实现代码中导入其他服务的 usecase。同步交互通过 gRPC，异步交互通过持久化 Outbox / RabbitMQ。订单服务使用 `OrderService` 的15个独立RPC及对应强类型用例，transport负责字段映射；原 `DomainService.Execute` 仅作订单兼容适配，其余领域服务尚在使用该通用信封。订单迁移与扩展约定见 [services/order/README.md](services/order/README.md)，HTTP调用动作和示例见 [docs/api.md](docs/api.md)。
+
+Compose 默认启用 Consul。业务服务与网关启动时注册实例，Consul 分别检查 gRPC Health 和网关 `/readyz`；RPC 只从 Consul 获取健康实例并持续刷新地址。进程退出时注销，Consul 重启后实例会定期重新注册。未设置 `CONSUL_HTTP_ADDR` 的独立 Go 开发环境继续使用静态地址；显式的 `*_RPC_ADDR` / `RPC_TARGETS` 保留覆盖能力。配置与排查见 [docs/consul.md](docs/consul.md)。
+
+30个领域服务可分别增加副本：每个容器只装配自身模块，使用所属服务的数据库账号、schema及MQ队列。各副本注册自身地址和唯一实例ID，调用方复用gRPC连接、每2秒刷新Consul健康地址，并通过round_robin分摊到READY实例。共享应用镜像用于统一构建，各服务的进程、配置及副本数量独立。Trace的 `service.instance.id` 和日志的 `instance_id` 对应Consul实例ID，便于检查请求落到了哪个副本。
 
 ## 查看每层调用与 SQL
 
@@ -95,7 +100,7 @@ HTTP POST /api/v1/checkout/submit
                 inventory server → transport → usecase → repository → SQL
 ```
 
-RPC、业务层、仓储层、SQL 都沿传入的 `context.Context` 关联。MQ 在 Outbox 中保存 W3C trace 上下文，消费者提取后建立消费 span，能追踪支付事件和后续履约。SQL 记录参数化模板、表、操作、耗时、受影响行数和错误，不将密码、令牌、地址等参数值写入 trace。详细查看方式见 [docs/observability.md](docs/observability.md)。
+RPC、业务层、仓储层、SQL 都沿传入的 `context.Context` 关联。MQ 在 Outbox 中保存 W3C trace 上下文，消费者提取后建立消费 span，能追踪支付事件和后续履约。HTTP、RPC、transport/usecase及MQ调用记录 `lumo.request`、`lumo.response` 与规范错误码，入参和返回值递归脱敏并限制长度；SQL继续记录参数化模板、表、操作、耗时和行数，不展开绑定值。详细查看方式见 [docs/observability.md](docs/observability.md)。
 
 ## 验证与当前边界
 
@@ -119,8 +124,8 @@ docker compose logs --tail=100 checkout inventory payment
 ## 体验完整链路
 
 1. 在商城使用顾客账号登录，选择规格、加入购物车、保存地址并提交服务端报价后的订单。
-2. 在支付页创建支付单。支付页会等待服务端状态，不自行跳成功。
-3. 另开 `/admin.html`，显式登录管理员，在“支付确认”处理演示收款。顾客页面观察到后端接纳支付后显示结果。
+2. 在支付页点击“模拟支付”，创建支付单并提交模拟成功回执。已创建的待支付单可继续点击“模拟支付成功”；此流程不会产生真实扣款。
+3. 服务端接纳支付后，通过事件确认库存、优惠券和积分，更新购物车并生成待发货记录。顾客页面查询到订单接纳支付后显示结果。模拟提交仅在 `DEMO_MODE` 开启时允许，且只能操作本人的支付单；管理员仍可在 `/admin.html` 的“支付确认”处理演示收款。
 4. 管理端“仓库发货”确认出库、演示签收；顾客在订单页确认收货、评价或申请售后。
 5. 售后批准、顾客寄回、仓库验收、发起退款、确认演示退款分别进行；原发票保留，退款产生红冲记录。
 
@@ -134,7 +139,7 @@ docker compose logs --tail=100 checkout inventory payment
 | --- | --- |
 | 普通交易、券积分库存与支付/退款流程 | 已有可运行实现与测试；支付渠道为显式演示适配 |
 | RPC到分层SQL追踪 | HTTP、gRPC、业务、仓储、GORM和MQ上下文已接入；具体验证见verification.md |
-| 拼团/秒杀/换购 | 提供基础状态与资源编排，正式活动政策需按业务确认；不等同于生产容量验收 |
+| 拼团/秒杀/换购/满减/折扣/多件优惠/直降 | 已接入活动入口、服务端报价及配额编排，订单保留规则快照；不等同于生产容量验收 |
 | 换货 | 支持同SKU/同价SKU；价差需补差付款的换货明确拒绝，尚未实现补差收款 |
 | 对账 | 内部演示账单核对；尚未接入真实支付平台账单文件 |
 | 文件与对象存储 | MinIO真实预签名上传/下载，完成时核验对象大小与类型 |

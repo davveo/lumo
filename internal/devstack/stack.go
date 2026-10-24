@@ -189,15 +189,17 @@ func (s *Stack) Pump(ctx context.Context) error {
 					}
 					eventCtx := otel.GetTextMapPropagator().Extract(ctx, carrier)
 					eventCtx, sp := otel.Tracer("lumo/devstack").Start(eventCtx, "localmq.consume."+event.Type, trace.WithSpanKind(trace.SpanKindConsumer), trace.WithAttributes(attribute.String("messaging.consumer", consumer), attribute.String("messaging.system", "local-durable-outbox")))
+					platform.TraceRequest(eventCtx, event)
 					err := m.OnEvent(eventCtx, event)
 					if err != nil {
-						sp.RecordError(err)
+						platform.TraceResponse(eventCtx, nil, err)
 						sp.End()
 						_ = s.dbs[producer].WithContext(ctx).Model(&platform.Outbox{}).Where("id = ?", row.ID).Updates(map[string]any{"attempts": gorm.Expr("attempts + 1"), "next_attempt_at": time.Now().UTC().Add(time.Second)}).Error
 						return fmt.Errorf("%s -> %s (%s): %w", producer, consumer, event.Type, err)
 					}
 					inbox := platform.Inbox{Consumer: consumer, EventID: event.ID, State: "DONE", Attempts: 1, UpdatedAt: time.Now().UTC()}
 					err = db.WithContext(eventCtx).Clauses(clause.OnConflict{DoNothing: true}).Create(&inbox).Error
+					platform.TraceResponse(eventCtx, platform.Result{"event_id": event.ID, "inbox_recorded": err == nil}, err)
 					sp.End()
 					if err != nil {
 						return err

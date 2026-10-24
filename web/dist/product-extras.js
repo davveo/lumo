@@ -8,8 +8,9 @@
   const time = value => new Date(value).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' });
   const redraw = () => { if (typeof renderKeepScroll === 'function') renderKeepScroll(); };
   const stars = rating => { const count = Math.max(0, Math.min(5, Math.round(Number(rating) || 0))); return `<span class="pex-stars" aria-label="${rating} 星评价">${'★'.repeat(count)}<i>${'★'.repeat(5 - count)}</i></span>`; };
-  let cache = new Map(), relatedIds = [], ownerKey = '', loading = new Map(), lastProductView = '';
+  let cache = new Map(), ownerKey = '', loading = new Map(), lastProductView = '';
   const userId = () => { const u = window.LumoAuth?.user?.(); return u?.id || u?.user_id || ''; };
+  const scope = () => JSON.stringify([userId(),window.LumoAPI.getBase?.() || location.origin,window.LumoAPI.getToken?.() || '']);
   const api = (action, command, options) => window.LumoAPI.call('interaction', action, command, options);
   function storage() {
     const helpful = {}, questions = [];
@@ -27,31 +28,31 @@
       publicationStatus: row.status, status: row.status === 'REJECTED' ? 'rejected' : row.status === 'PENDING' ? 'moderating' : row.answer ? 'answered' : 'pending' };
   }
   async function refresh(productId = '') {
-    if (ownerKey !== userId()) { cache.clear(); relatedIds=[]; ownerKey = userId(); loading.clear(); }
+    if (ownerKey !== scope()) { cache.clear(); ownerKey = scope(); loading.clear(); }
     if (!productId) { const route = (location.hash || '#/').slice(2).split('/'); productId = route[0] === 'product' ? route[1] : ''; }
     if (!productId || !findProduct(productId)) return;
-    const owner = userId(), loadingKey = owner + '|' + productId;
+    const owner = scope(), loadingKey = owner + '|' + productId, ticket=window.LumoInventory?.hydrationTicket?.();
     if (loading.has(loadingKey)) return loading.get(loadingKey);
     const run = (async () => {
       const options = { auth: !!window.LumoAuth?.isLoggedIn() };
       try {
         const requests = ['review', 'question'].map(async kind => {
           const command = { data: { kind, sku_id: productId, limit: 100 } };
-          const published = await api('list', command, options);
+          const [published, mine] = await Promise.all([
+            api('list', command, options),
+            window.LumoAuth?.isLoggedIn() ? api('list', {data: {...command.data, mine: true}}) : null
+          ]);
           const rows = new Map((published.items || []).map(row => [row.id, row]));
-          if (window.LumoAuth?.isLoggedIn()) {
-            const mine = await api('list', { data: { ...command.data, mine: true } });
-            (mine.items || []).forEach(row => rows.set(row.id, row));
-          }
+          (mine?.items || []).forEach(row => rows.set(row.id, row));
           return [...rows.values()].map(rowView);
         });
         const [reviews, questions, related] = await Promise.all([...requests,
-          window.LumoAPI.call('recommendation', 'list', { data: { limit: 8 } }, options)]);
-        if (owner !== userId()) return;
-        cache.set(productId, { reviews, questions, loadedAt: Date.now(), error: '' });
-        relatedIds = (related.items || []).map(row => row.product_id || row.id);
+          window.LumoAPI.call('recommendation', 'list', {data: {scene:'similar',product_id:productId,limit:8}}, options).catch(()=>({items:[]}))]);
+        if (owner !== scope()) return;
+        const relatedRows = window.LumoRecommendations?.mapItems ? window.LumoRecommendations.mapItems(related,'similar',[productId],ticket) : (related.items || []).map(raw=>({product:findProduct(raw.product_id || raw.id),reason:safeText(raw.recommendation_reason,100) || '为你精选的好物'})).filter(row=>row.product&&row.product.id!==productId);
+        cache.set(productId, { reviews, questions, related:relatedRows, loadedAt: Date.now(), error: '' });
       } catch (error) {
-        if(owner === userId()) cache.set(productId, { reviews: [], questions: [], loadedAt: Date.now(), error: error.message });
+        if(owner === scope()) cache.set(productId, { reviews: [], questions: [], loadedAt: Date.now(), error: error.message });
         throw error;
       } finally { loading.delete(loadingKey); }
     })();
@@ -61,7 +62,7 @@
   function activate(productId) {
     if (viewState.productId !== productId) Object.assign(viewState, { productId, reviewFilter: 'all', reviewSort: 'default', reviewPage: 1, questionFilter: 'all' });
   }
-  function reviewData(productId) { return ownerKey === userId() ? cache.get(productId)?.reviews || [] : []; }
+  function reviewData(productId) { return ownerKey === scope() ? cache.get(productId)?.reviews || [] : []; }
   function reviewCount(productId) { return reviewData(productId).length; }
   function reviews(productId) {
     const product = findProduct(productId); if (!product) return '<div class="pex-empty">该商品暂不可用。</div>';
@@ -77,7 +78,7 @@
     const visible = list.slice((viewState.reviewPage - 1) * 6, viewState.reviewPage * 6);
     return `<section class="pex-reviews" aria-label="商品评价">${notice(productId)}<div class="pex-review-overview"><div class="pex-rating-score"><strong>${average}<small>/ 5</small></strong>${stars(Number(average))}<p>${favorable}% 好评 · ${published.length} 条公开评价</p></div><div class="pex-rating-bars">${[5, 4, 3, 2, 1].map(score => { const count = published.filter(row => row.rating === score).length; return `<div><span>${score} 星</span><i><b style="width:${published.length ? Math.round(count / published.length * 100) : 0}%"></b></i><small>${count}</small></div>`; }).join('')}</div><div class="pex-review-invite">${icon('edit')}<div><strong>分享你的购物体验</strong><p>收货后可在订单中评价商品。</p><a href="#/member/orders/review">去评价 ${icon('chevron')}</a></div></div></div><div class="pex-review-toolbar"><div class="pex-chips" aria-label="评价筛选">${filters.map(([value, label, count]) => `<button data-product-extra-action="review-filter" data-value="${value}" data-product="${esc(productId)}" class="${viewState.reviewFilter === value ? 'active' : ''}" aria-pressed="${viewState.reviewFilter === value}">${label}<span>${count}</span></button>`).join('')}</div><label class="pex-sort-label">排序<select id="pex-review-sort" aria-label="评价排序"><option value="default" ${viewState.reviewSort === 'default' ? 'selected' : ''}>推荐排序</option><option value="recent" ${viewState.reviewSort === 'recent' ? 'selected' : ''}>最新评价</option></select></label></div><div class="pex-review-list">${visible.length ? visible.map(row => `<article class="pex-review-card"><div class="pex-review-author"><span class="pex-avatar">${esc(row.author.slice(0, 1))}</span><div><strong>${esc(row.author)}</strong><small>${row.sample ? '购买评价' : row.status === 'moderating' ? '我的评价 · 待审核' : row.status === 'rejected' ? '我的评价 · 未通过审核' : '我的购买评价'}</small></div><time>${time(row.at)}</time></div><div class="pex-review-content">${stars(row.rating)}<p>${esc(row.body)}</p><div class="pex-review-meta"><span>${esc(row.color)} / ${esc(row.option)}</span>${row.orderId ? `<button data-action="order-details" data-id="${esc(row.orderId)}">查看订单</button>` : ''}<button data-product-extra-action="helpful" data-product="${esc(productId)}" data-id="${esc(row.id)}" aria-pressed="${!!helpful[row.id]}" aria-label="${helpful[row.id] ? '已标记有帮助' : '这条评价有帮助'}：${esc(row.author)}" class="pex-helpful ${helpful[row.id] ? 'active' : ''}" ${helpful[row.id] || row.status === 'moderating' || row.status === 'rejected' ? 'disabled' : ''}>${icon('check')}有帮助 ${row.baseHelpful}</button></div></div></article>`).join('') : '<div class="pex-empty">暂无这类评价，看看其他评价吧。</div>'}</div>${pages > 1 ? `<div class="pex-pagination"><button data-product-extra-action="review-page" data-value="${viewState.reviewPage - 1}" ${viewState.reviewPage <= 1 ? 'disabled' : ''}>上一页</button><span>${viewState.reviewPage} / ${pages}</span><button data-product-extra-action="review-page" data-value="${viewState.reviewPage + 1}" ${viewState.reviewPage >= pages ? 'disabled' : ''}>下一页</button></div>` : ''}</section>`;
   }
-  function questionData(productId) { return ownerKey === userId() ? cache.get(productId)?.questions || [] : []; }
+  function questionData(productId) { return ownerKey === scope() ? cache.get(productId)?.questions || [] : []; }
   function questionCount(productId) { return questionData(productId).length; }
   function questions(productId) {
     const product = findProduct(productId); if (!product) return '<div class="pex-empty">该商品暂不可用。</div>';
@@ -97,8 +98,9 @@
   }
   function related(product) {
     if (!product || !findProduct(product.id)) return '';
-    const list = relatedIds.filter((id,index,ids) => id !== product.id && ids.indexOf(id) === index).map(findProduct).filter(p => p && p.visible !== false).slice(0,4);
-    return list.length ? `<section class="pex-related"><div class="section-head"><div><h2>一起发现更多好物</h2><p>根据商城推荐结果，为你精选。</p></div><a class="text-button" href="#/">浏览全部${icon('chevron')}</a></div><div class="product-grid">${list.map(productCard).join('')}</div></section>` : '';
+    const rows = ownerKey === scope() ? (cache.get(product.id)?.related || []).filter(row=>row.product.id!==product.id&&row.product.visible!==false).slice(0,4) : [];
+    window.LumoRecommendations?.restoreItems?.('similar',rows);
+    return rows.length ? `<section class="pex-related"><div class="section-head"><div><h2>相似好物</h2><p>结合当前商品特征，为你精选。</p></div><a class="text-button" href="#/">浏览全部${icon('chevron')}</a></div><div class="product-grid">${rows.map(row=>`<div class="home-recommendation-card">${productCard(row.product)}<div class="purchase-recommendation-reason">${icon('sparkles')}<span>${esc(row.reason)}</span></div></div>`).join('')}</div></section>` : '';
   }
   async function share(productId) {
     if (!findProduct(productId)) return;
@@ -108,16 +110,17 @@
     catch (_) { modal('分享这件好物', `<p class="modal-desc">复制下方商品链接，即可再次打开。</p><label class="field">商品链接<input type="text" readonly value="${esc(url)}" aria-label="商品链接"></label><button class="primary" data-action="close-modal">完成</button>`); }
   }
   function afterRender() {
+    if(window.LumoConnection?.ready===false||window.LumoAPI?.isBootstrapActive?.())return;
     const route = (location.hash || '#/').slice(2).split('/');
     if (route[0] !== 'product' || !findProduct(route[1])) { lastProductView=''; return; }
-    const viewKey=userId()+'|'+route[1];
+    const viewKey=scope()+'|'+route[1];
     if(window.LumoAuth?.isLoggedIn() && viewKey!==lastProductView){
       lastProductView=viewKey;
       const key='product-view-'+(crypto.randomUUID?.() || Date.now().toString(36));
       window.LumoAPI.call('analytics','record',{idempotency_key:key,data:{type:'view',sku_id:route[1]}}).catch(()=>{});
     }
     const current = cache.get(route[1]);
-    if (ownerKey !== userId() || !current || Date.now() - current.loadedAt > 30000) refresh(route[1]).then(redraw).catch(error => { toast(error.message); redraw(); });
+    if (ownerKey !== scope() || !current || Date.now() - current.loadedAt > 30000) refresh(route[1]).then(redraw).catch(error => { toast(error.message); redraw(); });
   }
   document.addEventListener('click', async event => {
     const button = event.target.closest('[data-product-extra-action]'); if (!button || button.disabled) return;
@@ -152,5 +155,6 @@
     } catch (error) { toast(error.message); if (button) button.disabled = false; }
 
   });
+  window.addEventListener?.('lumo:ready',afterRender);
   window.LumoProductExtras = { reviews, reviewCount, reviewData, questions, questionCount, questionData, detailActions, related, panel: (product, tab) => tab === 3 || tab === 'questions' ? questions(product.id) : reviews(product.id), afterRender, refresh, share };
 })();

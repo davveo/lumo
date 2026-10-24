@@ -9,9 +9,11 @@ import (
 	"strings"
 )
 
-func (s *Service) Execute(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "search.usecase.Query")
 	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	if c.Action != "query" && c.Action != "suggest" {
 		return nil, status.Error(codes.Unimplemented, "unsupported search action")
 	}
@@ -20,7 +22,20 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (platform.Res
 		return nil, e
 	}
 	_ = cfg
-	data, e := call(ctx, s.rpc, "catalog", child(c, "list", "", map[string]any{"limit": 100}))
+	// Apply constraints to the full authoritative catalog before taking a
+	// bounded candidate window. Only this server constructs the internal role.
+	sortKey := platform.Text(c.Data, "sort")
+	catalogSort := sortKey
+	switch catalogSort {
+	case "", "price_asc", "price_desc", "sales", "sales_desc", "newest":
+	default:
+		catalogSort = ""
+	}
+	catalogCommand := platform.Command{Action: "search_products", Role: "system", Data: map[string]any{
+		"query": strings.TrimSpace(platform.Text(c.Data, "query")), "category": strings.TrimSpace(platform.Text(c.Data, "category")),
+		"brand": strings.TrimSpace(platform.Text(c.Data, "brand")), "sort": catalogSort, "limit": 100,
+	}}
+	data, e := call(ctx, s.rpc, "catalog", catalogCommand)
 	if e != nil {
 		return nil, e
 	}
@@ -30,11 +45,12 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (platform.Res
 	if e = platform.Decode(data, &decoded); e != nil {
 		return nil, e
 	}
-	q := strings.ToLower(platform.Text(c.Data, "query"))
-	brand := platform.Text(c.Data, "brand")
-	category := platform.Text(c.Data, "category")
+	q := strings.ToLower(strings.TrimSpace(platform.Text(c.Data, "query")))
+	brand := strings.TrimSpace(platform.Text(c.Data, "brand"))
+	category := strings.TrimSpace(platform.Text(c.Data, "category"))
 	stockOnly, _ := c.Data["in_stock"].(bool)
-	items := []platform.Result{}
+	candidates := []map[string]any{}
+	ids, seen := []string{}, map[string]bool{}
 	for _, p := range decoded.Items {
 		if q != "" && !strings.Contains(strings.ToLower(platform.Text(p, "name")+" "+platform.Text(p, "brand")+" "+platform.Text(p, "category")), q) {
 			continue
@@ -45,9 +61,35 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (platform.Res
 		if category != "" && platform.Text(p, "category") != category {
 			continue
 		}
-		stock, err := call(ctx, s.rpc, "inventory", child(c, "get", platform.Text(p, "id"), nil))
+		candidates = append(candidates, p)
+		id := platform.Text(p, "id")
+		if !seen[id] {
+			seen[id] = true
+			ids = append(ids, id)
+		}
+	}
+	stocks := map[string]map[string]any{}
+	if len(ids) > 0 {
+		sort.Strings(ids)
+		batch, err := call(ctx, s.rpc, "inventory", child(c, "batch_get", "", map[string]any{"ids": ids}))
 		if err != nil {
 			return nil, err
+		}
+		var rows struct {
+			Items []map[string]any `json:"items"`
+		}
+		if err = platform.Decode(batch, &rows); err != nil {
+			return nil, err
+		}
+		for _, row := range rows.Items {
+			stocks[platform.Text(row, "sku_id")] = row
+		}
+	}
+	items := []platform.Result{}
+	for _, p := range candidates {
+		stock, exists := stocks[platform.Text(p, "id")]
+		if !exists {
+			return nil, status.Error(codes.NotFound, "stock not found")
 		}
 		p["available"] = platform.Int(stock, "available")
 		if stockOnly && platform.Int(stock, "available") < 1 {
@@ -55,7 +97,6 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (platform.Res
 		}
 		items = append(items, p)
 	}
-	sortKey := platform.Text(c.Data, "sort")
 	if sortKey == "price_asc" || sortKey == "price_desc" {
 		sort.SliceStable(items, func(i, j int) bool {
 			a, b := platform.Int(items[i], "price_cents"), platform.Int(items[j], "price_cents")
@@ -81,7 +122,12 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (platform.Res
 	if end > total {
 		end = total
 	}
-	return platform.Result{"items": items[offset:end], "total": total, "offset": offset, "limit": limit, "engine": "catalog_rpc"}, nil
+	selected := items[offset:end]
+	inventory := []map[string]any{}
+	for _, product := range selected {
+		inventory = append(inventory, stocks[platform.Text(product, "id")])
+	}
+	return platform.Result{"items": selected, "inventory_items": inventory, "total": total, "offset": offset, "limit": limit, "candidate_limit": 100, "engine": "catalog_rpc"}, nil
 }
 func (s *Service) seed(ctx context.Context) error {
 	r := record("search-policy", "", "policy", "ACTIVE", map[string]any{"engine": "catalog_rpc", "note": "Elasticsearch adapter is not enabled; authoritative RPC reads"})

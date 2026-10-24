@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package mall.v1;
+
+option go_package = "github.com/davveo/lumo/api/mall/v1;mallv1";
+
+import "google/protobuf/timestamp.proto";
+
+// Actor identity is supplied by an authenticated internal caller. Public
+// requests must first be authenticated and authorized by the gateway.
+message OrderActor {
+  string user_id = 1;
+  string role = 2;
+}
+
+message OrderRequest {
+  OrderActor actor = 1;
+  string id = 2;
+}
+
+message ListOrdersRequest {
+  OrderActor actor = 1;
+}
+
+message ListOrdersResponse {
+  repeated Order items = 1;
+}
+
+message CreateOrderRequest {
+  OrderActor actor = 1;
+  string id = 2;
+  // Immutable, versioned documents received from the pricing and checkout
+  // services. The order service validates the quote and extracts its payable
+  // amount and group ID; callers cannot send conflicting duplicate fields.
+  bytes quote_snapshot_json = 3;
+  bytes address_snapshot_json = 4;
+  string note = 5;
+  string source = 6;
+  google.protobuf.Timestamp expires_at = 7;
+}
+
+message AcceptPaymentRequest {
+  OrderActor actor = 1;
+  string id = 2;
+  string payment_id = 3;
+  int64 amount_cents = 4;
+  google.protobuf.Timestamp paid_at = 5;
+}
+
+message AcceptPaymentResponse {
+  bool accepted = 1;
+  string order_id = 2;
+  string status = 3;
+  string payment_id = 4;
+}
+
+message RecordRefundRequest {
+  OrderActor actor = 1;
+  string id = 2;
+  string refund_id = 3;
+  int64 amount_cents = 4;
+}
+
+message Order {
+  string id = 1;
+  string user_id = 2;
+  string status = 3;
+  int64 version = 4;
+  int64 payable_cents = 5;
+  int64 refunded_total_cents = 6;
+  string payment_id = 7;
+  string group_id = 8;
+  bool group_formed = 9;
+  bool group_failed = 10;
+  bool resources_committed = 11;
+  string note = 12;
+  string source = 13;
+  google.protobuf.Timestamp expires_at = 14;
+  google.protobuf.Timestamp created_at = 15;
+  google.protobuf.Timestamp updated_at = 16;
+  // Historical snapshots are preserved byte-for-byte rather than converted
+  // through a generic protobuf Struct, which would lose integer precision.
+  bytes quote_snapshot_json = 17;
+  bytes address_snapshot_json = 18;
+}
+
+// One RPC per order use case. The legacy DomainService.Execute endpoint is
+// retained separately for callers that have not yet migrated.
+service OrderService {
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
+  rpc GetOrder(OrderRequest) returns (Order);
+  rpc CreateOrder(CreateOrderRequest) returns (Order);
+  rpc MarkPending(OrderRequest) returns (Order);
+  rpc MarkCreateFailed(OrderRequest) returns (Order);
+  rpc AcceptPayment(AcceptPaymentRequest) returns (AcceptPaymentResponse);
+  rpc MarkReady(OrderRequest) returns (Order);
+  rpc WaitForGroup(OrderRequest) returns (Order);
+  rpc BeginClose(OrderRequest) returns (Order);
+  rpc CompleteClose(OrderRequest) returns (Order);
+  rpc MarkGroupFormed(OrderRequest) returns (Order);
+  rpc MarkGroupFailed(OrderRequest) returns (Order);
+  rpc MarkShipped(OrderRequest) returns (Order);
+  rpc CompleteOrder(OrderRequest) returns (Order);
+  rpc RecordRefund(RecordRefundRequest) returns (Order);
+}

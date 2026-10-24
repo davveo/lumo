@@ -15,18 +15,62 @@ import (
 )
 
 type peers struct {
-	order       platform.Module
-	failReserve bool
-	held        bool
-	cancelled   bool
-	reserves    int
+	order          platform.Module
+	failReserve    bool
+	held           bool
+	cancelled      bool
+	reserves       int
+	quoteItems     []platform.Result
+	catalogRows    map[string]platform.Result
+	catalogError   error
+	catalogBatches int
+	catalogGets    int
+	catalogIDs     []string
+	catalogUser    string
+	catalogRole    string
 }
 
 func (p *peers) Call(ctx context.Context, name string, c platform.Command) (platform.Result, error) {
 	switch name {
 	case "pricing":
-		return platform.Result{"quote_id": "quote-fixed", "user_id": "demo", "expires_at": time.Now().Add(time.Hour).UTC().Format(time.RFC3339Nano), "payable_cents": int64(1000), "subtotal_cents": int64(1000), "items": []any{map[string]any{"sku_id": "sku-test", "quantity": int64(1), "unit_price_cents": int64(1000)}}}, nil
+		items := p.quoteItems
+		if items == nil {
+			items = []platform.Result{{"sku_id": "sku-test", "quantity": int64(1), "unit_price_cents": int64(1000)}}
+		}
+		var total int64
+		for _, item := range items {
+			total += platform.Int(item, "quantity") * platform.Int(item, "unit_price_cents")
+		}
+		return platform.Result{"quote_id": "quote-fixed", "user_id": "demo", "expires_at": time.Now().Add(time.Hour).UTC().Format(time.RFC3339Nano), "payable_cents": total, "subtotal_cents": total, "items": items}, nil
 	case "catalog":
+		if c.Action == "batch_get" {
+			p.catalogBatches++
+			p.catalogUser, p.catalogRole = c.UserID, c.Role
+			var data struct {
+				IDs []string `json:"ids"`
+			}
+			if err := platform.Decode(c.Data, &data); err != nil {
+				return nil, err
+			}
+			p.catalogIDs = data.IDs
+			if p.catalogError != nil {
+				return nil, p.catalogError
+			}
+			rows := p.catalogRows
+			if rows == nil {
+				rows = map[string]platform.Result{"sku-test": {"id": "sku-test", "price_cents": int64(1000), "active": true}}
+			}
+			items, missing := []platform.Result{}, []string{}
+			for _, id := range data.IDs {
+				if row, ok := rows[id]; ok {
+					items = append(items, row)
+				} else {
+					missing = append(missing, id)
+				}
+			}
+			return platform.Result{"items": items, "missing_ids": missing}, nil
+		}
+		p.catalogGets++
 		return platform.Result{"id": "sku-test", "price_cents": int64(1000), "active": true}, nil
 	case "order":
 		return p.order.Handle(ctx, c)

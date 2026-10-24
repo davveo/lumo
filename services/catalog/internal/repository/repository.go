@@ -11,13 +11,19 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type Repository struct{ db *gorm.DB }
+type Repository struct {
+	db                    *gorm.DB
+	searchCategoryIndexed bool
+}
 
 func New(db *gorm.DB) *Repository { return &Repository{db: db} }
 func (r *Repository) Migrate(ctx context.Context) error {
 	ctx, s := platform.Start(ctx, "catalog.repository.Migrate")
 	defer s.End()
-	return r.db.WithContext(ctx).AutoMigrate(&domain.Record{})
+	if err := r.db.WithContext(ctx).AutoMigrate(&domain.Record{}); err != nil {
+		return err
+	}
+	return r.migrateSearchCategory(ctx)
 }
 func (r *Repository) Get(ctx context.Context, id string) (domain.Record, error) {
 	ctx, s := platform.Start(ctx, "catalog.repository.Get")
@@ -28,6 +34,17 @@ func (r *Repository) Get(ctx context.Context, id string) (domain.Record, error) 
 		return v, status.Error(codes.NotFound, "record not found")
 	}
 	return v, err
+}
+func (r *Repository) GetMany(ctx context.Context, ids []string, includeDisabled bool) ([]domain.Record, error) {
+	ctx, span := platform.Start(ctx, "catalog.repository.GetMany")
+	defer span.End()
+	rows := []domain.Record{}
+	query := r.db.WithContext(ctx).Where("id IN ?", ids)
+	if !includeDisabled {
+		query = query.Where("status = ?", "ACTIVE")
+	}
+	err := query.Find(&rows).Error
+	return rows, err
 }
 func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, offset int) ([]domain.Record, error) {
 	ctx, s := platform.Start(ctx, "catalog.repository.List")

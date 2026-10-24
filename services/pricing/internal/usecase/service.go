@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
+	"sort"
 	"time"
 )
 
@@ -22,9 +23,11 @@ func New(r *repository.Repository, rpc platform.Caller) *Service { return &Servi
 func (s *Service) Topics() []string                              { return nil }
 func (s *Service) OnEvent(context.Context, platform.Event) error { return nil }
 func (s *Service) Tick(context.Context) error                    { return nil }
-func (s *Service) Handle(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, sp := platform.Start(ctx, "pricing.usecase."+c.Action)
 	defer sp.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	if err := platform.RequireUser(c); err != nil {
 		return nil, err
 	}
@@ -72,7 +75,7 @@ func (s *Service) quote(ctx context.Context, c platform.Command) (platform.Resul
 		return nil, status.Error(codes.InvalidArgument, "points cannot be negative")
 	}
 	if in.Addon != "" && (in.Group != "" || in.Activity != "") {
-		return nil, status.Error(codes.FailedPrecondition, "add-on cannot combine with group or flash sale")
+		return nil, status.Error(codes.FailedPrecondition, "add-on cannot combine with another campaign")
 	}
 	if in.Group != "" {
 		if len(in.Items) != 1 || in.Items[0].Quantity != 1 {
@@ -93,17 +96,39 @@ func (s *Service) quote(ctx context.Context, c platform.Command) (platform.Resul
 		in.Items = append(in.Items, domain.Item{SKUID: in.Addon, Quantity: 1})
 	}
 	seen := map[string]int64{}
-	items := make([]domain.Item, 0, len(in.Items))
-	var subtotal int64
-	var addonAmount int64
-	for index, line := range in.Items {
+	ids := make([]string, 0, len(in.Items))
+	for _, line := range in.Items {
+		if _, exists := seen[line.SKUID]; !exists {
+			ids = append(ids, line.SKUID)
+		}
 		seen[line.SKUID] += line.Quantity
 		if line.SKUID == "" || line.Quantity < 1 || seen[line.SKUID] > 10 {
 			return nil, status.Error(codes.InvalidArgument, "invalid SKU quantity")
 		}
-		p, err := s.rpc.Call(ctx, "catalog", platform.Command{Action: "get", ID: line.SKUID, UserID: c.UserID, Role: c.Role})
-		if err != nil {
-			return nil, err
+	}
+	sort.Strings(ids)
+	catalog, err := s.rpc.Call(ctx, "catalog", platform.Command{Action: "batch_get", UserID: c.UserID, Role: c.Role, Data: map[string]any{"ids": ids}})
+	if err != nil {
+		return nil, err
+	}
+	var catalogRows struct {
+		Items []map[string]any `json:"items"`
+	}
+	if err = platform.Decode(catalog, &catalogRows); err != nil {
+		return nil, err
+	}
+	bySKU := map[string]map[string]any{}
+	for _, row := range catalogRows.Items {
+		bySKU[platform.Text(row, "id")] = row
+	}
+	items := make([]domain.Item, 0, len(in.Items))
+	var subtotal int64
+	var addonAmount int64
+	var quantity int64
+	for index, line := range in.Items {
+		p, exists := bySKU[line.SKUID]
+		if !exists {
+			return nil, status.Error(codes.NotFound, "SKU unavailable")
 		}
 		active, _ := p["active"].(bool)
 		if !active {
@@ -117,20 +142,28 @@ func (s *Service) quote(ctx context.Context, c platform.Command) (platform.Resul
 		line.UnitPrice = unit
 		line.Amount = unit * line.Quantity
 		subtotal += line.Amount
+		quantity += line.Quantity
 		if in.Addon != "" && index == len(in.Items)-1 {
 			addonAmount = line.Amount
 		}
 		items = append(items, line)
 	}
-	camp, err := s.rpc.Call(ctx, "campaign", platform.Command{Action: "evaluate", UserID: c.UserID, Role: c.Role, Data: map[string]any{"subtotal_cents": subtotal - addonAmount, "addon_sku_id": in.Addon, "activity_id": in.Activity}})
+	camp, err := s.rpc.Call(ctx, "campaign", platform.Command{Action: "evaluate", UserID: c.UserID, Role: c.Role, Data: map[string]any{"subtotal_cents": subtotal - addonAmount, "quantity": quantity, "addon_sku_id": in.Addon, "activity_id": in.Activity}})
 	if err != nil {
 		return nil, err
 	}
 	discount := platform.Int(camp, "discount_cents")
 	if in.Addon != "" || in.Activity != "" {
 		if b, ok := camp["eligible"].(bool); ok && !b {
-			return nil, status.Error(codes.FailedPrecondition, "add-on threshold not met")
+			return nil, status.Error(codes.FailedPrecondition, "campaign requirements not met: "+platform.Text(camp, "reason"))
 		}
+	}
+	kind := platform.Text(camp, "kind")
+	if (in.Group != "" && kind != "group") || (kind == "group" && in.Group == "") {
+		return nil, status.Error(codes.FailedPrecondition, "group must use its group campaign")
+	}
+	if kind == "addon" && in.Addon == "" {
+		return nil, status.Error(codes.FailedPrecondition, "add-on campaign requires its add-on SKU")
 	}
 	resolvedActivity := platform.Text(camp, "activity_id")
 	if resolvedActivity != "" {
@@ -192,6 +225,8 @@ func (s *Service) quote(ctx context.Context, c platform.Command) (platform.Resul
 	id := platform.ID("quote")
 	expires := time.Now().UTC().Add(10 * time.Minute)
 	out := platform.Result{"quote_id": id, "user_id": c.UserID, "subtotal_cents": subtotal, "main_subtotal_cents": subtotal - addonAmount, "discount_cents": discount, "coupon_discount_cents": couponDiscount, "campaign_discount_cents": campaignDiscount, "campaign_policy_version": camp["policy_version"], "points": in.Points, "payable_cents": subtotal - discount - in.Points, "items": items, "coupon_id": in.CouponID, "activity_id": in.Activity, "group_id": in.Group, "addon_sku_id": in.Addon, "expires_at": expires.Format(time.RFC3339Nano), "shipping_cents": int64(0), "policy_version": "demo-v1-proportional-points-full-coupon"}
+	out["activity_kind"], out["activity_name"] = kind, platform.Text(camp, "name")
+	out["pay_rate_bps"], out["min_quantity"] = platform.Int(camp, "pay_rate_bps"), platform.Int(camp, "min_quantity")
 	b, err := json.Marshal(out)
 	if err != nil {
 		return nil, err

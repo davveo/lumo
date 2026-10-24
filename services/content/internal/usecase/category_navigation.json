@@ -1,0 +1,4201 @@
+{
+  "version": 1,
+  "groups": [
+    {
+      "id": "appliances",
+      "category": "家用电器",
+      "label": "冰洗 / 空调 / 厨卫大电",
+      "title": "家用电器",
+      "icon": "layers",
+      "rows": [
+        {
+          "title": "冰箱",
+          "query": "冰箱",
+          "items": [
+            {
+              "label": "冰箱",
+              "query": "冰箱",
+              "featured": true
+            },
+            {
+              "label": "多门冰箱",
+              "query": "多门冰箱",
+              "featured": false
+            },
+            {
+              "label": "对开门冰箱",
+              "query": "对开门冰箱",
+              "featured": false
+            },
+            {
+              "label": "嵌入式冰箱",
+              "query": "嵌入式冰箱",
+              "featured": false
+            },
+            {
+              "label": "迷你冰箱",
+              "query": "迷你冰箱",
+              "featured": false
+            },
+            {
+              "label": "超薄冰箱",
+              "query": "超薄冰箱",
+              "featured": false
+            },
+            {
+              "label": "十字对开冰箱",
+              "query": "十字对开冰箱",
+              "featured": false
+            },
+            {
+              "label": "法式多门冰箱",
+              "query": "法式多门冰箱",
+              "featured": false
+            },
+            {
+              "label": "风冷冰箱",
+              "query": "风冷冰箱",
+              "featured": false
+            },
+            {
+              "label": "无霜冰箱",
+              "query": "无霜冰箱",
+              "featured": false
+            },
+            {
+              "label": "大容量冰箱",
+              "query": "大容量冰箱",
+              "featured": false
+            },
+            {
+              "label": "酒柜",
+              "query": "酒柜",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "洗衣机",
+          "query": "洗衣机",
+          "items": [
+            {
+              "label": "滚筒洗衣机",
+              "query": "滚筒洗衣机",
+              "featured": true
+            },
+            {
+              "label": "波轮洗衣机",
+              "query": "波轮洗衣机",
+              "featured": false
+            },
+            {
+              "label": "洗烘套装",
+              "query": "洗烘套装",
+              "featured": false
+            },
+            {
+              "label": "洗烘一体机",
+              "query": "洗烘一体机",
+              "featured": false
+            },
+            {
+              "label": "烘干机",
+              "query": "烘干机",
+              "featured": false
+            },
+            {
+              "label": "迷你洗衣机",
+              "query": "迷你洗衣机",
+              "featured": false
+            },
+            {
+              "label": "壁挂洗衣机",
+              "query": "壁挂洗衣机",
+              "featured": false
+            },
+            {
+              "label": "内衣洗衣机",
+              "query": "内衣洗衣机",
+              "featured": false
+            },
+            {
+              "label": "双筒洗衣机",
+              "query": "双筒洗衣机",
+              "featured": false
+            },
+            {
+              "label": "商用洗衣机",
+              "query": "商用洗衣机",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "空调",
+          "query": "空调",
+          "items": [
+            {
+              "label": "壁挂式空调",
+              "query": "壁挂式空调",
+              "featured": true
+            },
+            {
+              "label": "立式空调",
+              "query": "立式空调",
+              "featured": false
+            },
+            {
+              "label": "中央空调",
+              "query": "中央空调",
+              "featured": false
+            },
+            {
+              "label": "移动空调",
+              "query": "移动空调",
+              "featured": false
+            },
+            {
+              "label": "新风空调",
+              "query": "新风空调",
+              "featured": false
+            },
+            {
+              "label": "空调配件",
+              "query": "空调配件",
+              "featured": false
+            },
+            {
+              "label": "变频空调",
+              "query": "变频空调",
+              "featured": false
+            },
+            {
+              "label": "节能空调",
+              "query": "节能空调",
+              "featured": false
+            },
+            {
+              "label": "冷暖空调",
+              "query": "冷暖空调",
+              "featured": false
+            },
+            {
+              "label": "空调扇",
+              "query": "空调扇",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "厨卫大电",
+          "query": "厨卫大电",
+          "items": [
+            {
+              "label": "油烟机",
+              "query": "油烟机",
+              "featured": true
+            },
+            {
+              "label": "燃气灶",
+              "query": "燃气灶",
+              "featured": false
+            },
+            {
+              "label": "集成灶",
+              "query": "集成灶",
+              "featured": false
+            },
+            {
+              "label": "洗碗机",
+              "query": "洗碗机",
+              "featured": false
+            },
+            {
+              "label": "消毒柜",
+              "query": "消毒柜",
+              "featured": false
+            },
+            {
+              "label": "电热水器",
+              "query": "电热水器",
+              "featured": false
+            },
+            {
+              "label": "燃气热水器",
+              "query": "燃气热水器",
+              "featured": false
+            },
+            {
+              "label": "空气能热水器",
+              "query": "空气能热水器",
+              "featured": false
+            },
+            {
+              "label": "壁挂炉",
+              "query": "壁挂炉",
+              "featured": false
+            },
+            {
+              "label": "蒸烤一体机",
+              "query": "蒸烤一体机",
+              "featured": false
+            },
+            {
+              "label": "嵌入式蒸箱",
+              "query": "嵌入式蒸箱",
+              "featured": false
+            },
+            {
+              "label": "集成水槽",
+              "query": "集成水槽",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "影音电器",
+          "query": "影音电器",
+          "items": [
+            {
+              "label": "电视",
+              "query": "电视",
+              "featured": true
+            },
+            {
+              "label": "激光电视",
+              "query": "激光电视",
+              "featured": false
+            },
+            {
+              "label": "投影仪",
+              "query": "投影仪",
+              "featured": false
+            },
+            {
+              "label": "蓝牙音箱",
+              "query": "蓝牙音箱",
+              "featured": false
+            },
+            {
+              "label": "回音壁",
+              "query": "回音壁",
+              "featured": false
+            },
+            {
+              "label": "家庭影院",
+              "query": "家庭影院",
+              "featured": false
+            },
+            {
+              "label": "功放",
+              "query": "功放",
+              "featured": false
+            },
+            {
+              "label": "麦克风",
+              "query": "麦克风",
+              "featured": false
+            },
+            {
+              "label": "音响",
+              "query": "音响",
+              "featured": false
+            },
+            {
+              "label": "播放器",
+              "query": "播放器",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "中央空调",
+          "query": "中央空调",
+          "items": [
+            {
+              "label": "风管机",
+              "query": "风管机",
+              "featured": true
+            },
+            {
+              "label": "多联机",
+              "query": "多联机",
+              "featured": false
+            },
+            {
+              "label": "厨房空调",
+              "query": "厨房空调",
+              "featured": false
+            },
+            {
+              "label": "商用柜机",
+              "query": "商用柜机",
+              "featured": false
+            },
+            {
+              "label": "天花机",
+              "query": "天花机",
+              "featured": false
+            },
+            {
+              "label": "中央空调面板",
+              "query": "中央空调面板",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "商用电器",
+          "query": "商用电器",
+          "items": [
+            {
+              "label": "商用冰箱",
+              "query": "商用冰箱",
+              "featured": true
+            },
+            {
+              "label": "商用冰柜",
+              "query": "商用冰柜",
+              "featured": false
+            },
+            {
+              "label": "展示柜",
+              "query": "展示柜",
+              "featured": false
+            },
+            {
+              "label": "制冰机",
+              "query": "制冰机",
+              "featured": false
+            },
+            {
+              "label": "商用洗碗机",
+              "query": "商用洗碗机",
+              "featured": false
+            },
+            {
+              "label": "商用烤箱",
+              "query": "商用烤箱",
+              "featured": false
+            },
+            {
+              "label": "商用消毒柜",
+              "query": "商用消毒柜",
+              "featured": false
+            },
+            {
+              "label": "商用饮水机",
+              "query": "商用饮水机",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "家电配件",
+          "query": "家电配件",
+          "items": [
+            {
+              "label": "电视支架",
+              "query": "电视支架",
+              "featured": true
+            },
+            {
+              "label": "遥控器",
+              "query": "遥控器",
+              "featured": false
+            },
+            {
+              "label": "空调挡风板",
+              "query": "空调挡风板",
+              "featured": false
+            },
+            {
+              "label": "冰箱收纳",
+              "query": "冰箱收纳",
+              "featured": false
+            },
+            {
+              "label": "洗衣机底座",
+              "query": "洗衣机底座",
+              "featured": false
+            },
+            {
+              "label": "净水器滤芯",
+              "query": "净水器滤芯",
+              "featured": false
+            },
+            {
+              "label": "音响线材",
+              "query": "音响线材",
+              "featured": false
+            },
+            {
+              "label": "热水器配件",
+              "query": "热水器配件",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "冷柜冰吧",
+          "query": "冷柜冰吧",
+          "items": [
+            {
+              "label": "卧式冷柜",
+              "query": "卧式冷柜",
+              "featured": true
+            },
+            {
+              "label": "立式冷柜",
+              "query": "立式冷柜",
+              "featured": false
+            },
+            {
+              "label": "小型冷柜",
+              "query": "小型冷柜",
+              "featured": false
+            },
+            {
+              "label": "冷藏柜",
+              "query": "冷藏柜",
+              "featured": false
+            },
+            {
+              "label": "冰吧",
+              "query": "冰吧",
+              "featured": false
+            },
+            {
+              "label": "双温冷柜",
+              "query": "双温冷柜",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部家用电器",
+          "query": ""
+        },
+        {
+          "label": "冰箱",
+          "query": "冰箱"
+        },
+        {
+          "label": "洗衣机",
+          "query": "洗衣机"
+        },
+        {
+          "label": "空调",
+          "query": "空调"
+        },
+        {
+          "label": "厨卫大电",
+          "query": "厨卫大电"
+        }
+      ],
+      "enabled": true,
+      "brands": [
+        {
+          "label": "LUMO",
+          "brand": "LUMO"
+        }
+      ]
+    },
+    {
+      "id": "computers",
+      "category": "电脑办公",
+      "label": "电脑 / 办公 / 文具用品",
+      "title": "电脑办公",
+      "icon": "chip",
+      "rows": [
+        {
+          "title": "电脑整机",
+          "query": "电脑整机",
+          "items": [
+            {
+              "label": "笔记本电脑",
+              "query": "笔记本",
+              "featured": true
+            },
+            {
+              "label": "轻薄本",
+              "query": "轻薄本",
+              "featured": false
+            },
+            {
+              "label": "游戏本",
+              "query": "游戏本",
+              "featured": false
+            },
+            {
+              "label": "台式电脑",
+              "query": "台式电脑",
+              "featured": false
+            },
+            {
+              "label": "一体机",
+              "query": "一体机",
+              "featured": false
+            },
+            {
+              "label": "平板电脑",
+              "query": "平板电脑",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "电脑配件",
+          "query": "电脑配件",
+          "items": [
+            {
+              "label": "显示器",
+              "query": "显示器",
+              "featured": true
+            },
+            {
+              "label": "主板",
+              "query": "主板",
+              "featured": false
+            },
+            {
+              "label": "显卡",
+              "query": "显卡",
+              "featured": false
+            },
+            {
+              "label": "处理器",
+              "query": "处理器",
+              "featured": false
+            },
+            {
+              "label": "内存",
+              "query": "内存",
+              "featured": false
+            },
+            {
+              "label": "固态硬盘",
+              "query": "固态硬盘",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "外设产品",
+          "query": "外设产品",
+          "items": [
+            {
+              "label": "键盘",
+              "query": "键盘",
+              "featured": true
+            },
+            {
+              "label": "鼠标",
+              "query": "鼠标",
+              "featured": false
+            },
+            {
+              "label": "鼠标垫",
+              "query": "鼠标垫",
+              "featured": false
+            },
+            {
+              "label": "摄像头",
+              "query": "摄像头",
+              "featured": false
+            },
+            {
+              "label": "拓展坞",
+              "query": "拓展坞",
+              "featured": false
+            },
+            {
+              "label": "移动硬盘",
+              "query": "移动硬盘",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "办公设备",
+          "query": "办公设备",
+          "items": [
+            {
+              "label": "打印机",
+              "query": "打印机",
+              "featured": true
+            },
+            {
+              "label": "复印机",
+              "query": "复印机",
+              "featured": false
+            },
+            {
+              "label": "扫描仪",
+              "query": "扫描仪",
+              "featured": false
+            },
+            {
+              "label": "投影仪",
+              "query": "投影仪",
+              "featured": false
+            },
+            {
+              "label": "碎纸机",
+              "query": "碎纸机",
+              "featured": false
+            },
+            {
+              "label": "标签打印机",
+              "query": "标签打印机",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "文具耗材",
+          "query": "文具耗材",
+          "items": [
+            {
+              "label": "中性笔",
+              "query": "中性笔",
+              "featured": true
+            },
+            {
+              "label": "笔记本",
+              "query": "笔记本",
+              "featured": false
+            },
+            {
+              "label": "文件夹",
+              "query": "文件夹",
+              "featured": false
+            },
+            {
+              "label": "打印纸",
+              "query": "打印纸",
+              "featured": false
+            },
+            {
+              "label": "墨盒",
+              "query": "墨盒",
+              "featured": false
+            },
+            {
+              "label": "硒鼓",
+              "query": "硒鼓",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部电脑办公",
+          "query": ""
+        },
+        {
+          "label": "电脑整机",
+          "query": "电脑整机"
+        },
+        {
+          "label": "电脑配件",
+          "query": "电脑配件"
+        },
+        {
+          "label": "外设产品",
+          "query": "外设产品"
+        },
+        {
+          "label": "办公设备",
+          "query": "办公设备"
+        }
+      ],
+      "enabled": true,
+      "brands": [
+        {
+          "label": "Apple",
+          "brand": "Apple"
+        }
+      ]
+    },
+    {
+      "id": "digital",
+      "category": "手机数码",
+      "label": "手机 / 智能 / 摄影数码",
+      "title": "手机数码",
+      "icon": "camera",
+      "rows": [
+        {
+          "title": "手机通讯",
+          "query": "手机",
+          "items": [
+            {
+              "label": "iPhone",
+              "query": "iphone",
+              "featured": true
+            },
+            {
+              "label": "安卓手机",
+              "query": "安卓手机",
+              "featured": false
+            },
+            {
+              "label": "折叠屏手机",
+              "query": "折叠屏手机",
+              "featured": false
+            },
+            {
+              "label": "老人手机",
+              "query": "老人手机",
+              "featured": false
+            },
+            {
+              "label": "游戏手机",
+              "query": "游戏手机",
+              "featured": false
+            },
+            {
+              "label": "手机壳",
+              "query": "手机壳",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "影音娱乐",
+          "query": "耳机",
+          "items": [
+            {
+              "label": "降噪耳机",
+              "query": "降噪耳机",
+              "featured": true
+            },
+            {
+              "label": "无线耳机",
+              "query": "耳机",
+              "featured": false
+            },
+            {
+              "label": "蓝牙耳机",
+              "query": "蓝牙耳机",
+              "featured": false
+            },
+            {
+              "label": "头戴耳机",
+              "query": "头戴耳机",
+              "featured": false
+            },
+            {
+              "label": "音箱",
+              "query": "音箱",
+              "featured": false
+            },
+            {
+              "label": "音乐播放器",
+              "query": "音乐播放器",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "摄影摄像",
+          "query": "相机",
+          "items": [
+            {
+              "label": "数码相机",
+              "query": "相机",
+              "featured": true
+            },
+            {
+              "label": "微单相机",
+              "query": "微单",
+              "featured": false
+            },
+            {
+              "label": "单反相机",
+              "query": "单反相机",
+              "featured": false
+            },
+            {
+              "label": "运动相机",
+              "query": "运动相机",
+              "featured": false
+            },
+            {
+              "label": "镜头",
+              "query": "镜头",
+              "featured": false
+            },
+            {
+              "label": "相机包",
+              "query": "相机包",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "智能设备",
+          "query": "智能设备",
+          "items": [
+            {
+              "label": "智能手环",
+              "query": "智能手环",
+              "featured": true
+            },
+            {
+              "label": "智能眼镜",
+              "query": "智能眼镜",
+              "featured": false
+            },
+            {
+              "label": "智能音箱",
+              "query": "智能音箱",
+              "featured": false
+            },
+            {
+              "label": "无人机",
+              "query": "无人机",
+              "featured": false
+            },
+            {
+              "label": "VR设备",
+              "query": "VR设备",
+              "featured": false
+            },
+            {
+              "label": "电子阅读器",
+              "query": "电子阅读器",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "数码配件",
+          "query": "数码配件",
+          "items": [
+            {
+              "label": "充电器",
+              "query": "充电器",
+              "featured": true
+            },
+            {
+              "label": "数据线",
+              "query": "数据线",
+              "featured": false
+            },
+            {
+              "label": "充电宝",
+              "query": "充电宝",
+              "featured": false
+            },
+            {
+              "label": "存储卡",
+              "query": "存储卡",
+              "featured": false
+            },
+            {
+              "label": "手机支架",
+              "query": "手机支架",
+              "featured": false
+            },
+            {
+              "label": "自拍杆",
+              "query": "自拍杆",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部手机数码",
+          "query": ""
+        },
+        {
+          "label": "手机通讯",
+          "query": "手机"
+        },
+        {
+          "label": "影音娱乐",
+          "query": "耳机"
+        },
+        {
+          "label": "摄影摄像",
+          "query": "相机"
+        },
+        {
+          "label": "智能设备",
+          "query": "智能设备"
+        }
+      ],
+      "enabled": true,
+      "brands": [
+        {
+          "label": "Apple",
+          "brand": "Apple"
+        },
+        {
+          "label": "Sony",
+          "brand": "Sony"
+        },
+        {
+          "label": "LUMO",
+          "brand": "LUMO"
+        }
+      ]
+    },
+    {
+      "id": "small-appliances",
+      "category": "生活电器",
+      "label": "生活电器 / 厨房小电 / 个护",
+      "title": "生活电器",
+      "icon": "sparkles",
+      "rows": [
+        {
+          "title": "环境电器",
+          "query": "环境电器",
+          "items": [
+            {
+              "label": "空气净化器",
+              "query": "空气净化器",
+              "featured": true
+            },
+            {
+              "label": "加湿器",
+              "query": "加湿器",
+              "featured": false
+            },
+            {
+              "label": "除湿机",
+              "query": "除湿机",
+              "featured": false
+            },
+            {
+              "label": "电风扇",
+              "query": "电风扇",
+              "featured": false
+            },
+            {
+              "label": "取暖器",
+              "query": "取暖器",
+              "featured": false
+            },
+            {
+              "label": "新风机",
+              "query": "新风机",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "清洁电器",
+          "query": "清洁电器",
+          "items": [
+            {
+              "label": "扫地机器人",
+              "query": "扫地机器人",
+              "featured": true
+            },
+            {
+              "label": "洗地机",
+              "query": "洗地机",
+              "featured": false
+            },
+            {
+              "label": "吸尘器",
+              "query": "吸尘器",
+              "featured": false
+            },
+            {
+              "label": "蒸汽拖把",
+              "query": "蒸汽拖把",
+              "featured": false
+            },
+            {
+              "label": "除螨仪",
+              "query": "除螨仪",
+              "featured": false
+            },
+            {
+              "label": "擦窗机器人",
+              "query": "擦窗机器人",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "厨房小电",
+          "query": "厨房小电",
+          "items": [
+            {
+              "label": "电饭煲",
+              "query": "电饭煲",
+              "featured": true
+            },
+            {
+              "label": "空气炸锅",
+              "query": "空气炸锅",
+              "featured": false
+            },
+            {
+              "label": "微波炉",
+              "query": "微波炉",
+              "featured": false
+            },
+            {
+              "label": "烤箱",
+              "query": "烤箱",
+              "featured": false
+            },
+            {
+              "label": "破壁机",
+              "query": "破壁机",
+              "featured": false
+            },
+            {
+              "label": "电压力锅",
+              "query": "电压力锅",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "饮水咖啡",
+          "query": "饮水咖啡",
+          "items": [
+            {
+              "label": "咖啡机",
+              "query": "咖啡机",
+              "featured": true
+            },
+            {
+              "label": "电热水壶",
+              "query": "电热水壶",
+              "featured": false
+            },
+            {
+              "label": "养生壶",
+              "query": "养生壶",
+              "featured": false
+            },
+            {
+              "label": "净水器",
+              "query": "净水器",
+              "featured": false
+            },
+            {
+              "label": "饮水机",
+              "query": "饮水机",
+              "featured": false
+            },
+            {
+              "label": "榨汁机",
+              "query": "榨汁机",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "个护电器",
+          "query": "个护电器",
+          "items": [
+            {
+              "label": "吹风机",
+              "query": "吹风机",
+              "featured": true
+            },
+            {
+              "label": "剃须刀",
+              "query": "剃须刀",
+              "featured": false
+            },
+            {
+              "label": "电动牙刷",
+              "query": "电动牙刷",
+              "featured": false
+            },
+            {
+              "label": "冲牙器",
+              "query": "冲牙器",
+              "featured": false
+            },
+            {
+              "label": "卷发棒",
+              "query": "卷发棒",
+              "featured": false
+            },
+            {
+              "label": "按摩仪",
+              "query": "按摩仪",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部生活电器",
+          "query": ""
+        },
+        {
+          "label": "环境电器",
+          "query": "环境电器"
+        },
+        {
+          "label": "清洁电器",
+          "query": "清洁电器"
+        },
+        {
+          "label": "厨房小电",
+          "query": "厨房小电"
+        },
+        {
+          "label": "饮水咖啡",
+          "query": "饮水咖啡"
+        }
+      ],
+      "enabled": true,
+      "brands": []
+    },
+    {
+      "id": "food",
+      "category": "食品生鲜",
+      "label": "食品 / 酒水 / 生鲜特产",
+      "title": "食品生鲜",
+      "icon": "bag",
+      "rows": [
+        {
+          "title": "咖啡茶饮",
+          "query": "咖啡",
+          "items": [
+            {
+              "label": "咖啡豆",
+              "query": "咖啡豆",
+              "featured": true
+            },
+            {
+              "label": "挂耳咖啡",
+              "query": "挂耳咖啡",
+              "featured": false
+            },
+            {
+              "label": "速溶咖啡",
+              "query": "速溶咖啡",
+              "featured": false
+            },
+            {
+              "label": "红茶",
+              "query": "红茶",
+              "featured": false
+            },
+            {
+              "label": "绿茶",
+              "query": "绿茶",
+              "featured": false
+            },
+            {
+              "label": "乌龙茶",
+              "query": "乌龙茶",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "休闲零食",
+          "query": "休闲零食",
+          "items": [
+            {
+              "label": "坚果",
+              "query": "坚果",
+              "featured": true
+            },
+            {
+              "label": "饼干",
+              "query": "饼干",
+              "featured": false
+            },
+            {
+              "label": "巧克力",
+              "query": "巧克力",
+              "featured": false
+            },
+            {
+              "label": "糖果",
+              "query": "糖果",
+              "featured": false
+            },
+            {
+              "label": "肉干",
+              "query": "肉干",
+              "featured": false
+            },
+            {
+              "label": "果干",
+              "query": "果干",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "粮油调味",
+          "query": "粮油调味",
+          "items": [
+            {
+              "label": "大米",
+              "query": "大米",
+              "featured": true
+            },
+            {
+              "label": "面粉",
+              "query": "面粉",
+              "featured": false
+            },
+            {
+              "label": "食用油",
+              "query": "食用油",
+              "featured": false
+            },
+            {
+              "label": "酱油",
+              "query": "酱油",
+              "featured": false
+            },
+            {
+              "label": "调味料",
+              "query": "调味料",
+              "featured": false
+            },
+            {
+              "label": "杂粮",
+              "query": "杂粮",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "生鲜冷藏",
+          "query": "生鲜冷藏",
+          "items": [
+            {
+              "label": "牛奶",
+              "query": "牛奶",
+              "featured": true
+            },
+            {
+              "label": "酸奶",
+              "query": "酸奶",
+              "featured": false
+            },
+            {
+              "label": "水果",
+              "query": "水果",
+              "featured": false
+            },
+            {
+              "label": "蔬菜",
+              "query": "蔬菜",
+              "featured": false
+            },
+            {
+              "label": "肉类",
+              "query": "肉类",
+              "featured": false
+            },
+            {
+              "label": "海鲜",
+              "query": "海鲜",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "酒水饮料",
+          "query": "酒水饮料",
+          "items": [
+            {
+              "label": "白酒",
+              "query": "白酒",
+              "featured": true
+            },
+            {
+              "label": "葡萄酒",
+              "query": "葡萄酒",
+              "featured": false
+            },
+            {
+              "label": "啤酒",
+              "query": "啤酒",
+              "featured": false
+            },
+            {
+              "label": "威士忌",
+              "query": "威士忌",
+              "featured": false
+            },
+            {
+              "label": "果汁",
+              "query": "果汁",
+              "featured": false
+            },
+            {
+              "label": "矿泉水",
+              "query": "矿泉水",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部食品生鲜",
+          "query": ""
+        },
+        {
+          "label": "咖啡茶饮",
+          "query": "咖啡"
+        },
+        {
+          "label": "休闲零食",
+          "query": "休闲零食"
+        },
+        {
+          "label": "粮油调味",
+          "query": "粮油调味"
+        },
+        {
+          "label": "生鲜冷藏",
+          "query": "生鲜冷藏"
+        }
+      ],
+      "enabled": true,
+      "brands": [
+        {
+          "label": "LUMO",
+          "brand": "LUMO"
+        }
+      ]
+    },
+    {
+      "id": "beauty",
+      "category": "美妆个护",
+      "label": "美妆 / 护肤 / 清洁个护",
+      "title": "美妆个护",
+      "icon": "heart",
+      "rows": [
+        {
+          "title": "面部护肤",
+          "query": "面部护肤",
+          "items": [
+            {
+              "label": "洁面",
+              "query": "洁面",
+              "featured": true
+            },
+            {
+              "label": "爽肤水",
+              "query": "爽肤水",
+              "featured": false
+            },
+            {
+              "label": "精华",
+              "query": "精华",
+              "featured": false
+            },
+            {
+              "label": "乳液",
+              "query": "乳液",
+              "featured": false
+            },
+            {
+              "label": "面霜",
+              "query": "面霜",
+              "featured": false
+            },
+            {
+              "label": "防晒",
+              "query": "防晒",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "彩妆香氛",
+          "query": "香水",
+          "items": [
+            {
+              "label": "香水",
+              "query": "香水",
+              "featured": true
+            },
+            {
+              "label": "口红",
+              "query": "口红",
+              "featured": false
+            },
+            {
+              "label": "粉底",
+              "query": "粉底",
+              "featured": false
+            },
+            {
+              "label": "眼影",
+              "query": "眼影",
+              "featured": false
+            },
+            {
+              "label": "腮红",
+              "query": "腮红",
+              "featured": false
+            },
+            {
+              "label": "定妆粉",
+              "query": "定妆粉",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "身体护理",
+          "query": "身体护理",
+          "items": [
+            {
+              "label": "身体乳",
+              "query": "身体乳",
+              "featured": true
+            },
+            {
+              "label": "沐浴露",
+              "query": "沐浴露",
+              "featured": false
+            },
+            {
+              "label": "护手霜",
+              "query": "护手霜",
+              "featured": false
+            },
+            {
+              "label": "磨砂膏",
+              "query": "磨砂膏",
+              "featured": false
+            },
+            {
+              "label": "身体精油",
+              "query": "身体精油",
+              "featured": false
+            },
+            {
+              "label": "止汗露",
+              "query": "止汗露",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "洗发护发",
+          "query": "洗发护发",
+          "items": [
+            {
+              "label": "洗发水",
+              "query": "洗发水",
+              "featured": true
+            },
+            {
+              "label": "护发素",
+              "query": "护发素",
+              "featured": false
+            },
+            {
+              "label": "发膜",
+              "query": "发膜",
+              "featured": false
+            },
+            {
+              "label": "护发精油",
+              "query": "护发精油",
+              "featured": false
+            },
+            {
+              "label": "染发剂",
+              "query": "染发剂",
+              "featured": false
+            },
+            {
+              "label": "造型喷雾",
+              "query": "造型喷雾",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "口腔清洁",
+          "query": "口腔清洁",
+          "items": [
+            {
+              "label": "牙膏",
+              "query": "牙膏",
+              "featured": true
+            },
+            {
+              "label": "牙刷",
+              "query": "牙刷",
+              "featured": false
+            },
+            {
+              "label": "漱口水",
+              "query": "漱口水",
+              "featured": false
+            },
+            {
+              "label": "牙线",
+              "query": "牙线",
+              "featured": false
+            },
+            {
+              "label": "口腔喷雾",
+              "query": "口腔喷雾",
+              "featured": false
+            },
+            {
+              "label": "假牙清洁",
+              "query": "假牙清洁",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部美妆个护",
+          "query": ""
+        },
+        {
+          "label": "面部护肤",
+          "query": "面部护肤"
+        },
+        {
+          "label": "彩妆香氛",
+          "query": "香水"
+        },
+        {
+          "label": "身体护理",
+          "query": "身体护理"
+        },
+        {
+          "label": "洗发护发",
+          "query": "洗发护发"
+        }
+      ],
+      "enabled": true,
+      "brands": [
+        {
+          "label": "CHANEL",
+          "brand": "CHANEL"
+        }
+      ]
+    },
+    {
+      "id": "fashion",
+      "category": "服饰箱包",
+      "label": "男装 / 女装 / 箱包内衣",
+      "title": "服饰箱包",
+      "icon": "bag",
+      "rows": [
+        {
+          "title": "男装",
+          "query": "男装",
+          "items": [
+            {
+              "label": "T恤",
+              "query": "T恤",
+              "featured": true
+            },
+            {
+              "label": "衬衫",
+              "query": "衬衫",
+              "featured": false
+            },
+            {
+              "label": "男士外套",
+              "query": "男士外套",
+              "featured": false
+            },
+            {
+              "label": "牛仔裤",
+              "query": "牛仔裤",
+              "featured": false
+            },
+            {
+              "label": "休闲裤",
+              "query": "休闲裤",
+              "featured": false
+            },
+            {
+              "label": "西服",
+              "query": "西服",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "女装",
+          "query": "女装",
+          "items": [
+            {
+              "label": "连衣裙",
+              "query": "连衣裙",
+              "featured": true
+            },
+            {
+              "label": "女式衬衫",
+              "query": "女式衬衫",
+              "featured": false
+            },
+            {
+              "label": "针织衫",
+              "query": "针织衫",
+              "featured": false
+            },
+            {
+              "label": "半身裙",
+              "query": "半身裙",
+              "featured": false
+            },
+            {
+              "label": "女士外套",
+              "query": "女士外套",
+              "featured": false
+            },
+            {
+              "label": "女式牛仔裤",
+              "query": "女式牛仔裤",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "功能服饰",
+          "query": "功能服饰",
+          "items": [
+            {
+              "label": "防晒衣",
+              "query": "防晒衣",
+              "featured": true
+            },
+            {
+              "label": "羽绒服",
+              "query": "羽绒服",
+              "featured": false
+            },
+            {
+              "label": "保暖内衣",
+              "query": "保暖内衣",
+              "featured": false
+            },
+            {
+              "label": "家居服",
+              "query": "家居服",
+              "featured": false
+            },
+            {
+              "label": "睡衣",
+              "query": "睡衣",
+              "featured": false
+            },
+            {
+              "label": "袜子",
+              "query": "袜子",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "通勤箱包",
+          "query": "背包",
+          "items": [
+            {
+              "label": "通勤背包",
+              "query": "背包",
+              "featured": true
+            },
+            {
+              "label": "双肩包",
+              "query": "背包",
+              "featured": false
+            },
+            {
+              "label": "单肩包",
+              "query": "单肩包",
+              "featured": false
+            },
+            {
+              "label": "手提包",
+              "query": "手提包",
+              "featured": false
+            },
+            {
+              "label": "电脑包",
+              "query": "电脑包",
+              "featured": false
+            },
+            {
+              "label": "公文包",
+              "query": "公文包",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "出行旅行",
+          "query": "出行旅行",
+          "items": [
+            {
+              "label": "行李箱",
+              "query": "行李箱",
+              "featured": true
+            },
+            {
+              "label": "登机箱",
+              "query": "登机箱",
+              "featured": false
+            },
+            {
+              "label": "旅行包",
+              "query": "旅行包",
+              "featured": false
+            },
+            {
+              "label": "收纳包",
+              "query": "收纳包",
+              "featured": false
+            },
+            {
+              "label": "洗漱包",
+              "query": "洗漱包",
+              "featured": false
+            },
+            {
+              "label": "钱包",
+              "query": "钱包",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部服饰箱包",
+          "query": ""
+        },
+        {
+          "label": "男装",
+          "query": "男装"
+        },
+        {
+          "label": "女装",
+          "query": "女装"
+        },
+        {
+          "label": "功能服饰",
+          "query": "功能服饰"
+        },
+        {
+          "label": "通勤箱包",
+          "query": "背包"
+        }
+      ],
+      "enabled": true,
+      "brands": [
+        {
+          "label": "LUMO",
+          "brand": "LUMO"
+        }
+      ]
+    },
+    {
+      "id": "sports",
+      "category": "运动户外",
+      "label": "运动 / 户外 / 骑行健身",
+      "title": "运动户外",
+      "icon": "shield",
+      "rows": [
+        {
+          "title": "运动鞋服",
+          "query": "运动",
+          "items": [
+            {
+              "label": "运动鞋",
+              "query": "运动鞋",
+              "featured": true
+            },
+            {
+              "label": "跑步鞋",
+              "query": "跑步鞋",
+              "featured": false
+            },
+            {
+              "label": "篮球鞋",
+              "query": "篮球鞋",
+              "featured": false
+            },
+            {
+              "label": "训练鞋",
+              "query": "训练鞋",
+              "featured": false
+            },
+            {
+              "label": "运动T恤",
+              "query": "运动T恤",
+              "featured": false
+            },
+            {
+              "label": "运动裤",
+              "query": "运动裤",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "健身训练",
+          "query": "健身训练",
+          "items": [
+            {
+              "label": "哑铃",
+              "query": "哑铃",
+              "featured": true
+            },
+            {
+              "label": "瑜伽垫",
+              "query": "瑜伽垫",
+              "featured": false
+            },
+            {
+              "label": "跳绳",
+              "query": "跳绳",
+              "featured": false
+            },
+            {
+              "label": "跑步机",
+              "query": "跑步机",
+              "featured": false
+            },
+            {
+              "label": "动感单车",
+              "query": "动感单车",
+              "featured": false
+            },
+            {
+              "label": "筋膜枪",
+              "query": "筋膜枪",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "球类运动",
+          "query": "球类运动",
+          "items": [
+            {
+              "label": "篮球",
+              "query": "篮球",
+              "featured": true
+            },
+            {
+              "label": "足球",
+              "query": "足球",
+              "featured": false
+            },
+            {
+              "label": "羽毛球拍",
+              "query": "羽毛球拍",
+              "featured": false
+            },
+            {
+              "label": "网球拍",
+              "query": "网球拍",
+              "featured": false
+            },
+            {
+              "label": "乒乓球拍",
+              "query": "乒乓球拍",
+              "featured": false
+            },
+            {
+              "label": "高尔夫球",
+              "query": "高尔夫球",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "户外露营",
+          "query": "户外露营",
+          "items": [
+            {
+              "label": "帐篷",
+              "query": "帐篷",
+              "featured": true
+            },
+            {
+              "label": "天幕",
+              "query": "天幕",
+              "featured": false
+            },
+            {
+              "label": "睡袋",
+              "query": "睡袋",
+              "featured": false
+            },
+            {
+              "label": "折叠椅",
+              "query": "折叠椅",
+              "featured": false
+            },
+            {
+              "label": "登山杖",
+              "query": "登山杖",
+              "featured": false
+            },
+            {
+              "label": "户外背包",
+              "query": "户外背包",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "骑行游泳",
+          "query": "骑行游泳",
+          "items": [
+            {
+              "label": "自行车",
+              "query": "自行车",
+              "featured": true
+            },
+            {
+              "label": "骑行头盔",
+              "query": "骑行头盔",
+              "featured": false
+            },
+            {
+              "label": "骑行手套",
+              "query": "骑行手套",
+              "featured": false
+            },
+            {
+              "label": "泳衣",
+              "query": "泳衣",
+              "featured": false
+            },
+            {
+              "label": "泳镜",
+              "query": "泳镜",
+              "featured": false
+            },
+            {
+              "label": "冲浪板",
+              "query": "冲浪板",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部运动户外",
+          "query": ""
+        },
+        {
+          "label": "运动鞋服",
+          "query": "运动"
+        },
+        {
+          "label": "健身训练",
+          "query": "健身训练"
+        },
+        {
+          "label": "球类运动",
+          "query": "球类运动"
+        },
+        {
+          "label": "户外露营",
+          "query": "户外露营"
+        }
+      ],
+      "enabled": true,
+      "brands": [
+        {
+          "label": "Nike",
+          "brand": "Nike"
+        }
+      ]
+    },
+    {
+      "id": "home",
+      "category": "家居生活",
+      "label": "家居 / 家纺 / 收纳家具",
+      "title": "家居生活",
+      "icon": "layers",
+      "rows": [
+        {
+          "title": "客厅家具",
+          "query": "沙发",
+          "items": [
+            {
+              "label": "沙发",
+              "query": "沙发",
+              "featured": true
+            },
+            {
+              "label": "茶几",
+              "query": "茶几",
+              "featured": false
+            },
+            {
+              "label": "电视柜",
+              "query": "电视柜",
+              "featured": false
+            },
+            {
+              "label": "边几",
+              "query": "边几",
+              "featured": false
+            },
+            {
+              "label": "置物架",
+              "query": "置物架",
+              "featured": false
+            },
+            {
+              "label": "休闲椅",
+              "query": "休闲椅",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "卧室家具",
+          "query": "卧室家具",
+          "items": [
+            {
+              "label": "床",
+              "query": "床",
+              "featured": true
+            },
+            {
+              "label": "床垫",
+              "query": "床垫",
+              "featured": false
+            },
+            {
+              "label": "床头柜",
+              "query": "床头柜",
+              "featured": false
+            },
+            {
+              "label": "衣柜",
+              "query": "衣柜",
+              "featured": false
+            },
+            {
+              "label": "梳妆台",
+              "query": "梳妆台",
+              "featured": false
+            },
+            {
+              "label": "斗柜",
+              "query": "斗柜",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "床上用品",
+          "query": "床上用品",
+          "items": [
+            {
+              "label": "床单",
+              "query": "床单",
+              "featured": true
+            },
+            {
+              "label": "被套",
+              "query": "被套",
+              "featured": false
+            },
+            {
+              "label": "四件套",
+              "query": "四件套",
+              "featured": false
+            },
+            {
+              "label": "枕头",
+              "query": "枕头",
+              "featured": false
+            },
+            {
+              "label": "被子",
+              "query": "被子",
+              "featured": false
+            },
+            {
+              "label": "凉席",
+              "query": "凉席",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "居家日用",
+          "query": "居家日用",
+          "items": [
+            {
+              "label": "雨伞",
+              "query": "雨伞",
+              "featured": true
+            },
+            {
+              "label": "时钟",
+              "query": "时钟",
+              "featured": false
+            },
+            {
+              "label": "香薰",
+              "query": "香薰",
+              "featured": false
+            },
+            {
+              "label": "垃圾桶",
+              "query": "垃圾桶",
+              "featured": false
+            },
+            {
+              "label": "衣架",
+              "query": "衣架",
+              "featured": false
+            },
+            {
+              "label": "晾衣架",
+              "query": "晾衣架",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "收纳整理",
+          "query": "收纳整理",
+          "items": [
+            {
+              "label": "收纳箱",
+              "query": "收纳箱",
+              "featured": true
+            },
+            {
+              "label": "收纳柜",
+              "query": "收纳柜",
+              "featured": false
+            },
+            {
+              "label": "衣物收纳",
+              "query": "衣物收纳",
+              "featured": false
+            },
+            {
+              "label": "桌面收纳",
+              "query": "桌面收纳",
+              "featured": false
+            },
+            {
+              "label": "鞋架",
+              "query": "鞋架",
+              "featured": false
+            },
+            {
+              "label": "挂钩",
+              "query": "挂钩",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部家居生活",
+          "query": ""
+        },
+        {
+          "label": "客厅家具",
+          "query": "沙发"
+        },
+        {
+          "label": "卧室家具",
+          "query": "卧室家具"
+        },
+        {
+          "label": "床上用品",
+          "query": "床上用品"
+        },
+        {
+          "label": "居家日用",
+          "query": "居家日用"
+        }
+      ],
+      "enabled": true,
+      "brands": [
+        {
+          "label": "LUMO",
+          "brand": "LUMO"
+        }
+      ]
+    },
+    {
+      "id": "kitchen",
+      "category": "厨具餐具",
+      "label": "厨具 / 餐具 / 水具茶具",
+      "title": "厨具餐具",
+      "icon": "bag",
+      "rows": [
+        {
+          "title": "烹饪锅具",
+          "query": "烹饪锅具",
+          "items": [
+            {
+              "label": "炒锅",
+              "query": "炒锅",
+              "featured": true
+            },
+            {
+              "label": "煎锅",
+              "query": "煎锅",
+              "featured": false
+            },
+            {
+              "label": "汤锅",
+              "query": "汤锅",
+              "featured": false
+            },
+            {
+              "label": "蒸锅",
+              "query": "蒸锅",
+              "featured": false
+            },
+            {
+              "label": "奶锅",
+              "query": "奶锅",
+              "featured": false
+            },
+            {
+              "label": "压力锅",
+              "query": "压力锅",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "刀剪砧板",
+          "query": "刀剪砧板",
+          "items": [
+            {
+              "label": "菜刀",
+              "query": "菜刀",
+              "featured": true
+            },
+            {
+              "label": "水果刀",
+              "query": "水果刀",
+              "featured": false
+            },
+            {
+              "label": "剪刀",
+              "query": "剪刀",
+              "featured": false
+            },
+            {
+              "label": "砧板",
+              "query": "砧板",
+              "featured": false
+            },
+            {
+              "label": "磨刀器",
+              "query": "磨刀器",
+              "featured": false
+            },
+            {
+              "label": "刀具套装",
+              "query": "刀具套装",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "餐具用品",
+          "query": "餐具用品",
+          "items": [
+            {
+              "label": "碗",
+              "query": "碗",
+              "featured": true
+            },
+            {
+              "label": "餐盘",
+              "query": "餐盘",
+              "featured": false
+            },
+            {
+              "label": "筷子",
+              "query": "筷子",
+              "featured": false
+            },
+            {
+              "label": "勺子",
+              "query": "勺子",
+              "featured": false
+            },
+            {
+              "label": "餐具套装",
+              "query": "餐具套装",
+              "featured": false
+            },
+            {
+              "label": "便当盒",
+              "query": "便当盒",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "水具茶具",
+          "query": "水具茶具",
+          "items": [
+            {
+              "label": "保温杯",
+              "query": "保温杯",
+              "featured": true
+            },
+            {
+              "label": "玻璃杯",
+              "query": "玻璃杯",
+              "featured": false
+            },
+            {
+              "label": "水壶",
+              "query": "水壶",
+              "featured": false
+            },
+            {
+              "label": "茶壶",
+              "query": "茶壶",
+              "featured": false
+            },
+            {
+              "label": "茶杯",
+              "query": "茶杯",
+              "featured": false
+            },
+            {
+              "label": "咖啡杯",
+              "query": "咖啡杯",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部厨具餐具",
+          "query": ""
+        },
+        {
+          "label": "烹饪锅具",
+          "query": "烹饪锅具"
+        },
+        {
+          "label": "刀剪砧板",
+          "query": "刀剪砧板"
+        },
+        {
+          "label": "餐具用品",
+          "query": "餐具用品"
+        },
+        {
+          "label": "水具茶具",
+          "query": "水具茶具"
+        }
+      ],
+      "enabled": true,
+      "brands": []
+    },
+    {
+      "id": "renovation",
+      "category": "家装建材",
+      "label": "家装 / 建材 / 灯具卫浴",
+      "title": "家装建材",
+      "icon": "layers",
+      "rows": [
+        {
+          "title": "照明灯饰",
+          "query": "照明灯饰",
+          "items": [
+            {
+              "label": "吸顶灯",
+              "query": "吸顶灯",
+              "featured": true
+            },
+            {
+              "label": "吊灯",
+              "query": "吊灯",
+              "featured": false
+            },
+            {
+              "label": "台灯",
+              "query": "台灯",
+              "featured": false
+            },
+            {
+              "label": "落地灯",
+              "query": "落地灯",
+              "featured": false
+            },
+            {
+              "label": "筒灯",
+              "query": "筒灯",
+              "featured": false
+            },
+            {
+              "label": "灯泡",
+              "query": "灯泡",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "厨房卫浴",
+          "query": "厨房卫浴",
+          "items": [
+            {
+              "label": "水槽",
+              "query": "水槽",
+              "featured": true
+            },
+            {
+              "label": "龙头",
+              "query": "龙头",
+              "featured": false
+            },
+            {
+              "label": "花洒",
+              "query": "花洒",
+              "featured": false
+            },
+            {
+              "label": "马桶",
+              "query": "马桶",
+              "featured": false
+            },
+            {
+              "label": "浴室柜",
+              "query": "浴室柜",
+              "featured": false
+            },
+            {
+              "label": "智能马桶盖",
+              "query": "智能马桶盖",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "基础建材",
+          "query": "基础建材",
+          "items": [
+            {
+              "label": "地板",
+              "query": "地板",
+              "featured": true
+            },
+            {
+              "label": "瓷砖",
+              "query": "瓷砖",
+              "featured": false
+            },
+            {
+              "label": "墙纸",
+              "query": "墙纸",
+              "featured": false
+            },
+            {
+              "label": "油漆",
+              "query": "油漆",
+              "featured": false
+            },
+            {
+              "label": "门锁",
+              "query": "门锁",
+              "featured": false
+            },
+            {
+              "label": "五金配件",
+              "query": "五金配件",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "电工电气",
+          "query": "电工电气",
+          "items": [
+            {
+              "label": "开关",
+              "query": "开关",
+              "featured": true
+            },
+            {
+              "label": "插座",
+              "query": "插座",
+              "featured": false
+            },
+            {
+              "label": "插线板",
+              "query": "插线板",
+              "featured": false
+            },
+            {
+              "label": "电线",
+              "query": "电线",
+              "featured": false
+            },
+            {
+              "label": "断路器",
+              "query": "断路器",
+              "featured": false
+            },
+            {
+              "label": "智能门铃",
+              "query": "智能门铃",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部家装建材",
+          "query": ""
+        },
+        {
+          "label": "照明灯饰",
+          "query": "照明灯饰"
+        },
+        {
+          "label": "厨房卫浴",
+          "query": "厨房卫浴"
+        },
+        {
+          "label": "基础建材",
+          "query": "基础建材"
+        },
+        {
+          "label": "电工电气",
+          "query": "电工电气"
+        }
+      ],
+      "enabled": true,
+      "brands": []
+    },
+    {
+      "id": "baby",
+      "category": "母婴玩具",
+      "label": "母婴 / 玩具 / 童装乐器",
+      "title": "母婴玩具",
+      "icon": "heart",
+      "rows": [
+        {
+          "title": "喂养用品",
+          "query": "喂养用品",
+          "items": [
+            {
+              "label": "奶粉",
+              "query": "奶粉",
+              "featured": true
+            },
+            {
+              "label": "奶瓶",
+              "query": "奶瓶",
+              "featured": false
+            },
+            {
+              "label": "奶嘴",
+              "query": "奶嘴",
+              "featured": false
+            },
+            {
+              "label": "吸奶器",
+              "query": "吸奶器",
+              "featured": false
+            },
+            {
+              "label": "辅食机",
+              "query": "辅食机",
+              "featured": false
+            },
+            {
+              "label": "儿童餐具",
+              "query": "儿童餐具",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "婴儿护理",
+          "query": "婴儿护理",
+          "items": [
+            {
+              "label": "纸尿裤",
+              "query": "纸尿裤",
+              "featured": true
+            },
+            {
+              "label": "湿巾",
+              "query": "湿巾",
+              "featured": false
+            },
+            {
+              "label": "婴儿洗护",
+              "query": "婴儿洗护",
+              "featured": false
+            },
+            {
+              "label": "婴儿床",
+              "query": "婴儿床",
+              "featured": false
+            },
+            {
+              "label": "婴儿推车",
+              "query": "婴儿推车",
+              "featured": false
+            },
+            {
+              "label": "安全座椅",
+              "query": "安全座椅",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "益智玩具",
+          "query": "益智玩具",
+          "items": [
+            {
+              "label": "积木",
+              "query": "积木",
+              "featured": true
+            },
+            {
+              "label": "拼图",
+              "query": "拼图",
+              "featured": false
+            },
+            {
+              "label": "遥控玩具",
+              "query": "遥控玩具",
+              "featured": false
+            },
+            {
+              "label": "毛绒玩具",
+              "query": "毛绒玩具",
+              "featured": false
+            },
+            {
+              "label": "儿童绘画",
+              "query": "儿童绘画",
+              "featured": false
+            },
+            {
+              "label": "桌游",
+              "query": "桌游",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "童装童鞋",
+          "query": "童装童鞋",
+          "items": [
+            {
+              "label": "婴儿服",
+              "query": "婴儿服",
+              "featured": true
+            },
+            {
+              "label": "儿童T恤",
+              "query": "儿童T恤",
+              "featured": false
+            },
+            {
+              "label": "儿童外套",
+              "query": "儿童外套",
+              "featured": false
+            },
+            {
+              "label": "儿童裤装",
+              "query": "儿童裤装",
+              "featured": false
+            },
+            {
+              "label": "学步鞋",
+              "query": "学步鞋",
+              "featured": false
+            },
+            {
+              "label": "儿童运动鞋",
+              "query": "儿童运动鞋",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部母婴玩具",
+          "query": ""
+        },
+        {
+          "label": "喂养用品",
+          "query": "喂养用品"
+        },
+        {
+          "label": "婴儿护理",
+          "query": "婴儿护理"
+        },
+        {
+          "label": "益智玩具",
+          "query": "益智玩具"
+        },
+        {
+          "label": "童装童鞋",
+          "query": "童装童鞋"
+        }
+      ],
+      "enabled": true,
+      "brands": []
+    },
+    {
+      "id": "pets",
+      "category": "宠物生活",
+      "label": "宠物 / 主粮 / 清洁用品",
+      "title": "宠物生活",
+      "icon": "heart",
+      "rows": [
+        {
+          "title": "宠物食品",
+          "query": "宠物食品",
+          "items": [
+            {
+              "label": "猫粮",
+              "query": "猫粮",
+              "featured": true
+            },
+            {
+              "label": "狗粮",
+              "query": "狗粮",
+              "featured": false
+            },
+            {
+              "label": "宠物罐头",
+              "query": "宠物罐头",
+              "featured": false
+            },
+            {
+              "label": "宠物零食",
+              "query": "宠物零食",
+              "featured": false
+            },
+            {
+              "label": "冻干",
+              "query": "冻干",
+              "featured": false
+            },
+            {
+              "label": "宠物营养品",
+              "query": "宠物营养品",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "宠物日用",
+          "query": "宠物日用",
+          "items": [
+            {
+              "label": "猫砂",
+              "query": "猫砂",
+              "featured": true
+            },
+            {
+              "label": "猫砂盆",
+              "query": "猫砂盆",
+              "featured": false
+            },
+            {
+              "label": "宠物窝",
+              "query": "宠物窝",
+              "featured": false
+            },
+            {
+              "label": "食盆",
+              "query": "食盆",
+              "featured": false
+            },
+            {
+              "label": "饮水机",
+              "query": "饮水机",
+              "featured": false
+            },
+            {
+              "label": "宠物衣服",
+              "query": "宠物衣服",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "玩具出行",
+          "query": "玩具出行",
+          "items": [
+            {
+              "label": "猫抓板",
+              "query": "猫抓板",
+              "featured": true
+            },
+            {
+              "label": "逗猫棒",
+              "query": "逗猫棒",
+              "featured": false
+            },
+            {
+              "label": "宠物球",
+              "query": "宠物球",
+              "featured": false
+            },
+            {
+              "label": "牵引绳",
+              "query": "牵引绳",
+              "featured": false
+            },
+            {
+              "label": "宠物包",
+              "query": "宠物包",
+              "featured": false
+            },
+            {
+              "label": "宠物笼",
+              "query": "宠物笼",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "宠物清洁",
+          "query": "宠物清洁",
+          "items": [
+            {
+              "label": "宠物香波",
+              "query": "宠物香波",
+              "featured": true
+            },
+            {
+              "label": "宠物梳",
+              "query": "宠物梳",
+              "featured": false
+            },
+            {
+              "label": "宠物指甲剪",
+              "query": "宠物指甲剪",
+              "featured": false
+            },
+            {
+              "label": "宠物湿巾",
+              "query": "宠物湿巾",
+              "featured": false
+            },
+            {
+              "label": "除味剂",
+              "query": "除味剂",
+              "featured": false
+            },
+            {
+              "label": "宠物尿垫",
+              "query": "宠物尿垫",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部宠物生活",
+          "query": ""
+        },
+        {
+          "label": "宠物食品",
+          "query": "宠物食品"
+        },
+        {
+          "label": "宠物日用",
+          "query": "宠物日用"
+        },
+        {
+          "label": "玩具出行",
+          "query": "玩具出行"
+        },
+        {
+          "label": "宠物清洁",
+          "query": "宠物清洁"
+        }
+      ],
+      "enabled": true,
+      "brands": []
+    },
+    {
+      "id": "books",
+      "category": "图书文娱",
+      "label": "图书 / 文娱 / 教育乐器",
+      "title": "图书文娱",
+      "icon": "edit",
+      "rows": [
+        {
+          "title": "文学阅读",
+          "query": "文学阅读",
+          "items": [
+            {
+              "label": "小说",
+              "query": "小说",
+              "featured": true
+            },
+            {
+              "label": "散文",
+              "query": "散文",
+              "featured": false
+            },
+            {
+              "label": "诗歌",
+              "query": "诗歌",
+              "featured": false
+            },
+            {
+              "label": "传记",
+              "query": "传记",
+              "featured": false
+            },
+            {
+              "label": "经典文学",
+              "query": "经典文学",
+              "featured": false
+            },
+            {
+              "label": "科幻",
+              "query": "科幻",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "知识成长",
+          "query": "知识成长",
+          "items": [
+            {
+              "label": "经济管理",
+              "query": "经济管理",
+              "featured": true
+            },
+            {
+              "label": "历史",
+              "query": "历史",
+              "featured": false
+            },
+            {
+              "label": "哲学",
+              "query": "哲学",
+              "featured": false
+            },
+            {
+              "label": "心理学",
+              "query": "心理学",
+              "featured": false
+            },
+            {
+              "label": "艺术设计",
+              "query": "艺术设计",
+              "featured": false
+            },
+            {
+              "label": "计算机图书",
+              "query": "计算机图书",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "少儿教育",
+          "query": "少儿教育",
+          "items": [
+            {
+              "label": "绘本",
+              "query": "绘本",
+              "featured": true
+            },
+            {
+              "label": "儿童文学",
+              "query": "儿童文学",
+              "featured": false
+            },
+            {
+              "label": "科普百科",
+              "query": "科普百科",
+              "featured": false
+            },
+            {
+              "label": "学前教育",
+              "query": "学前教育",
+              "featured": false
+            },
+            {
+              "label": "教材",
+              "query": "教材",
+              "featured": false
+            },
+            {
+              "label": "字典",
+              "query": "字典",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "乐器娱乐",
+          "query": "乐器娱乐",
+          "items": [
+            {
+              "label": "吉他",
+              "query": "吉他",
+              "featured": true
+            },
+            {
+              "label": "钢琴",
+              "query": "钢琴",
+              "featured": false
+            },
+            {
+              "label": "电子琴",
+              "query": "电子琴",
+              "featured": false
+            },
+            {
+              "label": "尤克里里",
+              "query": "尤克里里",
+              "featured": false
+            },
+            {
+              "label": "口琴",
+              "query": "口琴",
+              "featured": false
+            },
+            {
+              "label": "黑胶唱片",
+              "query": "黑胶唱片",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部图书文娱",
+          "query": ""
+        },
+        {
+          "label": "文学阅读",
+          "query": "文学阅读"
+        },
+        {
+          "label": "知识成长",
+          "query": "知识成长"
+        },
+        {
+          "label": "少儿教育",
+          "query": "少儿教育"
+        },
+        {
+          "label": "乐器娱乐",
+          "query": "乐器娱乐"
+        }
+      ],
+      "enabled": true,
+      "brands": []
+    },
+    {
+      "id": "jewelry",
+      "category": "珠宝钟表",
+      "label": "珠宝 / 钟表 / 时尚配饰",
+      "title": "珠宝钟表",
+      "icon": "clock",
+      "rows": [
+        {
+          "title": "智能腕表",
+          "query": "腕表",
+          "items": [
+            {
+              "label": "智能腕表",
+              "query": "智能腕表",
+              "featured": true
+            },
+            {
+              "label": "运动手表",
+              "query": "运动手表",
+              "featured": false
+            },
+            {
+              "label": "儿童手表",
+              "query": "儿童手表",
+              "featured": false
+            },
+            {
+              "label": "手表表带",
+              "query": "手表表带",
+              "featured": false
+            },
+            {
+              "label": "手表充电器",
+              "query": "手表充电器",
+              "featured": false
+            },
+            {
+              "label": "手表配件",
+              "query": "手表配件",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "经典腕表",
+          "query": "经典腕表",
+          "items": [
+            {
+              "label": "机械表",
+              "query": "机械表",
+              "featured": true
+            },
+            {
+              "label": "石英表",
+              "query": "石英表",
+              "featured": false
+            },
+            {
+              "label": "情侣手表",
+              "query": "情侣手表",
+              "featured": false
+            },
+            {
+              "label": "商务手表",
+              "query": "商务手表",
+              "featured": false
+            },
+            {
+              "label": "怀表",
+              "query": "怀表",
+              "featured": false
+            },
+            {
+              "label": "钟表工具",
+              "query": "钟表工具",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "珠宝首饰",
+          "query": "珠宝首饰",
+          "items": [
+            {
+              "label": "黄金项链",
+              "query": "黄金项链",
+              "featured": true
+            },
+            {
+              "label": "黄金手镯",
+              "query": "黄金手镯",
+              "featured": false
+            },
+            {
+              "label": "钻石戒指",
+              "query": "钻石戒指",
+              "featured": false
+            },
+            {
+              "label": "翡翠",
+              "query": "翡翠",
+              "featured": false
+            },
+            {
+              "label": "珍珠",
+              "query": "珍珠",
+              "featured": false
+            },
+            {
+              "label": "彩色宝石",
+              "query": "彩色宝石",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "时尚饰品",
+          "query": "时尚饰品",
+          "items": [
+            {
+              "label": "耳饰",
+              "query": "耳饰",
+              "featured": true
+            },
+            {
+              "label": "项链",
+              "query": "项链",
+              "featured": false
+            },
+            {
+              "label": "手链",
+              "query": "手链",
+              "featured": false
+            },
+            {
+              "label": "戒指",
+              "query": "戒指",
+              "featured": false
+            },
+            {
+              "label": "胸针",
+              "query": "胸针",
+              "featured": false
+            },
+            {
+              "label": "发饰",
+              "query": "发饰",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部珠宝钟表",
+          "query": ""
+        },
+        {
+          "label": "智能腕表",
+          "query": "腕表"
+        },
+        {
+          "label": "经典腕表",
+          "query": "经典腕表"
+        },
+        {
+          "label": "珠宝首饰",
+          "query": "珠宝首饰"
+        },
+        {
+          "label": "时尚饰品",
+          "query": "时尚饰品"
+        }
+      ],
+      "enabled": true,
+      "brands": []
+    },
+    {
+      "id": "shoes",
+      "category": "鞋靴配饰",
+      "label": "男鞋 / 女鞋 / 鞋靴配饰",
+      "title": "鞋靴配饰",
+      "icon": "bag",
+      "rows": [
+        {
+          "title": "男鞋",
+          "query": "男鞋",
+          "items": [
+            {
+              "label": "男士休闲鞋",
+              "query": "男士休闲鞋",
+              "featured": true
+            },
+            {
+              "label": "男士皮鞋",
+              "query": "男士皮鞋",
+              "featured": false
+            },
+            {
+              "label": "帆布鞋",
+              "query": "帆布鞋",
+              "featured": false
+            },
+            {
+              "label": "男士凉鞋",
+              "query": "男士凉鞋",
+              "featured": false
+            },
+            {
+              "label": "男靴",
+              "query": "男靴",
+              "featured": false
+            },
+            {
+              "label": "男士拖鞋",
+              "query": "男士拖鞋",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "女鞋",
+          "query": "女鞋",
+          "items": [
+            {
+              "label": "高跟鞋",
+              "query": "高跟鞋",
+              "featured": true
+            },
+            {
+              "label": "女士平底鞋",
+              "query": "女士平底鞋",
+              "featured": false
+            },
+            {
+              "label": "女士凉鞋",
+              "query": "女士凉鞋",
+              "featured": false
+            },
+            {
+              "label": "短靴",
+              "query": "短靴",
+              "featured": false
+            },
+            {
+              "label": "长靴",
+              "query": "长靴",
+              "featured": false
+            },
+            {
+              "label": "女士拖鞋",
+              "query": "女士拖鞋",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "鞋类配件",
+          "query": "鞋类配件",
+          "items": [
+            {
+              "label": "鞋垫",
+              "query": "鞋垫",
+              "featured": true
+            },
+            {
+              "label": "鞋带",
+              "query": "鞋带",
+              "featured": false
+            },
+            {
+              "label": "鞋油",
+              "query": "鞋油",
+              "featured": false
+            },
+            {
+              "label": "鞋刷",
+              "query": "鞋刷",
+              "featured": false
+            },
+            {
+              "label": "鞋撑",
+              "query": "鞋撑",
+              "featured": false
+            },
+            {
+              "label": "鞋盒",
+              "query": "鞋盒",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "穿搭配饰",
+          "query": "穿搭配饰",
+          "items": [
+            {
+              "label": "帽子",
+              "query": "帽子",
+              "featured": true
+            },
+            {
+              "label": "围巾",
+              "query": "围巾",
+              "featured": false
+            },
+            {
+              "label": "手套",
+              "query": "手套",
+              "featured": false
+            },
+            {
+              "label": "腰带",
+              "query": "腰带",
+              "featured": false
+            },
+            {
+              "label": "太阳镜",
+              "query": "太阳镜",
+              "featured": false
+            },
+            {
+              "label": "领带",
+              "query": "领带",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部鞋靴配饰",
+          "query": ""
+        },
+        {
+          "label": "男鞋",
+          "query": "男鞋"
+        },
+        {
+          "label": "女鞋",
+          "query": "女鞋"
+        },
+        {
+          "label": "鞋类配件",
+          "query": "鞋类配件"
+        },
+        {
+          "label": "穿搭配饰",
+          "query": "穿搭配饰"
+        }
+      ],
+      "enabled": true,
+      "brands": []
+    },
+    {
+      "id": "automotive",
+      "category": "汽车用品",
+      "label": "汽车 / 养护 / 车载用品",
+      "title": "汽车用品",
+      "icon": "truck",
+      "rows": [
+        {
+          "title": "汽车养护",
+          "query": "汽车养护",
+          "items": [
+            {
+              "label": "机油",
+              "query": "机油",
+              "featured": true
+            },
+            {
+              "label": "玻璃水",
+              "query": "玻璃水",
+              "featured": false
+            },
+            {
+              "label": "燃油添加剂",
+              "query": "燃油添加剂",
+              "featured": false
+            },
+            {
+              "label": "防冻液",
+              "query": "防冻液",
+              "featured": false
+            },
+            {
+              "label": "汽车蜡",
+              "query": "汽车蜡",
+              "featured": false
+            },
+            {
+              "label": "清洗剂",
+              "query": "清洗剂",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "汽车配件",
+          "query": "汽车配件",
+          "items": [
+            {
+              "label": "轮胎",
+              "query": "轮胎",
+              "featured": true
+            },
+            {
+              "label": "蓄电池",
+              "query": "蓄电池",
+              "featured": false
+            },
+            {
+              "label": "雨刷",
+              "query": "雨刷",
+              "featured": false
+            },
+            {
+              "label": "空调滤芯",
+              "query": "空调滤芯",
+              "featured": false
+            },
+            {
+              "label": "空气滤芯",
+              "query": "空气滤芯",
+              "featured": false
+            },
+            {
+              "label": "火花塞",
+              "query": "火花塞",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "车载电器",
+          "query": "车载电器",
+          "items": [
+            {
+              "label": "行车记录仪",
+              "query": "行车记录仪",
+              "featured": true
+            },
+            {
+              "label": "车载充电器",
+              "query": "车载充电器",
+              "featured": false
+            },
+            {
+              "label": "车载吸尘器",
+              "query": "车载吸尘器",
+              "featured": false
+            },
+            {
+              "label": "车载冰箱",
+              "query": "车载冰箱",
+              "featured": false
+            },
+            {
+              "label": "车载支架",
+              "query": "车载支架",
+              "featured": false
+            },
+            {
+              "label": "胎压监测",
+              "query": "胎压监测",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "内饰清洁",
+          "query": "内饰清洁",
+          "items": [
+            {
+              "label": "汽车脚垫",
+              "query": "汽车脚垫",
+              "featured": true
+            },
+            {
+              "label": "座垫",
+              "query": "座垫",
+              "featured": false
+            },
+            {
+              "label": "方向盘套",
+              "query": "方向盘套",
+              "featured": false
+            },
+            {
+              "label": "洗车机",
+              "query": "洗车机",
+              "featured": false
+            },
+            {
+              "label": "洗车毛巾",
+              "query": "洗车毛巾",
+              "featured": false
+            },
+            {
+              "label": "车载收纳",
+              "query": "车载收纳",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部汽车用品",
+          "query": ""
+        },
+        {
+          "label": "汽车养护",
+          "query": "汽车养护"
+        },
+        {
+          "label": "汽车配件",
+          "query": "汽车配件"
+        },
+        {
+          "label": "车载电器",
+          "query": "车载电器"
+        },
+        {
+          "label": "内饰清洁",
+          "query": "内饰清洁"
+        }
+      ],
+      "enabled": true,
+      "brands": []
+    },
+    {
+      "id": "industrial",
+      "category": "工业工具",
+      "label": "工具 / 五金 / 劳保用品",
+      "title": "工业工具",
+      "icon": "chip",
+      "rows": [
+        {
+          "title": "手动工具",
+          "query": "手动工具",
+          "items": [
+            {
+              "label": "螺丝刀",
+              "query": "螺丝刀",
+              "featured": true
+            },
+            {
+              "label": "扳手",
+              "query": "扳手",
+              "featured": false
+            },
+            {
+              "label": "钳子",
+              "query": "钳子",
+              "featured": false
+            },
+            {
+              "label": "工具箱",
+              "query": "工具箱",
+              "featured": false
+            },
+            {
+              "label": "锤子",
+              "query": "锤子",
+              "featured": false
+            },
+            {
+              "label": "卷尺",
+              "query": "卷尺",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "电动工具",
+          "query": "电动工具",
+          "items": [
+            {
+              "label": "电钻",
+              "query": "电钻",
+              "featured": true
+            },
+            {
+              "label": "电锤",
+              "query": "电锤",
+              "featured": false
+            },
+            {
+              "label": "角磨机",
+              "query": "角磨机",
+              "featured": false
+            },
+            {
+              "label": "电锯",
+              "query": "电锯",
+              "featured": false
+            },
+            {
+              "label": "热熔胶枪",
+              "query": "热熔胶枪",
+              "featured": false
+            },
+            {
+              "label": "电动螺丝刀",
+              "query": "电动螺丝刀",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "测量工具",
+          "query": "测量工具",
+          "items": [
+            {
+              "label": "激光测距仪",
+              "query": "激光测距仪",
+              "featured": true
+            },
+            {
+              "label": "水平仪",
+              "query": "水平仪",
+              "featured": false
+            },
+            {
+              "label": "万用表",
+              "query": "万用表",
+              "featured": false
+            },
+            {
+              "label": "卡尺",
+              "query": "卡尺",
+              "featured": false
+            },
+            {
+              "label": "温度计",
+              "query": "温度计",
+              "featured": false
+            },
+            {
+              "label": "电子秤",
+              "query": "电子秤",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "劳保防护",
+          "query": "劳保防护",
+          "items": [
+            {
+              "label": "工作手套",
+              "query": "工作手套",
+              "featured": true
+            },
+            {
+              "label": "防护眼镜",
+              "query": "防护眼镜",
+              "featured": false
+            },
+            {
+              "label": "安全帽",
+              "query": "安全帽",
+              "featured": false
+            },
+            {
+              "label": "防尘口罩",
+              "query": "防尘口罩",
+              "featured": false
+            },
+            {
+              "label": "安全鞋",
+              "query": "安全鞋",
+              "featured": false
+            },
+            {
+              "label": "反光背心",
+              "query": "反光背心",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部工业工具",
+          "query": ""
+        },
+        {
+          "label": "手动工具",
+          "query": "手动工具"
+        },
+        {
+          "label": "电动工具",
+          "query": "电动工具"
+        },
+        {
+          "label": "测量工具",
+          "query": "测量工具"
+        },
+        {
+          "label": "劳保防护",
+          "query": "劳保防护"
+        }
+      ],
+      "enabled": true,
+      "brands": []
+    },
+    {
+      "id": "garden",
+      "category": "鲜花绿植",
+      "label": "鲜花 / 绿植 / 园艺用品",
+      "title": "鲜花绿植",
+      "icon": "sparkles",
+      "rows": [
+        {
+          "title": "鲜花礼赠",
+          "query": "鲜花礼赠",
+          "items": [
+            {
+              "label": "玫瑰",
+              "query": "玫瑰",
+              "featured": true
+            },
+            {
+              "label": "百合",
+              "query": "百合",
+              "featured": false
+            },
+            {
+              "label": "康乃馨",
+              "query": "康乃馨",
+              "featured": false
+            },
+            {
+              "label": "向日葵",
+              "query": "向日葵",
+              "featured": false
+            },
+            {
+              "label": "永生花",
+              "query": "永生花",
+              "featured": false
+            },
+            {
+              "label": "花束",
+              "query": "花束",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "室内绿植",
+          "query": "室内绿植",
+          "items": [
+            {
+              "label": "绿萝",
+              "query": "绿萝",
+              "featured": true
+            },
+            {
+              "label": "多肉",
+              "query": "多肉",
+              "featured": false
+            },
+            {
+              "label": "龟背竹",
+              "query": "龟背竹",
+              "featured": false
+            },
+            {
+              "label": "发财树",
+              "query": "发财树",
+              "featured": false
+            },
+            {
+              "label": "兰花",
+              "query": "兰花",
+              "featured": false
+            },
+            {
+              "label": "盆栽",
+              "query": "盆栽",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "园艺用品",
+          "query": "园艺用品",
+          "items": [
+            {
+              "label": "花盆",
+              "query": "花盆",
+              "featured": true
+            },
+            {
+              "label": "营养土",
+              "query": "营养土",
+              "featured": false
+            },
+            {
+              "label": "肥料",
+              "query": "肥料",
+              "featured": false
+            },
+            {
+              "label": "园艺剪",
+              "query": "园艺剪",
+              "featured": false
+            },
+            {
+              "label": "喷壶",
+              "query": "喷壶",
+              "featured": false
+            },
+            {
+              "label": "园艺手套",
+              "query": "园艺手套",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "种子栽培",
+          "query": "种子栽培",
+          "items": [
+            {
+              "label": "花卉种子",
+              "query": "花卉种子",
+              "featured": true
+            },
+            {
+              "label": "蔬菜种子",
+              "query": "蔬菜种子",
+              "featured": false
+            },
+            {
+              "label": "育苗盘",
+              "query": "育苗盘",
+              "featured": false
+            },
+            {
+              "label": "种植箱",
+              "query": "种植箱",
+              "featured": false
+            },
+            {
+              "label": "支架",
+              "query": "支架",
+              "featured": false
+            },
+            {
+              "label": "水培用品",
+              "query": "水培用品",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部鲜花绿植",
+          "query": ""
+        },
+        {
+          "label": "鲜花礼赠",
+          "query": "鲜花礼赠"
+        },
+        {
+          "label": "室内绿植",
+          "query": "室内绿植"
+        },
+        {
+          "label": "园艺用品",
+          "query": "园艺用品"
+        },
+        {
+          "label": "种子栽培",
+          "query": "种子栽培"
+        }
+      ],
+      "enabled": true,
+      "brands": []
+    },
+    {
+      "id": "wellness",
+      "category": "健康护理",
+      "label": "健康 / 保健 / 居家护理",
+      "title": "健康护理",
+      "icon": "shield",
+      "rows": [
+        {
+          "title": "健康监测",
+          "query": "健康监测",
+          "items": [
+            {
+              "label": "血压计",
+              "query": "血压计",
+              "featured": true
+            },
+            {
+              "label": "体温计",
+              "query": "体温计",
+              "featured": false
+            },
+            {
+              "label": "血氧仪",
+              "query": "血氧仪",
+              "featured": false
+            },
+            {
+              "label": "体脂秤",
+              "query": "体脂秤",
+              "featured": false
+            },
+            {
+              "label": "血糖仪",
+              "query": "血糖仪",
+              "featured": false
+            },
+            {
+              "label": "健康手环",
+              "query": "健康手环",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "日常防护",
+          "query": "日常防护",
+          "items": [
+            {
+              "label": "口罩",
+              "query": "口罩",
+              "featured": true
+            },
+            {
+              "label": "消毒液",
+              "query": "消毒液",
+              "featured": false
+            },
+            {
+              "label": "酒精棉片",
+              "query": "酒精棉片",
+              "featured": false
+            },
+            {
+              "label": "创可贴",
+              "query": "创可贴",
+              "featured": false
+            },
+            {
+              "label": "急救包",
+              "query": "急救包",
+              "featured": false
+            },
+            {
+              "label": "防护服",
+              "query": "防护服",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "运动康复",
+          "query": "运动康复",
+          "items": [
+            {
+              "label": "护膝",
+              "query": "护膝",
+              "featured": true
+            },
+            {
+              "label": "护腰",
+              "query": "护腰",
+              "featured": false
+            },
+            {
+              "label": "护腕",
+              "query": "护腕",
+              "featured": false
+            },
+            {
+              "label": "颈托",
+              "query": "颈托",
+              "featured": false
+            },
+            {
+              "label": "冰袋",
+              "query": "冰袋",
+              "featured": false
+            },
+            {
+              "label": "弹力绷带",
+              "query": "弹力绷带",
+              "featured": false
+            }
+          ]
+        },
+        {
+          "title": "居家护理",
+          "query": "居家护理",
+          "items": [
+            {
+              "label": "护理垫",
+              "query": "护理垫",
+              "featured": true
+            },
+            {
+              "label": "拐杖",
+              "query": "拐杖",
+              "featured": false
+            },
+            {
+              "label": "轮椅",
+              "query": "轮椅",
+              "featured": false
+            },
+            {
+              "label": "制氧机",
+              "query": "制氧机",
+              "featured": false
+            },
+            {
+              "label": "雾化器",
+              "query": "雾化器",
+              "featured": false
+            },
+            {
+              "label": "护理床",
+              "query": "护理床",
+              "featured": false
+            }
+          ]
+        }
+      ],
+      "shortcuts": [
+        {
+          "label": "全部健康护理",
+          "query": ""
+        },
+        {
+          "label": "健康监测",
+          "query": "健康监测"
+        },
+        {
+          "label": "日常防护",
+          "query": "日常防护"
+        },
+        {
+          "label": "运动康复",
+          "query": "运动康复"
+        },
+        {
+          "label": "居家护理",
+          "query": "居家护理"
+        }
+      ],
+      "enabled": true,
+      "brands": []
+    }
+  ]
+}

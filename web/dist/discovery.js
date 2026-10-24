@@ -6,21 +6,47 @@
   let catalogSignature = '';
   let lastTotal = 0;
   let activeSuggestion = -1;
-  let comparison = [], history = [], remoteIds = new Set(), querySignature = '', queryLoading = false, queryError = '', suggestionTimer, discoveryOwner = '';
+  let comparison = [], history = [], remoteIds = new Set(), querySignature = '', queryLoading = false, queryError = '', queryRevision = 0, suggestionTimer, suggestionRevision = 0, discoveryOwner = '', discoveryOffset = 0;
   const api = (service, action, command, options) => window.LumoAPI.call(service, action, command, options);
   const principal = () => window.LumoAuth?.isLoggedIn() === true;
-  const currentOwner = () => {const user=window.LumoAuth?.user?.();return user?.id || user?.user_id || '';};
+  const currentOwner = () => {const user=window.LumoAuth?.user?.();return JSON.stringify([user?.id || user?.user_id || '',window.LumoAPI.getBase?.() || location.origin,window.LumoAPI.getToken?.() || '']);};
   const searchSignature = () => JSON.stringify([ui.query,ui.category,data().filters,ui.sort]);
   async function refreshSearch() {
-    const signature = searchSignature();
+    const signature = searchSignature(), owner = currentOwner(), revision = ++queryRevision;
     querySignature = signature; queryLoading = true; queryError = '';
+    const selected = () => querySignature === signature && owner === currentOwner() && revision === queryRevision;
+    if (!String(ui.query || '').trim() && ui.category === '全部好物') {
+      window.LumoRecommendations?.restoreItems?.('search',[]);
+      remoteIds = new Set(products.filter(p => p.visible !== false).map(p => p.id));
+      queryLoading = false;
+      return;
+    }
+    const ticket = window.LumoInventory?.hydrationTicket?.();
     try {
       const result = await api('search','query',{data:{query:ui.query || '', category:ui.category === '全部好物' ? '' : ui.category,
         brand:data().filters.brand === 'all' ? '' : data().filters.brand, in_stock:data().filters.inStock,
-        sort:({价格低:'price_asc',价格高:'price_desc'})[ui.sort] || '', limit:100}}, {auth:principal()});
-      if (querySignature === signature) remoteIds = new Set((result.items || []).map(p => p.product_id || p.id));
-    } catch(error) { if(querySignature === signature) { remoteIds = new Set(); queryError = error.message; } throw error; }
-    finally { if(querySignature === signature) queryLoading = false; }
+        sort:({价格低:'price_asc',价格高:'price_desc',销量:'sales',新品:'newest'})[ui.sort] || '', limit:100}}, {auth:false});
+      if (selected()) {
+        remoteIds = new Set((result.items || []).map(p => p.product_id || p.id));
+        if (window.LumoRecommendations?.mapItems) window.LumoRecommendations.mapItems(result,'search',[],ticket);
+        else {
+          for (const raw of (result.items || []).slice(0,100)) {
+            const product = window.LumoCommerce?.normalizeProduct?.(raw);
+            if(product && !products.some(p=>p.id===product.id))products.push(product);
+          }
+          window.LumoInventory?.prime?.(result.inventory_items || [],ticket);
+        }
+      }
+    } catch(error) { if(selected()) { remoteIds = new Set(); queryError = error.message; } throw error; }
+    finally { if(selected()) queryLoading = false; }
+  }
+  function selectCategory(category, query = '', label = '', brand = '') {
+    if(!categories.includes(category))return;
+    data().filters = {brand:brand || 'all',inStock:false};
+    ui.category=category;ui.query=cleanText(query);ui.categoryLabel=cleanText(label);ui.onlyFavorites=false;
+    catalogPage=1;catalogSignature='';closeSearch();
+    const request=refreshSearch();go('');
+    return request.then(()=>renderKeepScroll()).catch(error=>{toast(error.message);renderKeepScroll();});
   }
   async function refresh() {
     const owner=currentOwner();
@@ -30,7 +56,7 @@
       discoveryOwner=owner;
       comparison = (compares.items || []).map(row => row.sku_id);
       history = (searches.items || []).map(row => row.query).filter(Boolean).slice(0,8);
-    } else { comparison=[];history=[];discoveryOwner=''; }
+    } else { comparison=[];history=[];discoveryOwner=owner; }
     return refreshSearch();
   }
   const cleanText = value => typeof value === 'string' ? value.trim().slice(0, 80) : '';
@@ -43,7 +69,7 @@
     return Number.isFinite(Number(p.available ?? p.stock)) && Number(p.available ?? p.stock) > 0;
   }
   function data() {
-    if(discoveryOwner!==currentOwner()){comparison=[];history=[];discoveryOwner=currentOwner();}
+    if(discoveryOwner!==currentOwner()){comparison=[];history=[];discoveryOffset=0;discoveryOwner=currentOwner();}
     const raw = state.discovery && typeof state.discovery === 'object' && !Array.isArray(state.discovery) ? state.discovery : {};
     const compareIds = [...new Set(comparison.filter(id => productFor(id)))].slice(0,MAX_COMPARE);
     const filters = { brand: cleanText(raw.filters?.brand) || 'all', inStock: raw.filters?.inStock === true };
@@ -74,7 +100,7 @@
     recordSearchBehavior(value);
     const current = data();
     current.filters = { brand: 'all', inStock: false };
-    ui.query = value; ui.category = '全部好物'; ui.onlyFavorites = false; ui.min = ''; ui.max = '';
+    ui.query = value; ui.category = '全部好物'; ui.categoryLabel = ''; ui.onlyFavorites = false; ui.min = ''; ui.max = '';
     closeSearch(); go(''); refreshSearch().then(() => renderKeepScroll()).catch(error => {toast(error.message);renderKeepScroll();});
   }
   function filter(list) {
@@ -127,60 +153,104 @@
     return `${header()}<main class="container disc-compare-page" id="main"><div class="breadcrumb"><a href="#/">首页</a>${icon('chevron')}<span>商品对比</span></div><div class="disc-compare-page-head"><div><span class="disc-kicker">FIND YOUR PERFECT MATCH</span><h1>好物对比 <small>${rows.length} / ${MAX_COMPARE}</small></h1></div><div><a class="outline" href="#/">${icon('plus')}继续添加</a>${rows.length ? '<button class="disc-clear-all" data-discovery-action="clear-compare">清空对比</button>' : ''}</div></div>${compareTable}</main>${footer()}`;
   }
   function searchPanel() { return document.querySelector('#disc-search-panel'); }
+  function inSearchContext(target) { return target?.closest?.('#search-form, #disc-search-panel'); }
+  function positionSearchPanel(input, panel) {
+    const form = input.closest('#search-form');
+    if (!form) return;
+    const anchor = form.getBoundingClientRect();
+    const top = anchor.bottom - 1;
+    const viewportBottom = (window.visualViewport?.height || window.innerHeight) + (window.visualViewport?.offsetTop || 0);
+    panel.style.setProperty('--search-panel-left', `${-form.clientLeft}px`);
+    panel.style.setProperty('--search-panel-top', `${top - anchor.top - form.clientTop}px`);
+    panel.style.setProperty('--search-panel-width', `${anchor.width}px`);
+    panel.style.setProperty('--search-panel-space', `${Math.max(0, viewportBottom - top - 12)}px`);
+  }
+  function positionOpenSearch() {
+    const panel = searchPanel(), input = document.querySelector('#search-input');
+    if (panel && !panel.hidden && input) positionSearchPanel(input, panel);
+  }
   function closeSearch() {
+    suggestionRevision++;
+    clearTimeout(suggestionTimer);
     const panel = searchPanel(), input = document.querySelector('#search-input');
     if (panel) panel.hidden = true;
+    input?.closest('#search-form')?.classList.remove('is-search-open');
     if (input) { input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); }
     activeSuggestion = -1;
   }
   function searchOption(query, title, detailText = '', image = '') {
     return `<button type="button" class="disc-search-option" role="option" aria-selected="false" data-discovery-action="search" data-value="${esc(query)}">${image ? `<img src="${esc(asset(image))}" alt="">` : icon('search')}<span><strong>${esc(title)}</strong>${detailText ? `<small>${esc(detailText)}</small>` : ''}</span>${icon('chevron')}</button>`;
   }
+  function discoveryTerms() {
+    const ordered = window.LumoRecommendations?.orderHome ? window.LumoRecommendations.orderHome(products.filter(p => p.visible !== false)) : products;
+    const seen = new Set(), terms = [];
+    for (const product of ordered) {
+      if (product.visible === false) continue;
+      const term = cleanText(product.name).split(/\s+[·|｜]\s+/)[0];
+      const key = term.toLocaleLowerCase();
+      if (!term || seen.has(key)) continue;
+      seen.add(key); terms.push(term);
+      if (terms.length === 80) break;
+    }
+    return terms;
+  }
+  function discoveryContent(matches = []) {
+    const current = data(), terms = discoveryTerms();
+    const visible = terms.length ? Array.from({length:Math.min(8,terms.length)}, (_,index) => terms[(discoveryOffset + index) % terms.length]) : [];
+    const suggestions = matches.length ? `<section class="disc-search-suggestions" role="listbox" aria-label="匹配商品">${matches.slice(0,5).map((p,index) => searchOption(p.name,p.name,`${p.category} · ¥${money(p.price)}`,p.image).replace('role="option"',`role="option" id="disc-search-option-${index}"`)).join('')}</section>` : '';
+    return `${suggestions}<section class="disc-search-section"><div class="disc-search-section-head"><h3>搜索历史</h3>${current.history.length ? `<button type="button" class="disc-search-clear" data-discovery-action="clear-search" aria-label="清空搜索历史">${icon('trash')}<span>删除</span></button>` : ''}</div><div class="disc-search-history">${current.history.length ? current.history.map(query => `<button type="button" class="disc-search-history-chip" data-discovery-action="search" data-value="${esc(query)}">${esc(query)}</button>`).join('') : '<p class="disc-search-empty">暂无搜索历史</p>'}</div></section><section class="disc-search-section"><div class="disc-search-section-head"><h3>搜索发现</h3>${terms.length > 1 ? '<button type="button" class="disc-search-refresh" data-discovery-action="refresh-search-discover" aria-label="换一换搜索发现">换一换</button>' : ''}</div><div class="disc-search-discover">${visible.length ? visible.map(term => `<button type="button" class="disc-search-discover-item" data-discovery-action="search" data-value="${esc(term)}">${esc(term)}</button>`).join('') : '<p class="disc-search-empty">暂无可推荐搜索</p>'}</div></section>`;
+  }
+  function showSearch(input, panel, matches = []) {
+    panel.innerHTML = discoveryContent(matches);
+    panel.hidden = false;
+    input.closest('#search-form')?.classList.add('is-search-open');
+    positionSearchPanel(input, panel);
+    input.setAttribute('aria-expanded', 'true'); input.removeAttribute('aria-activedescendant');
+    activeSuggestion = -1;
+  }
   function drawSuggestions(input) {
     const panel = searchPanel(); if (!panel) return;
-    const query = cleanText(input.value), current = data();
-    activeSuggestion = -1;
-    if (query) {
-      panel.innerHTML = `<div class="disc-search-label">正在搜索…</div>${searchOption(query, `搜索“${query}”`, '查看全部搜索结果')}`;
-      clearTimeout(suggestionTimer);
-      suggestionTimer = setTimeout(async () => {
-        try {
-          const result = await api('search','query',{data:{query,limit:5}}, {auth:principal()});
-          if (!input.isConnected || input.value.trim() !== query || panel.hidden) return;
-          const matches = (result.items || []).map(raw => products.find(p => p.id === (raw.product_id || raw.id))).filter(Boolean);
-          panel.innerHTML = `<div class="disc-search-label">相关好物</div>${matches.map(p => searchOption(p.name,p.name,`${p.category} · ¥${money(p.price)}`,p.image)).join('')}${searchOption(query,`搜索“${query}”`,'查看全部搜索结果')}`;
-          panel.querySelectorAll('[role="option"]').forEach((option,index) => option.id = 'disc-search-option-' + index);
-        } catch(error) { if(input.isConnected && input.value.trim() === query) panel.innerHTML = `<div class="disc-search-label">${esc(error.message)}</div>`; }
-      },250);
-    } else {
-      const hot = ['手机', '耳机', '咖啡', '沙发'];
-      panel.innerHTML = `${current.history.length ? `<div class="disc-search-section"><div class="disc-search-section-head"><span>最近搜索</span><button type="button" data-discovery-action="clear-search" aria-label="清空搜索记录">${icon('trash')}清空</button></div><div class="disc-search-chips">${current.history.map(value => `<button type="button" role="option" aria-selected="false" data-discovery-action="search" data-value="${esc(value)}">${icon('clock')}${esc(value)}</button>`).join('')}</div></div>` : ''}<div class="disc-search-section"><div class="disc-search-section-head"><span>热门搜索</span>${icon('sparkles')}</div><div class="disc-search-chips">${hot.map((value, index) => `<button type="button" role="option" aria-selected="false" data-discovery-action="search" data-value="${value}"><i>${index + 1}</i>${value}</button>`).join('')}</div></div>`;
-    }
-    panel.querySelectorAll('[role="option"]').forEach((option, index) => option.id = 'disc-search-option-' + index);
-    panel.hidden = false;
-    input.setAttribute('aria-expanded', 'true'); input.removeAttribute('aria-activedescendant');
+    const query = cleanText(input.value);
+    closeSearch();
+    showSearch(input, panel);
+    if (!query) return;
+    const revision = suggestionRevision, owner = currentOwner();
+    suggestionTimer = setTimeout(async () => {
+      try {
+        const result = await api('search','query',{data:{query,limit:5}}, {auth:false});
+        if (revision !== suggestionRevision || owner !== currentOwner() || !input.isConnected || document.activeElement !== input || cleanText(input.value) !== query) return;
+        const matches = (result.items || []).map(raw => products.find(p => p.id === (raw.product_id || raw.id))).filter(p => p && p.visible !== false);
+        showSearch(input, panel, matches);
+      } catch(_) { /* History and discovery remain usable when suggestions fail. */ }
+    },250);
   }
   function afterRender() {
-    if (querySignature !== searchSignature()) refreshSearch().then(() => renderKeepScroll()).catch(error => { toast(error.message); renderKeepScroll(); });
+    if ((!window.LumoConnection || window.LumoConnection.ready) && querySignature !== searchSignature()) refreshSearch().then(() => renderKeepScroll()).catch(error => { toast(error.message); renderKeepScroll(); });
     document.body?.classList.toggle('has-disc-compare', !!document.querySelector('.disc-compare-bar'));
     const form = document.querySelector('#search-form'), input = document.querySelector('#search-input');
     if (!form || !input) return;
     if (!form.querySelector('#disc-search-panel')) {
-      const panel = document.createElement('div'); panel.id = 'disc-search-panel'; panel.className = 'disc-search-panel'; panel.setAttribute('role', 'listbox'); panel.setAttribute('aria-label', '搜索建议'); panel.hidden = true; form.append(panel);
+      const panel = document.createElement('div'); panel.id = 'disc-search-panel'; panel.className = 'disc-search-panel'; panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', '商品搜索'); panel.hidden = true; form.append(panel);
     }
-    input.setAttribute('role', 'combobox'); input.setAttribute('aria-autocomplete', 'list'); input.setAttribute('aria-controls', 'disc-search-panel'); input.setAttribute('aria-expanded', 'false');
+    input.setAttribute('role', 'combobox'); input.setAttribute('aria-haspopup', 'dialog'); input.setAttribute('aria-autocomplete', 'list'); input.setAttribute('aria-controls', 'disc-search-panel'); input.setAttribute('aria-expanded', 'false');
   }
-  document.addEventListener('pointerdown', event => { if (event.target.closest?.('#disc-search-panel [data-discovery-action]')) event.preventDefault(); });
+  document.addEventListener('pointerdown', event => {
+    if (event.target.closest?.('#disc-search-panel [data-discovery-action]')) event.preventDefault();
+    else if (!inSearchContext(event.target)) closeSearch();
+  });
   document.addEventListener('focusin', event => { if (event.target.id === 'search-input') drawSuggestions(event.target); });
   document.addEventListener('input', event => { if (event.target.id === 'search-input') drawSuggestions(event.target); });
   document.addEventListener('focusout', event => {
-    if (!event.target.closest?.('#search-form')) return;
-    if (!event.relatedTarget?.closest?.('#search-form')) closeSearch();
+    if (inSearchContext(event.target) && !inSearchContext(event.relatedTarget)) closeSearch();
   });
+  window.addEventListener?.('resize', positionOpenSearch);
+  window.addEventListener?.('hashchange', closeSearch);
+  window.visualViewport?.addEventListener('resize', positionOpenSearch);
+  window.addEventListener?.('scroll', closeSearch, {passive:true});
   document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') { if (inSearchContext(event.target) && event.target.id !== 'search-input') document.querySelector('#search-input')?.focus(); closeSearch(); return; }
     if (event.target.id !== 'search-input') return;
     const panel = searchPanel();
-    if (event.key === 'Escape') { closeSearch(); return; }
     if (!['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key)) return;
     if (event.key !== 'Enter' && (!panel || panel.hidden)) drawSuggestions(event.target);
     const options = [...(searchPanel()?.querySelectorAll('[role="option"]') || [])];
@@ -203,12 +273,26 @@
     catalogPage = 1; save(); renderKeepScroll();
   });
   document.addEventListener('click', async event => {
+    if (event.target.id === 'search-input' && searchPanel()?.hidden) { drawSuggestions(event.target); return; }
     const button = event.target.closest('[data-discovery-action]');
-    if (!button) { if (!event.target.closest('#search-form')) closeSearch(); return; }
+    if (!button) { if (!inSearchContext(event.target)) closeSearch(); return; }
     if (button.disabled) return;
     const action = button.dataset.discoveryAction, id = button.dataset.id;
     if (action === 'search') { commitSearch(button.dataset.value); return; }
-    if (action === 'clear-search') { try {if(principal()) await api('engagement','clear',{data:{kind:'search'}});history=[];} catch(error){toast(error.message);return;} const input = document.querySelector('#search-input'); if (input) { input.value = ''; drawSuggestions(input); } return; }
+    if (action === 'refresh-search-discover') {
+      const terms = discoveryTerms(); discoveryOffset = terms.length ? (discoveryOffset + (terms.length > 8 ? 8 : 1)) % terms.length : 0;
+      const input = document.querySelector('#search-input'), panel = searchPanel();
+      if (input && panel && !panel.hidden) showSearch(input, panel);
+      return;
+    }
+    if (action === 'clear-search') {
+      const owner = currentOwner(); button.disabled = true;
+      try { if(principal()) await api('engagement','clear',{data:{kind:'search'}}); if(owner!==currentOwner()) return; history=[]; }
+      catch(error){if(owner===currentOwner()) {toast(error.message);button.disabled=false;}return;}
+      const input = document.querySelector('#search-input'), panel = searchPanel();
+      if (input && panel && !panel.hidden && owner===currentOwner()) showSearch(input, panel);
+      return;
+    }
     if (action === 'reset-filters') { resetFilters(); renderKeepScroll(); return; }
     if (action === 'page') { catalogPage = Math.max(1, Math.min(Math.ceil(lastTotal / PAGE_SIZE) || 1, Number(button.dataset.value) || 1)); renderKeepScroll(); document.getElementById('catalog')?.scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
     if (action === 'toggle-compare') {
@@ -230,5 +314,6 @@
       try {await api('engagement','clear',{data:{kind:'compare'}});comparison=[];renderKeepScroll();}catch(error){toast(error.message);}
     }
   });
-  window.LumoDiscovery = { afterRender, recordSearch, commitSearch, filter, controls, paginate, pagination, compareButton, compareBar, page, resetFilters, brandFor, refresh, refreshSearch };
+  for (const event of ['lumo:login','lumo:logout','lumo:session-expired']) window.addEventListener?.(event, () => { comparison=[];history=[];discoveryOffset=0;discoveryOwner='';closeSearch(); });
+  window.LumoDiscovery = { selectCategory, afterRender, recordSearch, commitSearch, filter, controls, paginate, pagination, compareButton, compareBar, page, resetFilters, brandFor, refresh, refreshSearch };
 })();

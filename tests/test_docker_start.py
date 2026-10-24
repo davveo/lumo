@@ -18,10 +18,13 @@ import unittest
 PROJECT = Path(__file__).resolve().parents[1]
 DOMAINS = "iam member address catalog media interaction engagement search recommendation content analytics cart pricing checkout order campaign coupon points group flash inventory fulfillment logistics aftersale payment refund invoice reconciliation notification helpdesk".split()
 APPS = DOMAINS + ["gateway"]
-INFRA = ["mysql", "redis", "rabbitmq", "minio", "jaeger", "otel-collector"]
+INFRA = ["consul", "mysql", "redis", "rabbitmq", "minio", "jaeger", "otel-collector"]
 INIT = "storage-volume-init"
 APP_IMAGE = "lumo-mall-backend:dev"
 MINIO_IMAGE = "lumo-minio:release-20250907"
+JAEGER_IMAGE = "lumo-jaeger:2.12.0"
+COLLECTOR_IMAGE = "lumo-otel-collector:0.124.1"
+BUILDABLE_INFRA = {"minio": MINIO_IMAGE, "jaeger": JAEGER_IMAGE, "otel-collector": COLLECTOR_IMAGE}
 
 FAKE_DOCKER = r'''import hashlib,json,os,pathlib,re,sys
 args=sys.argv[1:]
@@ -30,11 +33,13 @@ with open(os.environ['TEST_DOCKER_RECORD'],'a',encoding='utf-8') as stream:
 path=pathlib.Path(os.environ['TEST_DOCKER_RUNTIME']);state=json.loads(path.read_text())
 failure=os.environ.get('TEST_DOCKER_FAIL_STAGE','')
 apps=state['domains']+['gateway'];infra=state['infra'];initializer='storage-volume-init';services=infra+[initializer]+apps
-images={n:('lumo-mall-backend:dev' if n in apps else 'lumo-minio:release-20250907' if n=='minio' else 'fixture-'+n+':fixed') for n in services}
+local_images={'minio':'lumo-minio:release-20250907','jaeger':'lumo-jaeger:2.12.0','otel-collector':'lumo-otel-collector:0.124.1'}
+images={n:('lumo-mall-backend:dev' if n in apps else local_images.get(n,'fixture-'+n+':fixed')) for n in services}
 def save():path.write_text(json.dumps(state))
 def die(message,code=1):print(message,file=sys.stderr);raise SystemExit(code)
 def config_hash(name):return hashlib.sha256((name+'\0'+state.get('config_overrides',{}).get(name,'v1')).encode()).hexdigest()
 def container(value):return next((c for n,c in state['containers'].items() if value in (n,c['id'],c.get('name',''))),None)
+def instances(name):return [(key,c) for key,c in state['containers'].items() if c.get('service',key)==name]
 def render(fmt,c):
     if 'json .' in fmt:
         st={'Status':c['status'],'Running':c['status']=='running','ExitCode':c['exit_code']}
@@ -63,7 +68,7 @@ if args and args[0]=='inspect':
     c=found[-1];flag='--format' if '--format' in args else '-f' if '-f' in args else None
     print(render(args[args.index(flag)+1],c) if flag else '['+render('{{json .}}',c)+']');raise SystemExit(0)
 if not args or args[0]!='compose':die('Unexpected Docker command '+repr(args),90)
-rest=args[1:];commands={'version','config','build','up','port','ps','logs','down','restart','start','wait'}
+rest=args[1:];commands={'version','config','build','up','port','ps','logs','down','restart','start','wait','exec'}
 idx=None;skip=False
 for i,value in enumerate(rest):
     if skip:skip=False;continue
@@ -104,31 +109,43 @@ elif command=='ps':
     chosen=[n for n in tail if n in services] or services
     if '--quiet' in tail or '-q' in tail:
         all_states='--all' in tail or '-a' in tail
-        print('\n'.join(state['containers'][n]['id'] for n in chosen if n in state['containers'] and (all_states or state['containers'][n]['status']=='running')))
-    elif '--format' in tail:print(json.dumps([{'Service':n,'ID':state['containers'][n]['id'],'State':state['containers'][n]['status'],'Health':state['containers'][n]['health']} for n in chosen if n in state['containers']]))
+        print('\n'.join(c['id'] for n in chosen for _,c in instances(n) if all_states or c['status']=='running'))
+    elif '--format' in tail:print(json.dumps([{'Service':n,'ID':c['id'],'State':c['status'],'Health':c['health']} for n in chosen for _,c in instances(n)]))
 elif command=='up':
-    selected=[];skip=False
+    selected=[];skip=False;scales={}
+    for i,value in enumerate(tail):
+        if value=='--scale':
+            name,count=tail[i+1].split('=',1);scales[name]=int(count)
     for value in tail:
         if skip:skip=False;continue
-        if value in {'--wait-timeout','--exit-code-from','--timeout','-t','--pull'}:skip=True;continue
+        if value in {'--wait-timeout','--exit-code-from','--timeout','-t','--pull','--scale'}:skip=True;continue
         if value in services:selected.append(value)
     selected=selected or services[:];is_app=any(n in apps for n in selected)
     if failure=='up' or failure=='app_up' and is_app or failure=='infra_up' and not is_app:die('fixture health wait failure',23)
     for n in selected:
-        old=state['containers'].get(n);image=state['images'].get(images[n],old['image'] if old else 'sha256:fixture-'+n)
-        replace=not old or '--force-recreate' in tail or ('--no-recreate' not in tail and (old['image']!=image or old['config_hash']!=config_hash(n)))
-        if replace:
-            state['images'].setdefault(images[n],image)
-            state['sequence']+=1;old={'id':'cid-'+n+'-'+str(state['sequence']),'name':'lumo-'+n,'image':image,'config_hash':config_hash(n)};state['containers'][n]=old
-        old.update(status='exited' if n==initializer else 'running',health='none' if n in ('jaeger','otel-collector',initializer) else 'healthy',exit_code=0)
+        current=instances(n);count=scales.get(n,len(current) or 1)
+        for key,_ in current[count:]:del state['containers'][key]
+        for index in range(count):
+            key=n if index==0 else n+'#'+str(index+1)
+            old=state['containers'].get(key);image=state['images'].get(images[n],old['image'] if old else 'sha256:fixture-'+n)
+            replace=not old or '--force-recreate' in tail or ('--no-recreate' not in tail and (old['image']!=image or old['config_hash']!=config_hash(n)))
+            if replace:
+                state['images'].setdefault(images[n],image)
+                state['sequence']+=1;old={'id':'cid-'+n+'-'+str(state['sequence']),'name':'lumo-'+key,'service':n,'image':image,'config_hash':config_hash(n)};state['containers'][key]=old
+            old.update(status='exited' if n==initializer else 'running',health='none' if n==initializer else 'healthy',exit_code=0)
     save()
 elif command=='port':
-    ports={('gateway','8080'):'19080',('jaeger','16686'):'26686',('rabbitmq','15672'):'25672',('minio','9000'):'19001',('minio','9001'):'19002'}
+    ports={('gateway','8080'):'19080',('consul','8500'):'18500',('jaeger','16686'):'26686',('rabbitmq','15672'):'25672',('minio','9000'):'19001',('minio','9001'):'19002'}
     key=tuple([v for v in tail if not v.startswith('-')][-2:])
     if key not in ports:die('Unexpected port lookup '+repr(tail),92)
     if key[0] not in state['containers']:raise SystemExit(1)
     binding=state.get('port_bindings',{}).get(':'.join(key),'127.0.0.1:'+ports[key])
     if binding:print(binding)
+elif command=='exec':
+    if len(tail)!=4 or tail[0]!='-T' or tail[2]!='printenv':die('Unexpected container command '+repr(tail),94)
+    value=state.get('service_env',{}).get(tail[1],{}).get(tail[3])
+    if value is None:raise SystemExit(1)
+    print(value)
 elif command in ('down','restart','start'):die('Unexpected broad lifecycle operation '+command,93)
 elif command=='wait':
     for n in tail:
@@ -161,15 +178,17 @@ class DockerStartupTests(unittest.TestCase):
         self.template=files[".env.example"];self.tools=self.sandbox/"fake tools";self.tools.mkdir()
         docker=self.tools/"docker";docker.write_text("#!"+sys.executable+"\n"+FAKE_DOCKER);docker.chmod(0o755)
         self.record=self.sandbox/"docker calls.jsonl";self.runtime=self.sandbox/"fake daemon.json";self.side_effect=self.sandbox/"env must not execute"
-        images={APP_IMAGE:"sha256:original-app",MINIO_IMAGE:"sha256:original-minio"};containers={}
+        images={APP_IMAGE:"sha256:original-app",**{tag:"sha256:original-"+name for name,tag in BUILDABLE_INFRA.items()}};containers={}
         for n in INFRA+[INIT]+APPS:
-            image=images[APP_IMAGE] if n in APPS else images[MINIO_IMAGE] if n=="minio" else "sha256:fixture-"+n
+            image=images[APP_IMAGE] if n in APPS else images[BUILDABLE_INFRA[n]] if n in BUILDABLE_INFRA else "sha256:fixture-"+n
             containers[n]={"id":"cid-"+n+"-original","name":"lumo-"+n,"status":"exited" if n==INIT else "running",
-                "health":"none" if n in ("jaeger","otel-collector",INIT) else "healthy","exit_code":0,"image":image,
+                "health":"none" if n==INIT else "healthy","exit_code":0,"image":image,
                 "config_hash":hashlib.sha256((n+"\0v1").encode()).hexdigest()}
-        self.write_runtime({"domains":DOMAINS,"infra":INFRA,"engine_id":"daemon-fixture","sequence":0,"images":images,"containers":containers,"config_overrides":{}})
+        self.write_runtime({"domains":DOMAINS,"infra":INFRA,"engine_id":"daemon-fixture","sequence":0,"images":images,"containers":containers,"config_overrides":{},
+            "service_env":{"iam":{"DEMO_MODE":"true"},"rabbitmq":{"RABBITMQ_DEFAULT_USER":"fixture-mq","RABBITMQ_DEFAULT_PASS":"fixture-mq-password"},
+                           "minio":{"MINIO_ROOT_USER":"fixture-minio","MINIO_ROOT_PASSWORD":"fixture-minio-password"}}})
         self.outside=self.sandbox/"unrelated working directory";self.outside.mkdir()
-        self.env={k:v for k,v in os.environ.items() if k not in {"COMPOSE_FILE","COMPOSE_PROJECT_NAME","COMPOSE_ENV_FILES","DOCKER_HOST","DOCKER_CONTEXT","GATEWAY_PORT","JAEGER_PORT","RABBITMQ_UI_PORT","MINIO_API_PORT","MINIO_CONSOLE_PORT","WAIT_TIMEOUT","STARTUP_TIMEOUT"}}
+        self.env={k:v for k,v in os.environ.items() if k not in {"COMPOSE_FILE","COMPOSE_PROJECT_NAME","COMPOSE_ENV_FILES","DOCKER_HOST","DOCKER_CONTEXT","GATEWAY_PORT","JAEGER_PORT","RABBITMQ_UI_PORT","CONSUL_UI_PORT","MINIO_API_PORT","MINIO_CONSOLE_PORT","WAIT_TIMEOUT","STARTUP_TIMEOUT"}}
         self.env.update(PATH=str(self.tools)+os.pathsep+os.environ.get("PATH",""),TEST_DOCKER_RECORD=str(self.record),
             TEST_DOCKER_RUNTIME=str(self.runtime),SIDE_EFFECT_FILE=str(self.side_effect),TERM="dumb")
 
@@ -190,7 +209,7 @@ class DockerStartupTests(unittest.TestCase):
     def command(call):
         args=call["args"]
         if args[0]!="compose":return " ".join(args[:2]) if args[0]=="image" else args[0]
-        return next((v for v in args[1:] if v in {"version","config","build","up","port","ps","logs","down","restart","start","wait"}),"")
+        return next((v for v in args[1:] if v in {"version","config","build","up","port","ps","logs","down","restart","start","wait","exec"}),"")
     @staticmethod
     def selected(call):
         command=DockerStartupTests.command(call)
@@ -198,7 +217,7 @@ class DockerStartupTests(unittest.TestCase):
         result=set();skip=False
         for value in call["args"][call["args"].index(command)+1:]:
             if skip:skip=False;continue
-            if value in {"--wait-timeout","--exit-code-from","--timeout","-t","--pull"}:skip=True;continue
+            if value in {"--wait-timeout","--exit-code-from","--timeout","-t","--pull","--scale"}:skip=True;continue
             if value in APPS+INFRA+[INIT]:result.add(value)
         return result
     def actual_ups(self):return [c for c in self.calls() if self.command(c)=="up" and "--help" not in c["args"]]
@@ -260,7 +279,7 @@ class DockerStartupTests(unittest.TestCase):
         self.assertEqual(set().union(*(self.selected(c) for c in self.actual_ups())),set(INFRA+[INIT]))
         for n in INFRA+[INIT]:self.assertNotEqual(self.read_runtime()["containers"][n]["id"],before["containers"][n]["id"],n)
         for n in APPS:self.assertEqual(self.read_runtime()["containers"][n],before["containers"][n],n)
-        self.assertEqual([self.selected(c) for c in self.builds()],[{"minio"}])
+        self.assertEqual([self.selected(c) for c in self.builds()],[set(BUILDABLE_INFRA)])
 
     def test_running_minio_does_not_require_its_old_local_image_tag(self):
         state=self.read_runtime();del state["images"][MINIO_IMAGE];self.write_runtime(state);before=self.read_runtime()
@@ -282,11 +301,158 @@ class DockerStartupTests(unittest.TestCase):
         self.assertEqual(self.read_runtime()["containers"]["mysql"]["id"],cid);self.assertEqual(self.builds(),[])
         for call in self.actual_ups():self.assertIn("--no-recreate",call["args"])
 
+    def test_missing_or_stopped_observability_builds_only_its_missing_local_image(self):
+        self.establish_baseline()
+        baseline = self.read_runtime()
+        for service in ("jaeger", "otel-collector"):
+            for status in ("missing", "exited"):
+                with self.subTest(service=service, status=status):
+                    state = json.loads(json.dumps(baseline))
+                    original = state["containers"][service]
+                    if status == "missing":
+                        del state["containers"][service]
+                    else:
+                        state["containers"][service]["status"] = "exited"
+                    del state["images"][BUILDABLE_INFRA[service]]
+                    self.write_runtime(state)
+                    self.clear_calls()
+                    self.assert_success(self.run_start())
+                    self.assertEqual([self.selected(c) for c in self.builds()], [{service}])
+                    self.assertEqual(set().union(*(self.selected(c) for c in self.actual_ups())), {service})
+                    after = self.read_runtime()["containers"]
+                    self.assertEqual(after[service]["health"], "healthy")
+                    if status == "exited":
+                        self.assertEqual(after[service]["id"], original["id"])
+                    for name in set(after) - {service}:
+                        self.assertEqual(after[name], baseline["containers"][name], name)
+
+    def test_running_observability_does_not_require_its_local_image_tags(self):
+        self.establish_baseline()
+        state = self.read_runtime()
+        for service in ("jaeger", "otel-collector"):
+            del state["images"][BUILDABLE_INFRA[service]]
+        self.write_runtime(state)
+        before = self.read_runtime()
+        self.assert_success(self.run_start())
+        self.assertEqual(self.builds(), [])
+        self.assertEqual(self.actual_ups(), [])
+        self.assertEqual(self.read_runtime(), before)
+
+    def test_running_observability_without_healthy_checks_fails_before_building(self):
+        baseline = self.read_runtime()
+        for service in ("jaeger", "otel-collector"):
+            for health in ("none", "unhealthy", "starting"):
+                with self.subTest(service=service, health=health):
+                    state = json.loads(json.dumps(baseline))
+                    state["containers"][service]["health"] = health
+                    self.write_runtime(state)
+                    self.clear_calls()
+                    result = self.run_start("order")
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(service, result.stderr)
+                    self.assertEqual(self.builds(), [])
+                    self.assertEqual(self.actual_ups(), [])
+                    self.assertEqual(self.read_runtime(), state)
+
+    def test_no_build_requires_missing_observability_image_to_be_built_explicitly(self):
+        self.establish_baseline()
+        state = self.read_runtime()
+        state["containers"]["jaeger"]["status"] = "exited"
+        del state["images"][JAEGER_IMAGE]
+        self.write_runtime(state)
+        result = self.run_start("--no-build")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--no-build", result.stderr)
+        self.assertIn("jaeger", result.stderr)
+        self.assertIn("缺少本地中间件镜像", result.stderr)
+        self.assertEqual(self.builds(), [])
+        self.assertEqual(self.actual_ups(), [])
+
+    def test_explicit_infrastructure_no_build_reuses_existing_local_images(self):
+        self.establish_baseline()
+        before = self.read_runtime()
+        self.assert_success(self.run_start("--update-infra", "--no-build"))
+        self.assertEqual(self.builds(), [])
+        after = self.read_runtime()["containers"]
+        for name in INFRA + [INIT]:
+            self.assertNotEqual(after[name]["id"], before["containers"][name]["id"], name)
+        for name in APPS:
+            self.assertEqual(after[name], before["containers"][name], name)
+
+    def test_missing_or_stopped_consul_is_started_without_rebuilding_applications(self):
+        self.establish_baseline()
+        for status in ("missing", "exited"):
+            with self.subTest(status=status):
+                state = self.read_runtime()
+                before = json.loads(json.dumps(state["containers"]))
+                if status == "missing":
+                    del state["containers"]["consul"]
+                else:
+                    state["containers"]["consul"]["status"] = "exited"
+                self.write_runtime(state)
+                self.clear_calls()
+                result = self.run_start()
+                self.assert_success(result)
+                self.assertEqual(set().union(*(self.selected(c) for c in self.actual_ups())), {"consul"})
+                self.assertEqual(self.builds(), [])
+                self.assertIn("Consul注册中心：http://127.0.0.1:18500/ui/", result.stdout)
+                after = self.read_runtime()["containers"]
+                self.assertEqual(after["consul"]["status"], "running")
+                if status == "exited":
+                    self.assertEqual(after["consul"]["id"], before["consul"]["id"])
+                for name in set(before) - {"consul"}:
+                    self.assertEqual(after[name], before[name], name)
+                for call in self.actual_ups():
+                    self.assertIn("--no-recreate", call["args"])
+
     def test_stopped_unchanged_app_starts_same_container_without_rebuild(self):
         self.establish_baseline();state=self.read_runtime();state["containers"]["order"]["status"]="exited";cid=state["containers"]["order"]["id"];self.write_runtime(state)
         self.assert_success(self.run_start());self.assertEqual(self.app_targets(),{"order"})
         self.assertEqual(self.read_runtime()["containers"]["order"]["id"],cid);self.assertEqual(self.builds(),[])
         for call in self.actual_ups():self.assertIn("--no-recreate",call["args"])
+
+    def add_replica(self, service):
+        state=self.read_runtime();replica=json.loads(json.dumps(state['containers'][service]))
+        replica.update(id='cid-'+service+'-second',name='lumo-'+service+'-second',service=service)
+        state['containers'][service+'#2']=replica;self.write_runtime(state)
+
+    def test_multiple_healthy_replicas_are_retained_without_restarts(self):
+        self.establish_baseline();self.add_replica('catalog');before=self.read_runtime()
+        self.assert_success(self.run_start())
+        self.assertEqual(self.actual_ups(),[]);self.assertEqual(self.builds(),[])
+        self.assertEqual(self.read_runtime(),before)
+
+    def test_incremental_update_preserves_every_replica_and_checks_all_images(self):
+        self.establish_baseline();self.add_replica('catalog');before=self.read_runtime()
+        self.mutate('services/catalog/internal/usecase/service.go')
+        self.assert_success(self.run_start())
+        self.assertEqual(self.app_targets(),{'catalog'})
+        after=self.read_runtime()['containers']
+        for key in ('catalog','catalog#2'):
+            self.assertNotEqual(after[key]['id'],before['containers'][key]['id'])
+            self.assertEqual(after[key]['image'],self.read_runtime()['images'][APP_IMAGE])
+        self.assertEqual(len([c for key,c in after.items() if c.get('service',key)=='catalog']),2)
+        self.assertTrue(any('--scale' in c['args'] and 'catalog=2' in c['args'] for c in self.actual_ups()))
+        self.assert_infra_preserved(before)
+        self.clear_calls();self.assert_success(self.run_start());self.assertEqual(self.actual_ups(),[])
+
+    def test_stopped_second_replica_is_started_without_collapsing_the_service(self):
+        self.establish_baseline();self.add_replica('catalog');state=self.read_runtime()
+        state['containers']['catalog#2']['status']='exited';self.write_runtime(state)
+        self.assert_success(self.run_start());after=self.read_runtime()['containers']
+        self.assertEqual(self.app_targets(),{'catalog'});self.assertEqual(self.builds(),[])
+        for key in ('catalog','catalog#2'):
+            self.assertEqual(after[key]['id'],state['containers'][key]['id'])
+            self.assertEqual(after[key]['status'],'running')
+        self.assertTrue(any('--no-recreate' in c['args'] and 'catalog=2' in c['args'] for c in self.actual_ups()))
+
+    def test_stale_second_replica_forces_consistent_service_update(self):
+        self.establish_baseline();self.add_replica('catalog');state=self.read_runtime()
+        state['containers']['catalog#2']['image']='sha256:stale-replica';self.write_runtime(state)
+        self.assert_success(self.run_start());self.assertEqual(self.app_targets(),{'catalog'})
+        after=self.read_runtime()['containers']
+        self.assertEqual(after['catalog']['image'],after['catalog#2']['image'])
+        self.assertTrue(any('catalog=2' in c['args'] for c in self.actual_ups()))
 
     def test_first_explicit_service_does_not_update_other_apps(self):
         before=self.read_runtime();self.assert_success(self.run_start("order"));self.assertEqual(self.app_targets(),{"order"})
@@ -339,7 +505,7 @@ class DockerStartupTests(unittest.TestCase):
         for entry in ("start.sh","scripts/up.sh","start.command"):
             with self.subTest(entry=entry):
                 self.clear_calls();result=self.run_start("order","--wait-timeout","71",entry=entry);self.assert_success(result)
-                for port in ("19080","26686","25672","19001","19002"):self.assertIn(":"+port,result.stdout)
+                for port in ("19080","18500","26686","25672","19001","19002"):self.assertIn(":"+port,result.stdout)
                 self.assertIn("/admin.html",result.stdout);self.assertNotIn("http://localhost:8080",result.stdout)
                 self.assertIn("可访问地址（在Docker宿主机浏览器打开）：",result.stdout)
                 for line in result.stdout.splitlines():
@@ -356,14 +522,64 @@ class DockerStartupTests(unittest.TestCase):
         self.write_runtime(state);result=self.run_start("order");self.assert_success(result)
         self.assertIn("可访问地址（在Docker宿主机浏览器打开）：",result.stdout)
         for expected in ("商城前台：http://127.0.0.1:19080","商城管理端：http://127.0.0.1:19080/admin.html",
-                "接口联调台：http://127.0.0.1:19080/debug","Jaeger：http://[::1]:26686",
+                "接口联调台：http://127.0.0.1:19080/debug","Consul注册中心：http://127.0.0.1:18500/ui/","Jaeger：http://[::1]:26686",
                 "RabbitMQ：http://192.0.2.27:25672","MinIO控制台：http://127.0.0.1:19002"):
             self.assertIn("  "+expected,result.stdout)
         self.assertNotIn("0.0.0.0",result.stdout);self.assertNotIn("[::]:",result.stdout)
         self.assertNotIn("MinIO接口：",result.stdout)
         links=[line for line in result.stdout.splitlines() if "http://" in line]
-        self.assertEqual(len(links),6)
+        self.assertEqual(len(links),7)
         for line in links:self.assertTrue(line.startswith("  "),line)
+
+    def test_startup_lists_matching_login_details_below_access_addresses(self):
+        result=self.run_start("order");self.assert_success(result)
+        for expected in (
+                "商城前台：http://127.0.0.1:19080\n    初始演示顾客账号：demo  密码：Lumo@2026",
+                "商城管理端：http://127.0.0.1:19080/admin.html\n    初始演示管理员账号：admin  密码：Admin@2026",
+                "接口联调台：http://127.0.0.1:19080/debug\n    初始演示顾客账号：demo  密码：Lumo@2026\n    初始演示管理员账号：admin  密码：Admin@2026",
+                "Consul注册中心：http://127.0.0.1:18500/ui/\n    登录：默认无需账号密码",
+                "Jaeger：http://127.0.0.1:26686\n    登录：默认无需账号密码",
+                "RabbitMQ：http://127.0.0.1:25672\n    容器初始化账号：fixture-mq  密码：fixture-mq-password",
+                "MinIO接口：http://127.0.0.1:19001\n    账号（Access Key）：fixture-minio  密码（Secret Key）：fixture-minio-password",
+                "MinIO控制台：http://127.0.0.1:19002\n    账号（Access Key）：fixture-minio  密码（Secret Key）：fixture-minio-password"):
+            self.assertIn(expected,result.stdout)
+        queried={tuple(c["args"][-2:]) for c in self.calls() if self.command(c)=="exec"}
+        self.assertEqual(queried,{("printenv",key) for key in (
+            "DEMO_MODE","RABBITMQ_DEFAULT_USER","RABBITMQ_DEFAULT_PASS","MINIO_ROOT_USER","MINIO_ROOT_PASSWORD")})
+
+    def test_startup_uses_running_credentials_and_prints_password_characters_literally(self):
+        (self.project/".env").write_text(self.template+"RABBITMQ_USER=unapplied-user\nRABBITMQ_PASSWORD=unapplied-password\nMINIO_ACCESS_KEY=unapplied-key\nMINIO_SECRET_KEY=unapplied-secret\n")
+        state=self.read_runtime()
+        rabbit_password=r'50% = "quoted" \\ $(touch "$SIDE_EFFECT_FILE")'
+        minio_password=r"another = 'quoted' \\ `touch \"$SIDE_EFFECT_FILE\"` %s"
+        state["service_env"]["rabbitmq"]={"RABBITMQ_DEFAULT_USER":"runtime-mq","RABBITMQ_DEFAULT_PASS":rabbit_password}
+        state["service_env"]["minio"]={"MINIO_ROOT_USER":"runtime-minio","MINIO_ROOT_PASSWORD":minio_password}
+        self.write_runtime(state);result=self.run_start("order");self.assert_success(result)
+        self.assertIn("容器初始化账号：runtime-mq  密码："+rabbit_password,result.stdout)
+        self.assertIn("账号（Access Key）：runtime-minio  密码（Secret Key）："+minio_password,result.stdout)
+        self.assertNotIn("unapplied-",result.stdout);self.assertFalse(self.side_effect.exists())
+
+    def test_startup_does_not_advertise_demo_defaults_when_demo_mode_is_disabled(self):
+        for mode in ("false","1"):
+            with self.subTest(mode=mode):
+                state=self.read_runtime();state["service_env"]["iam"]["DEMO_MODE"]=mode;self.write_runtime(state)
+                result=self.run_start("order");self.assert_success(result)
+                self.assertNotIn("Lumo@2026",result.stdout);self.assertNotIn("Admin@2026",result.stdout)
+                self.assertEqual(result.stdout.count("登录：使用已有账号（演示模式未启用）"),3)
+
+    def test_startup_reports_unavailable_credentials_without_inventing_defaults(self):
+        state=self.read_runtime();state["service_env"]={};self.write_runtime(state)
+        result=self.run_start("order");self.assert_success(result)
+        for expected in ("无法读取演示模式","无法读取RabbitMQ账号密码","无法读取MinIO账号密码"):
+            self.assertIn(expected,result.stdout)
+        for password in ("Lumo@2026","Admin@2026","fixture-mq-password","fixture-minio-password"):
+            self.assertNotIn(password,result.stdout)
+
+    def test_failed_start_does_not_print_access_or_login_details(self):
+        result=self.run_start("order",fail="app_up");self.assertNotEqual(result.returncode,0)
+        for text in ("可访问地址","Lumo@2026","Admin@2026","fixture-mq-password","fixture-minio-password"):
+            self.assertNotIn(text,result.stdout)
+        self.assertFalse(any(self.command(c)=="exec" for c in self.calls()))
 
     def test_env_creation_preservation_and_never_executing_shell_text(self):
         self.assert_success(self.run_start("order"));self.assertEqual((self.project/".env").read_text(),self.template)

@@ -16,13 +16,25 @@ HTTP server span（gateway 的 otelhttp）
 
 `Start(ctx, name)` 增加代码层 span，返回的 ctx 必须继续向下传递。每次 GORM 操作使用 `WithContext(ctx)`；SQL callback 在执行前建立数据库 span，执行后恢复原 context，因此后续独立 SQL 不会错误嵌套到上一次 SQL 下。
 
-SQL span 包含 `db.system.name`、`db.namespace`、`db.collection.name`、`db.operation.name`、`db.query.text`（模板）、返回行数和耗时。SQL 绑定值不展开；原始 SQL 的字面量和注释会脱敏。密码、令牌和完整请求正文不进入日志或 tracing。结构化日志包含活动 trace_id / span_id。
+SQL span 包含 `db.system.name`、`db.namespace`、`db.collection.name`、`db.operation.name`、`db.query.text`（模板）、返回行数和耗时。SQL 绑定值不展开；原始 SQL 的字面量和注释会脱敏。结构化日志包含活动 trace_id / span_id，不输出请求及返回正文。
+
+调用span通过 `TraceRequest(ctx, input)` 和 `TraceResponse(ctx, result, err)` 记录 `lumo.request` / `lumo.response` 脱敏JSON预览、规范 `lumo.error.code` 及redacted/truncated标志。HTTP、每跳自动gRPC、transport/usecase及MQ边界均接入；gRPC错误描述也只记录规范码。密码、令牌、签名能力、身份及地址等递归遮蔽，JSON bytes和编码JSON不会按base64或字符串原样输出。金额/数量/普通业务ID保持可读；每方向最多8KiB、数组前10项、字符串512字节，且有对象、节点和深度上限。只清理采样span的独立预览，不修改业务值；不执行自定义JSON marshalers。详见 [observability.md](../../docs/observability.md)。
 
 `InitTelemetry` 使用 OTLP/gRPC；Compose 中的开发采样设为 1。OTLP 内部端点使用明文网络传输；生产环境应在部署层启用受控网络和 TLS。空端点仍建立 SDK，但不会向外发送数据。测试显式使用 AlwaysSample，避免宿主采样设置影响可重复验收。
 
 ## RPC
 
-只通过生成的 Protobuf/gRPC 协议调用，内部服务凭据放在 metadata，不放在 payload。所有领域 Execute RPC 要求凭据；标准 Health/Check 只返回健康状态，无需业务令牌。客户端继承调用上下文，并增加 15 秒上限，父调用更早的 deadline 优先。
+只通过生成的 Protobuf/gRPC 协议调用，内部服务凭据放在 metadata，不放在 payload。所有领域 RPC 均要求凭据，包括独立的 `OrderService` 方法和兼容 `DomainService.Execute`；标准 Health/Check 只返回健康状态，无需业务令牌。客户端继承调用上下文，并增加 15 秒上限，父调用更早的 deadline 优先。
+
+`Module.RegisterRPC` 可注册领域专属服务，`RPCActions` 将实际方法关联到业务动作标签；没有注册专属服务的现有模块继续使用 Execute。订单已迁移为15个显式方法，请求/响应在 `api/mall/v1/order.proto`，用例层使用独立Go请求类型，不依赖protobuf或万能Command。原 `Caller` 的订单调用会映射到生成的 `OrderServiceClient`，返回值只在JSON兼容边界转换；仅在实例明确缺少新服务/方法时回退Execute，业务错误、超时、凭证错误不会重放。平台统一保持凭证、Trace、错误归一化和健康检查。
+
+## 多副本运行
+
+部署环境每个进程只运行一个领域模块，各副本通过Consul独立注册。RPC调用方持续刷新passing地址，gRPC round_robin只向READY连接分流；无健康实例时返回不可用，显式静态目标才绕过Consul。停止或新增实例无需重启调用方。
+
+同一领域的副本共享该服务的MySQL schema和RabbitMQ持久化队列，消费采用竞争模式。平台Outbox发布和Inbox消费均通过数据库claim及租约协调，Outbox完成/失败回写还校验claim token，避免旧worker覆盖新租约。MQ仍是至少一次交付，领域处理必须继续使用业务/事件ID保证幂等。
+
+MySQL环境下，`WithServiceStartupLock` 通过专用数据库连接的命名锁串行化同schema、同领域的迁移及种子初始化；DDL不能用普通事务代替此锁。定时Tick使用单独的非阻塞锁，已有副本执行时其他副本跳过本次扫描，仍依赖领域行锁、状态前提及幂等防止重复业务副作用。连接退出释放锁，SQLite仅用于隔离开发和测试，不提供该跨进程协调保证。
 
 ## 事件、可靠性与恢复
 

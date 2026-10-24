@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/davveo/lumo/internal/platform"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -19,15 +20,15 @@ import (
 // An HTTP action must appear here. In particular, internal money/resource/state
 // commands cannot be accessed by choosing arbitrary service/action URL values.
 var publicActions = actionSet(map[string]string{
-	"iam": "login", "catalog": "list get", "search": "query", "recommendation": "list", "content": "list get", "inventory": "get", "campaign": "list evaluate", "group": "list get", "flash": "list", "interaction": "list", "logistics": "quote", "helpdesk": "faq",
+	"iam": "login", "catalog": "list get batch_get", "search": "query", "recommendation": "list", "content": "list get", "inventory": "get batch_get", "campaign": "list evaluate", "group": "list get", "flash": "list", "interaction": "list", "logistics": "quote", "helpdesk": "faq", "coupon": "templates templates_snapshot", "storefront": "bootstrap batch",
 })
 var userActions = actionSet(map[string]string{
-	"iam": "current refresh logout logout_all", "member": "get update", "address": "list get create update delete default", "cart": "list add set remove clear merge", "engagement": "list put delete clear", "media": "create get complete download", "interaction": "create like", "analytics": "record", "pricing": "quote get", "checkout": "quote submit cancel", "order": "list get complete", "payment": "create get", "refund": "get", "coupon": "list templates claim", "points": "get checkin", "group": "create", "flash": "request get", "fulfillment": "get", "logistics": "get", "aftersale": "list get create return cancel", "invoice": "list get reversals create", "notification": "list read read_all", "helpdesk": "list get create reply close",
+	"iam": "current refresh logout logout_all", "member": "get update", "address": "list get create update delete default", "cart": "list add set remove clear merge", "engagement": "list put delete clear", "media": "create get complete download", "interaction": "create like", "analytics": "record", "pricing": "quote get", "checkout": "quote submit cancel", "order": "list get complete", "payment": "create get submit_demo", "refund": "get", "coupon": "list claim", "points": "get checkin", "group": "create", "flash": "request get", "fulfillment": "get", "logistics": "get", "aftersale": "list get create return cancel", "invoice": "list get reversals create", "notification": "list read read_all", "helpdesk": "list get create reply close",
 })
 var adminActions = actionSet(map[string]string{
 	"catalog": "upsert", "content": "upsert", "inventory": "adjust", "interaction": "moderate answer", "fulfillment": "list dispatch cancel inspect_return", "logistics": "deliver", "aftersale": "approve reject inspect refund exchange", "payment": "list confirm_demo", "refund": "list confirm_demo", "invoice": "issue_demo adjust_demo", "reconciliation": "list run", "analytics": "list",
 })
-var reads = map[string]bool{"list": true, "get": true, "query": true, "evaluate": true, "templates": true, "current": true, "faq": true}
+var reads = map[string]bool{"list": true, "get": true, "batch_get": true, "query": true, "evaluate": true, "templates": true, "templates_snapshot": true, "current": true, "faq": true}
 
 func actionSet(m map[string]string) map[string]bool {
 	r := map[string]bool{}
@@ -42,6 +43,43 @@ func actionSet(m map[string]string) map[string]bool {
 type gateway struct {
 	rpc  platform.Caller
 	demo bool
+}
+
+type httpTraceContextKey struct{}
+
+// Keep references to the HTTP and gateway spans so one parsed API response is
+// recorded consistently at each boundary without buffering a ResponseWriter.
+type httpTraceCall struct{ contexts []context.Context }
+
+func beginHTTPTrace(ctx context.Context) context.Context {
+	call := &httpTraceCall{contexts: []context.Context{ctx}}
+	return context.WithValue(ctx, httpTraceContextKey{}, call)
+}
+
+func trackHTTPTrace(ctx context.Context) {
+	if call, ok := ctx.Value(httpTraceContextKey{}).(*httpTraceCall); ok {
+		call.contexts = append(call.contexts, ctx)
+	}
+}
+
+func traceHTTPRequest(ctx context.Context, value any) {
+	if call, ok := ctx.Value(httpTraceContextKey{}).(*httpTraceCall); ok {
+		for _, boundary := range call.contexts {
+			platform.TraceRequest(boundary, value)
+		}
+		return
+	}
+	platform.TraceRequest(ctx, value)
+}
+
+func traceHTTPResponse(ctx context.Context, value any, err error) {
+	if call, ok := ctx.Value(httpTraceContextKey{}).(*httpTraceCall); ok {
+		for _, boundary := range call.contexts {
+			platform.TraceResponse(boundary, value, err)
+		}
+		return
+	}
+	platform.TraceResponse(ctx, value, err)
 }
 
 // NewHandler serves same-origin storefront assets and the authenticated HTTP API.
@@ -84,6 +122,11 @@ func NewHandler(rpc platform.Caller, demo bool, frontendDir string) http.Handler
 		files.ServeHTTP(w, r)
 	})
 	return otelhttp.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api/v1/") || r.URL.Path == "/healthz" || r.URL.Path == "/readyz" {
+			r = r.WithContext(beginHTTPTrace(r.Context()))
+			traceHTTPRequest(r.Context(), map[string]any{"method": r.Method, "body": "not parsed"})
+		}
+		trace.SpanFromContext(r.Context()).SetAttributes(apiTraceAttributes(r.URL.Path)...)
 		tid := trace.SpanContextFromContext(r.Context()).TraceID().String()
 		w.Header().Set("X-Trace-ID", tid)
 		w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -95,6 +138,20 @@ func NewHandler(rpc platform.Caller, demo bool, frontendDir string) http.Handler
 		}
 		mux.ServeHTTP(w, r)
 	}), "gateway.http", otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string { return r.Method + " " + routeName(r.URL.Path) }))
+}
+
+// Only registered routes become business trace attributes. Never derive these
+// tags from request headers or payloads, or accept arbitrary URL values.
+func apiTraceAttributes(path string) []attribute.KeyValue {
+	if !strings.HasPrefix(path, "/api/v1/") {
+		return nil
+	}
+	key := strings.TrimPrefix(path, "/api/v1/")
+	if !publicActions[key] && !userActions[key] && !adminActions[key] {
+		return nil
+	}
+	service, action, _ := strings.Cut(key, "/")
+	return []attribute.KeyValue{attribute.String("lumo.target_service", service), attribute.String("lumo.action", action)}
 }
 
 func routeName(path string) string {
@@ -122,6 +179,10 @@ func (g *gateway) ready(w http.ResponseWriter, r *http.Request) {
 
 func (g *gateway) execute(w http.ResponseWriter, r *http.Request) {
 	ctx, sp := platform.Start(r.Context(), "gateway.transport.Dispatch")
+	attrs := apiTraceAttributes(r.URL.Path)
+	sp.SetAttributes(attrs...)
+	trackHTTPTrace(ctx)
+	platform.TraceRequest(ctx, map[string]any{"method": r.Method, "body": "not parsed"})
 	defer sp.End()
 	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/v1/"), "/")
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
@@ -154,10 +215,12 @@ func (g *gateway) execute(w http.ResponseWriter, r *http.Request) {
 		decoder.UseNumber()
 		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(&cmd); err != nil && err != io.EOF {
+			traceHTTPRequest(ctx, map[string]any{"body": "invalid JSON command"})
 			writeError(w, ctx, status.Error(codes.InvalidArgument, "body must be one JSON command"))
 			return
 		}
 		if err := decoder.Decode(&struct{}{}); err != io.EOF {
+			traceHTTPRequest(ctx, map[string]any{"body": "invalid JSON command"})
 			writeError(w, ctx, status.Error(codes.InvalidArgument, "body contains trailing data"))
 			return
 		}
@@ -171,6 +234,9 @@ func (g *gateway) execute(w http.ResponseWriter, r *http.Request) {
 	if v := r.Header.Get("Idempotency-Key"); v != "" {
 		cmd.IdempotencyKey = v
 	}
+	// Only trace parsed values. Browser identity claims have already been
+	// cleared, and the shared recorder redacts secrets without mutating cmd.
+	traceHTTPRequest(ctx, cmd)
 	token := ""
 	auth := r.Header.Get("Authorization")
 	if strings.HasPrefix(auth, "Bearer ") {
@@ -212,12 +278,20 @@ func (g *gateway) execute(w http.ResponseWriter, r *http.Request) {
 		cmd.Action = "validate"
 	}
 	ctx, sp2 := platform.Start(ctx, "gateway.usecase.Forward")
+	sp2.SetAttributes(attrs...)
+	trackHTTPTrace(ctx)
+	platform.TraceRequest(ctx, cmd)
 	defer sp2.End()
 	callCtx, cancel := context.WithTimeout(ctx, 25*time.Second)
 	defer cancel()
-	result, err := g.rpc.Call(callCtx, service, cmd)
+	var result platform.Result
+	var err error
+	if service == "storefront" {
+		result, err = g.storefront(callCtx, cmd)
+	} else {
+		result, err = g.rpc.Call(callCtx, service, cmd)
+	}
 	if err != nil {
-		sp2.RecordError(err)
 		writeError(w, ctx, err)
 		return
 	}
@@ -229,7 +303,18 @@ func (g *gateway) execute(w http.ResponseWriter, r *http.Request) {
 }
 
 func writeJSON(w http.ResponseWriter, ctx context.Context, code int, payload map[string]any) {
+	writeJSONResponse(w, ctx, code, payload, nil)
+}
+
+func writeJSONResponse(w http.ResponseWriter, ctx context.Context, code int, payload map[string]any, err error) {
 	payload["trace_id"] = trace.SpanContextFromContext(ctx).TraceID().String()
+	if err == nil {
+		traceHTTPResponse(ctx, payload, nil)
+	} else {
+		// Service errors may interpolate user input. Preserve the HTTP contract,
+		// while recording only the canonical error code in tracing payloads.
+		traceHTTPResponse(ctx, map[string]any{"error": map[string]any{"code": status.Code(err).String()}}, err)
+	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(payload)
@@ -260,5 +345,5 @@ func writeError(w http.ResponseWriter, ctx context.Context, err error) {
 	case codes.DeadlineExceeded:
 		code = 504
 	}
-	writeJSON(w, ctx, code, map[string]any{"error": map[string]any{"code": s.Code().String(), "message": s.Message()}})
+	writeJSONResponse(w, ctx, code, map[string]any{"error": map[string]any{"code": s.Code().String(), "message": s.Message()}}, status.Error(s.Code(), s.Code().String()))
 }

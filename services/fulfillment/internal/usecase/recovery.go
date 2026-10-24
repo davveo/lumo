@@ -6,9 +6,11 @@ import (
 	"github.com/davveo/lumo/internal/platform"
 )
 
-func (s *Service) Tick(ctx context.Context) error {
+func (s *Service) Tick(ctx context.Context) (traceErr error) {
 	ctx, span := platform.Start(ctx, "usecase.fulfillment.RecoverPending")
 	defer span.End()
+	platform.TraceRequest(ctx, struct{}{})
+	defer func() { platform.TraceResponse(ctx, nil, traceErr) }()
 	rows, err := s.Repo.Pending(ctx)
 	if err != nil {
 		return err

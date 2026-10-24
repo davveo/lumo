@@ -27,7 +27,7 @@ class SourceFingerprintTests(unittest.TestCase):
                      "api/mall/v1/domain.pb.go", "internal/platform/rpc.go", "internal/bootstrap/registry.go",
                      "internal/democatalog/catalog.go", "internal/httpgateway/gateway.go", "cmd/server/main.go",
                      "cmd/gateway/main.go", "web/dist/index.html", "web/dist/assets/item with spaces.jpg",
-                     "deploy/minio.Dockerfile"):
+                     "deploy/minio.Dockerfile", "deploy/observability.Dockerfile", "cmd/healthprobe/main.go"):
             self.write(path, "initial " + path + "\n")
 
     def write(self, name: str, contents: str) -> None:
@@ -44,7 +44,7 @@ class SourceFingerprintTests(unittest.TestCase):
         return value
 
     def all_digests(self) -> dict[str, str]:
-        return {name: self.digest(name) for name in ("order", "catalog", "inventory", "payment", "gateway", "--image", "--minio")}
+        return {name: self.digest(name) for name in ("order", "catalog", "inventory", "payment", "gateway", "--image", "--minio", "--observability")}
 
     def changed_by(self, name: str, contents: str) -> set[str]:
         before = self.all_digests()
@@ -111,6 +111,18 @@ class SourceFingerprintTests(unittest.TestCase):
 
     def test_minio_recipe_does_not_redeploy_application_containers(self) -> None:
         self.assertEqual(self.changed_by("deploy/minio.Dockerfile", "FROM alpine:3.22.1\n"), {"--minio"})
+
+    def test_observability_recipe_and_probe_only_affect_observability_images(self) -> None:
+        for name in ("deploy/observability.Dockerfile", "cmd/healthprobe/main.go"):
+            with self.subTest(name=name):
+                self.assertEqual(self.changed_by(name, "changed observability source\n"), {"--observability"})
+
+    def test_probe_tests_and_runtime_configuration_do_not_change_image_sources(self) -> None:
+        before = self.all_digests()
+        self.write("cmd/healthprobe/main_test.go", "package main\n")
+        self.write("deploy/jaeger.yaml", "runtime: jaeger\n")
+        self.write("deploy/otel-collector.yaml", "runtime: collector\n")
+        self.assertEqual(before, self.all_digests())
 
     def test_invalid_or_missing_scope_fails_without_a_digest(self) -> None:
         for arguments in ([], ["missing"], ["../order"], ["--unknown"], ["order", "payment"]):

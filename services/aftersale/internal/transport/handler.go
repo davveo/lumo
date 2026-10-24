@@ -10,9 +10,11 @@ import (
 
 type Handler struct{ Service *usecase.Service }
 
-func (h *Handler) Handle(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (h *Handler) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, s := platform.Start(ctx, "transport.aftersale."+c.Action)
 	defer s.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	if c.Data == nil {
 		c.Data = map[string]any{}
 	}

@@ -33,7 +33,7 @@
     if (!isLoggedIn()) return null;
     return { id: session.userId, username: session.username || session.userId, nickname: session.userId === 'admin' ? '商城管理员' : 'LUMO 生活家', role: session.role, expiresAt: session.expiresAt, remember: session.remember };
   }
-  const labels = { orders: '我的订单', checkout: '确认订单', payment: '订单支付', success: '订单结果', editor: '商城编辑', cart: '购物车', promotions: '活动好物' };
+  const labels = { orders: '我的订单', checkout: '确认订单', payment: '订单支付', success: '订单结果', editor: '商城编辑', cart: '购物车', promotions: '活动好物', coupons: '领券中心' };
   function model() { return { ...ui, loggedIn: isLoggedIn(), user: user(), returnLabel: labels[ui.returnTo.slice(2).split('/')[0]] || '个人中心', otp: {} }; }
   const redraw = () => { if (typeof renderKeepScroll === 'function') renderKeepScroll(); };
   const message = value => { if (typeof toast === 'function') toast(value); };

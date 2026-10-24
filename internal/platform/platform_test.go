@@ -12,6 +12,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -107,6 +108,23 @@ func TestRPCTraceReachesEveryLayerAndSQL(t *testing.T) {
 		}
 	}
 	for _, s := range spans {
+		attrs := rpcSpanAttributes(s)
+		if s.Name == "rpc.client.catalog.create" || s.Name == "transport.grpc.catalog.create" {
+			if attrs["lumo.target_service"] != "catalog" || attrs["lumo.action"] != "create" {
+				t.Errorf("business target missing from %s: %v", s.Name, attrs)
+			}
+		}
+		if s.Name == "mall.v1.DomainService/Execute" {
+			if attrs["lumo.target_service"] != "catalog" || attrs["rpc.service"] != "mall.v1.DomainService" {
+				t.Errorf("gRPC business target or protobuf service wrong: %v", attrs)
+			}
+			if s.SpanKind == trace.SpanKindClient && attrs["peer.service"] != "catalog" {
+				t.Errorf("client peer service missing: %v", attrs)
+			}
+			if s.SpanKind == trace.SpanKindServer && attrs["lumo.action"] != "create" {
+				t.Errorf("server action missing: %v", attrs)
+			}
+		}
 		if strings.HasPrefix(s.Name, "SQL INSERT") {
 			if s.Parent.SpanID().String() != repositoryID {
 				t.Errorf("SQL parent is not repository")
@@ -121,7 +139,7 @@ func TestRPCTraceReachesEveryLayerAndSQL(t *testing.T) {
 }
 
 func TestRPCAuthenticationAndPublicHealth(t *testing.T) {
-	tracing(t)
+	exporter, _ := tracing(t)
 	server, err := NewRPCServer("correct-token", Module{Name: "test", Handle: func(context.Context, Command) (Result, error) { return Result{"ok": true}, nil }})
 	if err != nil {
 		t.Fatal(err)
@@ -146,6 +164,22 @@ func TestRPCAuthenticationAndPublicHealth(t *testing.T) {
 	defer cancel()
 	if result, err := healthv1.NewHealthClient(conn).Check(ctx, &healthv1.HealthCheckRequest{}); err != nil || result.Status != healthv1.HealthCheckResponse_SERVING {
 		t.Fatalf("health failed: %v %v", result, err)
+	}
+	for _, span := range awaitRPCTraceSpans(t, exporter, 4) {
+		attrs := rpcSpanAttributes(span)
+		if span.SpanKind != trace.SpanKindServer {
+			continue
+		}
+		switch span.Name {
+		case "mall.v1.DomainService/Execute":
+			if attrs["lumo.target_service"] != "test" || attrs["lumo.action"] != "" {
+				t.Errorf("rejected RPC must identify target without accepting action: %v", attrs)
+			}
+		case "grpc.health.v1.Health/Check":
+			if attrs["lumo.target_service"] != "" || attrs["lumo.action"] != "" {
+				t.Errorf("health check mislabeled as business command: %v", attrs)
+			}
+		}
 	}
 }
 

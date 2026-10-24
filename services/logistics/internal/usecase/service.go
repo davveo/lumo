@@ -20,9 +20,11 @@ type Service struct {
 func (s *Service) Topics() []string                              { return nil }
 func (s *Service) OnEvent(context.Context, platform.Event) error { return nil }
 func privileged(c platform.Command) bool                         { return c.Role == "admin" || c.Role == "system" }
-func (s *Service) Handle(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "usecase.logistics."+c.Action)
 	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	switch c.Action {
 	case "quote":
 		return platform.Result{"shipping_cents": int64(0), "provider": "demo-free-shipping", "serviceable": true}, nil

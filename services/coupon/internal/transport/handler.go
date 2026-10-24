@@ -12,11 +12,13 @@ type Executor interface {
 }
 type Handler struct{ App Executor }
 
-func (h *Handler) Handle(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (h *Handler) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, s := platform.Start(ctx, "transport.coupon."+c.Action)
 	defer s.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	switch c.Action {
-	case "list", "templates", "claim", "reserve", "confirm", "cancel", "refund":
+	case "list", "templates", "templates_snapshot", "claim", "reserve", "confirm", "cancel", "refund":
 		return h.App.Execute(ctx, c)
 	default:
 		return nil, status.Error(codes.Unimplemented, "unsupported coupon action")

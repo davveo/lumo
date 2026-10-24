@@ -10,9 +10,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (s *Service) Execute(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "cart.usecase."+c.Action)
 	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	if e := platform.RequireUser(c); e != nil {
 		return nil, e
 	}
@@ -115,12 +117,14 @@ func (s *Service) add(ctx context.Context, c platform.Command) (platform.Result,
 	return view(v), nil
 }
 func (s *Service) seed(context.Context) error { return nil }
-func (s *Service) event(ctx context.Context, e platform.Event) error {
+func (s *Service) event(ctx context.Context, e platform.Event) (traceErr error) {
 	if e.Type != "OrderPaymentAccepted" || e.UserID == "" {
 		return nil
 	}
 	ctx, sp := platform.Start(ctx, "cart.usecase.ConsumePaidOrder")
 	defer sp.End()
+	platform.TraceRequest(ctx, e)
+	defer func() { platform.TraceResponse(ctx, nil, traceErr) }()
 	o, err := call(ctx, s.rpc, "order", platform.Command{Action: "get", ID: e.AggregateID, UserID: e.UserID, Role: "system"})
 	if err != nil {
 		return err

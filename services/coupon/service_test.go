@@ -71,7 +71,7 @@ func TestCouponOwnershipRefundPolicyAndTombstone(t *testing.T) {
 func TestCouponClaimIdempotencyAndTemplatePolicy(t *testing.T) {
 	db, m := setup(t, nil)
 	v := must(t, m, "templates", "", "", "", nil)
-	if len(v["items"].([]platform.Result)) != 1 {
+	if len(v["items"].([]platform.Result)) != 6 || platform.Int(v, "total") != 6 {
 		t.Fatal(v)
 	}
 	if _, e := invoke(m, "claim", "", "", "user", map[string]any{"template_id": "welcome-100"}); e == nil {

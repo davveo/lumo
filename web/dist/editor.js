@@ -88,10 +88,12 @@
       } else {
         // New catalog variants need their own stock row. Existing stock is never
         // reset when design, price, visibility or a backup is applied.
-        for (const v of result.variants || [{sku_id:result.id}]) {
-          try { await api('inventory','get',{id:v.sku_id}); }
-          catch(error) { if(error.status !== 404) throw error; await api('inventory','adjust',{id:v.sku_id,data:{on_hand:p.stock ?? 50}}); }
-        }
+        const ids=[...new Set((result.variants?.length?result.variants:[{sku_id:result.id}]).map(v=>v.sku_id).filter(Boolean))];
+        const batch=await api('inventory','batch_get',{data:{ids}});
+        if(!Array.isArray(batch.items)||!Array.isArray(batch.missing_ids))throw Error('库存查询结果不完整，请刷新后重试');
+        const existing=new Set(batch.items.map(row=>row.sku_id)),missing=new Set(batch.missing_ids);
+        if(ids.some(id=>existing.has(id)===missing.has(id)))throw Error('库存查询结果不完整，请刷新后重试');
+        for (const id of ids) if(missing.has(id)) await api('inventory','adjust',{id,data:{on_hand:p.stock ?? 50}});
       }
     } catch(error) { throw new Error('商品资料已保存，库存更新未完成：' + error.message); }
     return result;
@@ -103,7 +105,7 @@
       const parsed = JSON.parse(item.body); Object.assign(shop,normalizeSettings(parsed));
       studio.savedAt = item.created_at || '';
     } else Object.assign(shop,defaults);
-    if (window.LumoAuth?.user()?.role === 'admin') {
+    if (window.LumoAuth?.user()?.role === 'admin' && /^#\/editor(?:\/|$)/.test(location.hash)) {
       const catalog = await api('catalog','list',{data:{limit:100,include_disabled:true}});
       if(window.LumoCommerce?.normalizeProduct) products.splice(0,products.length,...(catalog.items || []).map(window.LumoCommerce.normalizeProduct));
     }
@@ -157,7 +159,7 @@
     if(!requireAdmin()) return;
     let stockRows=[];
     const targetProduct=products.find(p=>p.id===id);
-    try { if(targetProduct) stockRows=await Promise.all((targetProduct.variants?.length?targetProduct.variants:[{sku_id:targetProduct.skuId||id,color:targetProduct.colors[0],option:targetProduct.defaultOption}]).map(async v=>({...v,...await api('inventory','get',{id:v.sku_id})}))); }
+    try { if(targetProduct) { const variants=targetProduct.variants?.length?targetProduct.variants:[{sku_id:targetProduct.skuId||id,color:targetProduct.colors[0],option:targetProduct.defaultOption}];const batch=await api('inventory','batch_get',{data:{ids:[...new Set(variants.map(v=>v.sku_id))]}}),stocks=new Map((batch.items||[]).map(row=>[row.sku_id,row]));if(variants.some(v=>!stocks.has(v.sku_id)))throw Error('商品规格库存缺失，请刷新后重试');stockRows=variants.map(v=>({...v,...stocks.get(v.sku_id)}));} }
     catch(error){toast(error.message);return;}
 
     const original = products.find(p => p.id === id);

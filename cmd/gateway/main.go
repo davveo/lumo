@@ -16,7 +16,17 @@ import (
 	"time"
 )
 
-var serviceNames = []string{"iam", "member", "address", "catalog", "media", "interaction", "engagement", "search", "recommendation", "content", "analytics", "cart", "pricing", "checkout", "order", "campaign", "coupon", "points", "group", "flash", "inventory", "fulfillment", "logistics", "aftersale", "payment", "refund", "invoice", "reconciliation", "notification", "helpdesk"}
+var serviceNames = []string{
+	"iam", "member", "address", "catalog",
+	"media", "interaction", "engagement",
+	"search", "recommendation", "content",
+	"analytics", "cart", "pricing",
+	"checkout", "order", "campaign",
+	"coupon", "points", "group", "flash",
+	"inventory", "fulfillment", "logistics",
+	"aftersale", "payment", "refund", "invoice",
+	"reconciliation", "notification", "helpdesk",
+}
 
 func newHandler(rpc platform.Caller, demo bool) http.Handler {
 	return httpgateway.NewHandler(rpc, demo, env("FRONTEND_DIR", "web/dist"))
@@ -32,6 +42,9 @@ func targets() map[string]string {
 	out := map[string]string{}
 	for _, s := range serviceNames {
 		out[s] = s + ":9000"
+		if strings.TrimSpace(os.Getenv("CONSUL_HTTP_ADDR")) != "" {
+			out[s] = "consul:///" + s
+		}
 	}
 	if raw := os.Getenv("RPC_TARGETS"); raw != "" {
 		for _, entry := range strings.Split(raw, ",") {
@@ -82,25 +95,52 @@ func main() {
 		}
 		return
 	}
+	if err := run(); err != nil {
+		slog.Error("gateway stopped", "error", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	token := os.Getenv("INTERNAL_RPC_TOKEN")
 	if token == "" {
-		slog.Error("INTERNAL_RPC_TOKEN must be set")
-		os.Exit(1)
+		return fmt.Errorf("INTERNAL_RPC_TOKEN must be set")
 	}
 	shutdown, err := platform.InitTelemetry(ctx, "gateway", os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 	if err != nil {
-		slog.Error("telemetry init failed", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("telemetry init failed: %w", err)
 	}
 	defer func() {
 		c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_ = shutdown(c)
 	}()
-	rpc := platform.NewCaller(targets(), token)
-	srv := &http.Server{Addr: env("HTTP_ADDR", ":8080"), Handler: newHandler(rpc, env("DEMO_MODE", "false") == "true"), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second, BaseContext: func(net.Listener) context.Context { return ctx }}
+	consul, err := platform.ConsulFromEnv()
+	if err != nil {
+		return fmt.Errorf("Consul configuration: %w", err)
+	}
+	rpc := platform.NewCallerWithConsul(targets(), token, consul)
+	defer func() {
+		if closer, ok := rpc.(interface{ Close() error }); ok {
+			_ = closer.Close()
+		}
+	}()
+	unregister, err := platform.RegisterConsulService(ctx,
+		consul, "gateway", env("HTTP_ADDR", ":8080"), "http")
+	if err != nil {
+		return fmt.Errorf("Consul registration: %w", err)
+	}
+	defer unregister()
+	srv := &http.Server{
+		Addr:              env("HTTP_ADDR", ":8080"),
+		Handler:           newHandler(rpc, env("DEMO_MODE", "false") == "true"),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		BaseContext:       func(net.Listener) context.Context { return ctx }}
 	go func() {
 		<-ctx.Done()
 		c, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -109,8 +149,7 @@ func main() {
 	}()
 	slog.Info("gateway listening", "addr", srv.Addr)
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		slog.Error("gateway failed", "error", err)
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return err
 	}
+	return nil
 }

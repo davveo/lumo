@@ -27,9 +27,11 @@ func own(c platform.Command, p domain.Payment) error {
 	}
 	return nil
 }
-func (s *Service) Handle(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, sp := platform.Start(ctx, "payment.usecase."+c.Action)
 	defer sp.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	if err := platform.RequireUser(c); err != nil {
 		return nil, err
 	}
@@ -54,50 +56,13 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (platform.Resu
 		return platform.Result{"items": rows}, err
 	case "create":
 		return s.create(ctx, c)
+	case "submit_demo":
+		return s.confirmDemo(ctx, c)
 	case "confirm_demo":
 		if err := platform.RequireAdmin(c); err != nil {
 			return nil, err
 		}
-		if os.Getenv("DEMO_MODE") != "true" && os.Getenv("DEMO_MODE") != "1" {
-			return nil, status.Error(codes.FailedPrecondition, "demo payment adapter disabled")
-		}
-		// Every mutation takes the order gate before the payment row. The same
-		// lock order is used by create/close, avoiding opposite-order deadlocks.
-		before, err := s.r.Get(ctx, c.ID)
-		if err != nil {
-			return nil, err
-		}
-		var out platform.Result
-		err = s.r.Transaction(ctx, func(tx *repository.Tx) error {
-			g, err := tx.Gate(before.OrderID)
-			if err != nil {
-				return err
-			}
-			p, err := tx.Get(c.ID)
-			if err != nil {
-				return err
-			}
-			if p.Status == "SUCCEEDED" {
-				out = platform.Map(p)
-				return nil
-			}
-			if g.Frozen || p.Status != "PENDING" {
-				return status.Error(codes.FailedPrecondition, "payment is closed")
-			}
-			now := time.Now().UTC()
-			p.Status = "SUCCEEDED"
-			p.PaidAt = &now
-			p.Receipt = "demo-receipt-" + p.ID
-			if err = tx.Save(&p); err != nil {
-				return err
-			}
-			if err = tx.Emit(platform.Event{ID: "PaymentSucceeded-" + p.ID, Type: "PaymentSucceeded", AggregateID: p.ID, UserID: p.UserID, Data: map[string]any{"payment_id": p.ID, "order_id": p.OrderID, "amount_cents": p.Amount, "paid_at": now.Format(time.RFC3339Nano), "provider": "demo"}}); err != nil {
-				return err
-			}
-			out = platform.Map(p)
-			return nil
-		})
-		return out, err
+		return s.confirmDemo(ctx, c)
 	case "close":
 		if c.Role != "system" && c.Role != "admin" {
 			return nil, status.Error(codes.PermissionDenied, "internal payment close")
@@ -137,6 +102,90 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (platform.Resu
 		return nil, status.Error(codes.Unimplemented, "unsupported payment action")
 	}
 }
+
+// requirePayableOrder checks server-owned state and deadlines; browser data
+// never supplies the captured amount, owner, provider, or success timestamp.
+func requirePayableOrder(o platform.Result, now time.Time) error {
+	if platform.Text(o, "status") != "PENDING_PAYMENT" {
+		return status.Error(codes.FailedPrecondition, "order cannot be paid")
+	}
+	expires, err := time.Parse(time.RFC3339Nano, platform.Text(o, "expires_at"))
+	if err != nil || !now.Before(expires) {
+		return status.Error(codes.FailedPrecondition, "order payment deadline has expired")
+	}
+	return nil
+}
+
+func (s *Service) confirmDemo(ctx context.Context, c platform.Command) (platform.Result, error) {
+	if os.Getenv("DEMO_MODE") != "true" && os.Getenv("DEMO_MODE") != "1" {
+		return nil, status.Error(codes.FailedPrecondition, "demo payment adapter disabled")
+	}
+	before, err := s.r.Get(ctx, c.ID)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, status.Error(codes.NotFound, "payment not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err = own(c, before); err != nil {
+		return nil, err
+	}
+	var out platform.Result
+	// All payment mutations take the order gate before the payment row. The
+	// same lock order is used by create/close to serialize payment and cancel.
+	err = s.r.Transaction(ctx, func(tx *repository.Tx) error {
+		g, err := tx.Gate(before.OrderID)
+		if err != nil {
+			return err
+		}
+		p, err := tx.Get(c.ID)
+		if err != nil {
+			return err
+		}
+		if err = own(c, p); err != nil {
+			return err
+		}
+		if p.Provider != "demo" {
+			return status.Error(codes.FailedPrecondition, "payment is not a demo payment")
+		}
+		if p.Status == "SUCCEEDED" {
+			out = platform.Map(p)
+			return nil
+		}
+		if g.Frozen || p.Status != "PENDING" {
+			return status.Error(codes.FailedPrecondition, "payment is closed")
+		}
+		now := time.Now().UTC()
+		if c.Action == "submit_demo" {
+			// Hold the payment gate while observing order state so a concurrent
+			// close cannot freeze the payment between validation and capture.
+			o, err := s.rpc.Call(ctx, "order", platform.Command{Action: "get", ID: p.OrderID, UserID: c.UserID, Role: c.Role})
+			if err != nil {
+				return err
+			}
+			now = time.Now().UTC()
+			if err = requirePayableOrder(o, now); err != nil {
+				return err
+			}
+			if platform.Text(o, "user_id") != p.UserID || platform.Int(o, "payable_cents") != p.Amount {
+				return status.Error(codes.FailedPrecondition, "payment does not match order")
+			}
+		}
+		p.Status = "SUCCEEDED"
+		p.PaidAt = &now
+		p.Receipt = "demo-receipt-" + p.ID
+		if err = tx.Save(&p); err != nil {
+			return err
+		}
+		if err = tx.Emit(platform.Event{ID: "PaymentSucceeded-" + p.ID, Type: "PaymentSucceeded", AggregateID: p.ID, UserID: p.UserID, Data: map[string]any{"payment_id": p.ID, "order_id": p.OrderID, "amount_cents": p.Amount, "paid_at": now.Format(time.RFC3339Nano), "provider": "demo"}}); err != nil {
+			return err
+		}
+		out = platform.Map(p)
+		return nil
+	})
+	return out, err
+}
+
 func (s *Service) create(ctx context.Context, c platform.Command) (platform.Result, error) {
 	if os.Getenv("DEMO_MODE") != "true" && os.Getenv("DEMO_MODE") != "1" {
 		return nil, status.Error(codes.FailedPrecondition, "no production payment adapter configured")
@@ -145,8 +194,8 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 	if err != nil {
 		return nil, err
 	}
-	if platform.Text(o, "status") != "PENDING_PAYMENT" {
-		return nil, status.Error(codes.FailedPrecondition, "order cannot be paid")
+	if err := requirePayableOrder(o, time.Now().UTC()); err != nil {
+		return nil, err
 	}
 	var out platform.Result
 	err = s.r.Transaction(ctx, func(tx *repository.Tx) error {

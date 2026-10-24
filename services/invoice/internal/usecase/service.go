@@ -20,9 +20,11 @@ type Service struct {
 }
 
 func (s *Service) Topics() []string { return []string{"RefundSucceeded"} }
-func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
+func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error) {
 	ctx, span := platform.Start(ctx, "usecase.invoice.event."+e.Type)
 	defer span.End()
+	platform.TraceRequest(ctx, e)
+	defer func() { platform.TraceResponse(ctx, nil, traceErr) }()
 	if e.Type != "RefundSucceeded" {
 		return nil
 	}
@@ -37,9 +39,11 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
 	return s.Repo.ApplyRefund(ctx, orderID, id, e.UserID, platform.Int(e.Data, "amount_cents"), platform.Int(e.Data, "refunded_total_cents"))
 }
 func privileged(c platform.Command) bool { return c.Role == "admin" || c.Role == "system" }
-func (s *Service) Handle(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "usecase.invoice."+c.Action)
 	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	if err := platform.RequireUser(c); err != nil {
 		return nil, err
 	}

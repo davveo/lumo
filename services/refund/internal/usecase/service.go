@@ -27,9 +27,11 @@ func own(c platform.Command, r domain.Refund) error {
 	}
 	return nil
 }
-func (s *Service) Handle(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, sp := platform.Start(ctx, "refund.usecase."+c.Action)
 	defer sp.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	if err := platform.RequireUser(c); err != nil {
 		return nil, err
 	}

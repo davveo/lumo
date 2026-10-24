@@ -28,12 +28,14 @@ func owned(c platform.Command, r *domain.Record) error {
 	}
 	return nil
 }
-func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
+func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error) {
 	if e.Type != "OrderReadyToFulfill" {
 		return nil
 	}
 	ctx, span := platform.Start(ctx, "usecase.fulfillment.OrderReadyToFulfill")
 	defer span.End()
+	platform.TraceRequest(ctx, e)
+	defer func() { platform.TraceResponse(ctx, nil, traceErr) }()
 	id := platform.Text(e.Data, "order_id")
 	if id == "" {
 		id = e.AggregateID
@@ -48,9 +50,11 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
 	lines, _ := json.Marshal(e.Data["items"])
 	return s.Repo.Create(ctx, &domain.Record{ID: id, OrderID: id, UserID: e.UserID, ReservationID: reservation, Kind: "ORDER", Status: "READY", LinesJSON: string(lines)})
 }
-func (s *Service) Handle(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "usecase.fulfillment."+c.Action)
 	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	switch c.Action {
 	case "list":
 		if err := platform.RequireUser(c); err != nil {

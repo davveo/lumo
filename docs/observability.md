@@ -2,9 +2,32 @@
 
 ## 数据流
 
-服务内 OTel SDK → OTLP gRPC → `otel-collector:4317` → `jaeger:4317` → Jaeger 查询界面16686。Jaeger2.5使用Badger本地持久化，数据位于 `jaeger-data` 卷，仅适合本机/单节点开发验证；生产规模需评估独立持久存储、保留期限和容量。
+服务内 OTel SDK → OTLP gRPC → `otel-collector:4317` → `jaeger:4317` → Jaeger 查询界面16686。Jaeger固定使用2.12.0，Badger本地持久化，数据位于 `jaeger-data` 卷，仅适合本机/单节点开发验证；生产规模需评估独立持久存储、保留期限和容量。
 
 每个服务将 `service.name` 设为自己的名称。跨 RPC 由 `otelgrpc` StatsHandler 自动提取和注入 W3C TraceContext。服务每层显式建立子 span，GORM 回调建立实际 SQL span，并记录数据库操作结果。
+
+每个进程的资源属性 `service.instance.id` 与其Consul实例ID一致，结构化日志同时包含 `instance_id`。默认值由服务名、hostname和监听端口组成；显式设置 `CONSUL_SERVICE_ID` 时沿用该值。服务增加副本后，可按实例区分流量、错误及耗时，并对应到注册中心的具体地址；多个副本仍使用相同 `service.name`。
+
+HTTP 入口、网关分发/转发和 RPC 边界 span 还会记录 `lumo.target_service`（本次请求的目标领域服务，如 `catalog`）与 `lumo.action`（业务动作，如 `list`）；自动 gRPC client span 记录固定的 `lumo.target_service` 和 `peer.service`。在 Jaeger 中可按这些标签检索、区分共用 `DomainService.Execute` 的领域服务。`service.name` 仍表示产生 span 的进程，标准 `rpc.service` 仍表示 protobuf 服务，不用目标名称覆盖它们。
+
+HTTP 路由标签只取已开放路由，RPC 服务端以实际模块名为准，不采信浏览器或 RPC metadata 提供的服务名。入口目标与鉴权子调用分别记录：例如访问 `member/get` 时，HTTP span 的目标为 `member`，校验登录态的 RPC 目标为 `iam`。无效 RPC action 使用固定 `unknown`，不将未通过长度校验的原始值写入业务 span 名称或动作标签。请求及返回值使用下述独立脱敏属性。
+
+订单新调用的自动gRPC span为 `mall.v1.OrderService/GetOrder`、`mall.v1.OrderService/AcceptPayment` 等，标准 `rpc.service` 为 `mall.v1.OrderService`；`lumo.target_service=order` 和 `lumo.action=get/accept_payment` 继续保留。新旧接口共用鉴权与链路传播，旧实例缺少专属方法时可看到兼容Execute调用。
+
+## 调用入参与返回值
+
+在Jaeger展开HTTP、网关Dispatch/Forward、每一跳自动gRPC client/server、RPC transport、领域transport/usecase或MQ publish/consume的span，在Tags中查看：
+
+- `lumo.request`：当前调用的结构化入参JSON预览。
+- `lumo.response`：返回值JSON预览；失败时配合 `lumo.error.code` 查看规范错误码。
+- `lumo.request.redacted` / `lumo.response.redacted`：是否遮蔽了敏感字段。
+- `lumo.request.truncated` / `lumo.response.truncated`：是否因长度、数量、深度或不支持的值而省略内容。
+
+业务订单/SKU/支付/事件ID、金额、数量、状态及普通商品搜索条件保留。密码、令牌、内部凭据、会话、签名表单/URL、用户身份、手机号、邮箱、收货地址、收件人和用户自由正文等字段递归替换为 `[REDACTED]`；身份响应中与user_id等值的id也遮蔽，其他业务对象ID保留。JSON字节及嵌套JSON字符串先解析再脱敏，不以base64绕过；整数通过精确JSON数值处理，避免金额失真。原始error message不写入Trace属性、事件或自动gRPC状态描述，实际接口错误响应保持原样。
+
+每个方向最多8KiB，每个列表预览前10项、对象最多64字段、字符串最多512字节，递归深度和访问节点均有上限；超大、非法或循环内容使用省略标记。预览过长时 `lumo.request/response` 是带 `_truncated` 和 `preview` 的有效JSON对象。只处理采样中的span，所有清理在独立预览上进行，不修改请求、返回或持久化数据。
+
+记录来自已经解析的API命令、protobuf消息和业务返回值，不读取Authorization/Cookie等请求头，不缓存静态资源、媒体二进制或整个ResponseWriter。HTTP解析失败只记录固定状态说明。SQL继续展示参数化模板和返回行数，不展开绑定值或整行数据；底层HTTP/gRPC连接属性保持原有观测方式。更新后的新Trace才包含这些属性，旧Trace不会回填。
 
 | 层级 | 观察内容 | span 的父上下文 |
 | --- | --- | --- |
@@ -18,6 +41,12 @@
 | MQ producer / consumer | 事件类型、事件ID、重试、后续业务 | 事件创建时保存的TraceContext |
 
 `context.Context` 必须从 HTTP/RPC 入口一路传到 repository，再调用 `db.WithContext(ctx)`。新开 goroutine / worker 不能随意使用 `context.Background()` 代替业务上下文；生命周期独立的worker从持久化事件的上下文恢复调用关系。
+
+## 启动健康检查
+
+Jaeger镜像基于固定官方版本2.12.0，Collector沿用0.124.1；两个镜像只额外加入静态HTTP探针，不依赖镜像内的shell或curl。Jaeger检查13133端口的 `/status`，Collector检查13133端口的 `/`；应用启动依赖Collector健康，Collector启动依赖Jaeger健康。容器处于running但没有健康检查或检查未通过时，启动脚本返回失败，不输出成功。
+
+Jaeger沿用 `jaeger-data` 中已有Badger数据，升级不会删除卷。首次应用新版配置时只需更新Jaeger和Collector，业务容器无需因为探针源码变化而重建；探针及观测镜像配方使用单独的 `--observability` 源码指纹。
 
 ## 实际查一条链路
 
@@ -42,5 +71,5 @@ HTTP 返回 trace_id 不等于 trace 已成功持久化。Collector 或 Jaeger �
 
 - OpenTelemetry Go instrumentation: https://opentelemetry.io/docs/languages/go/instrumentation/
 - otelgrpc StatsHandler: https://pkg.go.dev/go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc
-- Jaeger Badger: https://www.jaegertracing.io/docs/2.5/storage/badger/
-- Jaeger2.5 Badger sample: https://github.com/jaegertracing/jaeger/blob/v2.5.0/cmd/jaeger/config-badger.yaml
+- Jaeger Badger: https://www.jaegertracing.io/docs/2.12/storage/badger/
+- Jaeger2.12 Badger sample: https://github.com/jaegertracing/jaeger/blob/v2.12.0/cmd/jaeger/config-badger.yaml

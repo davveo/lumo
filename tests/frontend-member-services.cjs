@@ -10,6 +10,7 @@ const context=vm.createContext({window:win,document:doc,location:{origin:base,ha
 win.LumoAuth={isLoggedIn:()=>!!authUser,user:()=>authUser,requireLogin:()=>!!authUser,ensureSession:()=>!!authUser};
 for(const file of ['api-client.js','member.js','member-views.js','services.js'])vm.runInContext(fs.readFileSync(source+'/'+file,'utf8'),context,{filename:file});
 const api=win.LumoAPI;
+api.enableReadBatching();
 async function click(kind,action,id='',value=''){const b={dataset:{[kind==='member'?'memberAction':'serviceAction']:action,id,value},disabled:false};const target={closest:s=>s===`[data-${kind}-action]`?b:null};for(const f of listeners.click||[])await f({target,preventDefault(){}});}
 async function submit(id,values,dataset={}){const target={id,values,dataset,querySelector:()=>({disabled:false})};for(const f of listeners.submit||[])await f({target,preventDefault(){}});}
 let count=0;function check(v,m){assert.ok(v,m);count++;}

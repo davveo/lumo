@@ -43,6 +43,7 @@ func view(r domain.Record) platform.Result {
 	v["status"] = r.Status
 	v["kind"] = r.Kind
 	v["created_at"] = r.CreatedAt.Format(time.RFC3339)
+	v["updated_at"] = r.UpdatedAt.Format(time.RFC3339)
 	return v
 }
 func own(c platform.Command, r domain.Record) error {

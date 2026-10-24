@@ -133,6 +133,19 @@ func TestHealthcheckURLUsesConfiguredListener(t *testing.T) {
 	}
 }
 
+func TestConsulTargetsPreserveExplicitRPCOverrides(t *testing.T) {
+	t.Setenv("CONSUL_HTTP_ADDR", "http://consul:8500")
+	t.Setenv("RPC_TARGETS", "catalog=127.0.0.1:9101")
+	got := targets()
+	if got["catalog"] != "127.0.0.1:9101" || got["order"] != "consul:///order" {
+		t.Fatal(got)
+	}
+	t.Setenv("CONSUL_HTTP_ADDR", "")
+	if got := targets(); got["order"] != "order:9000" {
+		t.Fatal(got)
+	}
+}
+
 func TestHealthcheckRequiresReadyResponse(t *testing.T) {
 	for _, code := range []int{http.StatusOK, http.StatusServiceUnavailable} {
 		t.Run(http.StatusText(code), func(t *testing.T) {

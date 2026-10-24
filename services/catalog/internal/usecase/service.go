@@ -9,12 +9,53 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"math"
+	"strings"
 )
 
-func (s *Service) Execute(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "catalog.usecase."+c.Action)
 	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	switch c.Action {
+	case "search_products":
+		return s.searchProducts(ctx, c)
+	case "recommendation_candidates":
+		return s.recommendationCandidates(ctx, c)
+	case "batch_get":
+		var input struct {
+			IDs []string `json:"ids"`
+		}
+		if err := platform.Decode(c.Data, &input); err != nil || len(input.IDs) == 0 || len(input.IDs) > 500 {
+			return nil, bad("ids must contain between 1 and 500 SKU IDs")
+		}
+		ids, seen := []string{}, map[string]bool{}
+		for _, id := range input.IDs {
+			if id == "" || len(id) > 150 || strings.TrimSpace(id) != id {
+				return nil, bad("invalid SKU ID")
+			}
+			if !seen[id] {
+				ids = append(ids, id)
+				seen[id] = true
+			}
+		}
+		rows, err := s.repo.GetMany(ctx, ids, c.Role == "admin")
+		if err != nil {
+			return nil, err
+		}
+		byID := map[string]domain.Record{}
+		for _, row := range rows {
+			byID[row.ID] = row
+		}
+		items, missing := []platform.Result{}, []string{}
+		for _, id := range ids {
+			if row, exists := byID[id]; exists {
+				items = append(items, view(row))
+			} else {
+				missing = append(missing, id)
+			}
+		}
+		return platform.Result{"items": items, "missing_ids": missing}, nil
 	case "list":
 		st := "ACTIVE"
 		if include, _ := c.Data["include_disabled"].(bool); c.Role == "admin" && include {

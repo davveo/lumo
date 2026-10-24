@@ -13,4 +13,8 @@
 
 本服务只写自己的数据库schema。跨服务通过 `platform.Caller` 访问 gRPC，禁止直接读写对方业务表。网关验证会话后填入调用主体，服务再次检查用户资源归属与管理员角色。
 
-当前 engine=catalog_rpc，真实调用 catalog 和 inventory，支持关键词/品牌/类目/可售筛选、价格排序与偏移分页；未伪称运行 Elasticsearch。
+当前 engine=catalog_rpc，真实调用 catalog 和 inventory，支持关键词/品牌/类目/可售筛选、价格/销量/新品排序与有界窗口内偏移分页；未伪称运行 Elasticsearch。
+
+关键词、类目、品牌及排序先下推至仅系统角色可调用的 `catalog/search_products`，在整个目录筛选后取最多100项，避免仅过滤默认第一页而遗漏老商品。随后一次 `inventory/batch_get` 查询默认SKU实时库存，沿用当前用户身份，保持缺失及失败时拒绝编造库存；`in_stock` 在此候选窗口内应用，`offset`/`limit` 也只在该窗口分页，`total` 为窗口中过滤后的数量，`candidate_limit:100` 明确查询上限。
+
+返回完整商品元数据，`items[].available` 和仅对应本次返回商品的 `inventory_items` 供前端一次水合商品与权威库存，不需要逐商品补查。目录筛选不接受外部画像或身份数据，不增加公开网关动作，不进行跨服务SQL或数据库迁移。

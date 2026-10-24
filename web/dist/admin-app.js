@@ -2,6 +2,7 @@
 (function () {
   'use strict';
   const API = window.LumoAPI, $ = s => document.querySelector(s);
+  API.enableReadBatching?.();
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const tokenKey = 'lumo-admin-session-v1';
   let token = sessionStorage.getItem(tokenKey) || '', tab = 'overview', rows = [], lastTrace = '', busy = false, epoch = 0;

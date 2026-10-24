@@ -2,7 +2,7 @@
 
 本表以 `internal/httpgateway/gateway.go` 当前白名单和 `web/dist`（原 Site `dist`）源代码为准。逐条阅读了通用调用包装、动态 action、后台 `specs` 与 `data-operation` 分发；不将字符串搜索命中等同于存在可操作页面。
 
-当前网关共有 **107 个 HTTP 动作**：公开 16、用户 67、管理员 24。本次快照：直接页面入口 106、通过业务代理间接接入 1、待补独立入口 0。
+下表记录业务入口及共享读取能力；路由全集以网关白名单为准。一次页面加载不必为每项逻辑读取发送单独 HTTP 请求：启动数据由 `storefront/bootstrap` 汇总，其他页面的并发只读请求由共享客户端合并为 `storefront/batch`。
 
 “待补独立入口”表示当前专用页面尚未调用此 HTTP 路由；`/debug` 可以按权限手动联调全部白名单动作，但本表不会因此把业务页面标记为已接入。`pricing.quote` 已由 `checkout.quote` 间接调用，属于同一报价能力的入口别名。
 
@@ -12,6 +12,8 @@
 
 | 服务 | 动作 | 网关身份 | 页面模块 / 业务入口 | 覆盖状态 |
 | --- | --- | --- | --- | --- |
+| storefront | `bootstrap` | 公开，可选登录 | `api-bootstrap.js / api-client.js`：固定启动计划及商品、秒杀、购物车 SKU 库存快照；登录时包含本人账户数据 | 共享接入 |
+| storefront | `batch` | 公开，子请求逐项鉴权 | `api-client.js`：会员、购物车、详情、活动、服务及管理页的并发只读请求合并 | 共享接入 |
 | iam | `login` | 公开 | `auth.js / auth-views.js`：登录、重验会话、更新会话、退出及退出全部设备；管理员页独立会话 | 已接入口 |
 | iam | `current` | 用户 | `auth.js / auth-views.js`：登录、重验会话、更新会话、退出及退出全部设备；管理员页独立会话 | 已接入口 |
 | iam | `refresh` | 用户 | `auth.js / auth-views.js`：登录、重验会话、更新会话、退出及退出全部设备；管理员页独立会话 | 已接入口 |
@@ -26,7 +28,8 @@
 | address | `delete` | 用户 | `member.js`：地址列表、添加/编辑、删除、默认地址；update/create 为动态动作 | 已接入口 |
 | address | `default` | 用户 | `member.js`：地址列表、添加/编辑、删除、默认地址；update/create 为动态动作 | 已接入口 |
 | catalog | `list` | 公开 | `app.js / editor.js`：启动加载商品；管理员读取包含停用商品的目录 | 已接入口 |
-| catalog | `get` | 公开 | `promotions.js`：秒杀指定 SKU 的真实价格/展示信息 | 已接入口 |
+| catalog | `get` | 公开 | `promotions.js`：秒杀指定 SKU 的真实价格/展示信息；启动快照优先，其他并发读取经共享批次合并 | 已接入口 |
+| catalog | `batch_get` | 公开 | 网关将 SKU 单项读取合并；pricing/checkout 服务内部一次批量读取商品与价格 | 共享接入 |
 | catalog | `upsert` | 管理员 | `editor.js`：编辑商品、上下架、应用备份 | 已接入口 |
 | media | `create` | 用户 | `services.js / editor.js`：工单附件、商品/首页图片登记、真实上传校验及授权下载 | 已接入口 |
 | media | `get` | 用户 | `services.js`：附件下载前查询元数据与上传状态 | 已接入口 |
@@ -41,8 +44,8 @@
 | engagement | `put` | 用户 | `app.js / member.js / discovery.js`：收藏、浏览记录、对比和搜索记录；动态 put/delete；clear 为清空搜索/对比 | 已接入口 |
 | engagement | `delete` | 用户 | `app.js / member.js / discovery.js`：收藏、浏览记录、对比和搜索记录；动态 put/delete；clear 为清空搜索/对比 | 已接入口 |
 | engagement | `clear` | 用户 | `app.js / member.js / discovery.js`：收藏、浏览记录、对比和搜索记录；动态 put/delete；clear 为清空搜索/对比 | 已接入口 |
-| search | `query` | 公开 | `discovery.js`：搜索、联想、分类/品牌/库存筛选 | 已接入口 |
-| recommendation | `list` | 公开 | `recommendations.js / product-extras.js`：支付结果推荐带 order_id；详情推荐读取后端目录策略 | 已接入口 |
+| search | `query` | 公开 | `categories.js / discovery.js`：完整目录按品类、关键词及品牌查询，响应带商品元数据与实时库存；普通首页空查询复用已加载商品 | 已接入口 |
+| recommendation | `list` | 公开/可选登录，购后需本人订单 | `recommendations.js / product-extras.js`：首页 home、详情 similar + product_id、购后 post_purchase + order_id；实际理由与库存复用 | 已接入口 |
 | content | `list` | 公开 | `services.js / editor.js`：帮助内容和商城页面配置 | 已接入口 |
 | content | `get` | 公开 | `services.js`：点击帮助问答时读取该条内容的当前标题和正文 | 已接入口 |
 | content | `upsert` | 管理员 | `editor.js / admin-app.js`：保存首页配置、发布帮助/公告 | 已接入口 |
@@ -62,11 +65,12 @@
 | order | `list` | 用户 | `app.js / member.js / admin-app.js`：订单列表、提交/支付后查询订单、用户确认收货 | 已接入口 |
 | order | `get` | 用户 | `app.js / member.js / admin-app.js`：订单列表、提交/支付后查询订单、用户确认收货 | 已接入口 |
 | order | `complete` | 用户 | `app.js / member.js / admin-app.js`：订单列表、提交/支付后查询订单、用户确认收货 | 已接入口 |
-| campaign | `list` | 公开 | `promotions.js`：活动配置、选择换购前资格裁决 | 已接入口 |
-| campaign | `evaluate` | 公开 | `promotions.js`：活动配置、选择换购前资格裁决 | 已接入口 |
-| coupon | `list` | 用户 | `member.js`：我的券、可领模板、实际领券 | 已接入口 |
-| coupon | `templates` | 用户 | `member.js`：我的券、可领模板、实际领券 | 已接入口 |
-| coupon | `claim` | 用户 | `member.js`：我的券、可领模板、实际领券 | 已接入口 |
+| campaign | `list` | 公开 | `promotions.js`：秒杀、拼团、换购、满减、折扣、多件优惠、直降活动配置 | 已接入口 |
+| campaign | `evaluate` | 公开 | `promotions.js`：换购及普通促销选择前资格裁决；实际金额使用服务端报价 | 已接入口 |
+| coupon | `list` | 用户 | `member.js`：我的优惠券及结算时选券 | 已接入口 |
+| coupon | `templates` | 公开，可选登录 | `coupon-center.js / member.js`：首页第1页100条好券预览、领取时间与本人资格状态 | 已接入口 |
+| coupon | `templates_snapshot` | 公开，可选登录 | `coupon-center.js`：完整领券中心按每页最多5000条读取模板元数据，全局筛选后分页展示 | 已接入口 |
+| coupon | `claim` | 用户 | `coupon-center.js / member.js`：领取后刷新领券状态和本人券包 | 已接入口 |
 | points | `get` | 用户 | `member.js`：余额/冻结/账本、每日签到 | 已接入口 |
 | points | `checkin` | 用户 | `member.js`：余额/冻结/账本、每日签到 | 已接入口 |
 | group | `list` | 公开 | `promotions.js`：服务端团列表、参团前查询、真实开团；人数只读后端 paid/occupied | 已接入口 |
@@ -75,7 +79,8 @@
 | flash | `list` | 公开 | `promotions.js`：读取已开放场次，不虚构明日活动 | 已接入口 |
 | flash | `request` | 用户 | `app.js`：提交异步秒杀请求、轮询成功订单或失败结果 | 已接入口 |
 | flash | `get` | 用户 | `app.js`：提交异步秒杀请求、轮询成功订单或失败结果 | 已接入口 |
-| inventory | `get` | 公开 | `inventory.js / promotions.js / editor.js / admin-app.js`：SKU 可售快照、秒杀指定 SKU、管理页查询 | 已接入口 |
+| inventory | `get` | 公开 | `inventory.js / promotions.js / admin-app.js`：SKU 可售快照、秒杀指定 SKU、管理页查询；启动快照或共享批次供给 | 已接入口 |
+| inventory | `batch_get` | 公开 | `inventory.js`、`editor.js` 及网关按 SKU 批量读取；search/recommendation 服务内部批量查询可售库存 | 共享接入 |
 | inventory | `adjust` | 管理员 | `editor.js / admin-app.js`：管理员调整实际在库量 | 已接入口 |
 | fulfillment | `get` | 用户 | `member.js`：物流详情同时读取履约状态 | 已接入口 |
 | fulfillment | `list` | 管理员 | `admin-app.js`：仓库任务列表、出库、拦截取消；动态 data-operation 分发 | 已接入口 |
@@ -97,6 +102,7 @@
 | aftersale | `exchange` | 管理员 | `admin-app.js`：后台审核/驳回、验收退货、发起退款、创建换货履约 | 已接入口 |
 | payment | `create` | 用户 | `app.js`：创建支付单、查询渠道及订单状态 | 已接入口 |
 | payment | `get` | 用户 | `app.js`：创建支付单、查询渠道及订单状态 | 已接入口 |
+| payment | `submit_demo` | 用户（仅演示模式、本人支付单） | `app.js`：模拟成功回执，等待后端订单接纳支付后展示结果 | 已接入口 |
 | payment | `list` | 管理员 | `admin-app.js`：支付确认列表、演示回执确认；不向顾客提供管理员权限 | 已接入口 |
 | payment | `confirm_demo` | 管理员 | `admin-app.js`：支付确认列表、演示回执确认；不向顾客提供管理员权限 | 已接入口 |
 | refund | `get` | 用户 | `member.js`：售后退款进度 | 已接入口 |
@@ -124,7 +130,7 @@
 
 | 动作 | 建议入口 | 说明 |
 | --- | --- | --- |
-| 无 | 所有白名单动作均有页面入口或已明确的业务代理 | pricing.quote 通过 checkout.quote 调用，不创建重复报价 |
+| 无 | 业务动作有页面入口或已明确的业务代理；聚合和批量读取由共享客户端/网关接入 | pricing.quote 通过 checkout.quote 调用，不创建重复报价；共享读取能力不额外创建操作按钮 |
 
 完整链路验证应继续区分“已接页面”、“HTTP 参数/权限验证通过”和“外部基础设施真实联调通过”。本表是源代码入口覆盖，不代替 MySQL/RabbitMQ/MinIO/Jaeger 及第三方支付渠道验证。
 
@@ -134,7 +140,7 @@
 
 | 服务 | 内部动作 | 调用方与目的 |
 | --- | --- | --- |
-| iam | `validate` | 网关每个受保护 HTTP 请求先校验 IAM；current 是受保护的 validate 别名 |
+| iam | `validate` | 网关每个受保护 HTTP 请求先校验 IAM；聚合请求验证外层会话后派生子请求身份，不接受嵌套身份；current 是受保护的 validate 别名 |
 | inventory | `reserve`, `confirm`, `cancel`, `dispatch`, `restock` | checkout 预占/确认/释放；fulfillment 出库与验收后回库 |
 | coupon | `reserve`, `confirm`, `cancel`, `refund` | checkout 资产预占/提交/取消；RefundSucceeded 后按规则返还 |
 | points | `reserve`, `confirm`, `cancel`, `refund`, `reward` | checkout 冻结与扣减；订单完成奖励；退款比例返还/奖励追回 |
@@ -149,11 +155,16 @@
 
 所有服务的 Migrate、Seed、Tick、OnEvent 是生命周期/消息入口，不是应直接接入前端的 HTTP 操作。其他服务没有额外业务动作时，前端通过上述 HTTP 路由访问。
 
-## 活动、库存和推荐异步审查
+## 全局读取、活动和库存异步审查
 
-- `inventory.refresh` 批量按 SKU 拉取快照；不按浏览器订单扣减库存，不因退款自行回库。规格切换由 `commerceDetailSKU` 去重，只有所选 SKU 变化才异步刷新并重绘。
+- `api-bootstrap.js` 先恢复会话，再用 `storefront/bootstrap` 获取公开数据及本人数据。公开结果和本人结果按 `auth` 作用域保存，只供本轮模块初始化消费；启动结束清除快照。不同接口地址、认证模式和会话不共享账户结果，账号切换及写入使旧读取作用域失效。
+- `api-client.js` 在所有启用共享客户端的页面合并同一轮并发只读请求，每批最多64项，同键请求共享 Promise。网关在执行前校验全部动作、参数和权限；拒绝写操作、嵌套聚合、IAM 和子请求身份字段。`pricing/quote`、`checkout/quote` 会保存报价，保持独立请求；支付、订单等实时状态查询也直接访问服务端。
+- 聚合 RPC 最多8个并发，保持外层 Trace、超时及取消信号；按输入顺序返回，单项业务错误不吞掉其他成功结果。`catalog/get` 和 `inventory/get` 去重后使用每组最多500个 SKU 的 SQL `IN` 查询，缺失项分别报错；search/recommendation 以及 pricing/checkout 的内部商品/库存读取也使用批量动作，避免服务内部逐 SKU 查询。
+- `inventory.refresh` 优先消费启动计划的商品默认/规格、秒杀和本人购物车 SKU 快照，后续并发读取走共享批次；不按浏览器订单扣减库存，不因退款自行回库。规格切换由 `commerceDetailSKU` 去重，只有所选 SKU 变化才异步刷新并重绘。
+- `discovery.refreshSearch` 仅普通首页空查询复用已加载商品；选择品类、细分词或搜索时，通过一次公开 `search/query` 在完整目录按类目、品牌、词及排序筛选，商品与库存随响应合并。20个大类的586个细分入口仅本地展开，不为每个入口调用列表；搜索结果池最多100件，旧结果淘汰并保护购物车及当前详情。聚焦搜索框展示连续红框的历史/发现面板，历史复用本人启动快照，发现词从实际商品提取并在本地轮换；不因聚焦或换一换读取接口。删除历史调用本人 `engagement/clear`，保留当前输入；会话、用户或接口变化后晚到的历史及建议均不能覆盖新状态。首页领券只读取 `templates` 第1页100条预览；完整中心才用 `templates_snapshot` 每页最多5000条读取全部筛选元数据，普通 `templates` 仍限制100条。
 - `promotions.refresh` 合并进行中的刷新；场次和团人数来自后端。活动倒计时只更新文本，没有每秒触发 render 或伪造成团。换购裁决返回时再次比较结算上下文，避免把旧请求结果应用到变更后的购物车。
-- `recommendations.render` 按账号和订单缓存，并复用同键进行中的 Promise；请求完成只重绘一次。失败显示重试，不在 render 中无限请求。当前后端是目录可售规则策略，文案没有声称机器学习个性化。
+- 首页推荐通过启动聚合复用已验证的行为、订单、商品及库存；默认综合排序按推荐顺序展示实际理由，用户指定的分类、关键词、品牌和排序优先。详情采用相似商品，购后带本人订单并排除已购商品。推荐状态按用户、令牌、网关和请求版本隔离，目录外推荐商品池有界；响应库存直接注入且不能覆盖后来发起的库存读取。当前为内容与行为混合排序，未声称已训练机器学习模型。
+- 固定兴趣栏复用本人足迹及收藏，启动聚合按前六个原始 SKU 预载目录外商品、父商品与默认库存，并复用既有商品/推荐快照；不重复读取行为列表，也不增加首页物理 HTTP。新增浏览及显式移除、清空足迹/收藏后刷新元数据；渲染与收起只投影已加载状态。右侧工具导航至既有业务入口，反馈使用现有 helpdesk 工单表单。
 - 待优化：单独停留拼团页面至到期时，倒计时归零但业务状态仍等待服务器刷新；进入页面时现已由 route hook 刷新；还可针对每个到期团只刷新一次。必须继续使用服务端状态，不在客户端推导退款或成团结果。
 - 邀请链接的真实组 ID 含冒号，编码后含 `%HH`。登录 returnTo 原先限制过严，已由认证模块维护者修正为允许安全站内 hash 编码路径。
 

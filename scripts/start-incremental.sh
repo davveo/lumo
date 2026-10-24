@@ -7,7 +7,8 @@ BUILD_IMAGES=$1
 WAIT_SECONDS=$2
 UPDATE_INFRA=$3
 REQUESTED_SERVICES=$4
-INFRA_SERVICES='mysql redis rabbitmq minio jaeger otel-collector'
+INFRA_SERVICES='consul mysql redis rabbitmq minio jaeger otel-collector'
+BUILDABLE_INFRA='minio jaeger otel-collector'
 APP_SERVICES=$(for directory in services/*; do [ ! -f "$directory/service.go" ] || basename "$directory"; done; printf '%s\n' gateway)
 RUN_DIR=''
 LOCK_DIR=''
@@ -62,17 +63,29 @@ MINIO_IMAGE=$(awk '$1=="minio"{print $2;exit}' "$RUN_DIR/images")
 config_hash() { awk -v name="$1" '$1==name{print $2;exit}' "$RUN_DIR/config.hashes"; }
 container() {
   SERVICE_ID=$(compose ps --all -q "$1") || fail "无法读取$1容器"
+  SERVICE_COUNT=0
   if [ -z "$SERVICE_ID" ]; then
     SERVICE_STATUS=missing; SERVICE_HEALTH=none; SERVICE_EXIT=0; SERVICE_IMAGE=none; SERVICE_CONFIG=none
     return
   fi
-  [ "$(printf '%s\n' "$SERVICE_ID" | wc -l | tr -d ' ')" -eq 1 ] || fail '增量启动当前仅支持每个服务一个容器'
-  row=$(docker inspect --format '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}} {{.State.ExitCode}} {{.Image}} {{with index .Config.Labels "com.docker.compose.config-hash"}}{{.}}{{else}}none{{end}}' "$SERVICE_ID") || fail "无法检查$1容器"
-  set -- $row
-  [ "$#" -eq 5 ] || fail 'Docker容器状态格式异常'
-  SERVICE_STATUS=$1; SERVICE_HEALTH=$2; SERVICE_EXIT=$3; SERVICE_IMAGE=$4; SERVICE_CONFIG=$5
+  SERVICE_STATUS=running; SERVICE_HEALTH=healthy; SERVICE_EXIT=0; SERVICE_IMAGE=''; SERVICE_CONFIG=''
+  for instance in $SERVICE_ID; do
+    row=$(docker inspect --format '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}} {{.State.ExitCode}} {{.Image}} {{with index .Config.Labels "com.docker.compose.config-hash"}}{{.}}{{else}}none{{end}}' "$instance") || fail '无法检查服务实例'
+    set -- $row
+    [ "$#" -eq 5 ] || fail 'Docker容器状态格式异常'
+    SERVICE_COUNT=$((SERVICE_COUNT + 1))
+    [ "$1" = running ] || SERVICE_STATUS=$1
+    [ "$2" = healthy ] || SERVICE_HEALTH=$2
+    [ "$3" = 0 ] || SERVICE_EXIT=$3
+    if [ "$SERVICE_COUNT" -eq 1 ]; then
+      SERVICE_IMAGE=$4; SERVICE_CONFIG=$5
+    else
+      [ "$SERVICE_IMAGE" = "$4" ] || SERVICE_IMAGE=mixed
+      [ "$SERVICE_CONFIG" = "$5" ] || SERVICE_CONFIG=mixed
+    fi
+  done
 }
-ready() { [ "$SERVICE_STATUS" = running ] && { [ "$SERVICE_HEALTH" = healthy ] || [ "$SERVICE_HEALTH" = none ]; }; }
+ready() { [ "$SERVICE_STATUS" = running ] && [ "$SERVICE_HEALTH" = healthy ]; }
 image_id() { docker image inspect "$1" --format '{{.Id}}' 2>/dev/null; }
 failure() {
   printf '\n启动/更新未完成，已保留容器和数据卷。未成功的更新不写入部署基线。\n' >&2
@@ -86,7 +99,7 @@ START_APPS=''
 SELECTED_APPS=$APP_SERVICES
 [ -z "$REQUESTED_SERVICES" ] || SELECTED_APPS=$REQUESTED_SERVICES
 for service in $SELECTED_APPS; do
-  source=$(fingerprint "$service") || fail "计算$service源码指纹失败"
+  source=$(fingerprint "$service") || fail "计算${service}源码指纹失败"
   cfg=$(config_hash "$service")
   [ -n "$cfg" ] || fail "Compose中缺少$service"
   printf '%s\n%s\n' "$source" "$cfg" > "$RUN_DIR/snapshot.$service"
@@ -97,6 +110,11 @@ for service in $SELECTED_APPS; do
     old_image=$(sed -n '3p' "$STATE_DIR/$service.state")
   fi
   container "$service"
+  # Explicit scale flags preserve the current replica count across incremental
+  # updates. Inspect every instance so an unhealthy or stale replica is visible.
+  replicas=$SERVICE_COUNT
+  [ "$replicas" -gt 0 ] || replicas=1
+  printf '%s %s\n' "$service" "$replicas" >> "$RUN_DIR/replicas"
   if [ -n "$REQUESTED_SERVICES" ] || [ "$source" != "$old_source" ] || [ "$cfg" != "$old_cfg" ] || [ "$SERVICE_IMAGE" != "$old_image" ] || [ "$SERVICE_CONFIG" != "$cfg" ]; then
     UPDATE_APPS="$UPDATE_APPS $service"
     [ -n "$old_source" ] || printf '%s：首次建立业务部署基线（中间件保持运行）。\n' "$service"
@@ -106,15 +124,28 @@ for service in $SELECTED_APPS; do
 done
 INFRA_START=''
 NEED_STORAGE_INIT=0
-NEED_MINIO_IMAGE=0
+INFRA_BUILD=''
+MISSING_INFRA_IMAGES=''
 for service in $INFRA_SERVICES; do
   container "$service"
   if [ "$UPDATE_INFRA" -eq 1 ] || [ "$SERVICE_STATUS" != running ]; then
     INFRA_START="$INFRA_START $service"
     case "$service" in minio|jaeger) NEED_STORAGE_INIT=1 ;; esac
-    if [ "$service" = minio ] && ! image_id "$MINIO_IMAGE" >/dev/null 2>&1; then NEED_MINIO_IMAGE=1; fi
-  elif [ "$SERVICE_HEALTH" != healthy ] && [ "$SERVICE_HEALTH" != none ]; then
-    fail "$service已运行但尚未健康；请检查日志，本次不会自动重启它"
+    case " $BUILDABLE_INFRA " in
+      *" $service "*)
+        service_image=$(awk -v name="$service" '$1==name{print $2;exit}' "$RUN_DIR/images")
+        [ -n "$service_image" ] || fail "无法读取${service}镜像名"
+        if ! image_id "$service_image" >/dev/null 2>&1; then
+          MISSING_INFRA_IMAGES="$MISSING_INFRA_IMAGES $service"
+          INFRA_BUILD="$INFRA_BUILD $service"
+        elif [ "$UPDATE_INFRA" -eq 1 ]; then
+          INFRA_BUILD="$INFRA_BUILD $service"
+        fi ;;
+    esac
+  elif [ "$SERVICE_HEALTH" = none ]; then
+    fail "${service}缺少健康检查；请应用新版Compose配置，本次不会自动重建它"
+  elif [ "$SERVICE_HEALTH" != healthy ]; then
+    fail "${service}已运行但尚未健康；请检查日志，本次不会自动重启它"
   elif [ "$SERVICE_CONFIG" != "$(config_hash "$service")" ]; then
     printf '%s配置已改变，本次保留正在运行的中间件；需要应用配置时执行sh start.sh --update-infra。\n' "$service"
   fi
@@ -145,10 +176,12 @@ if [ -n "$UPDATE_APPS" ]; then
 else
   printf '\n业务代码与配置未变，无需构建或重建运行中的业务容器。\n'
 fi
-# Do not even rebuild a running MinIO merely because an application changed.
-if [ "$UPDATE_INFRA" -eq 1 ] || [ "$NEED_MINIO_IMAGE" -eq 1 ]; then
+# Build only explicitly updated or missing local middleware images.
+if [ -n "$INFRA_BUILD" ]; then
   if [ "$BUILD_IMAGES" -eq 1 ]; then
-    compose build minio || failure
+    compose build $INFRA_BUILD || failure
+  elif [ -n "$MISSING_INFRA_IMAGES" ]; then
+    fail "缺少本地中间件镜像：${MISSING_INFRA_IMAGES}；请取消--no-build后重试"
   fi
 fi
 if [ "$NEED_STORAGE_INIT" -eq 1 ]; then
@@ -165,20 +198,31 @@ if [ -n "$INFRA_START" ]; then
 else
   printf '中间件均已运行，保持原容器，不执行重启。\n'
 fi
-for service in $INFRA_SERVICES; do container "$service"; ready || fail "$service未就绪；请检查日志"; done
+for service in $INFRA_SERVICES; do container "$service"; ready || fail "${service}未就绪；请检查日志"; done
+up_apps() {
+  app_mode=$1; shift
+  app_list=$*
+  set -- up -d --no-deps --no-build "$app_mode" --wait --wait-timeout "$WAIT_SECONDS"
+  for app in $app_list; do
+    replicas=$(awk -v name="$app" '$1==name{print $2;exit}' "$RUN_DIR/replicas")
+    [ -n "$replicas" ] || fail "缺少${app}副本快照"
+    set -- "$@" --scale "$app=$replicas"
+  done
+  compose "$@" $app_list
+}
 if [ -n "$UPDATE_APPS" ]; then
-  compose up -d --no-deps --no-build --force-recreate --wait --wait-timeout "$WAIT_SECONDS" $UPDATE_APPS || failure
+  up_apps --force-recreate $UPDATE_APPS || failure
 fi
 if [ -n "$START_APPS" ]; then
-  compose up -d --no-deps --no-build --no-recreate --wait --wait-timeout "$WAIT_SECONDS" $START_APPS || failure
+  up_apps --no-recreate $START_APPS || failure
 fi
 # Commit each known source/config/image atomically, only after health checks pass.
 for service in $SELECTED_APPS; do
   container "$service"
-  ready || fail "$service未就绪，未推进其部署记录"
+  ready || fail "${service}未就绪，未推进其部署记录"
   source=$(sed -n '1p' "$RUN_DIR/snapshot.$service")
   cfg=$(sed -n '2p' "$RUN_DIR/snapshot.$service")
-  [ "$SERVICE_CONFIG" = "$cfg" ] || fail "$service实际配置与本次快照不同，未推进部署记录"
+  [ "$SERVICE_CONFIG" = "$cfg" ] || fail "${service}实际配置与本次快照不同，未推进部署记录"
   if [ "$BUILD_IMAGES" -eq 0 ]; then
     known_source=UNBUILT
     if [ -f "$STATE_DIR/$service.state" ] && [ "$SERVICE_IMAGE" = "$(sed -n '3p' "$STATE_DIR/$service.state")" ]; then
@@ -190,6 +234,40 @@ for service in $SELECTED_APPS; do
   mv "$RUN_DIR/state.$service" "$STATE_DIR/$service.state"
 done
 printf '\n启动/增量更新完成。\n'
+# Read selected values from running containers; dotenv is never shell-executed,
+# and a changed but unapplied .env must not be presented as active credentials.
+login_env() { compose exec -T "$1" printenv "$2" 2>/dev/null || true; }
+IAM_DEMO_MODE=$(login_env iam DEMO_MODE)
+RABBIT_LOGIN_USER=$(login_env rabbitmq RABBITMQ_DEFAULT_USER)
+RABBIT_LOGIN_PASSWORD=$(login_env rabbitmq RABBITMQ_DEFAULT_PASS)
+MINIO_LOGIN_USER=$(login_env minio MINIO_ROOT_USER)
+MINIO_LOGIN_PASSWORD=$(login_env minio MINIO_ROOT_PASSWORD)
+show_login() {
+  case "$1" in
+    customer|admin|debug)
+      if [ "$IAM_DEMO_MODE" = true ]; then
+        case "$1" in customer|debug) printf '    初始演示顾客账号：demo  密码：Lumo@2026\n' ;; esac
+        case "$1" in admin|debug) printf '    初始演示管理员账号：admin  密码：Admin@2026\n' ;; esac
+      elif [ -n "$IAM_DEMO_MODE" ]; then
+        printf '    登录：使用已有账号（演示模式未启用）\n'
+      else
+        printf '    登录：无法读取演示模式，请查看iam服务配置\n'
+      fi ;;
+    none) printf '    登录：默认无需账号密码\n' ;;
+    rabbitmq)
+      if [ -n "$RABBIT_LOGIN_USER" ] && [ -n "$RABBIT_LOGIN_PASSWORD" ]; then
+        printf '    容器初始化账号：%s  密码：%s\n' "$RABBIT_LOGIN_USER" "$RABBIT_LOGIN_PASSWORD"
+      else
+        printf '    登录：无法读取RabbitMQ账号密码，请查看容器配置\n'
+      fi ;;
+    minio)
+      if [ -n "$MINIO_LOGIN_USER" ] && [ -n "$MINIO_LOGIN_PASSWORD" ]; then
+        printf '    账号（Access Key）：%s  密码（Secret Key）：%s\n' "$MINIO_LOGIN_USER" "$MINIO_LOGIN_PASSWORD"
+      else
+        printf '    登录：无法读取MinIO账号密码，请查看容器配置\n'
+      fi ;;
+  esac
+}
 printf '\n可访问地址（在Docker宿主机浏览器打开）：\n'
 show_address() {
   bindings=$(compose port "$2" "$3" 2>/dev/null || true)
@@ -201,13 +279,15 @@ show_address() {
     '[::]:'*) binding="[::1]:${binding##*:}" ;;
   esac
   printf '  %s：http://%s%s\n' "$1" "$binding" "$4"
+  show_login "$5"
 }
-show_address 商城前台 gateway 8080 ''
-show_address 商城管理端 gateway 8080 /admin.html
-show_address 接口联调台 gateway 8080 /debug
-show_address Jaeger jaeger 16686 ''
-show_address RabbitMQ rabbitmq 15672 ''
-show_address MinIO接口 minio 9000 ''
-show_address MinIO控制台 minio 9001 ''
+show_address 商城前台 gateway 8080 '' customer
+show_address 商城管理端 gateway 8080 /admin.html admin
+show_address 接口联调台 gateway 8080 /debug debug
+show_address Consul注册中心 consul 8500 /ui/ none
+show_address Jaeger jaeger 16686 '' none
+show_address RabbitMQ rabbitmq 15672 '' rabbitmq
+show_address MinIO接口 minio 9000 '' minio
+show_address MinIO控制台 minio 9001 '' minio
 printf '\n查看状态：docker compose ps\n停止并保留数据：sh scripts/down.sh\n'
 

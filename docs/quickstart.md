@@ -3,7 +3,7 @@
 1. 下载新版压缩包，在桌面创建空目录 `lumo-mall-0.2.2`，解压到其中。
 2. 启动 Docker Desktop，执行 `cd ~/Desktop/lumo-mall-0.2.2/lumo-backend && sh start.sh`。
    macOS 也可双击项目根目录的 `start.command`；旧命令 `sh scripts/up.sh` 和 `make up` 继续可用。
-3. 访问 http://localhost:8080 使用商城；管理端为 `/admin.html`，接口联调台为 `/debug`，Jaeger 位于 http://localhost:16686。
+3. 访问 http://localhost:8080 使用商城；管理端为 `/admin.html`，接口联调台为 `/debug`，Consul 注册中心位于 http://localhost:8500/ui/，Jaeger 位于 http://localhost:16686。
 4. 执行 `sh scripts/smoke.sh` 检查登录、商品读取、报价、下单和 trace_id。
 
 启动无需在电脑上安装 Go、protoc、MySQL、Redis 、RabbitMQ 或 MinIO；这些由镜像构建和 Compose 提供。`smoke.sh` 额外需要 curl 和 Python 3，只用于解析和打印冒烟请求，不是服务运行依赖。
@@ -38,7 +38,24 @@ GOWORK=off go build -buildvcs=false -o bin/gateway ./cmd/gateway
 
 单服务主要配置：`SERVICE_NAME`、`RPC_ADDR`、`DB_DRIVER`、`DB_DSN`、`REDIS_ADDR`、`AMQP_URL`、`OTEL_EXPORTER_OTLP_ENDPOINT`、`INTERNAL_RPC_TOKEN`、`DEMO_MODE`。Gateway 的 `RPC_TARGETS` 可使用 `catalog=127.0.0.1:9101,inventory=127.0.0.1:9102` 覆盖本机调试地址；业务服务使用 `CATALOG_RPC_ADDR`、`INVENTORY_RPC_ADDR` 等对应服务名环境变量。
 
+Compose 通过 `CONSUL_HTTP_ADDR=http://consul:8500` 启用注册与发现，`CONSUL_SERVICE_ADDRESS` 为 Consul 可达的服务地址；需要 ACL 时使用 `CONSUL_HTTP_TOKEN`。独立 Go 调试未设置 `CONSUL_HTTP_ADDR` 时使用静态地址；启用 Consul 后仍可用上述显式 RPC 地址覆盖单个服务。参见 [Consul配置与排查](consul.md)。
+
 Go 服务统一镜像通过 `SERVICE_NAME` 装配指定领域模块；每个 Compose 业务容器只启动一个服务。平台 worker 和领域定时任务跟随所属服务运行，不共享业务写库权限。
+
+## 单独扩展领域服务
+
+先运行 `sh start.sh`，再按需增加指定服务的副本。例如将搜索服务增加到3个实例：
+
+```sh
+docker compose up -d --no-deps --no-build --scale search=3 --wait search
+docker compose ps search
+curl --fail --silent 'http://localhost:8500/v1/health/service/search?passing=true'
+sh start.sh search
+```
+
+每个副本注册自己的容器地址和实例ID，其他服务无需修改目标地址或重启，gRPC客户端持续发现并分摊请求。再次执行启动脚本会检查全部已有副本并保留数量；恢复单实例可执行 `docker compose up -d --no-deps --no-build --scale search=1 --wait search`。Consul健康检查及客户端刷新存在短暂传播时间，刚启动的实例须先通过检查才会加入。
+
+此命令用于30个领域服务。默认网关占用一个固定宿主机端口；部署多个网关时需由外部负载均衡入口转发到各实例。生产环境的Consul、数据库和消息队列也应按各自容量与高可用要求部署；本机Compose仍使用单实例中间件。
 
 ## 排查启动失败
 

@@ -38,6 +38,27 @@ func (r *Repository) Get(ctx context.Context, id string) (platform.Result, error
 	}
 	return platform.Result{"sku_id": v.SKUID, "on_hand": v.OnHand, "reserved": v.Reserved, "allocated": v.Allocated, "available": v.OnHand - v.Reserved - v.Allocated}, nil
 }
+func (r *Repository) GetMany(ctx context.Context, ids []string) (platform.Result, error) {
+	ctx, span := platform.Start(ctx, "repository.inventory.GetMany")
+	defer span.End()
+	rows := []domain.Stock{}
+	if err := r.DB.WithContext(ctx).Where("sku_id IN ?", ids).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	byID := map[string]domain.Stock{}
+	for _, row := range rows {
+		byID[row.SKUID] = row
+	}
+	items, missing := []platform.Result{}, []string{}
+	for _, id := range ids {
+		if row, ok := byID[id]; ok {
+			items = append(items, platform.Result{"sku_id": row.SKUID, "on_hand": row.OnHand, "reserved": row.Reserved, "allocated": row.Allocated, "available": row.OnHand - row.Reserved - row.Allocated})
+		} else {
+			missing = append(missing, id)
+		}
+	}
+	return platform.Result{"items": items, "missing_ids": missing}, nil
+}
 func normalized(lines []domain.Line) ([]domain.Line, error) {
 	q := map[string]int64{}
 	for _, l := range lines {

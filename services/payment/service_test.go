@@ -8,6 +8,7 @@ import (
 	refundmod "github.com/davveo/lumo/services/refund"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"gorm.io/gorm"
 	"path/filepath"
 	"testing"
 	"time"
@@ -20,9 +21,15 @@ func (r router) Call(ctx context.Context, name string, c platform.Command) (plat
 }
 func setup(t *testing.T) router {
 	t.Helper()
+	r, _ := setupWithDB(t)
+	return r
+}
+func setupWithDB(t *testing.T) (router, map[string]*gorm.DB) {
+	t.Helper()
 	t.Setenv("DEMO_MODE", "true")
 	ctx := context.Background()
 	r := router{}
+	dbs := map[string]*gorm.DB{}
 	for name, factory := range map[string]func(platform.Dependencies) platform.Module{"order": ordermod.New, "payment": paymentmod.New, "refund": refundmod.New} {
 		db, err := platform.OpenDB(ctx, "sqlite", filepath.Join(t.TempDir(), name+".db"))
 		if err != nil {
@@ -38,8 +45,9 @@ func setup(t *testing.T) router {
 			t.Fatal(err)
 		}
 		r[name] = m
+		dbs[name] = db
 	}
-	return r
+	return r, dbs
 }
 func call(t *testing.T, r router, name, action, id, role string, data map[string]any) platform.Result {
 	t.Helper()

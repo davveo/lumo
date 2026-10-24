@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -26,8 +27,9 @@ func InitTelemetry(ctx context.Context, service, endpoint string) (func(context.
 		}
 		ratio = v
 	}
+	instanceID := telemetryInstanceID(service)
 	opts := []sdktrace.TracerProviderOption{
-		sdktrace.WithResource(resource.NewWithAttributes("", attribute.String("service.name", service), attribute.String("service.version", "0.1.0"), attribute.String("deployment.environment.name", os.Getenv("APP_ENV")))),
+		sdktrace.WithResource(resource.NewWithAttributes("", attribute.String("service.name", service), attribute.String("service.instance.id", instanceID), attribute.String("service.version", "0.1.0"), attribute.String("deployment.environment.name", os.Getenv("APP_ENV")))),
 		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(ratio))),
 	}
 	if endpoint != "" {
@@ -40,8 +42,34 @@ func InitTelemetry(ctx context.Context, service, endpoint string) (func(context.
 	tp := sdktrace.NewTracerProvider(opts...)
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(propagation.TraceContext{})
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})).With("service", service))
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})).With("service", service, "instance_id", instanceID))
 	return tp.Shutdown, nil
+}
+
+// Use the same identity as registration so traces and logs can distinguish
+// replicas and be matched directly to an instance in the Consul catalog.
+func telemetryInstanceID(service string) string {
+	listener := os.Getenv("RPC_ADDR")
+	if listener == "" {
+		listener = ":9000"
+	}
+	if service == "gateway" {
+		listener = os.Getenv("HTTP_ADDR")
+		if listener == "" {
+			listener = ":8080"
+		}
+	}
+	_, port, err := net.SplitHostPort(listener)
+	if err != nil {
+		port = "process-" + strconv.Itoa(os.Getpid())
+	} else if numericPort, parseErr := strconv.Atoi(port); parseErr == nil {
+		port = strconv.Itoa(numericPort)
+	}
+	hostname, err := os.Hostname()
+	if err != nil || hostname == "" {
+		hostname = ID("instance")
+	}
+	return consulInstanceID(service, hostname, port)
 }
 
 // Start adds a code-layer span. Pass the returned context to every RPC,

@@ -17,9 +17,11 @@ type Service struct {
 	Redis *redis.Client
 }
 
-func (s *Service) Execute(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, sp := platform.Start(ctx, "usecase.flash."+c.Action)
 	defer sp.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	if c.Action == "list" {
 		return s.Repo.List(ctx)
 	}
@@ -77,8 +79,10 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (platform.Res
 			return nil, status.Error(codes.InvalidArgument, "quote must contain the session SKU once")
 		}
 		if s.Redis != nil {
-			_, rs := platform.Start(ctx, "cache.flash.admission")
-			allowed, er := s.Redis.SetNX(ctx, "flash:admit:"+c.UserID, "1", time.Second).Result()
+			cacheCtx, rs := platform.Start(ctx, "cache.flash.admission")
+			platform.TraceRequest(cacheCtx, platform.Result{"operation": "SETNX", "user_id": c.UserID, "ttl_ms": 1000})
+			allowed, er := s.Redis.SetNX(cacheCtx, "flash:admit:"+c.UserID, "1", time.Second).Result()
+			platform.TraceResponse(cacheCtx, platform.Result{"allowed": allowed}, er)
 			rs.End()
 			if er != nil {
 				return nil, status.Error(codes.Unavailable, "admission cache unavailable")
@@ -91,12 +95,14 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (platform.Res
 	}
 	return nil, status.Error(codes.Unimplemented, "unsupported action")
 }
-func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
+func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error) {
 	if e.Type != "FlashOrderRequested" {
 		return nil
 	}
 	ctx, sp := platform.Start(ctx, "usecase.flash.ProcessRequest")
 	defer sp.End()
+	platform.TraceRequest(ctx, e)
+	defer func() { platform.TraceResponse(ctx, nil, traceErr) }()
 	v, er := s.Repo.Get(ctx, e.AggregateID)
 	if er != nil {
 		return er

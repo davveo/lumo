@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/davveo/lumo/internal/platform"
@@ -31,13 +32,31 @@ import (
 )
 
 type peers struct {
+	mu      sync.Mutex
 	modules map[string]platform.Module
 	calls   []string
 }
 
 func (p *peers) Call(ctx context.Context, name string, c platform.Command) (platform.Result, error) {
+	p.mu.Lock()
 	p.calls = append(p.calls, name+"."+c.Action)
+	p.mu.Unlock()
 	if name == "inventory" {
+		if c.Action == "batch_get" {
+			var input struct {
+				IDs []string `json:"ids"`
+			}
+			_ = platform.Decode(c.Data, &input)
+			items := []platform.Result{}
+			for _, id := range input.IDs {
+				available := int64(50)
+				if id == "sku-coffee" {
+					available = 0
+				}
+				items = append(items, platform.Result{"sku_id": id, "available": available})
+			}
+			return platform.Result{"items": items, "missing_ids": []string{}}, nil
+		}
 		a := int64(50)
 		if c.ID == "sku-coffee" {
 			a = 0

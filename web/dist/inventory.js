@@ -2,8 +2,11 @@
   'use strict';
   const snapshots = new Map();
   const errors = new Map();
+  // A late response from an older read must not replace newer stock or errors.
+  const readVersions = new Map();
+  let readClock = 0;
   let refreshPromise;
-  const LIMIT = 10;
+  const LIMIT = 10, BATCH_SIZE = 500;
   const find = value => { const id = typeof value === 'string' ? value : value?.id; return products.find(p => p.id === id || (p.skuId || p.sku_id) === id); };
   const sku = value => {
     if(value&&typeof value==='object'){
@@ -12,19 +15,59 @@
     }
     const p=find(value);return p?.skuId||p?.sku_id||p?.id||(typeof value==='string'?value:'');
   };
+  const beginRead = key => { const version=++readClock;readVersions.set(key,version);return version; };
+  const latestRead = (key,version) => readVersions.get(key)===version;
+  function prime(rows,ticket) {
+    if(!Number.isSafeInteger(ticket)||ticket<0||ticket>readClock||!Array.isArray(rows))return 0;
+    let loaded=0;
+    for(const row of rows.slice(0,BATCH_SIZE)){
+      const key=typeof row?.sku_id==='string'?row.sku_id:'';
+      if(!key||key.length>150||key.trim()!==key||!Number.isFinite(row.available)||row.available<0||(readVersions.get(key)||0)>ticket)continue;
+      beginRead(key);snapshots.set(key,{...row});errors.delete(key);loaded++;
+    }
+    return loaded;
+  }
   async function refreshOne(id) {
     const key=sku(id);
     if(!key)return;
-    try { const row=await window.LumoAPI.call('inventory','get',{id:key},{auth:false}); snapshots.set(key,row); errors.delete(key); return row; }
-    catch(e){errors.set(key,e);throw e;}
+    const version=beginRead(key);
+    try { const row=await window.LumoAPI.call('inventory','get',{id:key},{auth:false}); if(latestRead(key,version)){snapshots.set(key,row);errors.delete(key);} return row; }
+    catch(e){if(latestRead(key,version)){snapshots.delete(key);errors.set(key,e);}throw e;}
+  }
+  async function refreshBatch(keys) {
+    const versions=new Map(keys.map(key=>[key,beginRead(key)]));
+    let result;
+    try { result=await window.LumoAPI.call('inventory','batch_get',{data:{ids:keys}},{auth:false}); }
+    catch(error){
+      for(const key of keys)if(latestRead(key,versions.get(key))){snapshots.delete(key);errors.set(key,error);}
+      return {loaded:0,failed:keys.length,error};
+    }
+    const rows=new Map((Array.isArray(result?.items)?result.items:[]).filter(row=>row?.sku_id).map(row=>[String(row.sku_id),row]));
+    const missing=new Set(Array.isArray(result?.missing_ids)?result.missing_ids:[]);
+    let loaded=0,failed=0,error;
+    for(const key of keys){
+      if(rows.has(key)&&!missing.has(key)){
+        if(latestRead(key,versions.get(key))){snapshots.set(key,rows.get(key));errors.delete(key);}
+        loaded++;
+      }
+      else{
+        const unavailable=new Error('未找到商品库存，请刷新后重试');
+        unavailable.code='NotFound';
+        if(latestRead(key,versions.get(key))){snapshots.delete(key);errors.set(key,unavailable);}
+        failed++;error ||= unavailable;
+      }
+    }
+    return {loaded,failed,error};
   }
   async function refresh(ids) {
     const keys=Array.from(new Set((Array.isArray(ids)?ids:products).map(sku).filter(Boolean)));
     if(!ids&&refreshPromise)return refreshPromise;
-    const work=Promise.allSettled(keys.map(refreshOne)).then(results=>{
-      const failures=results.filter(r=>r.status==='rejected');
-      if(failures.length===results.length&&failures.length)throw failures[0].reason;
-      return {loaded:results.length-failures.length,failed:failures.length};
+    const batches=[];
+    for(let start=0;start<keys.length;start+=BATCH_SIZE)batches.push(refreshBatch(keys.slice(start,start+BATCH_SIZE)));
+    const work=Promise.all(batches).then(results=>{
+      const loaded=results.reduce((total,row)=>total+row.loaded,0),failed=keys.length-loaded;
+      if(!loaded&&failed)throw results.find(row=>row.error).error;
+      return {loaded,failed};
     });
     if(ids)return work;
     refreshPromise=work.finally(()=>{refreshPromise=null;});
@@ -65,5 +108,5 @@
     const label=p?.visible===false?'暂时下架':!row?(errors.has(key)?'库存暂不可用':'正在查询库存'):stockFor(value)>0?'可售 '+stockFor(value).toLocaleString('zh-CN')+' 件 · 每单限购10件':'暂时售罄';
     return '<span class="stock inventory-stock'+(row&&stockFor(value)<=0?' sold-out':'')+'">'+label+'</span>';
   }
-  window.LumoInventory={stockFor,validate,validateAdd,limit,badge,refresh,refreshOne,snapshot};
+  window.LumoInventory={stockFor,validate,validateAdd,limit,badge,refresh,refreshOne,snapshot,hydrationTicket:()=>readClock,prime};
 })();

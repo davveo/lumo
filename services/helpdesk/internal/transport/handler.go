@@ -11,9 +11,11 @@ import (
 type Handler struct{ s *usecase.Service }
 
 func New(s *usecase.Service) *Handler { return &Handler{s: s} }
-func (h *Handler) Handle(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (h *Handler) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "helpdesk.transport."+c.Action)
 	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	if c.Action == "" {
 		return nil, status.Error(codes.InvalidArgument, "action required")
 	}

@@ -8,9 +8,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (s *Service) Execute(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "interaction.usecase."+c.Action)
 	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	switch c.Action {
 	case "list":
 		kind := platform.Text(c.Data, "kind")

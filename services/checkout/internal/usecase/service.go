@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -29,9 +30,11 @@ func (s *Service) Topics() []string {
 func (s *Service) call(ctx context.Context, target, action, id, user string, data map[string]any) (platform.Result, error) {
 	return s.rpc.Call(ctx, target, platform.Command{Action: action, ID: id, UserID: user, Role: "system", Data: data})
 }
-func (s *Service) Handle(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, sp := platform.Start(ctx, "checkout.usecase."+c.Action)
 	defer sp.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	if err := platform.RequireUser(c); err != nil {
 		return nil, err
 	}
@@ -105,10 +108,34 @@ func (s *Service) submit(ctx context.Context, c platform.Command) (platform.Resu
 	if len(payload.Items) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "empty quote")
 	}
+	ids, seen := []string{}, map[string]bool{}
 	for _, item := range payload.Items {
-		p, e := s.rpc.Call(ctx, "catalog", platform.Command{Action: "get", ID: item.SKUID, UserID: c.UserID, Role: c.Role})
-		if e != nil {
-			return nil, e
+		if !seen[item.SKUID] {
+			seen[item.SKUID] = true
+			ids = append(ids, item.SKUID)
+		}
+	}
+	sort.Strings(ids)
+	catalog, err := s.rpc.Call(ctx, "catalog", platform.Command{Action: "batch_get", UserID: c.UserID, Role: c.Role, Data: map[string]any{"ids": ids}})
+	if err != nil {
+		return nil, err
+	}
+	var catalogRows struct {
+		Items []map[string]any `json:"items"`
+	}
+	if err = platform.Decode(catalog, &catalogRows); err != nil {
+		return nil, err
+	}
+	bySKU := map[string]map[string]any{}
+	for _, row := range catalogRows.Items {
+		bySKU[platform.Text(row, "id")] = row
+	}
+	var quantity int64
+	for _, item := range payload.Items {
+		quantity += item.Quantity
+		p, exists := bySKU[item.SKUID]
+		if !exists {
+			return nil, status.Error(codes.NotFound, "SKU unavailable")
 		}
 		active, _ := p["active"].(bool)
 		if !active || platform.Int(p, "price_cents") != item.Unit {
@@ -120,7 +147,7 @@ func (s *Service) submit(ctx context.Context, c platform.Command) (platform.Resu
 		if mainSubtotal == 0 {
 			mainSubtotal = platform.Int(q, "subtotal_cents")
 		}
-		current, e := s.rpc.Call(ctx, "campaign", platform.Command{Action: "evaluate", UserID: c.UserID, Role: c.Role, Data: map[string]any{"subtotal_cents": mainSubtotal, "addon_sku_id": q["addon_sku_id"], "activity_id": q["activity_id"]}})
+		current, e := s.rpc.Call(ctx, "campaign", platform.Command{Action: "evaluate", UserID: c.UserID, Role: c.Role, Data: map[string]any{"subtotal_cents": mainSubtotal, "quantity": quantity, "addon_sku_id": q["addon_sku_id"], "activity_id": q["activity_id"]}})
 		if e != nil {
 			return nil, e
 		}
@@ -453,9 +480,11 @@ func (s *Service) cancel(ctx context.Context, c platform.Command) (platform.Resu
 	}
 	return s.run(ctx, c.ID, user, "release")
 }
-func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
+func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error) {
 	ctx, sp := platform.Start(ctx, "checkout.usecase.OnEvent."+e.Type)
 	defer sp.End()
+	platform.TraceRequest(ctx, e)
+	defer func() { platform.TraceResponse(ctx, nil, traceErr) }()
 	if e.Type == "OrderPaymentAccepted" {
 		id := platform.Text(e.Data, "order_id")
 		if id == "" {

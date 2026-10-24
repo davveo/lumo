@@ -17,7 +17,15 @@ func (r *Repository) Migrate(ctx context.Context) error {
 	return r.DB.WithContext(ctx).AutoMigrate(&domain.Activity{}, &domain.Hold{})
 }
 func (r *Repository) Seed(ctx context.Context) error {
-	for _, a := range []domain.Activity{{ID: "addon-coffee", Kind: "addon", Threshold: 100000, Discount: 6000, Quota: 50, Active: true}, {ID: "flash-demo", Kind: "flash", Quota: 20, Active: true}, {ID: "group-demo", Kind: "group", Quota: 30, Active: true}} {
+	for _, a := range []domain.Activity{
+		{ID: "addon-coffee", Kind: "addon", Threshold: 100000, Discount: 6000, Quota: 50, Active: true},
+		{ID: "flash-demo", Kind: "flash", Quota: 20, Active: true},
+		{ID: "group-demo", Kind: "group", Quota: 30, Active: true},
+		{ID: "reduction-demo", Kind: "reduction", Name: "满额立减", Description: "商品满300元减30元，每人限享一次", Threshold: 30000, Discount: 3000, MinQuantity: 1, Quota: 1000, Active: true},
+		{ID: "discount-demo", Kind: "discount", Name: "折扣特惠", Description: "商品享9折，每人限享一次", PayRateBPS: 9000, MinQuantity: 1, Quota: 1000, Active: true},
+		{ID: "quantity-discount-demo", Kind: "quantity_discount", Name: "多件优惠", Description: "商品满2件享8.5折，每人限享一次", PayRateBPS: 8500, MinQuantity: 2, Quota: 1000, Active: true},
+		{ID: "direct-demo", Kind: "direct", Name: "限量直降", Description: "每单立减20元，商品金额须大于20元，每人限享一次", Discount: 2000, MinQuantity: 1, Quota: 1000, Active: true},
+	} {
 		if e := r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&a).Error; e != nil {
 			return e
 		}
@@ -35,10 +43,11 @@ func (r *Repository) Evaluate(ctx context.Context, c platform.Command) (platform
 	ctx, s := platform.Start(ctx, "repository.campaign.Evaluate")
 	defer s.End()
 	sub := platform.Int(c.Data, "subtotal_cents")
+	quantity := platform.Int(c.Data, "quantity")
 	addon := platform.Text(c.Data, "addon_sku_id")
 	id := platform.Text(c.Data, "activity_id")
-	if sub < 0 {
-		return nil, status.Error(codes.InvalidArgument, "negative subtotal")
+	if sub < 0 || quantity < 0 {
+		return nil, status.Error(codes.InvalidArgument, "negative subtotal or quantity")
 	}
 	if addon != "" {
 		if addon != "sku-coffee" && addon != "coffee" {
@@ -53,12 +62,55 @@ func (r *Repository) Evaluate(ctx context.Context, c platform.Command) (platform
 	if e := r.DB.WithContext(ctx).First(&a, "id = ?", id).Error; e != nil {
 		return nil, status.Error(codes.NotFound, "activity not found")
 	}
-	eligible := a.Active && sub >= a.Threshold && a.Held+a.Used < a.Quota
-	discount := int64(0)
-	if eligible {
-		discount = a.Discount
+	discount, reason, policy := evaluate(a, sub, quantity)
+	return platform.Result{"discount_cents": discount, "eligible": reason == "", "reason": reason, "activity_id": id, "kind": a.Kind, "name": a.Name, "threshold_cents": a.Threshold, "min_quantity": a.MinQuantity, "pay_rate_bps": a.PayRateBPS, "policy_version": policy, "refund_policy": "full_bundle_return"}, nil
+}
+
+func evaluate(a domain.Activity, subtotal, quantity int64) (int64, string, string) {
+	policy := "v1"
+	modern := a.Kind == "reduction" || a.Kind == "discount" || a.Kind == "quantity_discount" || a.Kind == "direct"
+	if modern {
+		policy = "v2"
 	}
-	return platform.Result{"discount_cents": discount, "eligible": eligible, "activity_id": id, "threshold_cents": a.Threshold, "policy_version": "v1", "refund_policy": "full_bundle_return"}, nil
+	reject := func(reason string) (int64, string, string) { return 0, reason, policy }
+	if !a.Active {
+		return reject("inactive")
+	}
+	if a.Threshold < 0 || a.Discount < 0 || a.Held < 0 || a.Used < 0 || a.Quota < 1 {
+		return reject("invalid_rule")
+	}
+	if subtotal < a.Threshold {
+		return reject("threshold_not_met")
+	}
+	if modern && (a.MinQuantity < 1 || quantity < a.MinQuantity) {
+		return reject("quantity_not_met")
+	}
+	if a.Held >= a.Quota || a.Used >= a.Quota-a.Held {
+		return reject("quota_exhausted")
+	}
+	discount := a.Discount
+	switch a.Kind {
+	case "flash", "group", "addon":
+		// Preserve the existing fixed-discount rules and their zero-discount
+		// flash/group quota contracts.
+	case "reduction", "direct":
+		if discount < 1 {
+			return reject("invalid_rule")
+		}
+	case "discount", "quantity_discount":
+		if a.PayRateBPS < 1 || a.PayRateBPS >= 10000 {
+			return reject("invalid_rule")
+		}
+		// Split the multiplication so public preview amounts cannot overflow.
+		off := int64(10000) - a.PayRateBPS
+		discount = subtotal/10000*off + subtotal%10000*off/10000
+	default:
+		return reject("invalid_rule")
+	}
+	if modern && (discount < 1 || discount >= subtotal) {
+		return reject("amount_too_small")
+	}
+	return discount, "", policy
 }
 func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.campaign.Reserve")

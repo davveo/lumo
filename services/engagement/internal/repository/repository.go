@@ -49,7 +49,7 @@ func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, of
 		offset = 0
 	}
 	var vs []domain.Record
-	err := q.Order("created_at DESC, id DESC").Limit(limit).Offset(offset).Find(&vs).Error
+	err := q.Order("updated_at DESC, created_at DESC, id DESC").Limit(limit).Offset(offset).Find(&vs).Error
 	return vs, err
 }
 func (r *Repository) Save(ctx context.Context, v *domain.Record, event *platform.Event) error {

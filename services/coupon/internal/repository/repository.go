@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/coupon/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -23,18 +24,57 @@ func (r *Repository) Seed(ctx context.Context) error {
 	if e := r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&domain.Coupon{ID: "coupon-demo-100", UserID: "demo", Amount: 10000, Minimum: 100000, State: "AVAILABLE", ExpiresAt: time.Now().AddDate(1, 0, 0)}).Error; e != nil {
 		return e
 	}
-	return r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&domain.Template{ID: "welcome-100", Name: "新人满1000减100", Amount: 10000, Minimum: 100000, ValidDays: 30, Remaining: 1000, Active: true, ExpiresAt: time.Now().AddDate(1, 0, 0)}).Error
+	now := time.Now()
+	open, upcoming := now.Add(-24*time.Hour), now.Add(24*time.Hour)
+	templates := []domain.Template{
+		{ID: "welcome-100", Name: "新人满1000减100", Amount: 10000, Minimum: 100000, ValidDays: 30, Remaining: 1000, Active: true, ExpiresAt: now.AddDate(1, 0, 0)},
+		{ID: "everyday-10", Name: "日常好物券", Amount: 1000, Minimum: 10000, ValidDays: 7, Remaining: 2000, Active: true, ExpiresAt: now.AddDate(1, 0, 0)},
+		{ID: "weekend-25", Name: "限时生活礼券", Amount: 2500, Minimum: 20000, ValidDays: 7, Remaining: 500, Active: true, StartsAt: &open, ExpiresAt: now.AddDate(0, 0, 7)},
+		{ID: "upcoming-50", Name: "明日惊喜券", Amount: 5000, Minimum: 50000, ValidDays: 7, Remaining: 300, Active: true, StartsAt: &upcoming, ExpiresAt: now.AddDate(0, 0, 7)},
+		{ID: "points-30", Name: "积分专享券", Amount: 3000, Minimum: 30000, ValidDays: 14, Remaining: 500, Active: true, MinPoints: 5000, ExpiresAt: now.AddDate(1, 0, 0)},
+		{ID: "member-80", Name: "成长会员礼券", Amount: 8000, Minimum: 60000, ValidDays: 30, Remaining: 300, Active: true, MinGrowth: 1000, ExpiresAt: now.AddDate(1, 0, 0)},
+	}
+	return r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&templates).Error
 }
 func (r *Repository) Templates(ctx context.Context, c platform.Command) (platform.Result, error) {
+	return r.templates(ctx, c, 100)
+}
+
+// TemplateSnapshot batches read-only centre metadata; ordinary template paging
+// keeps its smaller public page size for previews and existing consumers.
+func (r *Repository) TemplateSnapshot(ctx context.Context, c platform.Command) (platform.Result, error) {
+	return r.templates(ctx, c, 5000)
+}
+
+func (r *Repository) templates(ctx context.Context, c platform.Command, maxSize int64) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.coupon.Templates")
 	defer s.End()
+	page, size := platform.Int(c.Data, "page"), platform.Int(c.Data, "page_size")
+	if page == 0 {
+		page = 1
+	}
+	if size == 0 {
+		size = 100
+	}
+	if page < 1 || page > 1000000 || size < 1 || size > maxSize {
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("page must be positive and page_size must be between 1 and %d", maxSize))
+	}
+	var total int64
+	q := r.DB.WithContext(ctx).Model(&domain.Template{}).Where("active = ?", true)
+	if e := q.Count(&total).Error; e != nil {
+		return nil, e
+	}
 	var templates []domain.Template
-	if e := r.DB.WithContext(ctx).Where("active = ? AND expires_at > ?", true, time.Now()).Order("id").Limit(100).Find(&templates).Error; e != nil {
+	if e := q.Order("id").Offset(int((page - 1) * size)).Limit(int(size)).Find(&templates).Error; e != nil {
 		return nil, e
 	}
 	var claims []domain.Claim
-	if c.UserID != "" {
-		if e := r.DB.WithContext(ctx).Where("user_id = ?", c.UserID).Find(&claims).Error; e != nil {
+	if c.UserID != "" && len(templates) > 0 {
+		ids := make([]string, 0, len(templates))
+		for _, v := range templates {
+			ids = append(ids, v.ID)
+		}
+		if e := r.DB.WithContext(ctx).Where("user_id = ? AND template_id IN ?", c.UserID, ids).Find(&claims).Error; e != nil {
 			return nil, e
 		}
 	}
@@ -42,18 +82,36 @@ func (r *Repository) Templates(ctx context.Context, c platform.Command) (platfor
 	for _, v := range claims {
 		claimed[v.TemplateID] = v.CouponID
 	}
+	now := time.Now()
 	items := make([]platform.Result, 0, len(templates))
 	for _, v := range templates {
 		m := platform.Map(v)
 		m["claimed"] = claimed[v.ID] != ""
-		if id := claimed[v.ID]; id != "" {
-			m["coupon_id"] = id
+		state, reason := "available", "可立即领取"
+		switch {
+		case claimed[v.ID] != "":
+			m["coupon_id"] = claimed[v.ID]
+			state, reason = "claimed", "已领取，每人限领一张"
+		case !v.ExpiresAt.After(now):
+			state, reason = "ended", "领取已结束"
+		case v.StartsAt != nil && v.StartsAt.After(now):
+			state, reason = "upcoming", "尚未到领取时间"
+		case v.Remaining < 1:
+			state, reason = "exhausted", "优惠券已领完"
+		case !validTemplate(v):
+			state, reason = "unavailable", "优惠券暂不可领取"
+		case c.UserID == "":
+			state, reason = "login_required", "登录后领取"
 		}
+		m["claim_status"], m["claim_reason"], m["claimable"] = state, reason, state == "available"
 		items = append(items, m)
 	}
-	return platform.Result{"items": items}, nil
+	return platform.Result{"items": items, "total": total, "page": page, "page_size": size, "has_more": page*size < total, "server_time": now}, nil
 }
-func (r *Repository) Claim(ctx context.Context, c platform.Command) (platform.Result, error) {
+func validTemplate(v domain.Template) bool {
+	return v.ValidDays >= 1 && v.ValidDays <= 3660 && v.Amount > 0 && v.Minimum >= 0 && v.MinPoints >= 0 && v.MinGrowth >= 0 && (v.StartsAt == nil || v.StartsAt.Before(v.ExpiresAt))
+}
+func (r *Repository) Claim(ctx context.Context, c platform.Command, eligible func(context.Context, domain.Template) error) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.coupon.Claim")
 	defer s.End()
 	id := platform.Text(c.Data, "template_id")
@@ -85,13 +143,26 @@ func (r *Repository) Claim(ctx context.Context, c platform.Command) (platform.Re
 		}
 		now := time.Now()
 		if !template.Active || !template.ExpiresAt.After(now) {
-			return status.Error(codes.FailedPrecondition, "coupon template inactive or expired")
+			return status.Error(codes.FailedPrecondition, "优惠券已停用或领取已结束")
 		}
-		if template.ValidDays < 1 || template.ValidDays > 3660 || template.Amount <= 0 || template.Minimum < 0 {
-			return status.Error(codes.FailedPrecondition, "invalid coupon template policy")
+		if !validTemplate(template) {
+			return status.Error(codes.FailedPrecondition, "优惠券配置暂不可用")
+		}
+		if template.StartsAt != nil && template.StartsAt.After(now) {
+			return status.Error(codes.FailedPrecondition, "尚未到领取时间")
 		}
 		if template.Remaining < 1 {
-			return status.Error(codes.ResourceExhausted, "coupon quota exhausted")
+			return status.Error(codes.ResourceExhausted, "优惠券已领完")
+		}
+		if eligible != nil {
+			if er = eligible(ctx, template); er != nil {
+				return er
+			}
+		}
+		// Recheck the claim deadline after cross-service eligibility reads.
+		now = time.Now()
+		if !template.ExpiresAt.After(now) {
+			return status.Error(codes.FailedPrecondition, "领取已结束")
 		}
 		sum := sha256.Sum256([]byte(c.UserID + "\x00" + id))
 		claimID := "claim-" + hex.EncodeToString(sum[:])
@@ -108,7 +179,7 @@ func (r *Repository) Claim(ctx context.Context, c platform.Command) (platform.Re
 			return u.Error
 		}
 		if u.RowsAffected != 1 {
-			return status.Error(codes.ResourceExhausted, "coupon quota exhausted")
+			return status.Error(codes.ResourceExhausted, "优惠券已领完")
 		}
 		return nil
 	})
@@ -119,8 +190,16 @@ func (r *Repository) Claim(ctx context.Context, c platform.Command) (platform.Re
 func (r *Repository) List(ctx context.Context, c platform.Command) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.coupon.List")
 	defer s.End()
-	var v []domain.Coupon
-	e := r.DB.WithContext(ctx).Where("user_id = ?", c.UserID).Order("id").Find(&v).Error
+	// Resolve names together with owned coupons so wallet labels do not depend
+	// on a public template page or whether a template is still enabled.
+	v := []struct {
+		domain.Coupon
+		TemplateName string `json:"template_name"`
+	}{}
+	e := r.DB.WithContext(ctx).Model(&domain.Coupon{}).
+		Select("coupons.*, COALESCE(NULLIF(templates.name, ''), '品质生活优惠券') AS template_name").
+		Joins("LEFT JOIN templates ON templates.id = coupons.template_id").
+		Where("coupons.user_id = ?", c.UserID).Order("coupons.id").Scan(&v).Error
 	return platform.Result{"items": v}, e
 }
 func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.Result, error) {

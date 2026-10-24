@@ -33,6 +33,7 @@ type Outbox struct {
 	CarrierJSON   string `gorm:"type:text"`
 	State         string `gorm:"size:20;index"`
 	Attempts      int
+	ClaimToken    string    `gorm:"size:80"`
 	NextAttemptAt time.Time `gorm:"index"`
 	LeaseUntil    time.Time `gorm:"index"`
 	PublishedAt   *time.Time
@@ -174,7 +175,7 @@ drain:
 	}
 }
 
-func publishOne(ctx context.Context, db *gorm.DB, ch *confirmedPublisher, row Outbox) error {
+func publishOne(ctx context.Context, db *gorm.DB, ch *confirmedPublisher, row Outbox) (traceErr error) {
 	carrier := propagation.MapCarrier{}
 	if err := json.Unmarshal([]byte(row.CarrierJSON), &carrier); err != nil {
 		return err
@@ -182,14 +183,17 @@ func publishOne(ctx context.Context, db *gorm.DB, ch *confirmedPublisher, row Ou
 	parent := otel.GetTextMapPropagator().Extract(ctx, carrier)
 	ctx, span := otel.Tracer("lumo/mq").Start(parent, "mq.publish."+row.EventType, trace.WithSpanKind(trace.SpanKindProducer), trace.WithAttributes(attribute.String("messaging.system", "rabbitmq"), attribute.String("messaging.destination.name", eventExchange), attribute.String("messaging.message.id", row.ID), attribute.String("code.layer", "mq")))
 	defer span.End()
+	TraceRequest(ctx, json.RawMessage(row.PayloadJSON))
+	outcome := Result{"event_id": row.ID, "claimed": false, "broker_confirmed": false, "outbox_recorded": false}
+	defer func() { TraceResponse(ctx, outcome, traceErr) }()
 	// A lease prevents competing publisher workers from processing the same row.
 	// A lost confirm is intentionally retried with the same event ID.
-	now := time.Now().UTC()
-	claimed := db.WithContext(ctx).Model(&Outbox{}).Where("id = ? AND ((state = ? AND next_attempt_at <= ?) OR (state = ? AND lease_until < ?))", row.ID, "PENDING", now, "PUBLISHING", now).Updates(map[string]any{"state": "PUBLISHING", "lease_until": now.Add(time.Minute), "attempts": gorm.Expr("attempts + 1")})
-	if claimed.Error != nil {
-		return claimed.Error
+	claim, owned, err := claimOutbox(ctx, db, row.ID)
+	outcome["claimed"] = owned
+	if err != nil {
+		return err
 	}
-	if claimed.RowsAffected == 0 {
+	if !owned {
 		return nil
 	}
 	outgoing := propagation.MapCarrier{}
@@ -200,15 +204,36 @@ func publishOne(ctx context.Context, db *gorm.DB, ch *confirmedPublisher, row Ou
 	}
 	sendCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
 	defer cancel()
-	err := publishConfirmed(sendCtx, ch, eventExchange, row.EventType, []byte(row.PayloadJSON), headers, row.ID)
+	err = publishConfirmed(sendCtx, ch, eventExchange, row.EventType, []byte(row.PayloadJSON), headers, row.ID)
 	if err != nil {
 		span.SetStatus(codes.Error, "event publish failed")
 		backoff := time.Second * time.Duration(1<<min(row.Attempts, 5))
-		_ = db.WithContext(ctx).Model(&Outbox{}).Where("id = ? AND state = ?", row.ID, "PUBLISHING").Updates(map[string]any{"state": "PENDING", "next_attempt_at": time.Now().UTC().Add(backoff)}).Error
+		_ = markOutbox(ctx, db, row.ID, claim, map[string]any{"state": "PENDING", "next_attempt_at": time.Now().UTC().Add(backoff)})
 		return err
 	}
+	outcome["broker_confirmed"] = true
 	published := time.Now().UTC()
-	return db.WithContext(ctx).Model(&Outbox{}).Where("id = ? AND state = ?", row.ID, "PUBLISHING").Updates(map[string]any{"state": "PUBLISHED", "published_at": published}).Error
+	err = markOutbox(ctx, db, row.ID, claim, map[string]any{"state": "PUBLISHED", "published_at": published})
+	outcome["outbox_recorded"] = err == nil
+	return err
+}
+
+func claimOutbox(ctx context.Context, db *gorm.DB, eventID string) (string, bool, error) {
+	now := time.Now().UTC()
+	token := ID("publish")
+	claimed := db.WithContext(ctx).Model(&Outbox{}).Where("id = ? AND ((state = ? AND next_attempt_at <= ?) OR (state = ? AND lease_until < ?))", eventID, "PENDING", now, "PUBLISHING", now).Updates(map[string]any{"state": "PUBLISHING", "claim_token": token, "lease_until": now.Add(time.Minute), "attempts": gorm.Expr("attempts + 1")})
+	return token, claimed.RowsAffected == 1, claimed.Error
+}
+
+func markOutbox(ctx context.Context, db *gorm.DB, eventID, token string, values map[string]any) error {
+	changed := db.WithContext(ctx).Model(&Outbox{}).Where("id = ? AND state = ? AND claim_token = ?", eventID, "PUBLISHING", token).Updates(values)
+	if changed.Error != nil {
+		return changed.Error
+	}
+	if changed.RowsAffected != 1 {
+		return fmt.Errorf("outbox claim expired")
+	}
+	return nil
 }
 
 func outboxLoop(ctx context.Context, db *gorm.DB, ch *confirmedPublisher) error {
@@ -288,7 +313,7 @@ func markInbox(ctx context.Context, db *gorm.DB, row Inbox, state string) error 
 	return nil
 }
 
-func consumeOne(ctx context.Context, db *gorm.DB, retry *confirmedPublisher, m Module, d amqp.Delivery) error {
+func consumeOne(ctx context.Context, db *gorm.DB, retry *confirmedPublisher, m Module, d amqp.Delivery) (traceErr error) {
 	var event Event
 	decoder := json.NewDecoder(bytes.NewReader(d.Body))
 	decoder.UseNumber()
@@ -307,6 +332,9 @@ func consumeOne(ctx context.Context, db *gorm.DB, retry *confirmedPublisher, m M
 	parent := otel.GetTextMapPropagator().Extract(ctx, carrier)
 	ctx, span := otel.Tracer("lumo/mq").Start(parent, "mq.consume."+event.Type, trace.WithSpanKind(trace.SpanKindConsumer), trace.WithAttributes(attribute.String("messaging.system", "rabbitmq"), attribute.String("messaging.destination.name", queueName(m.Name)), attribute.String("messaging.message.id", event.ID), attribute.String("code.layer", "mq")))
 	defer span.End()
+	TraceRequest(ctx, event)
+	outcome := Result{"event_id": event.ID, "handled": false}
+	defer func() { TraceResponse(ctx, outcome, traceErr) }()
 	claim, owned, err := claimInbox(ctx, db, m.Name, event.ID)
 	span.SetAttributes(attribute.Int("messaging.message.retry_count", max(claim.Attempts-1, 0)), attribute.String("lumo.aggregate_id", event.AggregateID))
 	if err != nil {
@@ -314,21 +342,26 @@ func consumeOne(ctx context.Context, db *gorm.DB, retry *confirmedPublisher, m M
 	}
 	if !owned {
 		if claim.State == "DONE" {
+			outcome["disposition"] = "duplicate_ack"
 			return d.Ack(false)
 		}
 		if claim.State == "DEAD" {
+			outcome["disposition"] = "dead_letter"
 			return d.Reject(false)
 		}
+		outcome["disposition"] = "retry"
 		return retryDelivery(ctx, retry, m.Name, d)
 	}
 	handlerCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	err = m.OnEvent(handlerCtx, event)
+	outcome["handled"] = err == nil
 	if err == nil {
 		if err = markInbox(ctx, db, claim, "DONE"); err != nil {
 			return err
 		}
 		Log(ctx, slog.LevelInfo, "event consumed", "event_type", event.Type, "event_id", event.ID)
+		outcome["disposition"] = "ack"
 		return d.Ack(false)
 	}
 	span.SetStatus(codes.Error, "event handler failed")
@@ -337,11 +370,13 @@ func consumeOne(ctx context.Context, db *gorm.DB, retry *confirmedPublisher, m M
 		if err = markInbox(ctx, db, claim, "DEAD"); err != nil {
 			return err
 		}
+		outcome["disposition"] = "dead_letter"
 		return d.Reject(false)
 	}
 	if err = markInbox(ctx, db, claim, "RETRY"); err != nil {
 		return err
 	}
+	outcome["disposition"] = "retry"
 	return retryDelivery(ctx, retry, m.Name, d)
 }
 func retryDelivery(ctx context.Context, ch *confirmedPublisher, service string, d amqp.Delivery) error {
@@ -443,7 +478,7 @@ func RunEvents(ctx context.Context, db *gorm.DB, _ *redis.Client, url string, m 
 					return
 				case <-timer.C:
 					tickCtx, done := context.WithTimeout(workerCtx, 30*time.Second)
-					if err := m.Tick(tickCtx); err != nil {
+					if err := runServiceTick(tickCtx, db, m.Name, m.Tick); err != nil {
 						Log(tickCtx, slog.LevelWarn, "scheduled task will retry", "service", m.Name)
 					}
 					done()

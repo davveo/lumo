@@ -19,9 +19,11 @@ func New(r *repository.Repository, rpc platform.Caller) *Service { return &Servi
 func (s *Service) Topics() []string                              { return nil }
 func (s *Service) OnEvent(context.Context, platform.Event) error { return nil }
 func (s *Service) Tick(context.Context) error                    { return nil }
-func (s *Service) Handle(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, sp := platform.Start(ctx, "reconciliation.usecase."+c.Action)
 	defer sp.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	if err := platform.RequireAdmin(c); err != nil {
 		return nil, err
 	}

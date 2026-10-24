@@ -16,4 +16,4 @@ build:
 smoke:
 	sh scripts/smoke.sh
 proto:
-	protoc --go_out=. --go_opt=module=github.com/davveo/lumo --go-grpc_out=. --go-grpc_opt=module=github.com/davveo/lumo api/mall/v1/domain.proto
+	protoc --go_out=. --go_opt=module=github.com/davveo/lumo --go-grpc_out=. --go-grpc_opt=module=github.com/davveo/lumo api/mall/v1/*.proto

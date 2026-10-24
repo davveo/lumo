@@ -18,11 +18,27 @@ type catalog struct {
 func (c *catalog) Call(ctx context.Context, name string, in platform.Command) (platform.Result, error) {
 	switch name {
 	case "catalog":
-		price := c.price
-		if in.ID == "sku-coffee" {
-			price = 39900
+		row := func(id string) platform.Result {
+			price := c.price
+			if id == "sku-coffee" {
+				price = 39900
+			}
+			return platform.Result{"id": id, "name": "Demo SKU", "price_cents": price, "active": true}
 		}
-		return platform.Result{"id": in.ID, "name": "Demo SKU", "price_cents": price, "active": true}, nil
+		if in.Action == "batch_get" {
+			var data struct {
+				IDs []string `json:"ids"`
+			}
+			if err := platform.Decode(in.Data, &data); err != nil {
+				return nil, err
+			}
+			items := []platform.Result{}
+			for _, id := range data.IDs {
+				items = append(items, row(id))
+			}
+			return platform.Result{"items": items, "missing_ids": []string{}}, nil
+		}
+		return row(in.ID), nil
 	case "campaign":
 		c.lastThreshold = platform.Int(in.Data, "subtotal_cents")
 		eligible := platform.Text(in.Data, "addon_sku_id") == "" || c.lastThreshold >= 100000

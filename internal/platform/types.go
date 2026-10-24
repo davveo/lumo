@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/redis/go-redis/v9"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -36,9 +37,12 @@ type Module struct {
 	Migrate func(context.Context) error
 	Seed    func(context.Context) error
 	Handle  func(context.Context, Command) (Result, error)
-	Topics  []string
-	OnEvent func(context.Context, Event) error
-	Tick    func(context.Context) error
+	// RegisterRPC installs explicit domain RPCs alongside the legacy Execute adapter.
+	RegisterRPC func(grpc.ServiceRegistrar)
+	RPCActions  map[string]string
+	Topics      []string
+	OnEvent     func(context.Context, Event) error
+	Tick        func(context.Context) error
 }
 type Event struct {
 	ID          string         `json:"id"`

@@ -12,9 +12,11 @@ type Executor interface {
 }
 type Handler struct{ App Executor }
 
-func (h *Handler) Handle(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (h *Handler) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, s := platform.Start(ctx, "transport.group."+c.Action)
 	defer s.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	switch c.Action {
 	case "list", "create", "get", "reserve", "paid", "cancel", "expire":
 		return h.App.Execute(ctx, c)

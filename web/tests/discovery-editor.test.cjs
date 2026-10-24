@@ -18,6 +18,10 @@ function setup(file, backend){
    return {accepted:true};
  });
  await a.window.LumoDiscovery.refresh();
+ assert.equal(a.window.LumoDiscovery.filter(a.ctx.products).length,2);
+ assert.equal(a.calls.filter(c=>c.service==='search').length,0,'browse filters reuse the already loaded catalog');
+ a.ctx.ui.query='Apple';
+ await a.window.LumoDiscovery.refreshSearch();
  assert.equal(a.window.LumoDiscovery.filter(a.ctx.products).length,1);
  assert.match(a.window.LumoDiscovery.compareBar(),/Apple Phone/);
  a.window.LumoDiscovery.commitSearch('Apple buyer@example.test 13800138000');await tick();

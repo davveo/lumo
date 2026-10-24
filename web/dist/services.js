@@ -11,7 +11,7 @@
   const ui={messageFilter:'all',faqQuery:'',ticketFilter:'all',invoiceForm:null};
   const FAQS=[];
   let memory;
-  let version=0,inFlight=null;
+  let version=0,inFlight=null,faqBase='',faqAt=0;
   function emptyData(){return {messages:[],invoices:[],tickets:[],chat:[],checkout:{enabled:false,kind:'personal',title:'个人',taxId:''}};}
   memory=emptyData();
   const data=()=>memory;
@@ -25,15 +25,19 @@
   function mapInvoice(r){const issued=!!r.number;return {...r,backendStatus:r.status,orderId:r.order_id,taxId:r.tax_id||'',amount:Number(r.issued_cents||r.amount_cents||0)/100,refundedAmount:Number(r.refunded_cents||0)/100,status:issued?'issued':'processing',createdAt:at(r.created_at),issuedAt:issued?at(r.updated_at):null,number:r.number||'',items:orderById(r.order_id)?.items||[],provider:r.provider||'unsubmitted'};}
   function mapTicket(r){const first={role:'user',text:r.body||'',at:at(r.created_at)};return {id:r.id,orderId:r.order_id||'',type:'服务工单',title:r.title||'',detail:r.body||'',status:r.status==='CLOSED'?'closed':r.status==='REPLIED'?'answered':'open',at:at(r.created_at),updatedAt:at(r.updated_at||r.created_at),messages:[first,...(r.messages||[]).map(m=>({role:m.role==='admin'?'assistant':'user',text:m.body||'',at:at(m.created_at)}))]};}
   async function refresh(force=false){
-    if(inFlight){if(!force)return inFlight.promise;await inFlight.promise.catch(()=>{});}
+    if(inFlight){if(!force)return inFlight.promise;await inFlight.promise.catch(()=>{});if(inFlight)return inFlight.promise;}
     const v=version,id=owner(),pending={};inFlight=pending;
     pending.promise=(async()=>{
-      const faq=await call('content','list',{data:{kind:'faq',limit:100}},{auth:false});
-      if(v!==version)return;
-      FAQS.splice(0,FAQS.length,...(faq.items||[]).map(r=>({id:r.id,category:'购物帮助',title:r.title||'',answer:r.body||'',keywords:(r.title||'')+' '+(r.body||'')})));
-      if(!loggedIn()){memory=emptyData();return model();}
-      const [messages,invoices,tickets]=await Promise.all([call('notification','list',{data:{limit:100}}),call('invoice','list'),call('helpdesk','list',{data:{limit:100}})]);
-      if(v!==version||id!==owner()||!loggedIn())return model();
+      const base=window.LumoAPI.getBase?.()||'',needFaq=!faqAt||faqBase!==base||Date.now()-faqAt>60000,authenticated=loggedIn();
+      const [faq,messages,invoices,tickets]=await Promise.all([
+        needFaq?call('content','list',{data:{kind:'faq',limit:100}},{auth:false}):null,
+        authenticated?call('notification','list',{data:{limit:100}}):null,
+        authenticated?call('invoice','list'):null,
+        authenticated?call('helpdesk','list',{data:{limit:100}}):null
+      ]);
+      if(v!==version||id!==owner())return model();
+      if(faq){FAQS.splice(0,FAQS.length,...(faq.items||[]).map(r=>({id:r.id,category:'购物帮助',title:r.title||'',answer:r.body||'',keywords:(r.title||'')+' '+(r.body||'')})));faqBase=base;faqAt=Date.now();}
+      if(!authenticated||!loggedIn()){memory=emptyData();return model();}
       memory.messages=(messages.items||[]).map(mapMessage);
       memory.invoices=(invoices.items||[]).map(mapInvoice);
       memory.tickets=(tickets.items||[]).map(mapTicket);
@@ -49,7 +53,7 @@
   function notify(){return null;} // inbox notifications are projected by backend events
   function persist(){} // transient forms and FAQ lookup do not manufacture business records
   async function createInvoice(order,request){if(request?.enabled===false)return;const result=await call('invoice','create',{data:{order_id:order.id,kind:request.kind,title:request.title,tax_id:request.taxId||''}});await refresh(true);return result;}
-  async function onPaid(order){if(order?.invoiceRequest)await createInvoice(order,order.invoiceRequest);await refresh(true);}
+  async function onPaid(order){if(order?.invoiceRequest&&order.invoiceRequest.enabled!==false)return createInvoice(order,order.invoiceRequest);return refresh(true);}
   function sync(){}
   function unreadCount(){return loggedIn()?memory.messages.filter(m=>!m.read).length:0;}
   function afterRender(){document.querySelectorAll('[data-service-unread]').forEach(node=>{const count=unreadCount();node.textContent=count>99?'99+':count;node.hidden=!count;});}
@@ -99,8 +103,7 @@
     modal('电子发票详情',`<div class="svc-invoice-preview"><span class="svc-invoice-preview-label">${esc(row.provider)} · 票据记录</span><h3>电子普通发票</h3><dl><dt>状态</dt><dd>${esc(row.backendStatus)}</dd><dt>关联订单</dt><dd>${esc(row.orderId)}</dd><dt>抬头</dt><dd>${esc(row.title)}</dd><dt>原票金额</dt><dd>¥${money(row.amount)}</dd><dt>已退款金额</dt><dd>¥${money(row.refundedAmount)}</dd><dt>发票号码</dt><dd>${esc(row.number||'尚未开具')}</dd><dt>申请时间</dt><dd>${date(row.createdAt)}</dd></dl>${(reversal.items||[]).length?`<h4>红冲 / 调整记录</h4>${reversal.items.map(r=>`<p>原票 ${esc(r.original_number)} · ¥${money(Number(r.amount_cents||0)/100)} · ${esc(r.status)}</p>`).join('')}`:''}<p>退款后保留原票并记录调整。DEMO 渠道记录不具备税务或报销效力。</p></div><div class="svc-modal-actions">${button('导出票据记录','download-invoice',row.id)}</div>`);
   }
   async function downloadInvoice(id) {
-    const row = await call('invoice','get',{id});
-    const reversal = await call('invoice','reversals',{id});
+    const [row,reversal] = await Promise.all([call('invoice','get',{id}),call('invoice','reversals',{id})]);
     const url = URL.createObjectURL(new Blob([JSON.stringify({invoice:row,reversals:reversal.items||[]},null,2)],{type:'application/json'}));
     const link=document.createElement('a'); link.href=url; link.download='LUMO-invoice-record-'+row.order_id+'.json'; link.click(); setTimeout(()=>URL.revokeObjectURL(url),1000); toast('票据记录已导出');
   }
@@ -139,9 +142,9 @@
     const rows = data().tickets.filter(row => ui.ticketFilter === 'all' || row.status === ui.ticketFilter);
     return `<section class="mem-panel"><div class="svc-local-tabs" role="group" aria-label="工单状态">${[['all', '全部'], ['open', '待处理'], ['answered', '已回复'], ['closed', '已关闭']].map(([id, label]) => `<button data-service-action="ticket-filter" data-value="${id}" class="${ui.ticketFilter === id ? 'active' : ''}">${label}</button>`).join('')}</div>${rows.length ? `<div class="svc-ticket-list">${rows.map(row => `<article class="svc-ticket-card"><div class="svc-ticket-heading"><span class="svc-ticket-type">${icon('support')}</span><div><h2>${esc(row.title)}</h2><small>${esc(row.id)} · ${date(row.at)}</small></div><span class="mem-badge ${row.status === 'closed' ? 'svc-muted-badge' : row.status === 'answered' ? 'svc-success-badge' : ''}">${({ open: '待处理', answered: '已回复', closed: '已关闭' })[row.status]}</span></div><p class="svc-ticket-description">${esc(row.detail)}</p><div class="svc-ticket-meta"><span>${esc(row.type)}</span>${row.orderId ? `<span>关联订单 ${esc(row.orderId)}</span>` : '<span>购物咨询</span>'}</div><div class="svc-ticket-actions">${button('查看会话', 'view-ticket', row.id)}${row.status === 'closed' ? '' : `${button('补充说明', 'reply-ticket', row.id)}${button('关闭工单', 'close-ticket', row.id)}`}</div></article>`).join('')}</div>` : empty('暂时没有服务工单', '可以关联具体订单，记录需要帮助的问题。', 'support', button('创建工单', 'new-ticket', '', true))}</section>`;
   }
-  function newTicket() {
+  function newTicket(feedback=false) {
     const orders = window.LumoMember?.listOrders('all') || state.orders;
-    modal('创建服务工单', `<form id="service-ticket-form"><label class="field">问题类型<select name="type">${['订单问题', '配送问题', '商品问题', '发票问题', '售后问题', '其他问题'].map(label => `<option>${label}</option>`).join('')}</select></label><label class="field">关联订单（选填）<select name="orderId"><option value="">不关联订单</option>${orders.map(order => `<option value="${esc(order.id)}">${esc(order.id)} · ¥${money(order.totals.total)}</option>`).join('')}</select></label><label class="field">问题标题<input name="title" maxlength="80" required placeholder="一句话描述你的问题"></label><label class="field">详细说明<textarea name="detail" rows="4" maxlength="500" required placeholder="请描述问题和希望获得的帮助"></textarea></label><label class="field">问题附件（选填，最大 10 MiB）<input type="file" name="attachment" accept="image/png,image/jpeg,image/webp,application/pdf,text/plain"></label><div class="svc-modal-actions"><button class="outline" type="button" data-action="close-modal">取消</button><button class="primary" type="submit">提交工单</button></div></form>`);
+    modal(feedback?'意见反馈':'创建服务工单', `<form id="service-ticket-form"><label class="field">问题类型<select name="type">${['订单问题', '配送问题', '商品问题', '发票问题', '售后问题', '其他问题'].map(label => `<option${feedback&&label==='其他问题'?' selected':''}>${label}</option>`).join('')}</select></label><label class="field">关联订单（选填）<select name="orderId"><option value="">不关联订单</option>${orders.map(order => `<option value="${esc(order.id)}">${esc(order.id)} · ¥${money(order.totals.total)}</option>`).join('')}</select></label><label class="field">问题标题<input name="title" maxlength="80" required placeholder="一句话描述你的问题"></label><label class="field">详细说明<textarea name="detail" rows="4" maxlength="500" required placeholder="请描述问题和希望获得的帮助"></textarea></label><label class="field">问题附件（选填，最大 10 MiB）<input type="file" name="attachment" accept="image/png,image/jpeg,image/webp,application/pdf,text/plain"></label><div class="svc-modal-actions"><button class="outline" type="button" data-action="close-modal">取消</button><button class="primary" type="submit">提交工单</button></div></form>`);
   }
   async function viewTicket(id, reply=false) {
     const raw=await call('helpdesk','get',{id});const row=mapTicket(raw);
@@ -186,7 +189,7 @@
       if(action==='new-ticket')newTicket();
       if(action==='view-ticket'||action==='reply-ticket')await viewTicket(id,action==='reply-ticket');
       if(action==='close-ticket'){await call('helpdesk','close',{id});await refresh(true);redraw();toast('工单已关闭');}
-      if(action==='download-attachment'){await call('media','get',{id});const r=await call('media','download',{id});if(!r.download_url)throw Error('附件暂无可用下载地址');const a=document.createElement('a');a.href=r.download_url;a.rel='noopener';a.target='_blank';a.click();}
+      if(action==='download-attachment'){const r=await call('media','download',{id});if(!r.download_url)throw Error('附件暂无可用下载地址');const a=document.createElement('a');a.href=r.download_url;a.rel='noopener';a.target='_blank';a.click();}
     }catch(e){showError(e);}finally{b.disabled=false;}
   });
   document.addEventListener('submit',async event=>{
@@ -206,6 +209,6 @@
       if(form.id==='service-ticket-reply-form'){const body=cleanText(values.message,500);if(!body)throw Error('请填写补充说明');form.dataset.requestKey ||=uid('reply');await call('helpdesk','reply',{id:form.dataset.id,idempotency_key:form.dataset.requestKey,data:{body}});await refresh(true);closeModal();redraw();toast('补充说明已发送');}
     }catch(e){showError(e);}finally{if(submit)submit.disabled=false;}
   });
-  window.LumoServices={content,refresh,reset,unreadCount,afterRender,onPaid,notify,checkoutFields,checkoutMeta,validateCheckout,orderActions,openInvoice,supportLauncher,invoiceEligible,invoiceState,model,uploadAttachment};
+  window.LumoServices={openFeedback:()=>{if(guard('#/member/support'))newTicket(true);},content,refresh,reset,unreadCount,afterRender,onPaid,notify,checkoutFields,checkoutMeta,validateCheckout,orderActions,openInvoice,supportLauncher,invoiceEligible,invoiceState,model,uploadAttachment};
   window.addEventListener('lumo:logout',reset);
 })();

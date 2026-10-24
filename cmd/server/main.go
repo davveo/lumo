@@ -90,50 +90,58 @@ func run() error {
 		cache = redis.NewClient(&redis.Options{Addr: addr, Password: os.Getenv("REDIS_PASSWORD"), DialTimeout: 3 * time.Second})
 		defer cache.Close()
 	}
+	consul, err := platform.ConsulFromEnv()
+	if err != nil {
+		return fmt.Errorf("Consul configuration: %w", err)
+	}
 	targets := map[string]string{}
 	for _, n := range bootstrap.Names {
-		targets[n] = env(strings.ToUpper(n)+"_RPC_ADDR", n+":9000")
+		fallback := n + ":9000"
+		if consul != nil {
+			fallback = "consul:///" + n
+		}
+		targets[n] = env(strings.ToUpper(n)+"_RPC_ADDR", fallback)
 	}
-	rpc := platform.NewCaller(targets, os.Getenv("INTERNAL_RPC_TOKEN"))
+	rpc := platform.NewCallerWithConsul(targets, os.Getenv("INTERNAL_RPC_TOKEN"), consul)
+	defer func() {
+		if closer, ok := rpc.(interface{ Close() error }); ok {
+			_ = closer.Close()
+		}
+	}()
 	module, err := bootstrap.New(name, platform.Dependencies{DB: db, RPC: rpc, Redis: cache})
 	if err != nil {
 		return err
 	}
-	if err = platform.MigratePlatform(ctx, db); err != nil {
-		return fmt.Errorf("platform migration: %w", err)
-	}
-	if module.Migrate != nil {
-		if err = module.Migrate(ctx); err != nil {
-			return fmt.Errorf("%s migration: %w", name, err)
+	if err = platform.WithServiceStartupLock(ctx, db, name, func(startupCtx context.Context) error {
+		if err := platform.MigratePlatform(startupCtx, db); err != nil {
+			return fmt.Errorf("platform migration: %w", err)
 		}
-	}
-	if env("DEMO_MODE", "false") == "true" && module.Seed != nil {
-		if err = module.Seed(ctx); err != nil {
-			return fmt.Errorf("%s demo seed: %w", name, err)
+		if module.Migrate != nil {
+			if err := module.Migrate(startupCtx); err != nil {
+				return fmt.Errorf("%s migration: %w", name, err)
+			}
 		}
+		if env("DEMO_MODE", "false") == "true" && module.Seed != nil {
+			if err := module.Seed(startupCtx); err != nil {
+				return fmt.Errorf("%s demo seed: %w", name, err)
+			}
+		}
+		return nil
+	}); err != nil {
+		return fmt.Errorf("%s startup initialization: %w", name, err)
 	}
+	unregister, err := platform.RegisterConsulService(ctx, consul, name, env("RPC_ADDR", ":9000"), "grpc")
+	if err != nil {
+		return fmt.Errorf("Consul registration: %w", err)
+	}
+	defer unregister()
 	failures := make(chan error, 2)
-	if url := os.Getenv("AMQP_URL"); url != "" {
-		go func() { failures <- platform.RunEvents(ctx, db, cache, url, module) }()
-	} else {
+	if os.Getenv("AMQP_URL") == "" {
 		slog.Warn("AMQP_URL empty: durable outbox is retained; no external message transport running")
 	}
-	if os.Getenv("AMQP_URL") == "" && module.Tick != nil {
-		go func() {
-			ticker := time.NewTicker(time.Second)
-			defer ticker.Stop()
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case <-ticker.C:
-					if e := module.Tick(ctx); e != nil {
-						slog.Warn("scheduled task retry", "service", name, "error", e)
-					}
-				}
-			}
-		}()
-	}
+	// RunEvents also coordinates scheduled work when AMQP is disabled; all
+	// replicas share the same cross-process task exclusion in either mode.
+	go func() { failures <- platform.RunEvents(ctx, db, cache, os.Getenv("AMQP_URL"), module) }()
 	go func() {
 		failures <- platform.ServeRPC(ctx, env("RPC_ADDR", ":9000"), os.Getenv("INTERNAL_RPC_TOKEN"), module)
 	}()

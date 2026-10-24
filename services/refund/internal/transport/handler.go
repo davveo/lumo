@@ -9,9 +9,11 @@ import (
 )
 
 func New(u *usecase.Service) func(context.Context, platform.Command) (platform.Result, error) {
-	return func(ctx context.Context, c platform.Command) (platform.Result, error) {
+	return func(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 		ctx, s := platform.Start(ctx, "refund.transport."+c.Action)
 		defer s.End()
+		platform.TraceRequest(ctx, c)
+		defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 		if len(c.ID) > 160 || len(c.IdempotencyKey) > 160 {
 			return nil, status.Error(codes.InvalidArgument, "identifier too long")
 		}
