@@ -1,22 +1,23 @@
 package transport
 
 import (
-	"context"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/refund/internal/usecase"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func New(u *usecase.Service) func(context.Context, platform.Command) (platform.Result, error) {
-	return func(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
-		ctx, s := platform.Start(ctx, "refund.transport."+c.Action)
-		defer s.End()
-		platform.TraceRequest(ctx, c)
-		defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+func New(s *usecase.Service) *platform.MethodHandler {
+	return platform.NewMethodHandler(constants.ServiceRefund, map[string]platform.Operation{
+		constants.ActionGet:         s.Get,
+		constants.ActionList:        s.List,
+		constants.ActionCreate:      s.Create,
+		constants.ActionConfirmDemo: s.ConfirmDemo,
+	}, func(c platform.Request) error {
 		if len(c.ID) > 160 || len(c.IdempotencyKey) > 160 {
-			return nil, status.Error(codes.InvalidArgument, "identifier too long")
+			return status.Error(codes.InvalidArgument, "identifier too long")
 		}
-		return u.Handle(ctx, c)
-	}
+		return nil
+	})
 }

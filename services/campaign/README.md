@@ -26,3 +26,11 @@
 所有内部写动作要求 system/admin 角色，并核对原资源用户归属。网关不公开内部动作。服务只写自己的 schema，所有 GORM 操作使用请求 context，SQL 模板追踪由共享平台统一记录。
 
 测试：`go test ./services/campaign/...`。
+
+## 独立业务方法
+
+`list` → `List`；`evaluate` → `Evaluate`；`reserve` → `Reserve`；`confirm` → `Confirm`；`cancel` → `Cancel`。
+
+业务方法统一接收不含动作字段的 `platform.Request`，权限与资源归属校验在方法内部执行。
+`internal/transport/handler.go` 只维护边界路由注册表；模块通过 `Operations` 暴露独立操作，
+`Handle` 仅兼容现有命令调用入口。确认与取消分别调用明确的仓储方法，事务和幂等规则保持不变。

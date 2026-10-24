@@ -1,0 +1,892 @@
+{
+  "services": [
+    {
+      "service": "address",
+      "constant": "ServiceAddress",
+      "name": "Address",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionCreate",
+          "method": "Create"
+        },
+        {
+          "action": "ActionDefault",
+          "method": "Default"
+        },
+        {
+          "action": "ActionDelete",
+          "method": "Delete"
+        },
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        },
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionUpdate",
+          "method": "Update"
+        }
+      ]
+    },
+    {
+      "service": "aftersale",
+      "constant": "ServiceAftersale",
+      "name": "Aftersale",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionApprove",
+          "method": "Approve"
+        },
+        {
+          "action": "ActionCancel",
+          "method": "Cancel"
+        },
+        {
+          "action": "ActionCreate",
+          "method": "Create"
+        },
+        {
+          "action": "ActionExchange",
+          "method": "Exchange"
+        },
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        },
+        {
+          "action": "ActionInspect",
+          "method": "Inspect"
+        },
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionRefund",
+          "method": "Refund"
+        },
+        {
+          "action": "ActionReject",
+          "method": "Reject"
+        },
+        {
+          "action": "ActionReturn",
+          "method": "Return"
+        }
+      ]
+    },
+    {
+      "service": "analytics",
+      "constant": "ServiceAnalytics",
+      "name": "Analytics",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionRecord",
+          "method": "Record"
+        }
+      ]
+    },
+    {
+      "service": "campaign",
+      "constant": "ServiceCampaign",
+      "name": "Campaign",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionCancel",
+          "method": "Cancel"
+        },
+        {
+          "action": "ActionConfirm",
+          "method": "Confirm"
+        },
+        {
+          "action": "ActionEvaluate",
+          "method": "Evaluate"
+        },
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionReserve",
+          "method": "Reserve"
+        }
+      ]
+    },
+    {
+      "service": "cart",
+      "constant": "ServiceCart",
+      "name": "Cart",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionAdd",
+          "method": "Add"
+        },
+        {
+          "action": "ActionClear",
+          "method": "Clear"
+        },
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionMerge",
+          "method": "Merge"
+        },
+        {
+          "action": "ActionRemove",
+          "method": "Remove"
+        },
+        {
+          "action": "ActionSet",
+          "method": "Set"
+        }
+      ]
+    },
+    {
+      "service": "catalog",
+      "constant": "ServiceCatalog",
+      "name": "Catalog",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionBatchGet",
+          "method": "BatchGet"
+        },
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        },
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionRecommendationCandidates",
+          "method": "RecommendationCandidates"
+        },
+        {
+          "action": "ActionSearchProducts",
+          "method": "SearchProducts"
+        },
+        {
+          "action": "ActionUpsert",
+          "method": "Upsert"
+        }
+      ]
+    },
+    {
+      "service": "checkout",
+      "constant": "ServiceCheckout",
+      "name": "Checkout",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionCancel",
+          "method": "Cancel"
+        },
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        },
+        {
+          "action": "ActionPaid",
+          "method": "Paid"
+        },
+        {
+          "action": "ActionQuote",
+          "method": "Quote"
+        },
+        {
+          "action": "ActionSubmit",
+          "method": "Submit"
+        }
+      ]
+    },
+    {
+      "service": "content",
+      "constant": "ServiceContent",
+      "name": "Content",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        },
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionPopupClaim",
+          "method": "PopupClaim"
+        },
+        {
+          "action": "ActionPopupConfigure",
+          "method": "PopupConfigure"
+        },
+        {
+          "action": "ActionPopupDecide",
+          "method": "PopupDecide"
+        },
+        {
+          "action": "ActionPopupEvent",
+          "method": "PopupEvent"
+        },
+        {
+          "action": "ActionPopupList",
+          "method": "PopupList"
+        },
+        {
+          "action": "ActionPopupUpsert",
+          "method": "PopupUpsert"
+        },
+        {
+          "action": "ActionUpsert",
+          "method": "Upsert"
+        }
+      ]
+    },
+    {
+      "service": "coupon",
+      "constant": "ServiceCoupon",
+      "name": "Coupon",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionCancel",
+          "method": "Cancel"
+        },
+        {
+          "action": "ActionClaim",
+          "method": "Claim"
+        },
+        {
+          "action": "ActionConfirm",
+          "method": "Confirm"
+        },
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionRefund",
+          "method": "Refund"
+        },
+        {
+          "action": "ActionReserve",
+          "method": "Reserve"
+        },
+        {
+          "action": "ActionTemplates",
+          "method": "Templates"
+        },
+        {
+          "action": "ActionTemplatesByIds",
+          "method": "TemplatesByIds"
+        },
+        {
+          "action": "ActionTemplatesSnapshot",
+          "method": "TemplatesSnapshot"
+        }
+      ]
+    },
+    {
+      "service": "engagement",
+      "constant": "ServiceEngagement",
+      "name": "Engagement",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionClear",
+          "method": "Clear"
+        },
+        {
+          "action": "ActionDelete",
+          "method": "Delete"
+        },
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionPut",
+          "method": "Put"
+        }
+      ]
+    },
+    {
+      "service": "flash",
+      "constant": "ServiceFlash",
+      "name": "Flash",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        },
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionRequest",
+          "method": "Request"
+        }
+      ]
+    },
+    {
+      "service": "fulfillment",
+      "constant": "ServiceFulfillment",
+      "name": "Fulfillment",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionCancel",
+          "method": "Cancel"
+        },
+        {
+          "action": "ActionCreateExchange",
+          "method": "CreateExchange"
+        },
+        {
+          "action": "ActionDispatch",
+          "method": "Dispatch"
+        },
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        },
+        {
+          "action": "ActionInspectReturn",
+          "method": "InspectReturn"
+        },
+        {
+          "action": "ActionList",
+          "method": "List"
+        }
+      ]
+    },
+    {
+      "service": "group",
+      "constant": "ServiceGroup",
+      "name": "Group",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionCancel",
+          "method": "Cancel"
+        },
+        {
+          "action": "ActionCreate",
+          "method": "Create"
+        },
+        {
+          "action": "ActionExpire",
+          "method": "Expire"
+        },
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        },
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionPaid",
+          "method": "Paid"
+        },
+        {
+          "action": "ActionReserve",
+          "method": "Reserve"
+        }
+      ]
+    },
+    {
+      "service": "helpdesk",
+      "constant": "ServiceHelpdesk",
+      "name": "Helpdesk",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionClose",
+          "method": "Close"
+        },
+        {
+          "action": "ActionCreate",
+          "method": "Create"
+        },
+        {
+          "action": "ActionFaq",
+          "method": "Faq"
+        },
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        },
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionReply",
+          "method": "Reply"
+        }
+      ]
+    },
+    {
+      "service": "iam",
+      "constant": "ServiceIAM",
+      "name": "IAM",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionLogin",
+          "method": "Login"
+        },
+        {
+          "action": "ActionLogout",
+          "method": "Logout"
+        },
+        {
+          "action": "ActionLogoutAll",
+          "method": "LogoutAll"
+        },
+        {
+          "action": "ActionRefresh",
+          "method": "Refresh"
+        },
+        {
+          "action": "ActionValidate",
+          "method": "Validate"
+        }
+      ]
+    },
+    {
+      "service": "interaction",
+      "constant": "ServiceInteraction",
+      "name": "Interaction",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionAnswer",
+          "method": "Answer"
+        },
+        {
+          "action": "ActionCreate",
+          "method": "Create"
+        },
+        {
+          "action": "ActionLike",
+          "method": "Like"
+        },
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionModerate",
+          "method": "Moderate"
+        }
+      ]
+    },
+    {
+      "service": "inventory",
+      "constant": "ServiceInventory",
+      "name": "Inventory",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionAdjust",
+          "method": "Adjust"
+        },
+        {
+          "action": "ActionBatchGet",
+          "method": "BatchGet"
+        },
+        {
+          "action": "ActionCancel",
+          "method": "Cancel"
+        },
+        {
+          "action": "ActionConfirm",
+          "method": "Confirm"
+        },
+        {
+          "action": "ActionDispatch",
+          "method": "Dispatch"
+        },
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        },
+        {
+          "action": "ActionReserve",
+          "method": "Reserve"
+        },
+        {
+          "action": "ActionRestock",
+          "method": "Restock"
+        }
+      ]
+    },
+    {
+      "service": "invoice",
+      "constant": "ServiceInvoice",
+      "name": "Invoice",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionAdjustDemo",
+          "method": "AdjustDemo"
+        },
+        {
+          "action": "ActionCreate",
+          "method": "Create"
+        },
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        },
+        {
+          "action": "ActionIssueDemo",
+          "method": "IssueDemo"
+        },
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionReversals",
+          "method": "Reversals"
+        }
+      ]
+    },
+    {
+      "service": "logistics",
+      "constant": "ServiceLogistics",
+      "name": "Logistics",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionCreate",
+          "method": "Create"
+        },
+        {
+          "action": "ActionDeliver",
+          "method": "Deliver"
+        },
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        },
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionQuote",
+          "method": "Quote"
+        }
+      ]
+    },
+    {
+      "service": "media",
+      "constant": "ServiceMedia",
+      "name": "Media",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionComplete",
+          "method": "Complete"
+        },
+        {
+          "action": "ActionCreate",
+          "method": "Create"
+        },
+        {
+          "action": "ActionDownload",
+          "method": "Download"
+        },
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        }
+      ]
+    },
+    {
+      "service": "member",
+      "constant": "ServiceMember",
+      "name": "Member",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        },
+        {
+          "action": "ActionUpdate",
+          "method": "Update"
+        }
+      ]
+    },
+    {
+      "service": "notification",
+      "constant": "ServiceNotification",
+      "name": "Notification",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionRead",
+          "method": "Read"
+        },
+        {
+          "action": "ActionReadAll",
+          "method": "ReadAll"
+        }
+      ]
+    },
+    {
+      "service": "order",
+      "constant": "ServiceOrder",
+      "name": "Order",
+      "existing_contract": true,
+      "methods": [
+        {
+          "action": "ActionAcceptPayment",
+          "method": "AcceptPayment"
+        },
+        {
+          "action": "ActionCloseBegin",
+          "method": "CloseBegin"
+        },
+        {
+          "action": "ActionCloseComplete",
+          "method": "CloseComplete"
+        },
+        {
+          "action": "ActionComplete",
+          "method": "Complete"
+        },
+        {
+          "action": "ActionCreate",
+          "method": "Create"
+        },
+        {
+          "action": "ActionCreateFailed",
+          "method": "CreateFailed"
+        },
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        },
+        {
+          "action": "ActionGroupFailed",
+          "method": "GroupFailed"
+        },
+        {
+          "action": "ActionGroupFormed",
+          "method": "GroupFormed"
+        },
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionPending",
+          "method": "Pending"
+        },
+        {
+          "action": "ActionReady",
+          "method": "Ready"
+        },
+        {
+          "action": "ActionRefunded",
+          "method": "Refunded"
+        },
+        {
+          "action": "ActionShipped",
+          "method": "Shipped"
+        },
+        {
+          "action": "ActionWaitGroup",
+          "method": "WaitGroup"
+        }
+      ]
+    },
+    {
+      "service": "payment",
+      "constant": "ServicePayment",
+      "name": "Payment",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionClose",
+          "method": "Close"
+        },
+        {
+          "action": "ActionConfirmDemo",
+          "method": "ConfirmDemo"
+        },
+        {
+          "action": "ActionCreate",
+          "method": "Create"
+        },
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        },
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionSubmitDemo",
+          "method": "SubmitDemo"
+        }
+      ]
+    },
+    {
+      "service": "points",
+      "constant": "ServicePoints",
+      "name": "Points",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionCancel",
+          "method": "Cancel"
+        },
+        {
+          "action": "ActionCheckin",
+          "method": "Checkin"
+        },
+        {
+          "action": "ActionConfirm",
+          "method": "Confirm"
+        },
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        },
+        {
+          "action": "ActionRefund",
+          "method": "Refund"
+        },
+        {
+          "action": "ActionReserve",
+          "method": "Reserve"
+        },
+        {
+          "action": "ActionReward",
+          "method": "Reward"
+        }
+      ]
+    },
+    {
+      "service": "pricing",
+      "constant": "ServicePricing",
+      "name": "Pricing",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        },
+        {
+          "action": "ActionQuote",
+          "method": "Quote"
+        }
+      ]
+    },
+    {
+      "service": "recommendation",
+      "constant": "ServiceRecommendation",
+      "name": "Recommendation",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionRankBootstrap",
+          "method": "RankBootstrap"
+        }
+      ]
+    },
+    {
+      "service": "reconciliation",
+      "constant": "ServiceReconciliation",
+      "name": "Reconciliation",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionList",
+          "method": "List"
+        },
+        {
+          "action": "ActionRun",
+          "method": "Run"
+        }
+      ]
+    },
+    {
+      "service": "refund",
+      "constant": "ServiceRefund",
+      "name": "Refund",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionConfirmDemo",
+          "method": "ConfirmDemo"
+        },
+        {
+          "action": "ActionCreate",
+          "method": "Create"
+        },
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        },
+        {
+          "action": "ActionList",
+          "method": "List"
+        }
+      ]
+    },
+    {
+      "service": "search",
+      "constant": "ServiceSearch",
+      "name": "Search",
+      "existing_contract": false,
+      "methods": [
+        {
+          "action": "ActionQuery",
+          "method": "Query"
+        },
+        {
+          "action": "ActionSuggest",
+          "method": "Suggest"
+        }
+      ]
+    }
+  ]
+}

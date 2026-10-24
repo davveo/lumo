@@ -10,7 +10,7 @@ import (
 
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/media/internal/domain"
-	"github.com/minio/minio-go/v7"
+
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 

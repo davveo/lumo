@@ -35,20 +35,26 @@ type bootstrapInput struct {
 	Errors    []string         `json:"signal_errors"`
 }
 
-func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "recommendation.usecase."+c.Action)
+func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "recommendation.usecase."+constants.ActionList)
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	return s.rank(ctx, c, false)
+}
+func (s *Service) RankBootstrap(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "recommendation.usecase."+constants.ActionRankBootstrap)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if c.Role != constants.RoleSystem {
+		return nil, status.Error(codes.PermissionDenied, "bootstrap ranking is internal")
+	}
+	return s.rank(ctx, c, true)
+}
+func (s *Service) rank(ctx context.Context, c platform.Request, internal bool) (platform.Result, error) {
 	if ctx.Err() != nil {
 		return nil, status.FromContextError(ctx.Err()).Err()
-	}
-	internal := c.Action == constants.ActionRankBootstrap
-	if c.Action != constants.ActionList && !internal {
-		return nil, status.Error(codes.Unimplemented, "unsupported recommendation action")
-	}
-	if internal && c.Role != constants.RoleSystem {
-		return nil, status.Error(codes.PermissionDenied, "bootstrap ranking is internal")
 	}
 	var in recommendationRequest
 	if err := platform.Decode(c.Data, &in); err != nil {
@@ -376,7 +382,7 @@ func (s *Service) catalogRows(ctx context.Context, action string, data map[strin
 	)
 }
 
-func (s *Service) readSignals(ctx context.Context, c platform.Command) (signalRows, bool) {
+func (s *Service) readSignals(ctx context.Context, c platform.Request) (signalRows, bool) {
 	ctx, cancel := context.WithTimeout(ctx, 700*time.Millisecond)
 	defer cancel()
 	var out signalRows

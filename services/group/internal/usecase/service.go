@@ -15,53 +15,98 @@ type Service struct {
 	RPC  platform.Caller
 }
 
-func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "usecase.group."+c.Action)
-	defer sp.End()
+func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "group.usecase.List")
+	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	switch c.Action {
-	case constants.ActionList:
-		return s.Repo.List(ctx)
-	case constants.ActionGet:
-		return s.Repo.Get(ctx, c.ID)
+	return s.Repo.List(ctx)
+}
+func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "group.usecase.Get")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	return s.Repo.Get(ctx, c.ID)
+}
+func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "group.usecase.Create")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
 	}
-	if e := platform.RequireUser(c); e != nil {
-		return nil, e
-	}
-	if c.Action == constants.ActionCreate {
-		if s.RPC != nil {
-			_, e := s.RPC.Call(
-				ctx,
-				constants.ServiceCatalog,
-				platform.Command{
-					Action: constants.ActionGet,
-					ID:     platform.Text(c.Data, "sku_id"),
-					UserID: c.UserID,
-					Role:   c.Role,
-				},
-			)
-			if e != nil {
-				return nil, e
-			}
+	if s.RPC != nil {
+		_, e := s.RPC.Call(
+			ctx,
+			constants.ServiceCatalog,
+			platform.Command{
+				Action: constants.ActionGet,
+				ID:     platform.Text(c.Data, "sku_id"),
+				UserID: c.UserID,
+				Role:   c.Role,
+			},
+		)
+		if e != nil {
+			return nil, e
 		}
-		return s.Repo.Create(ctx, c)
+	}
+	return s.Repo.Create(ctx, c)
+}
+func (s *Service) Reserve(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "group.usecase.Reserve")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
 	}
 	if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
 		return nil, status.Error(codes.PermissionDenied, "internal group command required")
 	}
-	switch c.Action {
-	case constants.ActionReserve:
-		return s.Repo.Reserve(ctx, c)
-	case constants.ActionPaid:
-		return s.Repo.Paid(ctx, c)
-	case constants.ActionCancel:
-		return s.Repo.Cancel(ctx, c)
-	case constants.ActionExpire:
-		return s.Repo.Expire(ctx)
-	}
-	return nil, status.Error(codes.Unimplemented, "unsupported action")
+	return s.Repo.Reserve(ctx, c)
 }
+func (s *Service) Paid(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "group.usecase.Paid")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+	if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
+		return nil, status.Error(codes.PermissionDenied, "internal group command required")
+	}
+	return s.Repo.Paid(ctx, c)
+}
+func (s *Service) Cancel(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "group.usecase.Cancel")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+	if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
+		return nil, status.Error(codes.PermissionDenied, "internal group command required")
+	}
+	return s.Repo.Cancel(ctx, c)
+}
+func (s *Service) Expire(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "group.usecase.Expire")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+	if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
+		return nil, status.Error(codes.PermissionDenied, "internal group command required")
+	}
+	return s.Repo.Expire(ctx)
+}
+
 func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
 	if e.Type != constants.EventOrderPaymentAccepted {
 		return nil
@@ -70,10 +115,13 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
 	if er != nil || !exists {
 		return er
 	}
-	_, er = s.Execute(
+	_, er = s.Paid(
 		ctx,
-		platform.Command{Action: constants.ActionPaid, ID: e.AggregateID, UserID: e.UserID, Role: constants.RoleSystem},
+		platform.Request{ID: e.AggregateID, UserID: e.UserID, Role: constants.RoleSystem},
 	)
 	return er
 }
-func (s *Service) Tick(ctx context.Context) error { _, e := s.Repo.Expire(ctx); return e }
+func (s *Service) Tick(ctx context.Context) error {
+	_, e := s.Expire(ctx, platform.Request{UserID: constants.RoleSystem, Role: constants.RoleSystem})
+	return e
+}

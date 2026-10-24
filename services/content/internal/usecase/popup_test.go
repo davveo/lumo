@@ -127,7 +127,7 @@ func popupAdmin(c popupConfig) platform.Command {
 }
 func popupSave(t *testing.T, s *Service, p popupConfig) platform.Result {
 	t.Helper()
-	result, err := s.Execute(context.Background(), popupAdmin(p))
+	result, err := executePopup(s, context.Background(), popupAdmin(p))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,7 +154,7 @@ func popupCommand(user, session string) platform.Command {
 }
 func popupDecision(t *testing.T, s *Service, c platform.Command) platform.Result {
 	t.Helper()
-	r, err := s.Execute(context.Background(), c)
+	r, err := executePopup(s, context.Background(), c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +174,7 @@ func popupEventCommand(c platform.Command, p platform.Result, event, view string
 }
 func popupEventOK(t *testing.T, s *Service, c platform.Command, p platform.Result, event, view string) bool {
 	t.Helper()
-	r, err := s.Execute(context.Background(), popupEventCommand(c, p, event, view))
+	r, err := executePopup(s, context.Background(), popupEventCommand(c, p, event, view))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +182,7 @@ func popupEventOK(t *testing.T, s *Service, c platform.Command, p platform.Resul
 }
 func popupSetGlobal(t *testing.T, s *Service, enabled bool, max, gap int) {
 	t.Helper()
-	_, err := s.Execute(
+	_, err := executePopup(s,
 		context.Background(),
 		platform.Command{
 			Action: "popup_configure",
@@ -202,7 +202,7 @@ func TestPopupPrivateConfigurationOptimisticUpdatesAndLifecycleInvalidation(t *t
 	p.Audience.IncludeUserIDs = []string{"buyer"}
 	saved := popupSave(t, s, p)
 	for _, action := range []string{"popup_list", "popup_upsert", "popup_configure"} {
-		_, err := s.Execute(
+		_, err := executePopup(s,
 			context.Background(),
 			platform.Command{Action: action, UserID: "buyer", Role: "user", Data: popupMap(p)},
 		)
@@ -211,19 +211,19 @@ func TestPopupPrivateConfigurationOptimisticUpdatesAndLifecycleInvalidation(t *t
 		}
 	}
 	for _, action := range []string{"popup_decide", "popup_event", "popup_claim"} {
-		_, err := s.Execute(context.Background(), platform.Command{Action: action, UserID: "buyer", Role: "admin"})
+		_, err := executePopup(s, context.Background(), platform.Command{Action: action, UserID: "buyer", Role: "admin"})
 		if status.Code(err) != codes.PermissionDenied {
 			t.Fatalf("%s skipped internal boundary: %v", action, err)
 		}
 	}
-	list, err := s.Execute(
+	list, err := executePopup(s,
 		context.Background(),
 		platform.Command{Action: "list", Data: map[string]any{"kind": "popup"}},
 	)
 	if err != nil || len(list["items"].([]platform.Result)) != 0 {
 		t.Fatalf("private config leaked through public list: %v %v", list, err)
 	}
-	if _, err = s.Execute(context.Background(), platform.Command{Action: "get", ID: p.ID}); status.Code(
+	if _, err = executePopup(s, context.Background(), platform.Command{Action: "get", ID: p.ID}); status.Code(
 		err,
 	) != codes.NotFound {
 		t.Fatalf("private config leaked public get: %v", err)
@@ -246,7 +246,7 @@ func TestPopupPrivateConfigurationOptimisticUpdatesAndLifecycleInvalidation(t *t
 	if popupEventOK(t, s, c, delivery, "impression", "view-1") {
 		t.Fatal("paused stale delivery shown")
 	}
-	_, err = s.Execute(
+	_, err = executePopup(s,
 		context.Background(),
 		platform.Command{Action: "popup_upsert", UserID: "admin", Role: "admin", Data: stale},
 	)
@@ -304,7 +304,7 @@ func TestPopupRejectsInvalidCampaignsBeforeWrite(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			p := popupTestConfig("invalid")
 			mutate(&p)
-			_, err := s.Execute(context.Background(), popupAdmin(p))
+			_, err := executePopup(s, context.Background(), popupAdmin(p))
 			if status.Code(err) != codes.InvalidArgument {
 				t.Fatalf("got %v", err)
 			}
@@ -312,7 +312,7 @@ func TestPopupRejectsInvalidCampaignsBeforeWrite(t *testing.T) {
 	}
 	c := popupAdmin(popupTestConfig("invalid"))
 	c.Data["unknown"] = true
-	if _, err := s.Execute(context.Background(), c); status.Code(err) != codes.InvalidArgument {
+	if _, err := executePopup(s, context.Background(), c); status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("unknown config key accepted: %v", err)
 	}
 	var count int64
@@ -354,7 +354,7 @@ func TestPopupAudienceMatchesTrustedAgeMembershipAndConditions(t *testing.T) {
 			id.newGuest = tc.newGuest
 			id.facts.RegisteredAt = tc.registered
 			id.facts.Level = tc.level
-			if got := popupMatches(p, c, id, now); got != tc.want {
+			if got := popupMatches(p, c.Request(), id, now); got != tc.want {
 				t.Fatalf("got %v want %v", got, tc.want)
 			}
 		})
@@ -371,26 +371,26 @@ func TestPopupAudienceMatchesTrustedAgeMembershipAndConditions(t *testing.T) {
 		IncludeUserIDs:     []string{"buyer"},
 		InterestCategories: []string{"手机数码"},
 	}
-	if !popupMatches(p, c, id, now) {
+	if !popupMatches(p, c.Request(), id, now) {
 		t.Fatal("valid combined audience rejected")
 	}
 	p.Audience.ExcludeUserIDs = []string{"buyer"}
-	if popupMatches(p, c, id, now) {
+	if popupMatches(p, c.Request(), id, now) {
 		t.Fatal("exclusion did not override allowlist")
 	}
 	p.Audience.ExcludeUserIDs = nil
 	id.facts.Growth = nil
-	if popupMatches(p, c, id, now) {
+	if popupMatches(p, c.Request(), id, now) {
 		t.Fatal("missing trusted growth treated as zero")
 	}
 	p.Audience.MinGrowth = 0
 	p.Audience.MaxGrowth = 200
-	if popupMatches(p, c, id, now) {
+	if popupMatches(p, c.Request(), id, now) {
 		t.Fatal("missing growth satisfied max-only condition")
 	}
 	_ = json.Unmarshal(b, &id.facts)
 	p.Audience.InterestCategories = []string{"宠物"}
-	if popupMatches(p, c, id, now) {
+	if popupMatches(p, c.Request(), id, now) {
 		t.Fatal("unmatched interest accepted")
 	}
 }
@@ -468,7 +468,7 @@ func TestPopupImpressionSerializedAcrossDeliveriesAndViews(t *testing.T) {
 			if i%2 == 0 {
 				service = replica
 			}
-			r, err := service.Execute(
+			r, err := executePopup(service,
 				context.Background(),
 				popupEventCommand(c, p, "impression", fmt.Sprintf("view-%d", i)),
 			)
@@ -572,14 +572,14 @@ func TestPopupClaimsAuthoritativeIdempotentBoundAndNoFalseStats(t *testing.T) {
 	claim := popupEventCommand(c, delivery, "click", "view-claim")
 	claim.Action = "popup_claim"
 	claim.Data["template_id"] = "forged-template"
-	if _, err := s.Execute(context.Background(), claim); status.Code(err) != codes.FailedPrecondition {
+	if _, err := executePopup(s, context.Background(), claim); status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("claim accepted before shown: %v", err)
 	}
 	if !popupEventOK(t, s, c, delivery, "impression", "view-claim") {
 		t.Fatal("impression denied")
 	}
 	rpc.failClaim = true
-	if _, err := s.Execute(context.Background(), claim); status.Code(err) != codes.Unavailable {
+	if _, err := executePopup(s, context.Background(), claim); status.Code(err) != codes.Unavailable {
 		t.Fatal(err)
 	}
 	var row domain.PopupCampaign
@@ -589,7 +589,7 @@ func TestPopupClaimsAuthoritativeIdempotentBoundAndNoFalseStats(t *testing.T) {
 	}
 	rpc.failClaim = false
 	for i := 0; i < 2; i++ {
-		r, err := s.Execute(context.Background(), claim)
+		r, err := executePopup(s, context.Background(), claim)
 		if err != nil || platform.Text(popupMap(r["coupon"]), "template_id") != "everyday-10" {
 			t.Fatalf("claim did not bind campaign template: %v %v", r, err)
 		}
@@ -603,15 +603,15 @@ func TestPopupClaimsAuthoritativeIdempotentBoundAndNoFalseStats(t *testing.T) {
 	}
 	wrong := claim
 	wrong.UserID = "other"
-	if _, err := s.Execute(context.Background(), wrong); status.Code(err) != codes.FailedPrecondition {
+	if _, err := executePopup(s, context.Background(), wrong); status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("claim crossed users: %v", err)
 	}
 	wrong.UserID = ""
-	if _, err := s.Execute(context.Background(), wrong); status.Code(err) != codes.Unauthenticated {
+	if _, err := executePopup(s, context.Background(), wrong); status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("guest issued coupon: %v", err)
 	}
 	*now = now.Add(6 * time.Minute)
-	if _, err := s.Execute(context.Background(), claim); status.Code(err) != codes.FailedPrecondition {
+	if _, err := executePopup(s, context.Background(), claim); status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("expired delivery claimed: %v", err)
 	}
 }
@@ -775,4 +775,24 @@ func TestPopupTargetMatchesExistingShoppingRoutes(t *testing.T) {
 			t.Fatalf("unsupported route %q accepted", target)
 		}
 	}
+}
+
+// executePopup exercises the same boundary operation registry as the transport.
+func executePopup(s *Service, ctx context.Context, c platform.Command) (platform.Result, error) {
+	operations := map[string]platform.Operation{
+		"list":            s.List,
+		"get":             s.Get,
+		"upsert":          s.Upsert,
+		"popup_list":      s.PopupList,
+		"popup_upsert":    s.PopupUpsert,
+		"popup_configure": s.PopupConfigure,
+		"popup_decide":    s.PopupDecide,
+		"popup_event":     s.PopupEvent,
+		"popup_claim":     s.PopupClaim,
+	}
+	operation, ok := operations[c.Action]
+	if !ok {
+		return nil, status.Error(codes.Unimplemented, "unknown operation")
+	}
+	return operation(ctx, c.Request())
 }

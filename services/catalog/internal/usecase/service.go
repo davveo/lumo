@@ -14,121 +14,132 @@ import (
 	"time"
 )
 
-func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "catalog.usecase."+c.Action)
+func (s *Service) BatchGet(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "catalog.usecase."+constants.ActionBatchGet)
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	switch c.Action {
-	case constants.ActionSearchProducts:
-		return s.searchProducts(ctx, c)
-	case constants.ActionRecommendationCandidates:
-		return s.recommendationCandidates(ctx, c)
-	case constants.ActionBatchGet:
-		var input struct {
-			IDs []string `json:"ids"`
-		}
-		if err := platform.Decode(c.Data, &input); err != nil || len(input.IDs) == 0 || len(input.IDs) > 500 {
-			return nil, bad("ids must contain between 1 and 500 SKU IDs")
-		}
-		ids, seen := []string{}, map[string]bool{}
-		for _, id := range input.IDs {
-			if id == "" || len(id) > 150 || strings.TrimSpace(id) != id {
-				return nil, bad("invalid SKU ID")
-			}
-			if !seen[id] {
-				ids = append(ids, id)
-				seen[id] = true
-			}
-		}
-		rows, err := s.repo.GetMany(ctx, ids, c.Role == constants.RoleAdmin)
-		if err != nil {
-			return nil, err
-		}
-		byID := map[string]domain.Record{}
-		for _, row := range rows {
-			byID[row.ID] = row
-		}
-		items, missing := []platform.Result{}, []string{}
-		for _, id := range ids {
-			if row, exists := byID[id]; exists {
-				items = append(items, view(row))
-			} else {
-				missing = append(missing, id)
-			}
-		}
-		return platform.Result{"items": items, "missing_ids": missing}, nil
-	case constants.ActionList:
-		st := constants.CatalogStatusActive
-		if include, _ := c.Data["include_disabled"].(bool); c.Role == constants.RoleAdmin && include {
-			st = ""
-		}
-		vs, total, err := s.repo.ListProducts(
-			ctx,
-			st,
-			int(platform.Int(c.Data, "limit")),
-			int(platform.Int(c.Data, "offset")),
-		)
-		if err != nil {
-			return nil, err
-		}
-		items := make([]platform.Result, 0, len(vs))
-		for _, v := range vs {
-			items = append(items, view(v))
-		}
-		return platform.Result{"items": items, "total": total}, nil
-	case constants.ActionGet:
-		if c.ID == "" {
-			return nil, bad("sku ID required")
-		}
-		r, e := s.repo.Get(ctx, c.ID)
-		if e != nil {
-			return nil, e
-		}
-		if r.Status != constants.CatalogStatusActive && c.Role != constants.RoleAdmin {
-			return nil, status.Error(codes.NotFound, "SKU unavailable")
-		}
-		return view(r), nil
-	case constants.ActionUpsert:
-		if e := platform.RequireAdmin(c); e != nil {
-			return nil, e
-		}
-		name := platform.Text(c.Data, "name")
-		price := platform.Int(c.Data, "price_cents")
-		if c.ID == "" || len(c.ID) > 128 || name == "" || price < 1 || price > 1000000000 {
-			return nil, bad("id, name and positive price_cents required")
-		}
-		active, ok := c.Data["active"].(bool)
-		if !ok {
-			active = true
-		}
-		st := constants.CatalogStatusActive
-		if !active {
-			st = constants.CatalogStatusDisabled
-		}
-		rows, e := catalogRows(c.ID, c.Data, st)
-		if e != nil {
-			return nil, e
-		}
-		evt := platform.Event{
-			ID:          platform.ID("evt"),
-			Type:        constants.EventProductChanged,
-			AggregateID: c.ID,
-			UserID:      c.UserID,
-			Data:        view(rows[0]),
-		}
-		if e = s.repo.SaveProduct(ctx, c.ID, rows, &evt); e != nil {
-			return nil, e
-		}
-		r, e := s.repo.Get(ctx, c.ID)
-		if e != nil {
-			return nil, e
-		}
-		return view(r), nil
-	default:
-		return nil, status.Error(codes.Unimplemented, "unsupported catalog action")
+
+	var input struct {
+		IDs []string `json:"ids"`
 	}
+	if err := platform.Decode(c.Data, &input); err != nil || len(input.IDs) == 0 || len(input.IDs) > 500 {
+		return nil, bad("ids must contain between 1 and 500 SKU IDs")
+	}
+	ids, seen := []string{}, map[string]bool{}
+	for _, id := range input.IDs {
+		if id == "" || len(id) > 150 || strings.TrimSpace(id) != id {
+			return nil, bad("invalid SKU ID")
+		}
+		if !seen[id] {
+			ids = append(ids, id)
+			seen[id] = true
+		}
+	}
+	rows, err := s.repo.GetMany(ctx, ids, c.Role == constants.RoleAdmin)
+	if err != nil {
+		return nil, err
+	}
+	byID := map[string]domain.Record{}
+	for _, row := range rows {
+		byID[row.ID] = row
+	}
+	items, missing := []platform.Result{}, []string{}
+	for _, id := range ids {
+		if row, exists := byID[id]; exists {
+			items = append(items, view(row))
+		} else {
+			missing = append(missing, id)
+		}
+	}
+	return platform.Result{"items": items, "missing_ids": missing}, nil
 }
+func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "catalog.usecase."+constants.ActionList)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+
+	st := constants.CatalogStatusActive
+	if include, _ := c.Data["include_disabled"].(bool); c.Role == constants.RoleAdmin && include {
+		st = ""
+	}
+	vs, total, err := s.repo.ListProducts(
+		ctx,
+		st,
+		int(platform.Int(c.Data, "limit")),
+		int(platform.Int(c.Data, "offset")),
+	)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]platform.Result, 0, len(vs))
+	for _, v := range vs {
+		items = append(items, view(v))
+	}
+	return platform.Result{"items": items, "total": total}, nil
+}
+func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "catalog.usecase."+constants.ActionGet)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+
+	if c.ID == "" {
+		return nil, bad("sku ID required")
+	}
+	r, e := s.repo.Get(ctx, c.ID)
+	if e != nil {
+		return nil, e
+	}
+	if r.Status != constants.CatalogStatusActive && c.Role != constants.RoleAdmin {
+		return nil, status.Error(codes.NotFound, "SKU unavailable")
+	}
+	return view(r), nil
+}
+func (s *Service) Upsert(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "catalog.usecase."+constants.ActionUpsert)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+
+	if e := platform.RequireAdmin(c); e != nil {
+		return nil, e
+	}
+	name := platform.Text(c.Data, "name")
+	price := platform.Int(c.Data, "price_cents")
+	if c.ID == "" || len(c.ID) > 128 || name == "" || price < 1 || price > 1000000000 {
+		return nil, bad("id, name and positive price_cents required")
+	}
+	active, ok := c.Data["active"].(bool)
+	if !ok {
+		active = true
+	}
+	st := constants.CatalogStatusActive
+	if !active {
+		st = constants.CatalogStatusDisabled
+	}
+	rows, e := catalogRows(c.ID, c.Data, st)
+	if e != nil {
+		return nil, e
+	}
+	evt := platform.Event{
+		ID:          platform.ID("evt"),
+		Type:        constants.EventProductChanged,
+		AggregateID: c.ID,
+		UserID:      c.UserID,
+		Data:        view(rows[0]),
+	}
+	if e = s.repo.SaveProduct(ctx, c.ID, rows, &evt); e != nil {
+		return nil, e
+	}
+	r, e := s.repo.Get(ctx, c.ID)
+	if e != nil {
+		return nil, e
+	}
+	return view(r), nil
+}
+
 func (s *Service) seed(ctx context.Context) error {
 	if !demo() {
 		return nil

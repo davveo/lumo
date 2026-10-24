@@ -10,14 +10,21 @@ import (
 	"strings"
 )
 
-func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "search.usecase.Query")
+func (s *Service) Query(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "search.usecase."+constants.ActionQuery)
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	if c.Action != constants.ActionQuery && c.Action != constants.ActionSuggest {
-		return nil, status.Error(codes.Unimplemented, "unsupported search action")
-	}
+	return s.search(ctx, c)
+}
+func (s *Service) Suggest(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "search.usecase."+constants.ActionSuggest)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	return s.search(ctx, c)
+}
+func (s *Service) search(ctx context.Context, c platform.Request) (platform.Result, error) {
 	cfg, e := s.repo.Get(ctx, "search-policy")
 	if e != nil {
 		return nil, e

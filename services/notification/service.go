@@ -13,10 +13,11 @@ func New(d platform.Dependencies) platform.Module {
 	s := usecase.New(repository.New(d.DB), d.RPC)
 	t := transport.New(s)
 	return platform.Module{
-		Name:    constants.ServiceNotification,
-		Migrate: s.Migrate,
-		Seed:    s.Seed,
-		Handle:  t.Handle,
+		Name:       constants.ServiceNotification,
+		Migrate:    s.Migrate,
+		Seed:       s.Seed,
+		Handle:     t.Handle,
+		Operations: t.Operations(),
 		Topics: []string{
 			constants.EventOrderAwaitingPayment,
 			constants.EventOrderPaymentAccepted,

@@ -12,3 +12,11 @@
 所有调用逐层传递 `context.Context`，层Span为 `analytics.transport.*` → `analytics.usecase.*` → `analytics.repository.*`，GORM回调再创建SQL Span。查询参数不展开到trace或日志。
 
 本服务只写自己的数据库schema。跨服务通过 `platform.Caller` 访问 gRPC，禁止直接读写对方业务表。网关验证会话后填入调用主体，服务再次检查用户资源归属与管理员角色。
+
+## 独立业务方法
+
+`record` → `Record`；`list` → `List`。
+
+业务方法统一接收不含动作字段的 `platform.Request`，权限与资源归属校验在方法内部执行。
+`internal/transport/handler.go` 只维护边界路由注册表；模块通过 `Operations` 暴露独立操作，
+`Handle` 仅兼容现有命令调用入口。确认与取消分别调用明确的仓储方法，事务和幂等规则保持不变。

@@ -105,7 +105,7 @@ func normalized(lines []domain.Line) ([]domain.Line, error) {
 
 func (r *Repository) Reserve(
 	ctx context.Context,
-	c platform.Command,
+	c platform.Request,
 	order string,
 	lines []domain.Line,
 ) (platform.Result, error) {
@@ -168,8 +168,20 @@ func (r *Repository) Reserve(
 	})
 	return platform.Map(out), e
 }
-func (r *Repository) Transition(ctx context.Context, c platform.Command) (platform.Result, error) {
-	ctx, s := platform.Start(ctx, "repository.inventory."+c.Action)
+func (r *Repository) Confirm(ctx context.Context, c platform.Request) (platform.Result, error) {
+	return r.transition(ctx, c, constants.InventoryReservationStateAllocated)
+}
+
+func (r *Repository) Cancel(ctx context.Context, c platform.Request) (platform.Result, error) {
+	return r.transition(ctx, c, constants.InventoryReservationStateCancelled)
+}
+
+func (r *Repository) Dispatch(ctx context.Context, c platform.Request) (platform.Result, error) {
+	return r.transition(ctx, c, constants.InventoryReservationStateDispatched)
+}
+
+func (r *Repository) transition(ctx context.Context, c platform.Request, target string) (platform.Result, error) {
+	ctx, s := platform.Start(ctx, "repository.inventory.transition."+target)
 	defer s.End()
 	if c.ID == "" {
 		return nil, status.Error(codes.InvalidArgument, "reservation ID required")
@@ -177,7 +189,7 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 	var out domain.Reservation
 	e := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		er := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&out, "id = ?", c.ID).Error
-		if errors.Is(er, gorm.ErrRecordNotFound) && c.Action == constants.ActionCancel {
+		if errors.Is(er, gorm.ErrRecordNotFound) && target == constants.InventoryReservationStateCancelled {
 			out = domain.Reservation{
 				ID:        c.ID,
 				UserID:    c.UserID,
@@ -195,15 +207,6 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 		if out.UserID != c.UserID {
 			return status.Error(codes.PermissionDenied, "reservation belongs to another user")
 		}
-		target := ""
-		switch c.Action {
-		case constants.ActionConfirm:
-			target = constants.InventoryReservationStateAllocated
-		case constants.ActionCancel:
-			target = constants.InventoryReservationStateCancelled
-		case constants.ActionDispatch:
-			target = constants.InventoryReservationStateDispatched
-		}
 		if out.State == target {
 			return nil
 		}
@@ -217,20 +220,20 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 		}
 		for _, l := range ls {
 			u := map[string]any{}
-			switch c.Action {
-			case constants.ActionConfirm:
+			switch target {
+			case constants.InventoryReservationStateAllocated:
 				if out.State != constants.InventoryReservationStateReserved {
 					return status.Error(codes.FailedPrecondition, "must be reserved")
 				}
 				u["reserved"] = gorm.Expr("reserved - ?", l.Quantity)
 				u["allocated"] = gorm.Expr("allocated + ?", l.Quantity)
-			case constants.ActionDispatch:
+			case constants.InventoryReservationStateDispatched:
 				if out.State != constants.InventoryReservationStateAllocated {
 					return status.Error(codes.FailedPrecondition, "must be allocated before dispatch")
 				}
 				u["on_hand"] = gorm.Expr("on_hand - ?", l.Quantity)
 				u["allocated"] = gorm.Expr("allocated - ?", l.Quantity)
-			case constants.ActionCancel:
+			case constants.InventoryReservationStateCancelled:
 				if out.State == constants.InventoryReservationStateAllocated {
 					if yes, _ := c.Data["warehouse_confirmed"].(bool); !yes {
 						return status.Error(codes.FailedPrecondition, "warehouse cancellation confirmation required")
@@ -257,7 +260,7 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 	})
 	return platform.Map(out), e
 }
-func (r *Repository) Restock(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (r *Repository) Restock(ctx context.Context, c platform.Request) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.inventory.Restock")
 	defer s.End()
 	sku := platform.Text(c.Data, "sku_id")
@@ -297,7 +300,7 @@ func (r *Repository) Restock(ctx context.Context, c platform.Command) (platform.
 	})
 	return platform.Map(l), e
 }
-func (r *Repository) Adjust(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (r *Repository) Adjust(ctx context.Context, c platform.Request) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.inventory.Adjust")
 	defer s.End()
 	qty := platform.Int(c.Data, "on_hand")

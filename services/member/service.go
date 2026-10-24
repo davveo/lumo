@@ -16,7 +16,7 @@ func New(d platform.Dependencies) platform.Module {
 		Name:    constants.ServiceMember,
 		Migrate: s.Migrate,
 		Seed:    s.Seed,
-		Handle:  t.Handle,
+		Handle:  t.Handle, Operations: t.Operations(),
 		Topics:  []string{constants.EventOrderCompleted},
 		OnEvent: s.OnEvent,
 	}

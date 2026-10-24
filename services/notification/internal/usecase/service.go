@@ -5,48 +5,66 @@ import (
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/notification/internal/domain"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
-func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "notification.usecase."+c.Action)
+func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "notification.usecase."+constants.ActionList)
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	if e := platform.RequireUser(c); e != nil {
 		return nil, e
 	}
-	switch c.Action {
-	case constants.ActionList:
-		return s.list(ctx, c, c.UserID, constants.NotificationKindInbox, "")
-	case constants.ActionRead:
-		r, e := s.repo.Mutate(
-			ctx,
-			domain.Record{ID: c.ID},
-			false,
-			func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
-				if e := own(c, *v); e != nil {
-					return nil, nil, e
-				}
-				v.Status = constants.NotificationStatusRead
-				return nil, nil, nil
-			},
-		)
-		if e != nil {
-			return nil, e
-		}
-		return view(r), nil
-	case constants.ActionReadAll:
-		count, e := s.repo.MarkAllRead(ctx, c.UserID)
-		if e != nil {
-			return nil, e
-		}
-		return platform.Result{"marked_read": count}, nil
-	default:
-		return nil, status.Error(codes.Unimplemented, "unsupported notification action")
-	}
+
+	return s.list(ctx, c, c.UserID, constants.NotificationKindInbox, "")
+
 }
+
+func (s *Service) Read(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "notification.usecase."+constants.ActionRead)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if e := platform.RequireUser(c); e != nil {
+		return nil, e
+	}
+
+	r, e := s.repo.Mutate(
+		ctx,
+		domain.Record{ID: c.ID},
+		false,
+		func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
+			if e := own(c, *v); e != nil {
+				return nil, nil, e
+			}
+			v.Status = constants.NotificationStatusRead
+			return nil, nil, nil
+		},
+	)
+	if e != nil {
+		return nil, e
+	}
+	return view(r), nil
+
+}
+
+func (s *Service) ReadAll(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "notification.usecase."+constants.ActionReadAll)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if e := platform.RequireUser(c); e != nil {
+		return nil, e
+	}
+
+	count, e := s.repo.MarkAllRead(ctx, c.UserID)
+	if e != nil {
+		return nil, e
+	}
+	return platform.Result{"marked_read": count}, nil
+
+}
+
 func (s *Service) seed(context.Context) error { return nil }
 func (s *Service) event(ctx context.Context, e platform.Event) (traceErr error) {
 	ctx, span := platform.Start(ctx, "notification.usecase.ProjectEvent")

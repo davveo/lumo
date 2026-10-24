@@ -18,93 +18,102 @@ type Service struct {
 	Redis *redis.Client
 }
 
-func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "usecase.flash."+c.Action)
-	defer sp.End()
+func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "flash.usecase.List")
+	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	if c.Action == constants.ActionList {
-		return s.Repo.List(ctx)
+	return s.Repo.List(ctx)
+}
+func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "flash.usecase.Get")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
 	}
-	if e := platform.RequireUser(c); e != nil {
+	v, e := s.Repo.Get(ctx, c.ID)
+	if e != nil {
 		return nil, e
 	}
-	switch c.Action {
-	case constants.ActionGet:
-		v, e := s.Repo.Get(ctx, c.ID)
-		if e != nil {
-			return nil, e
-		}
-		if v.UserID != c.UserID && c.Role != constants.RoleAdmin {
-			return nil, status.Error(codes.PermissionDenied, "flash request owner mismatch")
-		}
-		return platform.Map(v), nil
-	case constants.ActionRequest:
-		if c.IdempotencyKey == "" || len(c.IdempotencyKey) > 120 || platform.Text(c.Data, "quote_id") == "" {
-			return nil, status.Error(codes.InvalidArgument, "idempotency_key and quote_id required")
-		}
-		old, e := s.Repo.Find(ctx, c.UserID, c.IdempotencyKey)
-		if e != nil {
-			return nil, e
-		}
-		if old != nil {
-			return s.Repo.Create(ctx, c)
-		}
-		if s.RPC == nil {
-			return nil, status.Error(codes.Unavailable, "pricing service unavailable")
-		}
-		q, e := s.RPC.Call(
-			ctx,
-			constants.ServicePricing,
-			platform.Command{
-				Action: constants.ActionGet,
-				ID:     platform.Text(c.Data, "quote_id"),
-				UserID: c.UserID,
-				Role:   c.Role,
-			},
-		)
-		if e != nil {
-			return nil, e
-		}
-		if platform.Text(q, "activity_id") != "flash-demo" {
-			return nil, status.Error(codes.InvalidArgument, "quote must reference flash-demo activity")
-		}
-		session, e := s.Repo.Session(ctx, "flash-demo")
-		if e != nil {
-			return nil, e
-		}
-		if !session.Active {
-			return nil, status.Error(codes.FailedPrecondition, "flash session inactive")
-		}
-		var quote struct {
-			Items []struct {
-				SKUID    string `json:"sku_id"`
-				Quantity int64  `json:"quantity"`
-			} `json:"items"`
-		}
-		if e = platform.Decode(q, &quote); e != nil {
-			return nil, e
-		}
-		if len(quote.Items) != 1 || quote.Items[0].SKUID != session.SKUID || quote.Items[0].Quantity != 1 {
-			return nil, status.Error(codes.InvalidArgument, "quote must contain the session SKU once")
-		}
-		if s.Redis != nil {
-			cacheCtx, rs := platform.Start(ctx, "cache.flash.admission")
-			platform.TraceRequest(cacheCtx, platform.Result{"operation": "SETNX", "user_id": c.UserID, "ttl_ms": 1000})
-			allowed, er := s.Redis.SetNX(cacheCtx, "flash:admit:"+c.UserID, "1", time.Second).Result()
-			platform.TraceResponse(cacheCtx, platform.Result{"allowed": allowed}, er)
-			rs.End()
-			if er != nil {
-				return nil, status.Error(codes.Unavailable, "admission cache unavailable")
-			}
-			if !allowed {
-				return nil, status.Error(codes.ResourceExhausted, "please wait before another flash request")
-			}
-		}
+	if v.UserID != c.UserID && c.Role != constants.RoleAdmin {
+		return nil, status.Error(codes.PermissionDenied, "flash request owner mismatch")
+	}
+	return platform.Map(v), nil
+}
+func (s *Service) Request(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "flash.usecase.Request")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+	if c.IdempotencyKey == "" || len(c.IdempotencyKey) > 120 || platform.Text(c.Data, "quote_id") == "" {
+		return nil, status.Error(codes.InvalidArgument, "idempotency_key and quote_id required")
+	}
+	old, e := s.Repo.Find(ctx, c.UserID, c.IdempotencyKey)
+	if e != nil {
+		return nil, e
+	}
+	if old != nil {
 		return s.Repo.Create(ctx, c)
 	}
-	return nil, status.Error(codes.Unimplemented, "unsupported action")
+	if s.RPC == nil {
+		return nil, status.Error(codes.Unavailable, "pricing service unavailable")
+	}
+	q, e := s.RPC.Call(
+		ctx,
+		constants.ServicePricing,
+		platform.Command{
+			Action: constants.ActionGet,
+			ID:     platform.Text(c.Data, "quote_id"),
+			UserID: c.UserID,
+			Role:   c.Role,
+		},
+	)
+	if e != nil {
+		return nil, e
+	}
+	if platform.Text(q, "activity_id") != "flash-demo" {
+		return nil, status.Error(codes.InvalidArgument, "quote must reference flash-demo activity")
+	}
+	session, e := s.Repo.Session(ctx, "flash-demo")
+	if e != nil {
+		return nil, e
+	}
+	if !session.Active {
+		return nil, status.Error(codes.FailedPrecondition, "flash session inactive")
+	}
+	var quote struct {
+		Items []struct {
+			SKUID    string `json:"sku_id"`
+			Quantity int64  `json:"quantity"`
+		} `json:"items"`
+	}
+	if e = platform.Decode(q, &quote); e != nil {
+		return nil, e
+	}
+	if len(quote.Items) != 1 || quote.Items[0].SKUID != session.SKUID || quote.Items[0].Quantity != 1 {
+		return nil, status.Error(codes.InvalidArgument, "quote must contain the session SKU once")
+	}
+	if s.Redis != nil {
+		cacheCtx, rs := platform.Start(ctx, "cache.flash.admission")
+		platform.TraceRequest(cacheCtx, platform.Result{"operation": "SETNX", "user_id": c.UserID, "ttl_ms": 1000})
+		allowed, er := s.Redis.SetNX(cacheCtx, "flash:admit:"+c.UserID, "1", time.Second).Result()
+		platform.TraceResponse(cacheCtx, platform.Result{"allowed": allowed}, er)
+		rs.End()
+		if er != nil {
+			return nil, status.Error(codes.Unavailable, "admission cache unavailable")
+		}
+		if !allowed {
+			return nil, status.Error(codes.ResourceExhausted, "please wait before another flash request")
+		}
+	}
+	return s.Repo.Create(ctx, c)
 }
+
 func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error) {
 	if e.Type != constants.EventFlashOrderRequested {
 		return nil

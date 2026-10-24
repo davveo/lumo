@@ -35,7 +35,7 @@ func account(ctx context.Context, tx *gorm.DB, user string) (domain.Account, err
 	e = tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&v, "user_id = ?", user).Error
 	return v, e
 }
-func (r *Repository) Get(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (r *Repository) Get(ctx context.Context, c platform.Request) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.points.Get")
 	defer s.End()
 	var a domain.Account
@@ -50,7 +50,7 @@ func (r *Repository) Get(ctx context.Context, c platform.Command) (platform.Resu
 	out["ledger"] = ls
 	return out, e
 }
-func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (r *Repository) Reserve(ctx context.Context, c platform.Request) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.points.Reserve")
 	defer s.End()
 	n := platform.Int(c.Data, "amount")
@@ -106,8 +106,14 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.
 	})
 	return platform.Map(out), e
 }
-func (r *Repository) Transition(ctx context.Context, c platform.Command) (platform.Result, error) {
-	ctx, s := platform.Start(ctx, "repository.points."+c.Action)
+func (r *Repository) Confirm(ctx context.Context, c platform.Request) (platform.Result, error) {
+	return r.transition(ctx, c, constants.PointsHoldStateConfirmed)
+}
+func (r *Repository) Cancel(ctx context.Context, c platform.Request) (platform.Result, error) {
+	return r.transition(ctx, c, constants.PointsHoldStateCancelled)
+}
+func (r *Repository) transition(ctx context.Context, c platform.Request, target string) (platform.Result, error) {
+	ctx, s := platform.Start(ctx, "repository.points.transition."+target)
 	defer s.End()
 	if c.ID == "" {
 		return nil, status.Error(codes.InvalidArgument, "order required")
@@ -118,7 +124,7 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 			return lockErr
 		}
 		er := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&out, "id = ?", c.ID).Error
-		if errors.Is(er, gorm.ErrRecordNotFound) && c.Action == constants.ActionCancel {
+		if errors.Is(er, gorm.ErrRecordNotFound) && target == constants.PointsHoldStateCancelled {
 			out = domain.Hold{ID: c.ID, UserID: c.UserID, State: constants.PointsHoldStateCancelled}
 			return tx.WithContext(ctx).Create(&out).Error
 		}
@@ -130,10 +136,6 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 		}
 		if out.UserID != c.UserID {
 			return status.Error(codes.PermissionDenied, "hold owner mismatch")
-		}
-		target := constants.PointsHoldStateConfirmed
-		if c.Action == constants.ActionCancel {
-			target = constants.PointsHoldStateCancelled
 		}
 		if out.State == target {
 			return nil
@@ -173,7 +175,13 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 	})
 	return platform.Map(out), e
 }
-func (r *Repository) Credit(ctx context.Context, c platform.Command, checkin bool) (platform.Result, error) {
+func (r *Repository) Checkin(ctx context.Context, c platform.Request) (platform.Result, error) {
+	return r.credit(ctx, c, true)
+}
+func (r *Repository) Reward(ctx context.Context, c platform.Request) (platform.Result, error) {
+	return r.credit(ctx, c, false)
+}
+func (r *Repository) credit(ctx context.Context, c platform.Request, checkin bool) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.points.Credit")
 	defer s.End()
 	n := platform.Int(c.Data, "amount")
@@ -265,7 +273,7 @@ func (r *Repository) Credit(ctx context.Context, c platform.Command, checkin boo
 	})
 	return result, e
 }
-func (r *Repository) Refund(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (r *Repository) Refund(ctx context.Context, c platform.Request) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.points.Refund")
 	defer s.End()
 	order := platform.Text(c.Data, "order_id")

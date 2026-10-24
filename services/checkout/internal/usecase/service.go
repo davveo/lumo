@@ -45,41 +45,56 @@ func (s *Service) call(
 		platform.Command{Action: action, ID: id, UserID: user, Role: constants.RoleSystem, Data: data},
 	)
 }
-func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "checkout.usecase."+c.Action)
-	defer sp.End()
+func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "checkout.usecase.Quote")
+	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	if err := platform.RequireUser(c); err != nil {
 		return nil, err
 	}
-	switch c.Action {
-	case constants.ActionQuote:
-		c.Action = constants.ActionQuote
-		return s.rpc.Call(ctx, constants.ServicePricing, c)
-	case constants.ActionSubmit:
-		return s.submit(ctx, c)
-	case constants.ActionGet:
-		a, err := s.r.Get(ctx, c.ID)
-		if err != nil {
-			return nil, err
-		}
-		if a.UserID != c.UserID && c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
-			return nil, status.Error(codes.PermissionDenied, "checkout belongs to another member")
-		}
-		return platform.Map(a), nil
-	case constants.ActionPaid:
-		if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
-			return nil, status.Error(codes.PermissionDenied, "internal payment workflow")
-		}
-		return s.run(ctx, c.ID, c.UserID, constants.CheckoutModePaid)
-	case constants.ActionCancel:
-		return s.cancel(ctx, c)
-	default:
-		return nil, status.Error(codes.Unimplemented, "unsupported checkout action")
-	}
+	return s.rpc.Call(ctx, constants.ServicePricing, c.Command(constants.ActionQuote))
 }
-func (s *Service) submit(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "checkout.usecase.Get")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+	a, err := s.r.Get(ctx, c.ID)
+	if err != nil {
+		return nil, err
+	}
+	if a.UserID != c.UserID && c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
+		return nil, status.Error(codes.PermissionDenied, "checkout belongs to another member")
+	}
+	return platform.Map(a), nil
+}
+func (s *Service) Paid(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "checkout.usecase.Paid")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+	if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
+		return nil, status.Error(codes.PermissionDenied, "internal payment workflow")
+	}
+	return s.resumeWorkflow(ctx, c.ID, c.UserID, constants.CheckoutModePaid)
+}
+
+func (s *Service) Submit(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "checkout.usecase.Submit")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
 	if c.IdempotencyKey == "" {
 		return nil, status.Error(codes.InvalidArgument, "Idempotency-Key required")
 	}
@@ -98,7 +113,7 @@ func (s *Service) submit(ctx context.Context, c platform.Command) (platform.Resu
 			(old.RequestHash != "" && old.RequestHash != requestHash) {
 			return nil, status.Error(codes.AlreadyExists, "idempotency key reused with a different quote")
 		}
-		return s.run(ctx, id, c.UserID, constants.CheckoutModeCreate)
+		return s.resumeWorkflow(ctx, id, c.UserID, constants.CheckoutModeCreate)
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
@@ -293,9 +308,9 @@ func (s *Service) submit(ctx context.Context, c platform.Command) (platform.Resu
 	if err = s.r.Ensure(ctx, &a); err != nil {
 		return nil, err
 	}
-	return s.run(ctx, id, c.UserID, constants.CheckoutModeCreate)
+	return s.resumeWorkflow(ctx, id, c.UserID, constants.CheckoutModeCreate)
 }
-func (s *Service) run(ctx context.Context, id, user, mode string) (platform.Result, error) {
+func (s *Service) resumeWorkflow(ctx context.Context, id, user, mode string) (platform.Result, error) {
 	owner := platform.ID("lease")
 	ok, err := s.r.Claim(ctx, id, owner)
 	if err != nil {
@@ -562,7 +577,15 @@ func (s *Service) releaseResources(
 	a.State = constants.CheckoutStateCancelled
 	return save()
 }
-func (s *Service) cancel(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) Cancel(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "checkout.usecase.Cancel")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
 	o, err := s.rpc.Call(
 		ctx,
 		constants.ServiceOrder,
@@ -574,7 +597,7 @@ func (s *Service) cancel(ctx context.Context, c platform.Command) (platform.Resu
 	user := platform.Text(o, "user_id")
 	st := platform.Text(o, "status")
 	if st == constants.OrderStatusClosed || st == constants.OrderStatusCreateFailed {
-		return s.run(ctx, c.ID, user, constants.CheckoutModeRelease)
+		return s.resumeWorkflow(ctx, c.ID, user, constants.CheckoutModeRelease)
 	}
 	if _, err = s.call(ctx, constants.ServiceOrder, constants.ActionCloseBegin, c.ID, user, nil); err != nil {
 		return nil, err
@@ -592,14 +615,14 @@ func (s *Service) cancel(ctx context.Context, c platform.Command) (platform.Resu
 			return nil, err
 		}
 		if accepted, _ := accept["accepted"].(bool); !accepted {
-			return s.run(ctx, c.ID, user, constants.CheckoutModeRelease)
+			return s.resumeWorkflow(ctx, c.ID, user, constants.CheckoutModeRelease)
 		}
-		return s.run(ctx, c.ID, user, constants.CheckoutModePaid)
+		return s.resumeWorkflow(ctx, c.ID, user, constants.CheckoutModePaid)
 	}
 	if _, err = s.call(ctx, constants.ServiceOrder, constants.ActionCloseComplete, c.ID, user, nil); err != nil {
 		return nil, err
 	}
-	return s.run(ctx, c.ID, user, constants.CheckoutModeRelease)
+	return s.resumeWorkflow(ctx, c.ID, user, constants.CheckoutModeRelease)
 }
 func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error) {
 	ctx, sp := platform.Start(ctx, "checkout.usecase.OnEvent."+e.Type)
@@ -611,7 +634,7 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 		if id == "" {
 			id = e.AggregateID
 		}
-		_, err := s.run(ctx, id, e.UserID, constants.CheckoutModePaid)
+		_, err := s.Paid(ctx, platform.Request{ID: id, UserID: e.UserID, Role: constants.RoleSystem})
 		return err
 	}
 	if e.Type == constants.EventOrderClosed {
@@ -619,7 +642,7 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 		if id == "" {
 			id = e.AggregateID
 		}
-		_, err := s.run(ctx, id, e.UserID, constants.CheckoutModeRelease)
+		_, err := s.resumeWorkflow(ctx, id, e.UserID, constants.CheckoutModeRelease)
 		return err
 	}
 	if e.Type == constants.EventGroupFormed || e.Type == constants.EventGroupFailed {
@@ -653,7 +676,7 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 				); err != nil {
 					return err
 				}
-				if _, err = s.run(ctx, id, a.UserID, constants.CheckoutModePaid); err != nil {
+				if _, err = s.Paid(ctx, platform.Request{ID: id, UserID: a.UserID, Role: constants.RoleSystem}); err != nil {
 					return err
 				}
 			} else {
@@ -677,7 +700,7 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 				); err != nil {
 					return err
 				}
-				if _, err = s.run(ctx, id, a.UserID, constants.CheckoutModeRelease); err != nil {
+				if _, err = s.resumeWorkflow(ctx, id, a.UserID, constants.CheckoutModeRelease); err != nil {
 					return err
 				}
 			}
@@ -699,9 +722,15 @@ func (s *Service) Tick(ctx context.Context) error {
 		case constants.CheckoutStatePaidConfirming, constants.CheckoutStatePaidWaitGroup:
 			mode = constants.CheckoutModePaid
 		}
-		if _, e := s.run(ctx, a.ID, a.UserID, mode); e != nil && status.Code(e) != codes.Aborted &&
-			status.Code(e) != codes.FailedPrecondition {
-			return e
+		var resumeErr error
+		if mode == constants.CheckoutModePaid {
+			_, resumeErr = s.Paid(ctx, platform.Request{ID: a.ID, UserID: a.UserID, Role: constants.RoleSystem})
+		} else {
+			_, resumeErr = s.resumeWorkflow(ctx, a.ID, a.UserID, mode)
+		}
+		if resumeErr != nil && status.Code(resumeErr) != codes.Aborted &&
+			status.Code(resumeErr) != codes.FailedPrecondition {
+			return resumeErr
 		}
 	}
 	return nil

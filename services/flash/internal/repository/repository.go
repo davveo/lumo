@@ -71,7 +71,7 @@ func (r *Repository) Get(ctx context.Context, id string) (domain.Request, error)
 	}
 	return v, e
 }
-func (r *Repository) Create(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (r *Repository) Create(ctx context.Context, c platform.Request) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.flash.Create")
 	defer s.End()
 	payload, e := json.Marshal(c.Data)

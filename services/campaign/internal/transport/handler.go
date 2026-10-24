@@ -2,31 +2,16 @@ package transport
 
 import (
 	"github.com/davveo/lumo/internal/constants"
-
-	"context"
 	"github.com/davveo/lumo/internal/platform"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"github.com/davveo/lumo/services/campaign/internal/usecase"
 )
 
-type Executor interface {
-	Execute(context.Context, platform.Command) (platform.Result, error)
-}
-type Handler struct{ App Executor }
-
-func (h *Handler) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
-	ctx, s := platform.Start(ctx, "transport.campaign."+c.Action)
-	defer s.End()
-	platform.TraceRequest(ctx, c)
-	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	switch c.Action {
-	case constants.ActionList,
-		constants.ActionEvaluate,
-		constants.ActionReserve,
-		constants.ActionConfirm,
-		constants.ActionCancel:
-		return h.App.Execute(ctx, c)
-	default:
-		return nil, status.Error(codes.Unimplemented, "unsupported campaign action")
-	}
+func New(s *usecase.Service) *platform.MethodHandler {
+	return platform.NewMethodHandler(constants.ServiceCampaign, map[string]platform.Operation{
+		constants.ActionList:     s.List,
+		constants.ActionEvaluate: s.Evaluate,
+		constants.ActionReserve:  s.Reserve,
+		constants.ActionConfirm:  s.Confirm,
+		constants.ActionCancel:   s.Cancel,
+	}, nil)
 }

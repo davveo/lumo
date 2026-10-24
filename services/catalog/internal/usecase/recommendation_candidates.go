@@ -16,9 +16,14 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// recommendationCandidates is an internal, bounded recall operation. It does
+// RecommendationCandidates is an internal, bounded recall operation. It does
 // not change the public catalog listing or trust caller-provided ranking data.
-func (s *Service) recommendationCandidates(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) RecommendationCandidates(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "catalog.usecase."+constants.ActionRecommendationCandidates)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+
 	if c.Role != constants.RoleSystem {
 		return nil, status.Error(codes.PermissionDenied, "internal recommendation recall required")
 	}

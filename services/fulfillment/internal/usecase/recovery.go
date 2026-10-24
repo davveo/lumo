@@ -21,14 +21,13 @@ func (s *Service) Tick(ctx context.Context) (traceErr error) {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		action := constants.ActionCancel
+		request := platform.Request{ID: row.ID, UserID: row.UserID, Role: constants.RoleSystem}
 		if row.Status == constants.FulfillmentStatusDispatching {
-			action = constants.ActionDispatch
+			_, err = s.Dispatch(ctx, request)
+		} else {
+			_, err = s.Cancel(ctx, request)
 		}
-		if _, err = s.Handle(
-			ctx,
-			platform.Command{Action: action, ID: row.ID, UserID: row.UserID, Role: constants.RoleSystem},
-		); err != nil {
+		if err != nil {
 			failures = append(failures, err)
 		}
 	}

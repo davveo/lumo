@@ -27,7 +27,7 @@ type popupIdentity struct {
 	facts            popupFacts
 }
 
-func (s *Service) popupIdentity(ctx context.Context, c platform.Command, visit bool) (popupIdentity, error) {
+func (s *Service) popupIdentity(ctx context.Context, c platform.Request, visit bool) (popupIdentity, error) {
 	var identity popupIdentity
 	visitor, session := platform.Text(c.Data, "visitor_id"), platform.Text(c.Data, "session_id")
 	if len(visitor) < 16 || len(session) < 16 || !popupIDPattern.MatchString(visitor) ||
@@ -81,7 +81,7 @@ func popupActive(p popupConfig, now time.Time) bool {
 	}
 	return true
 }
-func popupMatches(p popupConfig, c platform.Command, id popupIdentity, now time.Time) bool {
+func popupMatches(p popupConfig, c platform.Request, id popupIdentity, now time.Time) bool {
 	if !popupContains(p.Placements, platform.Text(c.Data, "placement")) {
 		return false
 	}
@@ -185,7 +185,12 @@ func popupRows(raw any) []platform.Result {
 	_ = json.Unmarshal(b, &items)
 	return items
 }
-func (s *Service) popupDecide(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) PopupDecide(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "content.usecase."+constants.ActionPopupDecide)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+
 	if err := popupInternal(c); err != nil {
 		return nil, err
 	}
@@ -323,7 +328,12 @@ func popupDeliveryOwned(d domain.PopupDelivery, id popupIdentity, view string) b
 func popupDeliveryError() error {
 	return status.Error(codes.FailedPrecondition, "popup delivery unavailable; refresh the page")
 }
-func (s *Service) popupEvent(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) PopupEvent(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "content.usecase."+constants.ActionPopupEvent)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+
 	if err := popupInternal(c); err != nil {
 		return nil, err
 	}
@@ -449,7 +459,12 @@ func (s *Service) popupEvent(ctx context.Context, c platform.Command) (platform.
 	}
 	return platform.Result{"allowed": allowed}, nil
 }
-func (s *Service) popupClaim(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) PopupClaim(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "content.usecase."+constants.ActionPopupClaim)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+
 	if err := popupInternal(c); err != nil {
 		return nil, err
 	}

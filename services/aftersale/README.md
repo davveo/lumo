@@ -13,3 +13,22 @@ Before shipment, refund-only applications must cover the whole order because war
 Exchange: receive/inspect old goods → reserve and confirm replacement inventory → create a separate replacement fulfillment → EXCHANGING → replacement delivery → COMPLETED. The implementation accepts same-SKU or equal-price replacement; a price-changing replacement is explicitly rejected until a differential-payment workflow is configured. It does not grant a free upgrade or pretend a supplementary payment exists.
 
 `Tick` resumes interrupted inspections, refund requests and exchange preparation. Deterministic receipt/refund/reservation IDs prevent duplicated effects. These workflows have explicit usecase/repository/transport spans and propagate the same context into RPC and GORM operations.
+
+## 独立业务方法
+
+每个操作对应 usecase 的独立公开方法，接收不含 `Action` 的 `platform.Request`。
+transport 通过 `MethodHandler` 注册方法并执行边界校验与链路追踪；兼容入口仅负责路由。
+服务装配同时导出 `Module.Operations`，供独立 gRPC 方法直接调用。
+
+- `create` → `Create(context.Context, platform.Request)`。
+- `get` → `Get(context.Context, platform.Request)`。
+- `list` → `List(context.Context, platform.Request)`。
+- `approve` → `Approve(context.Context, platform.Request)`。
+- `reject` → `Reject(context.Context, platform.Request)`。
+- `cancel` → `Cancel(context.Context, platform.Request)`。
+- `return` → `Return(context.Context, platform.Request)`。
+- `inspect` → `Inspect(context.Context, platform.Request)`。
+- `refund` → `Refund(context.Context, platform.Request)`。
+- `exchange` → `Exchange(context.Context, platform.Request)`。
+
+定时恢复根据已持久化的业务状态直接调用本地方法，保留重试与幂等状态流转。

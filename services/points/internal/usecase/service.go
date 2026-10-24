@@ -12,41 +12,97 @@ import (
 
 type Service struct{ Repo *repository.Repository }
 
-func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "usecase.points."+c.Action)
-	defer sp.End()
+func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "points.usecase.Get")
+	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	if e := platform.RequireUser(c); e != nil {
-		return nil, e
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
 	}
-	switch c.Action {
-	case constants.ActionGet:
-		return s.Repo.Get(ctx, c)
-	case constants.ActionCheckin:
-		return s.Repo.Credit(ctx, c, true)
+	return s.Repo.Get(ctx, c)
+}
+func (s *Service) Checkin(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "points.usecase.Checkin")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+	return s.Repo.Checkin(ctx, c)
+}
+func (s *Service) Reserve(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "points.usecase.Reserve")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
 	}
 	if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
 		return nil, status.Error(codes.PermissionDenied, "internal points command required")
 	}
-	switch c.Action {
-	case constants.ActionReserve:
-		return s.Repo.Reserve(ctx, c)
-	case constants.ActionConfirm, constants.ActionCancel:
-		return s.Repo.Transition(ctx, c)
-	case constants.ActionRefund:
-		return s.Repo.Refund(ctx, c)
-	case constants.ActionReward:
-		return s.Repo.Credit(ctx, c, false)
-	}
-	return nil, status.Error(codes.Unimplemented, "unsupported action")
+	return s.Repo.Reserve(ctx, c)
 }
+func (s *Service) Confirm(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "points.usecase.Confirm")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+	if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
+		return nil, status.Error(codes.PermissionDenied, "internal points command required")
+	}
+	return s.Repo.Confirm(ctx, c)
+}
+func (s *Service) Cancel(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "points.usecase.Cancel")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+	if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
+		return nil, status.Error(codes.PermissionDenied, "internal points command required")
+	}
+	return s.Repo.Cancel(ctx, c)
+}
+func (s *Service) Refund(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "points.usecase.Refund")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+	if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
+		return nil, status.Error(codes.PermissionDenied, "internal points command required")
+	}
+	return s.Repo.Refund(ctx, c)
+}
+func (s *Service) Reward(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "points.usecase.Reward")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+	if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
+		return nil, status.Error(codes.PermissionDenied, "internal points command required")
+	}
+	return s.Repo.Reward(ctx, c)
+}
+
 func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
 	if e.Type == constants.EventRefundSucceeded {
-		_, err := s.Execute(
+		_, err := s.Refund(
 			ctx,
-			platform.Command{
-				Action: constants.ActionRefund,
+			platform.Request{
 				ID:     e.AggregateID,
 				UserID: e.UserID,
 				Role:   constants.RoleSystem,
@@ -60,10 +116,9 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
 		if amount == 0 {
 			amount = platform.Int(e.Data, "payable_cents") / 100
 		}
-		_, err := s.Execute(
+		_, err := s.Reward(
 			ctx,
-			platform.Command{
-				Action: constants.ActionReward,
+			platform.Request{
 				ID:     e.AggregateID,
 				UserID: e.UserID,
 				Role:   constants.RoleSystem,

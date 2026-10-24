@@ -24,40 +24,42 @@ func New(r *repository.Repository, rpc platform.Caller) *Service { return &Servi
 func (s *Service) Topics() []string                              { return nil }
 func (s *Service) OnEvent(context.Context, platform.Event) error { return nil }
 func (s *Service) Tick(context.Context) error                    { return nil }
-func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "pricing.usecase."+c.Action)
-	defer sp.End()
+func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "pricing.usecase.Get")
+	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	if err := platform.RequireUser(c); err != nil {
 		return nil, err
 	}
-	switch c.Action {
-	case constants.ActionQuote:
-		return s.quote(ctx, c)
-	case constants.ActionGet:
-		q, err := s.r.Get(ctx, c.ID)
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Error(codes.NotFound, "quote not found")
-		}
-		if err != nil {
-			return nil, err
-		}
-		if q.UserID != c.UserID && c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
-			return nil, status.Error(codes.PermissionDenied, "quote belongs to another member")
-		}
-		var out platform.Result
-		if err = json.Unmarshal([]byte(q.Payload), &out); err != nil {
-			return nil, err
-		}
-		out["expires_at"] = q.ExpiresAt.Format(time.RFC3339Nano)
-		out["user_id"] = q.UserID
-		return out, nil
-	default:
-		return nil, status.Error(codes.Unimplemented, "unsupported pricing action")
+	q, err := s.r.Get(ctx, c.ID)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, status.Error(codes.NotFound, "quote not found")
 	}
+	if err != nil {
+		return nil, err
+	}
+	if q.UserID != c.UserID && c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
+		return nil, status.Error(codes.PermissionDenied, "quote belongs to another member")
+	}
+	var out platform.Result
+	if err = json.Unmarshal([]byte(q.Payload), &out); err != nil {
+		return nil, err
+	}
+	out["expires_at"] = q.ExpiresAt.Format(time.RFC3339Nano)
+	out["user_id"] = q.UserID
+	return out, nil
 }
-func (s *Service) quote(ctx context.Context, c platform.Command) (platform.Result, error) {
+
+func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "pricing.usecase.Quote")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
 	var in struct {
 		Items    []domain.Item `json:"items"`
 		CouponID string        `json:"coupon_id"`

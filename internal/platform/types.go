@@ -25,6 +25,39 @@ type Command struct {
 	IdempotencyKey string         `json:"idempotency_key,omitempty"`
 	Data           map[string]any `json:"data,omitempty"`
 }
+
+// Request carries identity and input data for a single, explicitly named usecase.
+// Operation selection belongs to the transport boundary, never to business data.
+type Request struct {
+	ID             string         `json:"id,omitempty"`
+	UserID         string         `json:"user_id,omitempty"`
+	Role           string         `json:"role,omitempty"`
+	IdempotencyKey string         `json:"idempotency_key,omitempty"`
+	Data           map[string]any `json:"data,omitempty"`
+}
+
+func (c Command) Request() Request {
+	return Request{ID: c.ID, UserID: c.UserID, Role: c.Role, IdempotencyKey: c.IdempotencyKey, Data: c.Data}
+}
+
+// Command adapts a named call to the existing JSON HTTP/test caller boundary.
+func (r Request) Command(action string) Command {
+	return Command{Action: action, ID: r.ID, UserID: r.UserID, Role: r.Role,
+		IdempotencyKey: r.IdempotencyKey, Data: r.Data}
+}
+
+type principal interface {
+	PrincipalID() string
+	PrincipalRole() string
+}
+
+func (c Command) PrincipalID() string   { return c.UserID }
+func (c Command) PrincipalRole() string { return c.Role }
+func (r Request) PrincipalID() string   { return r.UserID }
+func (r Request) PrincipalRole() string { return r.Role }
+
+type Operation func(context.Context, Request) (Result, error)
+
 type Result = map[string]any
 type Caller interface {
 	Call(context.Context, string, Command) (Result, error)
@@ -39,6 +72,8 @@ type Module struct {
 	Migrate func(context.Context) error
 	Seed    func(context.Context) error
 	Handle  func(context.Context, Command) (Result, error)
+	// Operations are explicit business methods exposed through the domain's RPCs.
+	Operations map[string]Operation
 	// RegisterRPC installs explicit domain RPCs alongside the legacy Execute adapter.
 	RegisterRPC func(grpc.ServiceRegistrar)
 	RPCActions  map[string]string
@@ -108,17 +143,17 @@ func Int(m map[string]any, key string) int64 {
 	}
 	return 0
 }
-func RequireUser(c Command) error {
-	if c.UserID == "" {
+func RequireUser(c principal) error {
+	if c.PrincipalID() == "" {
 		return status.Error(codes.Unauthenticated, "authentication required")
 	}
 	return nil
 }
-func RequireAdmin(c Command) error {
+func RequireAdmin(c principal) error {
 	if err := RequireUser(c); err != nil {
 		return err
 	}
-	if c.Role != constants.RoleAdmin {
+	if c.PrincipalRole() != constants.RoleAdmin {
 		return status.Error(codes.PermissionDenied, "administrator required")
 	}
 	return nil

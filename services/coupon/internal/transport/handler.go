@@ -2,35 +2,20 @@ package transport
 
 import (
 	"github.com/davveo/lumo/internal/constants"
-
-	"context"
 	"github.com/davveo/lumo/internal/platform"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"github.com/davveo/lumo/services/coupon/internal/usecase"
 )
 
-type Executor interface {
-	Execute(context.Context, platform.Command) (platform.Result, error)
-}
-type Handler struct{ App Executor }
-
-func (h *Handler) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
-	ctx, s := platform.Start(ctx, "transport.coupon."+c.Action)
-	defer s.End()
-	platform.TraceRequest(ctx, c)
-	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	switch c.Action {
-	case constants.ActionList,
-		constants.ActionTemplates,
-		constants.ActionTemplatesSnapshot,
-		constants.ActionTemplatesByIds,
-		constants.ActionClaim,
-		constants.ActionReserve,
-		constants.ActionConfirm,
-		constants.ActionCancel,
-		constants.ActionRefund:
-		return h.App.Execute(ctx, c)
-	default:
-		return nil, status.Error(codes.Unimplemented, "unsupported coupon action")
-	}
+func New(s *usecase.Service) *platform.MethodHandler {
+	return platform.NewMethodHandler(constants.ServiceCoupon, map[string]platform.Operation{
+		constants.ActionTemplates:         s.Templates,
+		constants.ActionTemplatesSnapshot: s.TemplatesSnapshot,
+		constants.ActionTemplatesByIds:    s.TemplatesByIds,
+		constants.ActionList:              s.List,
+		constants.ActionClaim:             s.Claim,
+		constants.ActionReserve:           s.Reserve,
+		constants.ActionConfirm:           s.Confirm,
+		constants.ActionCancel:            s.Cancel,
+		constants.ActionRefund:            s.Refund,
+	}, nil)
 }

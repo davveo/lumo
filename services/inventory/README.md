@@ -24,3 +24,20 @@
 测试：`go test ./services/inventory/...`。
 
 扩展分类商品库存仅在 `DEMO_MODE=true/1` 时初始化，SKU来源与商品服务共用 `internal/democatalog` 定义，各自只写本服务数据库。按100个SKU批量插入，仅为不存在的SKU建立50件初始库存；重复启动不增加已有库存，不改变预占、分配、缺货状态和库存流水。原基础SKU种子行为保留。
+
+## 独立业务方法
+
+每个操作对应 usecase 的独立公开方法，接收不含 `Action` 的 `platform.Request`。
+transport 通过 `MethodHandler` 注册方法并执行边界校验与链路追踪；兼容入口仅负责路由。
+服务装配同时导出 `Module.Operations`，供独立 gRPC 方法直接调用。
+
+- `get` → `Get(context.Context, platform.Request)`。
+- `batch_get` → `BatchGet(context.Context, platform.Request)`。
+- `reserve` → `Reserve(context.Context, platform.Request)`。
+- `confirm` → `Confirm(context.Context, platform.Request)`。
+- `cancel` → `Cancel(context.Context, platform.Request)`。
+- `dispatch` → `Dispatch(context.Context, platform.Request)`。
+- `restock` → `Restock(context.Context, platform.Request)`。
+- `adjust` → `Adjust(context.Context, platform.Request)`。
+
+库存确认、取消、发货分别调用仓储方法；共享事务只接收明确的目标状态，保持原行锁与库存流水规则。

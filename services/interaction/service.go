@@ -16,7 +16,7 @@ func New(d platform.Dependencies) platform.Module {
 		Name:    constants.ServiceInteraction,
 		Migrate: s.Migrate,
 		Seed:    s.Seed,
-		Handle:  t.Handle,
+		Handle:  t.Handle, Operations: t.Operations(),
 		Topics:  nil,
 		OnEvent: s.OnEvent,
 	}

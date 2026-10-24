@@ -14,3 +14,11 @@
 本服务只写自己的数据库schema。跨服务通过 `platform.Caller` 访问 gRPC，禁止直接读写对方业务表。网关验证会话后填入调用主体，服务再次检查用户资源归属与管理员角色。
 
 加入购物车查询可售商品与库存，累计每SKU不得超过10。merge 使用 max 合并而非重复累加，可在部分失败后安全重试。购物车不预占库存。
+
+## 独立业务方法
+
+`list` → `List`；`add` → `Add`；`set` → `Set`；`remove` → `Remove`；`clear` → `Clear`；`merge` → `Merge`。
+
+业务方法统一接收不含动作字段的 `platform.Request`，权限与资源归属校验在方法内部执行。
+`internal/transport/handler.go` 只维护边界路由注册表；模块通过 `Operations` 暴露独立操作，
+`Handle` 仅兼容现有命令调用入口。确认与取消分别调用明确的仓储方法，事务和幂等规则保持不变。

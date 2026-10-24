@@ -84,7 +84,7 @@ func (r *Repository) List(ctx context.Context) (platform.Result, error) {
 	e := r.DB.WithContext(ctx).Where("active = ?", true).Order("id").Find(&a).Error
 	return platform.Result{"items": a}, e
 }
-func (r *Repository) Evaluate(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (r *Repository) Evaluate(ctx context.Context, c platform.Request) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.campaign.Evaluate")
 	defer s.End()
 	sub := platform.Int(c.Data, "subtotal_cents")
@@ -171,7 +171,7 @@ func evaluate(a domain.Activity, subtotal, quantity int64) (int64, string, strin
 	}
 	return discount, "", policy
 }
-func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (r *Repository) Reserve(ctx context.Context, c platform.Request) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.campaign.Reserve")
 	defer s.End()
 	id := platform.Text(c.Data, "activity_id")
@@ -249,8 +249,14 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.
 	})
 	return platform.Map(h), e
 }
-func (r *Repository) Transition(ctx context.Context, c platform.Command) (platform.Result, error) {
-	ctx, s := platform.Start(ctx, "repository.campaign."+c.Action)
+func (r *Repository) Confirm(ctx context.Context, c platform.Request) (platform.Result, error) {
+	return r.transition(ctx, c, constants.CampaignHoldStateConfirmed)
+}
+func (r *Repository) Cancel(ctx context.Context, c platform.Request) (platform.Result, error) {
+	return r.transition(ctx, c, constants.CampaignHoldStateCancelled)
+}
+func (r *Repository) transition(ctx context.Context, c platform.Request, target string) (platform.Result, error) {
+	ctx, s := platform.Start(ctx, "repository.campaign.transition."+target)
 	defer s.End()
 	if c.ID == "" {
 		return nil, status.Error(codes.InvalidArgument, "order ID required")
@@ -258,7 +264,7 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 	var h domain.Hold
 	e := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		er := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&h, "id = ?", c.ID).Error
-		if errors.Is(er, gorm.ErrRecordNotFound) && c.Action == constants.ActionCancel {
+		if errors.Is(er, gorm.ErrRecordNotFound) && target == constants.CampaignHoldStateCancelled {
 			h = domain.Hold{ID: c.ID, UserID: c.UserID, State: constants.CampaignHoldStateCancelled}
 			return tx.WithContext(ctx).Create(&h).Error
 		}
@@ -267,10 +273,6 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 		}
 		if h.UserID != c.UserID {
 			return status.Error(codes.PermissionDenied, "activity hold owner mismatch")
-		}
-		target := constants.CampaignHoldStateConfirmed
-		if c.Action == constants.ActionCancel {
-			target = constants.CampaignHoldStateCancelled
 		}
 		if h.State == target {
 			return nil

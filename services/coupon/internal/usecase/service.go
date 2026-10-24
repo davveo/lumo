@@ -17,69 +17,128 @@ type Service struct {
 	RPC  platform.Caller
 }
 
-func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "usecase.coupon."+c.Action)
-	defer sp.End()
+func (s *Service) Templates(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "coupon.usecase.Templates")
+	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	if c.Action == constants.ActionTemplates || c.Action == constants.ActionTemplatesSnapshot ||
-		c.Action == constants.ActionTemplatesByIds {
-		if c.Action == constants.ActionTemplatesByIds && c.Role != constants.RoleSystem {
-			return nil, status.Error(codes.PermissionDenied, "internal coupon command required")
-		}
-		read := s.Repo.Templates
-		if c.Action == constants.ActionTemplatesSnapshot {
-			read = s.Repo.TemplateSnapshot
-		}
-		if c.Action == constants.ActionTemplatesByIds {
-			read = s.Repo.TemplatesByIDs
-		}
-		out, err := read(ctx, c)
-		if err != nil {
-			return nil, err
-		}
-		check := &eligibility{rpc: s.RPC, user: c.UserID, role: c.Role}
-		for _, item := range out["items"].([]platform.Result) {
-			if item["claim_status"] != constants.CouponClaimStatusAvailable {
-				continue
-			}
-			t := domain.Template{
-				MinPoints: platform.Int(item, "min_points"),
-				MinGrowth: platform.Int(item, "min_growth"),
-			}
-			if err := check.check(ctx, t); err != nil {
-				item["claim_status"] = constants.CouponClaimStatusConditionsUnmet
-				if status.Code(err) == codes.Unavailable {
-					item["claim_status"] = constants.CouponClaimStatusUnavailable
-				}
-				item["claim_reason"], item["claimable"] = status.Convert(err).Message(), false
-			}
-		}
-		return out, nil
+	return s.readTemplates(ctx, c, s.Repo.Templates)
+}
+func (s *Service) TemplatesSnapshot(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "coupon.usecase.TemplatesSnapshot")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	return s.readTemplates(ctx, c, s.Repo.TemplateSnapshot)
+}
+func (s *Service) TemplatesByIds(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "coupon.usecase.TemplatesByIds")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if c.Role != constants.RoleSystem {
+		return nil, status.Error(codes.PermissionDenied, "internal coupon command required")
 	}
-	if e := platform.RequireUser(c); e != nil {
-		return nil, e
+	return s.readTemplates(ctx, c, s.Repo.TemplatesByIDs)
+}
+func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "coupon.usecase.List")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
 	}
-	if c.Action == constants.ActionList {
-		return s.Repo.List(ctx, c)
+	return s.Repo.List(ctx, c)
+}
+func (s *Service) Claim(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "coupon.usecase.Claim")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
 	}
-	if c.Action == constants.ActionClaim {
-		check := &eligibility{rpc: s.RPC, user: c.UserID, role: c.Role}
-		return s.Repo.Claim(ctx, c, check.check)
+	check := &eligibility{rpc: s.RPC, user: c.UserID, role: c.Role}
+	return s.Repo.Claim(ctx, c, check.check)
+}
+func (s *Service) Reserve(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "coupon.usecase.Reserve")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
 	}
 	if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
 		return nil, status.Error(codes.PermissionDenied, "internal coupon command required")
 	}
-	switch c.Action {
-	case constants.ActionReserve:
-		return s.Repo.Reserve(ctx, c)
-	case constants.ActionConfirm, constants.ActionCancel:
-		return s.Repo.Transition(ctx, c)
-	case constants.ActionRefund:
-		return s.Repo.Refund(ctx, c)
-	}
-	return nil, status.Error(codes.Unimplemented, "unsupported action")
+	return s.Repo.Reserve(ctx, c)
 }
+func (s *Service) Confirm(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "coupon.usecase.Confirm")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+	if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
+		return nil, status.Error(codes.PermissionDenied, "internal coupon command required")
+	}
+	return s.Repo.Confirm(ctx, c)
+}
+func (s *Service) Cancel(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "coupon.usecase.Cancel")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+	if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
+		return nil, status.Error(codes.PermissionDenied, "internal coupon command required")
+	}
+	return s.Repo.Cancel(ctx, c)
+}
+func (s *Service) Refund(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "coupon.usecase.Refund")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+	if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
+		return nil, status.Error(codes.PermissionDenied, "internal coupon command required")
+	}
+	return s.Repo.Refund(ctx, c)
+}
+func (s *Service) readTemplates(ctx context.Context, c platform.Request, read func(context.Context, platform.Request) (platform.Result, error)) (platform.Result, error) {
+	out, err := read(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	check := &eligibility{rpc: s.RPC, user: c.UserID, role: c.Role}
+	for _, item := range out["items"].([]platform.Result) {
+		if item["claim_status"] != constants.CouponClaimStatusAvailable {
+			continue
+		}
+		t := domain.Template{
+			MinPoints: platform.Int(item, "min_points"),
+			MinGrowth: platform.Int(item, "min_growth"),
+		}
+		if err := check.check(ctx, t); err != nil {
+			item["claim_status"] = constants.CouponClaimStatusConditionsUnmet
+			if status.Code(err) == codes.Unavailable {
+				item["claim_status"] = constants.CouponClaimStatusUnavailable
+			}
+			item["claim_reason"], item["claimable"] = status.Convert(err).Message(), false
+		}
+	}
+	return out, nil
+}
+
 func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
 	if e.Type != constants.EventRefundSucceeded {
 		return nil
@@ -88,10 +147,9 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
 	if data == nil {
 		data = map[string]any{}
 	}
-	_, err := s.Execute(
+	_, err := s.Refund(
 		ctx,
-		platform.Command{
-			Action: constants.ActionRefund,
+		platform.Request{
 			ID:     e.AggregateID,
 			UserID: e.UserID,
 			Role:   constants.RoleSystem,

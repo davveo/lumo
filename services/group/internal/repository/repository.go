@@ -53,7 +53,7 @@ func (r *Repository) Get(ctx context.Context, id string) (platform.Result, error
 	out["formed"] = t.State == constants.GroupStatusFormed
 	return out, nil
 }
-func (r *Repository) Create(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (r *Repository) Create(ctx context.Context, c platform.Request) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.group.Create")
 	defer s.End()
 	required := platform.Int(c.Data, "required")
@@ -102,7 +102,7 @@ func (r *Repository) Create(ctx context.Context, c platform.Command) (platform.R
 	})
 	return platform.Map(t), e
 }
-func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (r *Repository) Reserve(ctx context.Context, c platform.Request) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.group.Reserve")
 	defer s.End()
 	gid := platform.Text(c.Data, "group_id")
@@ -198,7 +198,7 @@ func emit(ctx context.Context, tx *gorm.DB, t domain.Team, kind string) error {
 	}
 	return nil
 }
-func (r *Repository) Paid(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (r *Repository) Paid(ctx context.Context, c platform.Request) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.group.Paid")
 	defer s.End()
 	var seat domain.Seat
@@ -283,7 +283,7 @@ func (r *Repository) Paid(ctx context.Context, c platform.Command) (platform.Res
 	out["formed"] = t.State == constants.GroupStatusFormed
 	return out, e
 }
-func (r *Repository) Cancel(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (r *Repository) Cancel(ctx context.Context, c platform.Request) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.group.Cancel")
 	defer s.End()
 	if c.ID == "" {

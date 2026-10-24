@@ -46,28 +46,21 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 		platform.Int(e.Data, "refunded_total_cents"),
 	)
 }
-func privileged(c platform.Command) bool {
+func privileged(c platform.Request) bool {
 	return c.Role == constants.RoleAdmin || c.Role == constants.RoleSystem
 }
-func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.invoice."+c.Action)
+func (s *Service) AdjustDemo(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "usecase.invoice."+constants.ActionAdjustDemo)
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if c.Data == nil {
+		c.Data = map[string]any{}
+	}
 	if err := platform.RequireUser(c); err != nil {
 		return nil, err
 	}
-	if c.Action == constants.ActionList {
-		user := c.UserID
-		if privileged(c) {
-			user = ""
-		}
-		rows, err := s.Repo.List(ctx, user)
-		return platform.Result{"items": rows}, err
-	}
-	if c.Action == constants.ActionCreate {
-		return s.create(ctx, c)
-	}
+
 	row, err := s.Repo.Get(ctx, c.ID)
 	if err != nil {
 		return nil, err
@@ -75,69 +68,171 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 	if !privileged(c) && row.UserID != c.UserID {
 		return nil, status.Error(codes.PermissionDenied, "invoice ownership mismatch")
 	}
-	switch c.Action {
-	case constants.ActionGet:
+
+	if c.Role != constants.RoleAdmin {
+		return nil, status.Error(codes.PermissionDenied, "invoice staff permission required")
+	}
+	if os.Getenv("DEMO_MODE") != "true" {
+		return nil, status.Error(codes.FailedPrecondition, "demo invoice provider disabled")
+	}
+	row, err = s.Repo.CompleteDemoAdjustments(ctx, row.ID)
+	return platform.Map(row), err
+
+}
+
+func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "usecase.invoice."+constants.ActionCreate)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if c.Data == nil {
+		c.Data = map[string]any{}
+	}
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
+	return s.create(ctx, c)
+
+}
+
+func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "usecase.invoice."+constants.ActionGet)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if c.Data == nil {
+		c.Data = map[string]any{}
+	}
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
+	row, err := s.Repo.Get(ctx, c.ID)
+	if err != nil {
+		return nil, err
+	}
+	if !privileged(c) && row.UserID != c.UserID {
+		return nil, status.Error(codes.PermissionDenied, "invoice ownership mismatch")
+	}
+
+	return platform.Map(row), nil
+
+}
+
+func (s *Service) IssueDemo(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "usecase.invoice."+constants.ActionIssueDemo)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if c.Data == nil {
+		c.Data = map[string]any{}
+	}
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
+	row, err := s.Repo.Get(ctx, c.ID)
+	if err != nil {
+		return nil, err
+	}
+	if !privileged(c) && row.UserID != c.UserID {
+		return nil, status.Error(codes.PermissionDenied, "invoice ownership mismatch")
+	}
+
+	if c.Role != constants.RoleAdmin {
+		return nil, status.Error(codes.PermissionDenied, "invoice staff permission required")
+	}
+	if os.Getenv("DEMO_MODE") != "true" {
+		return nil, status.Error(codes.FailedPrecondition, "demo invoice provider disabled")
+	}
+	if row.Status == constants.InvoiceStatusIssued {
 		return platform.Map(row), nil
-	case constants.ActionReversals:
-		rows, err := s.Repo.Reversals(ctx, row.ID)
-		return platform.Result{"items": rows}, err
-	case constants.ActionIssueDemo:
-		if c.Role != constants.RoleAdmin {
-			return nil, status.Error(codes.PermissionDenied, "invoice staff permission required")
-		}
-		if os.Getenv("DEMO_MODE") != "true" {
-			return nil, status.Error(codes.FailedPrecondition, "demo invoice provider disabled")
-		}
-		if row.Status == constants.InvoiceStatusIssued {
-			return platform.Map(row), nil
-		}
-		order, err := s.RPC.Call(
+	}
+	order, err := s.RPC.Call(
+		ctx,
+		constants.ServiceOrder,
+		platform.Command{
+			Action: constants.ActionGet,
+			ID:     row.OrderID,
+			UserID: row.UserID,
+			Role:   constants.RoleSystem,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	state := platform.Text(order, "status")
+	if state != constants.OrderStatusReadyToFulfill && state != constants.OrderStatusShipped &&
+		state != constants.OrderStatusCompleted {
+		return nil, status.Error(codes.FailedPrecondition, "order is not ready for invoicing")
+	}
+	if total := refundTotal(order); total > row.RefundedCents {
+		if err = s.Repo.ApplyRefund(
 			ctx,
-			constants.ServiceOrder,
-			platform.Command{
-				Action: constants.ActionGet,
-				ID:     row.OrderID,
-				UserID: row.UserID,
-				Role:   constants.RoleSystem,
-			},
-		)
-		if err != nil {
+			row.OrderID,
+			fmt.Sprintf("snapshot:%s:%d", row.OrderID, total),
+			row.UserID,
+			0,
+			total,
+		); err != nil {
 			return nil, err
 		}
-		state := platform.Text(order, "status")
-		if state != constants.OrderStatusReadyToFulfill && state != constants.OrderStatusShipped &&
-			state != constants.OrderStatusCompleted {
-			return nil, status.Error(codes.FailedPrecondition, "order is not ready for invoicing")
-		}
-		if total := refundTotal(order); total > row.RefundedCents {
-			if err = s.Repo.ApplyRefund(
-				ctx,
-				row.OrderID,
-				fmt.Sprintf("snapshot:%s:%d", row.OrderID, total),
-				row.UserID,
-				0,
-				total,
-			); err != nil {
-				return nil, err
-			}
-		}
-		sum := sha256.Sum256([]byte(row.ID))
-		number := fmt.Sprintf("DEMO-INVOICE-%X", sum[:10])
-		row, err = s.Repo.IssueDemo(ctx, row.ID, number)
-		return platform.Map(row), err
-	case constants.ActionAdjustDemo:
-		if c.Role != constants.RoleAdmin {
-			return nil, status.Error(codes.PermissionDenied, "invoice staff permission required")
-		}
-		if os.Getenv("DEMO_MODE") != "true" {
-			return nil, status.Error(codes.FailedPrecondition, "demo invoice provider disabled")
-		}
-		row, err = s.Repo.CompleteDemoAdjustments(ctx, row.ID)
-		return platform.Map(row), err
 	}
-	return nil, status.Error(codes.Unimplemented, "unsupported invoice action")
+	sum := sha256.Sum256([]byte(row.ID))
+	number := fmt.Sprintf("DEMO-INVOICE-%X", sum[:10])
+	row, err = s.Repo.IssueDemo(ctx, row.ID, number)
+	return platform.Map(row), err
+
 }
-func (s *Service) create(ctx context.Context, c platform.Command) (platform.Result, error) {
+
+func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "usecase.invoice."+constants.ActionList)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if c.Data == nil {
+		c.Data = map[string]any{}
+	}
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
+	user := c.UserID
+	if privileged(c) {
+		user = ""
+	}
+	rows, err := s.Repo.List(ctx, user)
+	return platform.Result{"items": rows}, err
+
+}
+
+func (s *Service) Reversals(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "usecase.invoice."+constants.ActionReversals)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if c.Data == nil {
+		c.Data = map[string]any{}
+	}
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
+	row, err := s.Repo.Get(ctx, c.ID)
+	if err != nil {
+		return nil, err
+	}
+	if !privileged(c) && row.UserID != c.UserID {
+		return nil, status.Error(codes.PermissionDenied, "invoice ownership mismatch")
+	}
+
+	rows, err := s.Repo.Reversals(ctx, row.ID)
+	return platform.Result{"items": rows}, err
+
+}
+
+func (s *Service) create(ctx context.Context, c platform.Request) (platform.Result, error) {
 	orderID := platform.Text(c.Data, "order_id")
 	title := strings.TrimSpace(platform.Text(c.Data, "title"))
 	kind := platform.Text(c.Data, "kind")

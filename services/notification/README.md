@@ -14,3 +14,13 @@
 本服务只写自己的数据库schema。跨服务通过 `platform.Caller` 访问 gRPC，禁止直接读写对方业务表。网关验证会话后填入调用主体，服务再次检查用户资源归属与管理员角色。
 
 站内信按 event_id + user_id 幂等投影；读取不修改业务事实。短信邮件渠道尚未配置，响应明确标记。
+
+## 独立业务方法
+
+每个操作对应 usecase 的独立公开方法，接收不含 `Action` 的 `platform.Request`。
+transport 通过 `MethodHandler` 注册方法并执行边界校验与链路追踪；兼容入口仅负责路由。
+服务装配同时导出 `Module.Operations`，供独立 gRPC 方法直接调用。
+
+- `list` → `List(context.Context, platform.Request)`。
+- `read` → `Read(context.Context, platform.Request)`。
+- `read_all` → `ReadAll(context.Context, platform.Request)`。

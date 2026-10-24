@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package mall.v1;
+
+option go_package = "github.com/davveo/lumo/api/mall/v1;mallv1";
+
+// Each domain declares separate RPC methods. The method selects the operation;
+// requests cannot override it with a business payload field.
+message ServiceRequest {
+  string id = 1;
+  string user_id = 2;
+  string role = 3;
+  string idempotency_key = 4;
+  // Existing domain JSON documents retain their integer and extension fields.
+  bytes payload_json = 5;
+}
+
+message ServiceResponse {
+  bytes payload_json = 1;
+}

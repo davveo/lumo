@@ -24,10 +24,10 @@ type Service struct {
 func (s *Service) Topics() []string {
 	return []string{constants.EventRefundSucceeded, constants.EventDeliveryConfirmed}
 }
-func staff(c platform.Command) bool {
+func staff(c platform.Request) bool {
 	return c.Role == constants.RoleAdmin || c.Role == constants.RoleSystem
 }
-func owner(c platform.Command, r *domain.Record) error {
+func owner(c platform.Request, r *domain.Record) error {
 	if !staff(c) && (c.UserID == "" || c.UserID != r.UserID) {
 		return status.Error(codes.PermissionDenied, "aftersale ownership mismatch")
 	}
@@ -87,25 +87,18 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 	}
 	return nil
 }
-func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "usecase.aftersale."+c.Action)
+func (s *Service) Approve(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionApprove)
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if c.Data == nil {
+		c.Data = map[string]any{}
+	}
 	if err := platform.RequireUser(c); err != nil {
 		return nil, err
 	}
-	if c.Action == constants.ActionList {
-		user := c.UserID
-		if staff(c) {
-			user = ""
-		}
-		items, err := s.Repo.List(ctx, user)
-		return platform.Result{"items": items}, err
-	}
-	if c.Action == constants.ActionCreate {
-		return s.create(ctx, c)
-	}
+
 	r, err := s.Repo.Get(ctx, c.ID)
 	if err != nil {
 		return nil, err
@@ -113,70 +106,261 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 	if err = owner(c, r); err != nil {
 		return nil, err
 	}
-	switch c.Action {
-	case constants.ActionGet:
-		return platform.Map(r), nil
-	case constants.ActionApprove:
-		if !staff(c) {
-			return nil, status.Error(codes.PermissionDenied, "aftersale approval permission required")
-		}
-		r, err = s.Repo.Transition(
-			ctx,
-			r.ID,
-			[]string{constants.AftersaleStatusRequested},
-			constants.AftersaleStatusApproved,
-			nil,
-			nil,
-		)
-	case constants.ActionReject:
-		if !staff(c) {
-			return nil, status.Error(codes.PermissionDenied, "aftersale approval permission required")
-		}
-		r, err = s.Repo.Transition(
-			ctx,
-			r.ID,
-			[]string{constants.AftersaleStatusRequested},
-			constants.AftersaleStatusRejected,
-			nil,
-			nil,
-		)
-	case constants.ActionCancel:
-		r, err = s.Repo.Transition(
-			ctx,
-			r.ID,
-			[]string{constants.AftersaleStatusRequested, constants.AftersaleStatusApproved},
-			constants.AftersaleStatusCancelled,
-			nil,
-			nil,
-		)
-	case constants.ActionReturn:
-		if r.Type == constants.AftersaleTypeRefund {
-			return nil, status.Error(codes.FailedPrecondition, "refund-only requires no physical return")
-		}
-		tracking := strings.TrimSpace(platform.Text(c.Data, "tracking"))
-		if tracking == "" || len(tracking) > 100 {
-			return nil, status.Error(codes.InvalidArgument, "return tracking required")
-		}
-		r, err = s.Repo.Transition(
-			ctx,
-			r.ID,
-			[]string{constants.AftersaleStatusApproved},
-			constants.AftersaleStatusReturning,
-			map[string]any{"return_tracking": tracking},
-			nil,
-		)
-	case constants.ActionInspect:
-		if !staff(c) {
-			return nil, status.Error(codes.PermissionDenied, "warehouse inspection permission required")
-		}
-		return s.inspect(ctx, c, r)
-	case constants.ActionRefund:
-		return s.refund(ctx, r)
-	case constants.ActionExchange:
-		return s.exchange(ctx, r)
-	default:
-		return nil, status.Error(codes.Unimplemented, "unsupported aftersale action")
+
+	if !staff(c) {
+		return nil, status.Error(codes.PermissionDenied, "aftersale approval permission required")
 	}
+	r, err = s.Repo.Transition(
+		ctx,
+		r.ID,
+		[]string{constants.AftersaleStatusRequested},
+		constants.AftersaleStatusApproved,
+		nil,
+		nil,
+	)
+
+	return platform.Map(r), err
+}
+
+func (s *Service) Cancel(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionCancel)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if c.Data == nil {
+		c.Data = map[string]any{}
+	}
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
+	r, err := s.Repo.Get(ctx, c.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err = owner(c, r); err != nil {
+		return nil, err
+	}
+
+	r, err = s.Repo.Transition(
+		ctx,
+		r.ID,
+		[]string{constants.AftersaleStatusRequested, constants.AftersaleStatusApproved},
+		constants.AftersaleStatusCancelled,
+		nil,
+		nil,
+	)
+
+	return platform.Map(r), err
+}
+
+func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionCreate)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if c.Data == nil {
+		c.Data = map[string]any{}
+	}
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
+	return s.create(ctx, c)
+
+}
+
+func (s *Service) Exchange(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionExchange)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if c.Data == nil {
+		c.Data = map[string]any{}
+	}
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
+	r, err := s.Repo.Get(ctx, c.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err = owner(c, r); err != nil {
+		return nil, err
+	}
+
+	return s.exchange(ctx, r)
+
+}
+
+func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionGet)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if c.Data == nil {
+		c.Data = map[string]any{}
+	}
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
+	r, err := s.Repo.Get(ctx, c.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err = owner(c, r); err != nil {
+		return nil, err
+	}
+
+	return platform.Map(r), nil
+
+}
+
+func (s *Service) Inspect(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionInspect)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if c.Data == nil {
+		c.Data = map[string]any{}
+	}
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
+	r, err := s.Repo.Get(ctx, c.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err = owner(c, r); err != nil {
+		return nil, err
+	}
+
+	if !staff(c) {
+		return nil, status.Error(codes.PermissionDenied, "warehouse inspection permission required")
+	}
+	return s.inspect(ctx, c, r)
+
+}
+
+func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionList)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if c.Data == nil {
+		c.Data = map[string]any{}
+	}
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
+	user := c.UserID
+	if staff(c) {
+		user = ""
+	}
+	items, err := s.Repo.List(ctx, user)
+	return platform.Result{"items": items}, err
+
+}
+
+func (s *Service) Refund(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionRefund)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if c.Data == nil {
+		c.Data = map[string]any{}
+	}
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
+	r, err := s.Repo.Get(ctx, c.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err = owner(c, r); err != nil {
+		return nil, err
+	}
+
+	return s.refund(ctx, r)
+
+}
+
+func (s *Service) Reject(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionReject)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if c.Data == nil {
+		c.Data = map[string]any{}
+	}
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
+	r, err := s.Repo.Get(ctx, c.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err = owner(c, r); err != nil {
+		return nil, err
+	}
+
+	if !staff(c) {
+		return nil, status.Error(codes.PermissionDenied, "aftersale approval permission required")
+	}
+	r, err = s.Repo.Transition(
+		ctx,
+		r.ID,
+		[]string{constants.AftersaleStatusRequested},
+		constants.AftersaleStatusRejected,
+		nil,
+		nil,
+	)
+
+	return platform.Map(r), err
+}
+
+func (s *Service) Return(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "usecase.aftersale."+constants.ActionReturn)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if c.Data == nil {
+		c.Data = map[string]any{}
+	}
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
+	r, err := s.Repo.Get(ctx, c.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err = owner(c, r); err != nil {
+		return nil, err
+	}
+
+	if r.Type == constants.AftersaleTypeRefund {
+		return nil, status.Error(codes.FailedPrecondition, "refund-only requires no physical return")
+	}
+	tracking := strings.TrimSpace(platform.Text(c.Data, "tracking"))
+	if tracking == "" || len(tracking) > 100 {
+		return nil, status.Error(codes.InvalidArgument, "return tracking required")
+	}
+	r, err = s.Repo.Transition(
+		ctx,
+		r.ID,
+		[]string{constants.AftersaleStatusApproved},
+		constants.AftersaleStatusReturning,
+		map[string]any{"return_tracking": tracking},
+		nil,
+	)
+
 	return platform.Map(r), err
 }
 
@@ -188,7 +372,7 @@ type orderLine struct {
 	LineTotalCents int64  `json:"line_total_cents"`
 }
 
-func (s *Service) create(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) create(ctx context.Context, c platform.Request) (platform.Result, error) {
 	orderID := platform.Text(c.Data, "order_id")
 	typ := strings.ToLower(platform.Text(c.Data, "type"))
 	if typ == constants.AftersaleTypeReturnRefund {
@@ -354,7 +538,7 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 	}
 	return platform.Map(row), nil
 }
-func (s *Service) inspect(ctx context.Context, c platform.Command, r *domain.Record) (platform.Result, error) {
+func (s *Service) inspect(ctx context.Context, c platform.Request, r *domain.Record) (platform.Result, error) {
 	condition := strings.ToLower(platform.Text(c.Data, "condition"))
 	if condition != constants.StockConditionSellable && condition != constants.StockConditionDamaged &&
 		condition != constants.StockConditionUnsellable {

@@ -47,13 +47,13 @@ func view(r domain.Record) platform.Result {
 	v["created_at"] = r.CreatedAt.Format(time.RFC3339)
 	return v
 }
-func own(c platform.Command, r domain.Record) error {
+func own(c platform.Request, r domain.Record) error {
 	if r.UserID != c.UserID && c.Role != constants.RoleAdmin {
 		return status.Error(codes.PermissionDenied, "resource belongs to another user")
 	}
 	return nil
 }
-func (s *Service) list(ctx context.Context, c platform.Command, owner, kind, st string) (platform.Result, error) {
+func (s *Service) list(ctx context.Context, c platform.Request, owner, kind, st string) (platform.Result, error) {
 	vs, err := s.repo.List(
 		ctx,
 		owner,
@@ -77,11 +77,11 @@ func call(ctx context.Context, rpc platform.Caller, target string, c platform.Co
 	}
 	return rpc.Call(ctx, target, c)
 }
-func child(c platform.Command, action, id string, data map[string]any) platform.Command {
-	c.Action = action
-	c.ID = id
-	c.Data = data
-	return c
+func child(c platform.Request, action, id string, data map[string]any) platform.Command {
+	command := c.Command(action)
+	command.ID = id
+	command.Data = data
+	return command
 }
 
 func demo() bool {

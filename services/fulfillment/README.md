@@ -17,3 +17,18 @@ Layers: `service.go` composes `transport → usecase → repository → GORM`; d
 `Tick` resumes interrupted dispatch/cancellation jobs. Inventory and carrier commands use deterministic IDs, so retrying an unknown RPC result is safe.
 
 The bundled warehouse is explicitly a deterministic local adapter and requires `DEMO_MODE=true` for dispatch/cancellation acknowledgement. With demo disabled, those actions wait/fail clearly until a real WMS adapter is supplied. Return inspection is an explicit authorized staff confirmation; it never claims to have queried a real warehouse automatically.
+
+## 独立业务方法
+
+每个操作对应 usecase 的独立公开方法，接收不含 `Action` 的 `platform.Request`。
+transport 通过 `MethodHandler` 注册方法并执行边界校验与链路追踪；兼容入口仅负责路由。
+服务装配同时导出 `Module.Operations`，供独立 gRPC 方法直接调用。
+
+- `list` → `List(context.Context, platform.Request)`。
+- `get` → `Get(context.Context, platform.Request)`。
+- `create_exchange` → `CreateExchange(context.Context, platform.Request)`。
+- `dispatch` → `Dispatch(context.Context, platform.Request)`。
+- `cancel` → `Cancel(context.Context, platform.Request)`。
+- `inspect_return` → `InspectReturn(context.Context, platform.Request)`。
+
+定时恢复根据已持久化的业务状态直接调用本地方法，保留重试与幂等状态流转。

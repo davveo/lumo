@@ -54,94 +54,157 @@ func (s *Service) Seed(ctx context.Context) error {
 	}
 	return nil
 }
-func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "iam.usecase."+c.Action)
+func (s *Service) Login(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "iam.usecase."+constants.ActionLogin)
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	switch c.Action {
-	case constants.ActionLogin:
-		username := strings.TrimSpace(platform.Text(c.Data, "username"))
-		password := platform.Text(c.Data, "password")
-		if username == "" || len(username) > 128 || password == "" || len(password) > 1024 {
-			return nil, status.Error(codes.InvalidArgument, "username and password required")
-		}
-		a, e := s.repo.ByUsername(ctx, username)
-		if e != nil || !a.Active || bcrypt.CompareHashAndPassword([]byte(a.PasswordHash), []byte(password)) != nil {
-			return nil, status.Error(codes.Unauthenticated, "invalid credentials")
-		}
-		raw, e := token()
+
+	username := strings.TrimSpace(platform.Text(c.Data, "username"))
+	password := platform.Text(c.Data, "password")
+	if username == "" || len(username) > 128 || password == "" || len(password) > 1024 {
+		return nil, status.Error(codes.InvalidArgument, "username and password required")
+	}
+	a, e := s.repo.ByUsername(ctx, username)
+	if e != nil || !a.Active || bcrypt.CompareHashAndPassword([]byte(a.PasswordHash), []byte(password)) != nil {
+		return nil, status.Error(codes.Unauthenticated, "invalid credentials")
+	}
+	raw, e := token()
+	if e != nil {
+		return nil, e
+	}
+	sess := domain.Session{Digest: hash(raw), UserID: a.ID, ExpiresAt: time.Now().UTC().Add(24 * time.Hour)}
+	if e = s.repo.CreateSession(ctx, &sess); e != nil {
+		return nil, e
+	}
+	return platform.Result{
+		"token":         raw,
+		"token_type":    constants.IAMTokenTypeBearer,
+		"expires_at":    sess.ExpiresAt.Format(time.RFC3339),
+		"user_id":       a.ID,
+		"role":          a.Role,
+		"registered_at": a.CreatedAt.UTC().Format(time.RFC3339),
+	}, nil
+}
+func (s *Service) Validate(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "iam.usecase."+constants.ActionValidate)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+
+	raw := platform.Text(c.Data, "token")
+	if len(raw) != 64 {
+		return nil, status.Error(codes.Unauthenticated, "invalid session")
+	}
+	sess, e := s.repo.Session(ctx, hash(raw))
+	if e != nil || sess.RevokedAt != nil || !sess.ExpiresAt.After(time.Now()) {
+		return nil, status.Error(codes.Unauthenticated, "session revoked or expired")
+	}
+	a, e := s.repo.ByID(ctx, sess.UserID)
+	if e != nil || !a.Active {
+		return nil, status.Error(codes.Unauthenticated, "account unavailable")
+	}
+
+	return platform.Result{
+		"user_id":       a.ID,
+		"role":          a.Role,
+		"session_valid": true,
+		"expires_at":    sess.ExpiresAt.Format(time.RFC3339),
+		"registered_at": a.CreatedAt.UTC().Format(time.RFC3339),
+	}, nil
+}
+func (s *Service) Refresh(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "iam.usecase."+constants.ActionRefresh)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+
+	raw := platform.Text(c.Data, "token")
+	if len(raw) != 64 {
+		return nil, status.Error(codes.Unauthenticated, "invalid session")
+	}
+	sess, e := s.repo.Session(ctx, hash(raw))
+	if e != nil || sess.RevokedAt != nil || !sess.ExpiresAt.After(time.Now()) {
+		return nil, status.Error(codes.Unauthenticated, "session revoked or expired")
+	}
+	a, e := s.repo.ByID(ctx, sess.UserID)
+	if e != nil || !a.Active {
+		return nil, status.Error(codes.Unauthenticated, "account unavailable")
+	}
+
+	{
+		next, e := token()
 		if e != nil {
 			return nil, e
 		}
-		sess := domain.Session{Digest: hash(raw), UserID: a.ID, ExpiresAt: time.Now().UTC().Add(24 * time.Hour)}
-		if e = s.repo.CreateSession(ctx, &sess); e != nil {
+		v := domain.Session{Digest: hash(next), UserID: a.ID, ExpiresAt: time.Now().UTC().Add(24 * time.Hour)}
+		if e = s.repo.Rotate(ctx, sess.Digest, &v); e != nil {
 			return nil, e
 		}
 		return platform.Result{
-			"token":         raw,
+			"token":         next,
 			"token_type":    constants.IAMTokenTypeBearer,
-			"expires_at":    sess.ExpiresAt.Format(time.RFC3339),
 			"user_id":       a.ID,
 			"role":          a.Role,
+			"expires_at":    v.ExpiresAt.Format(time.RFC3339),
 			"registered_at": a.CreatedAt.UTC().Format(time.RFC3339),
 		}, nil
-	case constants.ActionValidate, constants.ActionRefresh, constants.ActionLogout:
-		raw := platform.Text(c.Data, "token")
-		if len(raw) != 64 {
-			return nil, status.Error(codes.Unauthenticated, "invalid session")
-		}
-		sess, e := s.repo.Session(ctx, hash(raw))
-		if e != nil || sess.RevokedAt != nil || !sess.ExpiresAt.After(time.Now()) {
-			return nil, status.Error(codes.Unauthenticated, "session revoked or expired")
-		}
-		a, e := s.repo.ByID(ctx, sess.UserID)
-		if e != nil || !a.Active {
-			return nil, status.Error(codes.Unauthenticated, "account unavailable")
-		}
-		if c.Action == constants.ActionLogout {
-			if c.UserID != "" && c.UserID != a.ID {
-				return nil, status.Error(codes.PermissionDenied, "session owner mismatch")
-			}
-			if e = s.repo.Revoke(ctx, sess.Digest, ""); e != nil {
-				return nil, e
-			}
-			return platform.Result{"revoked": true}, nil
-		}
-		if c.Action == constants.ActionRefresh {
-			next, e := token()
-			if e != nil {
-				return nil, e
-			}
-			v := domain.Session{Digest: hash(next), UserID: a.ID, ExpiresAt: time.Now().UTC().Add(24 * time.Hour)}
-			if e = s.repo.Rotate(ctx, sess.Digest, &v); e != nil {
-				return nil, e
-			}
-			return platform.Result{
-				"token":         next,
-				"token_type":    constants.IAMTokenTypeBearer,
-				"user_id":       a.ID,
-				"role":          a.Role,
-				"expires_at":    v.ExpiresAt.Format(time.RFC3339),
-				"registered_at": a.CreatedAt.UTC().Format(time.RFC3339),
-			}, nil
-		}
-		return platform.Result{
-			"user_id":       a.ID,
-			"role":          a.Role,
-			"session_valid": true,
-			"expires_at":    sess.ExpiresAt.Format(time.RFC3339),
-			"registered_at": a.CreatedAt.UTC().Format(time.RFC3339),
-		}, nil
-	case constants.ActionLogoutAll:
-		if e := platform.RequireUser(c); e != nil {
-			return nil, e
-		}
-		if e := s.repo.Revoke(ctx, "", c.UserID); e != nil {
-			return nil, e
-		}
-		return platform.Result{"revoked_all": true}, nil
-	default:
-		return nil, status.Error(codes.Unimplemented, "unsupported IAM action")
 	}
+	return platform.Result{
+		"user_id":       a.ID,
+		"role":          a.Role,
+		"session_valid": true,
+		"expires_at":    sess.ExpiresAt.Format(time.RFC3339),
+		"registered_at": a.CreatedAt.UTC().Format(time.RFC3339),
+	}, nil
+}
+func (s *Service) Logout(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "iam.usecase."+constants.ActionLogout)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+
+	raw := platform.Text(c.Data, "token")
+	if len(raw) != 64 {
+		return nil, status.Error(codes.Unauthenticated, "invalid session")
+	}
+	sess, e := s.repo.Session(ctx, hash(raw))
+	if e != nil || sess.RevokedAt != nil || !sess.ExpiresAt.After(time.Now()) {
+		return nil, status.Error(codes.Unauthenticated, "session revoked or expired")
+	}
+	a, e := s.repo.ByID(ctx, sess.UserID)
+	if e != nil || !a.Active {
+		return nil, status.Error(codes.Unauthenticated, "account unavailable")
+	}
+	{
+		if c.UserID != "" && c.UserID != a.ID {
+			return nil, status.Error(codes.PermissionDenied, "session owner mismatch")
+		}
+		if e = s.repo.Revoke(ctx, sess.Digest, ""); e != nil {
+			return nil, e
+		}
+		return platform.Result{"revoked": true}, nil
+	}
+
+	return platform.Result{
+		"user_id":       a.ID,
+		"role":          a.Role,
+		"session_valid": true,
+		"expires_at":    sess.ExpiresAt.Format(time.RFC3339),
+		"registered_at": a.CreatedAt.UTC().Format(time.RFC3339),
+	}, nil
+}
+func (s *Service) LogoutAll(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "iam.usecase."+constants.ActionLogoutAll)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+
+	if e := platform.RequireUser(c); e != nil {
+		return nil, e
+	}
+	if e := s.repo.Revoke(ctx, "", c.UserID); e != nil {
+		return nil, e
+	}
+	return platform.Result{"revoked_all": true}, nil
 }

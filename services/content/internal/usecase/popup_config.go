@@ -271,7 +271,12 @@ func popupCampaignView(row domain.PopupCampaign) platform.Result {
 	_ = json.Unmarshal(b, &out)
 	return out
 }
-func (s *Service) popupList(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) PopupList(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "content.usecase."+constants.ActionPopupList)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+
 	if err := platform.RequireAdmin(c); err != nil {
 		return nil, err
 	}
@@ -289,7 +294,12 @@ func (s *Service) popupList(ctx context.Context, c platform.Command) (platform.R
 	}
 	return platform.Result{"items": items, "settings": settings}, nil
 }
-func (s *Service) popupUpsert(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) PopupUpsert(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "content.usecase."+constants.ActionPopupUpsert)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+
 	if err := platform.RequireAdmin(c); err != nil {
 		return nil, err
 	}
@@ -328,7 +338,12 @@ func (s *Service) popupUpsert(ctx context.Context, c platform.Command) (platform
 	}
 	return popupCampaignView(row), nil
 }
-func (s *Service) popupConfigure(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) PopupConfigure(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, span := platform.Start(ctx, "content.usecase."+constants.ActionPopupConfigure)
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+
 	if err := platform.RequireAdmin(c); err != nil {
 		return nil, err
 	}
@@ -351,7 +366,7 @@ func (s *Service) popupConfigure(ctx context.Context, c platform.Command) (platf
 		"min_gap_seconds": v.MinGapSeconds,
 	}, nil
 }
-func popupInternal(c platform.Command) error {
+func popupInternal(c platform.Request) error {
 	if c.Role != constants.RoleSystem {
 		return status.Error(codes.PermissionDenied, "popup delivery requires trusted gateway")
 	}

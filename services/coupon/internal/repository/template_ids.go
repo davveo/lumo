@@ -13,7 +13,7 @@ import (
 
 // TemplatesByIDs is an internal bounded lookup used by marketing decisions.
 // It shares the public template status projection and reads only requested IDs.
-func (r *Repository) TemplatesByIDs(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (r *Repository) TemplatesByIDs(ctx context.Context, c platform.Request) (platform.Result, error) {
 	ctx, span := platform.Start(ctx, "repository.coupon.TemplatesByIDs")
 	defer span.End()
 	ids := []string{}

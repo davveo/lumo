@@ -1,23 +1,15 @@
 package transport
 
 import (
-	"context"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/notification/internal/usecase"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
-type Handler struct{ s *usecase.Service }
-
-func New(s *usecase.Service) *Handler { return &Handler{s: s} }
-func (h *Handler) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
-	ctx, span := platform.Start(ctx, "notification.transport."+c.Action)
-	defer span.End()
-	platform.TraceRequest(ctx, c)
-	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	if c.Action == "" {
-		return nil, status.Error(codes.InvalidArgument, "action required")
-	}
-	return h.s.Execute(ctx, c)
+func New(s *usecase.Service) *platform.MethodHandler {
+	return platform.NewMethodHandler(constants.ServiceNotification, map[string]platform.Operation{
+		constants.ActionList:    s.List,
+		constants.ActionRead:    s.Read,
+		constants.ActionReadAll: s.ReadAll,
+	}, nil)
 }

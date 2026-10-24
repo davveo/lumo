@@ -105,17 +105,17 @@ func (r *Repository) Seed(ctx context.Context) error {
 	}
 	return r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&templates).Error
 }
-func (r *Repository) Templates(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (r *Repository) Templates(ctx context.Context, c platform.Request) (platform.Result, error) {
 	return r.templates(ctx, c, 100)
 }
 
 // TemplateSnapshot batches read-only centre metadata; ordinary template paging
 // keeps its smaller public page size for previews and existing consumers.
-func (r *Repository) TemplateSnapshot(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (r *Repository) TemplateSnapshot(ctx context.Context, c platform.Request) (platform.Result, error) {
 	return r.templates(ctx, c, 5000)
 }
 
-func (r *Repository) templates(ctx context.Context, c platform.Command, maxSize int64) (platform.Result, error) {
+func (r *Repository) templates(ctx context.Context, c platform.Request, maxSize int64) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.coupon.Templates")
 	defer s.End()
 	page, size := platform.Int(c.Data, "page"), platform.Int(c.Data, "page_size")
@@ -156,7 +156,7 @@ func (r *Repository) templates(ctx context.Context, c platform.Command, maxSize 
 
 func (r *Repository) templateItems(
 	ctx context.Context,
-	c platform.Command,
+	c platform.Request,
 	templates []domain.Template,
 ) ([]platform.Result, time.Time, error) {
 	var claims []domain.Claim
@@ -213,7 +213,7 @@ func validTemplate(v domain.Template) bool {
 
 func (r *Repository) Claim(
 	ctx context.Context,
-	c platform.Command,
+	c platform.Request,
 	eligible func(context.Context, domain.Template) error,
 ) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.coupon.Claim")
@@ -304,7 +304,7 @@ func (r *Repository) Claim(
 	m["already_claimed"] = reused
 	return m, e
 }
-func (r *Repository) List(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (r *Repository) List(ctx context.Context, c platform.Request) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.coupon.List")
 	defer s.End()
 	// Resolve names together with owned coupons so wallet labels do not depend
@@ -319,7 +319,7 @@ func (r *Repository) List(ctx context.Context, c platform.Command) (platform.Res
 		Where("coupons.user_id = ?", c.UserID).Order("coupons.id").Scan(&v).Error
 	return platform.Result{"items": v}, e
 }
-func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (r *Repository) Reserve(ctx context.Context, c platform.Request) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.coupon.Reserve")
 	defer s.End()
 	id := platform.Text(c.Data, "coupon_id")
@@ -383,8 +383,14 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.
 	})
 	return platform.Map(out), e
 }
-func (r *Repository) Transition(ctx context.Context, c platform.Command) (platform.Result, error) {
-	ctx, s := platform.Start(ctx, "repository.coupon."+c.Action)
+func (r *Repository) Confirm(ctx context.Context, c platform.Request) (platform.Result, error) {
+	return r.transition(ctx, c, constants.CouponHoldStateConfirmed)
+}
+func (r *Repository) Cancel(ctx context.Context, c platform.Request) (platform.Result, error) {
+	return r.transition(ctx, c, constants.CouponHoldStateCancelled)
+}
+func (r *Repository) transition(ctx context.Context, c platform.Request, target string) (platform.Result, error) {
+	ctx, s := platform.Start(ctx, "repository.coupon.transition."+target)
 	defer s.End()
 	if c.ID == "" {
 		return nil, status.Error(codes.InvalidArgument, "order ID required")
@@ -392,7 +398,7 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 	var out domain.Hold
 	e := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		er := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&out, "id = ?", c.ID).Error
-		if errors.Is(er, gorm.ErrRecordNotFound) && c.Action == constants.ActionCancel {
+		if errors.Is(er, gorm.ErrRecordNotFound) && target == constants.CouponHoldStateCancelled {
 			out = domain.Hold{ID: c.ID, UserID: c.UserID, State: constants.CouponHoldStateCancelled}
 			return tx.WithContext(ctx).Create(&out).Error
 		}
@@ -404,10 +410,6 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 		}
 		if out.UserID != c.UserID {
 			return status.Error(codes.PermissionDenied, "hold owner mismatch")
-		}
-		target := constants.CouponHoldStateConfirmed
-		if c.Action == constants.ActionCancel {
-			target = constants.CouponHoldStateCancelled
 		}
 		if out.State == target {
 			return nil
@@ -442,7 +444,7 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 	})
 	return platform.Map(out), e
 }
-func (r *Repository) Refund(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (r *Repository) Refund(ctx context.Context, c platform.Request) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.coupon.Refund")
 	defer s.End()
 	order := platform.Text(c.Data, "order_id")

@@ -24,86 +24,138 @@ func (s *Service) Topics() []string {
 	return []string{constants.EventPaymentRejected, constants.EventGroupOrderTerminated}
 }
 func (s *Service) Tick(context.Context) error { return nil }
-func own(c platform.Command, p domain.Payment) error {
+func own(c platform.Request, p domain.Payment) error {
 	if p.UserID != c.UserID && c.Role != constants.RoleAdmin && c.Role != constants.RoleSystem {
 		return status.Error(codes.PermissionDenied, "payment belongs to another member")
 	}
 	return nil
 }
-func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
-	ctx, sp := platform.Start(ctx, "payment.usecase."+c.Action)
+func (s *Service) Close(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, sp := platform.Start(ctx, "payment.usecase."+constants.ActionClose)
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	if err := platform.RequireUser(c); err != nil {
 		return nil, err
 	}
-	switch c.Action {
-	case constants.ActionGet:
-		p, err := s.r.Get(ctx, c.ID)
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Error(codes.NotFound, "payment not found")
-		}
+
+	if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
+		return nil, status.Error(codes.PermissionDenied, "internal payment close")
+	}
+	var out platform.Result
+	err := s.r.Transaction(ctx, func(tx *repository.Tx) error {
+		g, err := tx.Gate(c.ID)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		if err = own(c, p); err != nil {
-			return nil, err
+		if err = tx.Freeze(&g); err != nil {
+			return err
 		}
-		return platform.Map(p), nil
-	case constants.ActionList:
-		if c.Role != constants.RoleAdmin && c.Role != constants.RoleSystem {
-			return nil, status.Error(codes.PermissionDenied, "internal payment listing")
-		}
-		rows, err := s.r.List(ctx, c.UserID, true)
-		return platform.Result{"items": rows}, err
-	case constants.ActionCreate:
-		return s.create(ctx, c)
-	case constants.ActionSubmitDemo:
-		return s.confirmDemo(ctx, c)
-	case constants.ActionConfirmDemo:
-		if err := platform.RequireAdmin(c); err != nil {
-			return nil, err
-		}
-		return s.confirmDemo(ctx, c)
-	case constants.ActionClose:
-		if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
-			return nil, status.Error(codes.PermissionDenied, "internal payment close")
-		}
-		var out platform.Result
-		err := s.r.Transaction(ctx, func(tx *repository.Tx) error {
-			g, err := tx.Gate(c.ID)
-			if err != nil {
-				return err
-			}
-			if err = tx.Freeze(&g); err != nil {
-				return err
-			}
-			p, err := tx.ByOrder(c.ID)
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				out = platform.Result{"closed": true, "paid": false, "order_id": c.ID}
-				return nil
-			}
-			if err != nil {
-				return err
-			}
-			if p.Status == constants.PaymentStatusSucceeded {
-				out = platform.Map(p)
-				out["paid"] = true
-				out["payment_id"] = p.ID
-				return nil
-			}
-			p.Status = constants.PaymentStatusClosed
-			if err = tx.Save(&p); err != nil {
-				return err
-			}
+		p, err := tx.ByOrder(c.ID)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			out = platform.Result{"closed": true, "paid": false, "order_id": c.ID}
 			return nil
-		})
-		return out, err
-	default:
-		return nil, status.Error(codes.Unimplemented, "unsupported payment action")
+		}
+		if err != nil {
+			return err
+		}
+		if p.Status == constants.PaymentStatusSucceeded {
+			out = platform.Map(p)
+			out["paid"] = true
+			out["payment_id"] = p.ID
+			return nil
+		}
+		p.Status = constants.PaymentStatusClosed
+		if err = tx.Save(&p); err != nil {
+			return err
+		}
+		out = platform.Result{"closed": true, "paid": false, "order_id": c.ID}
+		return nil
+	})
+	return out, err
+
+}
+
+func (s *Service) ConfirmDemo(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, sp := platform.Start(ctx, "payment.usecase."+constants.ActionConfirmDemo)
+	defer sp.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
 	}
+
+	if err := platform.RequireAdmin(c); err != nil {
+		return nil, err
+	}
+	return s.captureDemo(ctx, c, false)
+
+}
+
+func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, sp := platform.Start(ctx, "payment.usecase."+constants.ActionCreate)
+	defer sp.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
+	return s.create(ctx, c)
+
+}
+
+func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, sp := platform.Start(ctx, "payment.usecase."+constants.ActionGet)
+	defer sp.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
+	p, err := s.r.Get(ctx, c.ID)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, status.Error(codes.NotFound, "payment not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err = own(c, p); err != nil {
+		return nil, err
+	}
+	return platform.Map(p), nil
+
+}
+
+func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, sp := platform.Start(ctx, "payment.usecase."+constants.ActionList)
+	defer sp.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
+	if c.Role != constants.RoleAdmin && c.Role != constants.RoleSystem {
+		return nil, status.Error(codes.PermissionDenied, "internal payment listing")
+	}
+	rows, err := s.r.List(ctx, c.UserID, true)
+	return platform.Result{"items": rows}, err
+
+}
+
+func (s *Service) SubmitDemo(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
+	ctx, sp := platform.Start(ctx, "payment.usecase."+constants.ActionSubmitDemo)
+	defer sp.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
+	if err := platform.RequireUser(c); err != nil {
+		return nil, err
+	}
+
+	return s.captureDemo(ctx, c, true)
+
 }
 
 // requirePayableOrder checks server-owned state and deadlines; browser data
@@ -119,7 +171,7 @@ func requirePayableOrder(o platform.Result, now time.Time) error {
 	return nil
 }
 
-func (s *Service) confirmDemo(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) captureDemo(ctx context.Context, c platform.Request, validateOrder bool) (platform.Result, error) {
 	if os.Getenv("DEMO_MODE") != "true" && os.Getenv("DEMO_MODE") != "1" {
 		return nil, status.Error(codes.FailedPrecondition, "demo payment adapter disabled")
 	}
@@ -159,7 +211,7 @@ func (s *Service) confirmDemo(ctx context.Context, c platform.Command) (platform
 			return status.Error(codes.FailedPrecondition, "payment is closed")
 		}
 		now := time.Now().UTC()
-		if c.Action == constants.ActionSubmitDemo {
+		if validateOrder {
 			// Hold the payment gate while observing order state so a concurrent
 			// close cannot freeze the payment between validation and capture.
 			o, err := s.rpc.Call(
@@ -207,7 +259,7 @@ func (s *Service) confirmDemo(ctx context.Context, c platform.Command) (platform
 	return out, err
 }
 
-func (s *Service) create(ctx context.Context, c platform.Command) (platform.Result, error) {
+func (s *Service) create(ctx context.Context, c platform.Request) (platform.Result, error) {
 	if os.Getenv("DEMO_MODE") != "true" && os.Getenv("DEMO_MODE") != "1" {
 		return nil, status.Error(codes.FailedPrecondition, "no production payment adapter configured")
 	}
