@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/davveo/lumo/internal/constants"
 	"io"
 	"time"
 
@@ -71,7 +72,7 @@ func (s *Service) Create(ctx context.Context, request CreateOrderRequest) (trace
 		if expiresAt.IsZero() {
 			expiresAt = time.Now().UTC().Add(30 * time.Minute)
 		}
-		order = domain.Order{ID: request.ID, UserID: request.Actor.UserID, Status: "CREATING", Version: 1, Payable: amount, Quote: string(request.Quote), Address: string(address), Note: request.Note, Source: request.Source, GroupID: platform.Text(quote, "group_id"), ExpiresAt: expiresAt}
+		order = domain.Order{ID: request.ID, UserID: request.Actor.UserID, Status: constants.OrderStatusCreating, Version: 1, Payable: amount, Quote: string(request.Quote), Address: string(address), Note: request.Note, Source: request.Source, GroupID: platform.Text(quote, "group_id"), ExpiresAt: expiresAt}
 		if err = tx.Create(&order); err != nil {
 			return err
 		}
@@ -81,21 +82,21 @@ func (s *Service) Create(ctx context.Context, request CreateOrderRequest) (trace
 	return result, err
 }
 func (s *Service) Pending(ctx context.Context, request OrderRequest) (domain.Order, error) {
-	return s.update(ctx, "pending", request, internalAccess, func(_ *repository.Tx, order *domain.Order) (transition, error) {
-		if order.Status == "PENDING_PAYMENT" {
+	return s.update(ctx, constants.ActionPending, request, internalAccess, func(_ *repository.Tx, order *domain.Order) (transition, error) {
+		if order.Status == constants.OrderStatusPendingPayment {
 			return transition{unchanged: true}, nil
 		}
-		if order.Status != "CREATING" {
+		if order.Status != constants.OrderStatusCreating {
 			return transition{}, status.Error(codes.FailedPrecondition, "order cannot become payable")
 		}
-		order.Status = "PENDING_PAYMENT"
-		return transition{eventType: "OrderAwaitingPayment"}, nil
+		order.Status = constants.OrderStatusPendingPayment
+		return transition{eventType: constants.EventOrderAwaitingPayment}, nil
 	})
 }
 func (s *Service) CreateFailed(ctx context.Context, request OrderRequest) (domain.Order, error) {
-	return s.update(ctx, "create_failed", request, internalAccess, func(_ *repository.Tx, order *domain.Order) (transition, error) {
-		if order.Status == "CREATING" {
-			order.Status = "CREATE_FAILED"
+	return s.update(ctx, constants.ActionCreateFailed, request, internalAccess, func(_ *repository.Tx, order *domain.Order) (transition, error) {
+		if order.Status == constants.OrderStatusCreating {
+			order.Status = constants.OrderStatusCreateFailed
 		}
 		return transition{}, nil
 	})

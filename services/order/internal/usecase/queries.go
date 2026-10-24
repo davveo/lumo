@@ -1,6 +1,8 @@
 package usecase
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"context"
 	"errors"
 
@@ -20,7 +22,7 @@ func (s *Service) List(ctx context.Context, actor Actor) (traceResult []domain.O
 	if err := requireUser(actor); err != nil {
 		return nil, err
 	}
-	return s.r.List(ctx, actor.UserID, actor.Role == "admin" || actor.Role == "system")
+	return s.r.List(ctx, actor.UserID, actor.Role == constants.RoleAdmin || actor.Role == constants.RoleSystem)
 }
 func (s *Service) Get(ctx context.Context, request OrderRequest) (traceResult domain.Order, traceErr error) {
 	ctx, span := platform.Start(ctx, "order.usecase.get")

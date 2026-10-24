@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -14,10 +15,10 @@ import (
 // that verified snapshot to the internal ranker rather than fetching the same
 // lists again inside the recommendation service. The HTTP whitelist never
 // exposes rank_bootstrap or accepts a nested principal/profile from the client.
-func (g *gateway) bootstrapRecommendations(ctx context.Context, fragments []platform.Result, principal platform.Command) []platform.Result {
-	query := readRequest{Key: "bootstrap-recommendation", Service: "recommendation", Action: "list", Command: readCommand{Data: map[string]any{"scene": "home", "limit": 20}}, auth: principal.UserID != ""}
+func (g *gateway) bootstrapRecommendations(ctx context.Context, fragments []platform.Result, principal platform.Command, stockVariants ...bool) []platform.Result {
+	query := readRequest{Key: "bootstrap-recommendation", Service: constants.ServiceRecommendation, Action: constants.ActionList, Command: readCommand{Data: map[string]any{"scene": constants.RecommendationSceneHome, "limit": 20}}, auth: principal.UserID != ""}
 	signals := map[string]any{}
-	for _, kind := range []string{"favorite", "history", "compare", "search", "orders"} {
+	for _, kind := range []string{constants.RecommendationSignalFavorite, constants.RecommendationSignalHistory, constants.RecommendationSignalCompare, constants.RecommendationSignalSearch, constants.RecommendationSignalOrders} {
 		signals[kind] = []platform.Result{}
 	}
 	catalog, stocks := []platform.Result{}, []platform.Result{}
@@ -29,22 +30,22 @@ func (g *gateway) bootstrapRecommendations(ctx context.Context, fragments []plat
 		command := platform.Map(fragment["command"])
 		kind := platform.Text(platform.Map(command["data"]), "kind")
 		data, success := fragment["data"].(platform.Result)
-		if service == "catalog" && action == "list" {
+		if service == constants.ServiceCatalog && action == constants.ActionList {
 			catalogOK = success
 			if success {
 				catalog = resultRows(data)
 			}
 		}
-		if service == "inventory" && action == "get" && success {
+		if service == constants.ServiceInventory && action == constants.ActionGet && success {
 			stocks = append(stocks, data)
 			known[platform.Text(data, "sku_id")] = true
 		}
 		if principal.UserID == "" || fragment["auth"] != true {
 			continue
 		}
-		if service == "order" && action == "list" {
-			kind = "orders"
-		} else if service != "engagement" || action != "list" {
+		if service == constants.ServiceOrder && action == constants.ActionList {
+			kind = constants.RecommendationSignalOrders
+		} else if service != constants.ServiceEngagement || action != constants.ActionList {
 			continue
 		}
 		if _, expected := signals[kind]; !expected {
@@ -52,15 +53,16 @@ func (g *gateway) bootstrapRecommendations(ctx context.Context, fragments []plat
 		}
 		if success {
 			rows := resultRows(data)
-			if kind == "orders" {
-				owned := []platform.Result{}
-				for _, order := range rows {
-					if platform.Text(order, "user_id") == principal.UserID {
-						owned = append(owned, order)
-					}
+			owned := []platform.Result{}
+			for _, row := range rows {
+				if platform.Text(row, "user_id") == principal.UserID {
+					owned = append(owned, row)
 				}
-				rows = owned
 			}
+			if len(owned) != len(rows) {
+				signalErrors = append(signalErrors, kind)
+			}
+			rows = owned
 			signals[kind] = rows
 		} else {
 			signalErrors = append(signalErrors, kind)
@@ -81,9 +83,9 @@ func (g *gateway) bootstrapRecommendations(ctx context.Context, fragments []plat
 			rankingStocks = append(rankingStocks, stock)
 		}
 	}
-	data, err := g.readRPC(ctx, "recommendation", platform.Command{
-		Action: "rank_bootstrap", UserID: principal.UserID, Role: "system",
-		Data: map[string]any{"scene": "home", "limit": 20, "catalog_items": catalog, "inventory_items": rankingStocks, "signals": signals, "signal_errors": signalErrors},
+	data, err := g.readRPC(ctx, constants.ServiceRecommendation, platform.Command{
+		Action: constants.ActionRankBootstrap, UserID: principal.UserID, Role: constants.RoleSystem,
+		Data: map[string]any{"scene": constants.RecommendationSceneHome, "limit": 20, "catalog_items": catalog, "inventory_items": rankingStocks, "signals": signals, "signal_errors": signalErrors},
 	})
 	if err != nil {
 		return append(fragments, readResult(query, nil, err))
@@ -103,6 +105,11 @@ func (g *gateway) bootstrapRecommendations(ctx context.Context, fragments []plat
 	for _, product := range resultRows(public) {
 		if id := platform.Text(product, "id"); id != "" {
 			needed[id] = true
+		}
+		// The dedicated recent page only displays default SKUs; bootstrap also
+		// primes variant pickers used by the rest of the storefront.
+		if len(stockVariants) != 0 && !stockVariants[0] {
+			continue
 		}
 		attributes := platform.Map(product["attributes"])
 		for _, variants := range []any{product["variants"], attributes["variants"]} {
@@ -126,7 +133,7 @@ func (g *gateway) bootstrapRecommendations(ctx context.Context, fragments []plat
 	sort.Strings(ids)
 	reads := []readRequest{}
 	for i, id := range ids {
-		item := readRequest{Key: fmt.Sprintf("bootstrap-recommendation-stock-%d", i), Service: "inventory", Action: "get", Command: readCommand{ID: id, Data: map[string]any{}}}
+		item := readRequest{Key: fmt.Sprintf("bootstrap-recommendation-stock-%d", i), Service: constants.ServiceInventory, Action: constants.ActionGet, Command: readCommand{ID: id, Data: map[string]any{}}}
 		if stock, exists := available[id]; exists {
 			fragments = append(fragments, readResult(item, stock, nil))
 		} else {

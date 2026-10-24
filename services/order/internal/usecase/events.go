@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"encoding/json"
+	"github.com/davveo/lumo/internal/constants"
 	"time"
 
 	"github.com/davveo/lumo/internal/platform"
@@ -12,16 +13,16 @@ import (
 )
 
 func (s *Service) Topics() []string {
-	return []string{"PaymentSucceeded", "RefundSucceeded", "ShipmentDispatched", "DeliveryConfirmed", "GroupFormed", "GroupFailed"}
+	return []string{constants.EventPaymentSucceeded, constants.EventRefundSucceeded, constants.EventShipmentDispatched, constants.EventDeliveryConfirmed, constants.EventGroupFormed, constants.EventGroupFailed}
 }
 func eventTime(data map[string]any, key string) time.Time {
 	value, _ := time.Parse(time.RFC3339Nano, platform.Text(data, key))
 	return value
 }
 func (s *Service) OnEvent(ctx context.Context, event platform.Event) error {
-	request := OrderRequest{Actor: Actor{UserID: event.UserID, Role: "system"}, ID: platform.Text(event.Data, "order_id")}
+	request := OrderRequest{Actor: Actor{UserID: event.UserID, Role: constants.RoleSystem}, ID: platform.Text(event.Data, "order_id")}
 	switch event.Type {
-	case "PaymentSucceeded":
+	case constants.EventPaymentSucceeded:
 		_, err := s.AcceptPayment(ctx, AcceptPaymentRequest{
 			OrderRequest: request,
 			PaymentID:    platform.Text(event.Data, "payment_id"),
@@ -29,26 +30,26 @@ func (s *Service) OnEvent(ctx context.Context, event platform.Event) error {
 			PaidAt:       eventTime(event.Data, "paid_at"),
 		})
 		return err
-	case "RefundSucceeded":
+	case constants.EventRefundSucceeded:
 		_, err := s.Refunded(ctx, RecordRefundRequest{
 			OrderRequest: request,
 			RefundID:     platform.Text(event.Data, "refund_id"),
 			AmountCents:  platform.Int(event.Data, "amount_cents"),
 		})
 		return err
-	case "ShipmentDispatched":
-		if platform.Text(event.Data, "kind") == "EXCHANGE" {
+	case constants.EventShipmentDispatched:
+		if platform.Text(event.Data, "kind") == constants.FulfillmentKindExchange {
 			return nil
 		}
 		_, err := s.Shipped(ctx, request)
 		return err
-	case "DeliveryConfirmed":
-		if platform.Text(event.Data, "kind") == "EXCHANGE" {
+	case constants.EventDeliveryConfirmed:
+		if platform.Text(event.Data, "kind") == constants.FulfillmentKindExchange {
 			return nil
 		}
 		_, err := s.Complete(ctx, request)
 		return err
-	case "GroupFormed", "GroupFailed":
+	case constants.EventGroupFormed, constants.EventGroupFailed:
 		return s.onGroupEvent(ctx, event)
 	}
 	return nil
@@ -65,8 +66,8 @@ func (s *Service) onGroupEvent(ctx context.Context, event platform.Event) error 
 		if err != nil {
 			return err
 		}
-		request := OrderRequest{Actor: Actor{UserID: order.UserID, Role: "system"}, ID: id}
-		if event.Type == "GroupFailed" {
+		request := OrderRequest{Actor: Actor{UserID: order.UserID, Role: constants.RoleSystem}, ID: id}
+		if event.Type == constants.EventGroupFailed {
 			_, err = s.GroupFailed(ctx, request)
 		} else {
 			_, err = s.GroupFormed(ctx, request)
@@ -83,7 +84,7 @@ func (s *Service) Tick(ctx context.Context) error {
 		return err
 	}
 	for _, order := range rows {
-		_, err = s.rpc.Call(ctx, "checkout", platform.Command{Action: "cancel", ID: order.ID, UserID: order.UserID, Role: "system"})
+		_, err = s.rpc.Call(ctx, constants.ServiceCheckout, platform.Command{Action: constants.ActionCancel, ID: order.ID, UserID: order.UserID, Role: constants.RoleSystem})
 		if err != nil && status.Code(err) != codes.FailedPrecondition {
 			return err
 		}

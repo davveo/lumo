@@ -1,0 +1,5783 @@
+{
+  "source_sha256": "1cbc7f7b2684ae7f57d6f5c40b067735a5c534caab783dee9697e7b5081a56c4",
+  "terms": [
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "冰箱",
+      "label": "冰箱",
+      "query": "冰箱",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "冰箱",
+      "label": "多门冰箱",
+      "query": "多门冰箱",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "冰箱",
+      "label": "对开门冰箱",
+      "query": "对开门冰箱",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "冰箱",
+      "label": "嵌入式冰箱",
+      "query": "嵌入式冰箱",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "冰箱",
+      "label": "迷你冰箱",
+      "query": "迷你冰箱",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "冰箱",
+      "label": "超薄冰箱",
+      "query": "超薄冰箱",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "冰箱",
+      "label": "十字对开冰箱",
+      "query": "十字对开冰箱",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "冰箱",
+      "label": "法式多门冰箱",
+      "query": "法式多门冰箱",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "冰箱",
+      "label": "风冷冰箱",
+      "query": "风冷冰箱",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "冰箱",
+      "label": "无霜冰箱",
+      "query": "无霜冰箱",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "冰箱",
+      "label": "大容量冰箱",
+      "query": "大容量冰箱",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "冰箱",
+      "label": "酒柜",
+      "query": "酒柜",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "洗衣机",
+      "label": "滚筒洗衣机",
+      "query": "滚筒洗衣机",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "洗衣机",
+      "label": "波轮洗衣机",
+      "query": "波轮洗衣机",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "洗衣机",
+      "label": "洗烘套装",
+      "query": "洗烘套装",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "洗衣机",
+      "label": "洗烘一体机",
+      "query": "洗烘一体机",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "洗衣机",
+      "label": "烘干机",
+      "query": "烘干机",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "洗衣机",
+      "label": "迷你洗衣机",
+      "query": "迷你洗衣机",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "洗衣机",
+      "label": "壁挂洗衣机",
+      "query": "壁挂洗衣机",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "洗衣机",
+      "label": "内衣洗衣机",
+      "query": "内衣洗衣机",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "洗衣机",
+      "label": "双筒洗衣机",
+      "query": "双筒洗衣机",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "洗衣机",
+      "label": "商用洗衣机",
+      "query": "商用洗衣机",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "空调",
+      "label": "壁挂式空调",
+      "query": "壁挂式空调",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "空调",
+      "label": "立式空调",
+      "query": "立式空调",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "空调",
+      "label": "中央空调",
+      "query": "中央空调",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "空调",
+      "label": "移动空调",
+      "query": "移动空调",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "空调",
+      "label": "新风空调",
+      "query": "新风空调",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "空调",
+      "label": "空调配件",
+      "query": "空调配件",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "空调",
+      "label": "变频空调",
+      "query": "变频空调",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "空调",
+      "label": "节能空调",
+      "query": "节能空调",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "空调",
+      "label": "冷暖空调",
+      "query": "冷暖空调",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "空调",
+      "label": "空调扇",
+      "query": "空调扇",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "厨卫大电",
+      "label": "油烟机",
+      "query": "油烟机",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "厨卫大电",
+      "label": "燃气灶",
+      "query": "燃气灶",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "厨卫大电",
+      "label": "集成灶",
+      "query": "集成灶",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "厨卫大电",
+      "label": "洗碗机",
+      "query": "洗碗机",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "厨卫大电",
+      "label": "消毒柜",
+      "query": "消毒柜",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "厨卫大电",
+      "label": "电热水器",
+      "query": "电热水器",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "厨卫大电",
+      "label": "燃气热水器",
+      "query": "燃气热水器",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "厨卫大电",
+      "label": "空气能热水器",
+      "query": "空气能热水器",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "厨卫大电",
+      "label": "壁挂炉",
+      "query": "壁挂炉",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "厨卫大电",
+      "label": "蒸烤一体机",
+      "query": "蒸烤一体机",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "厨卫大电",
+      "label": "嵌入式蒸箱",
+      "query": "嵌入式蒸箱",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "厨卫大电",
+      "label": "集成水槽",
+      "query": "集成水槽",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "厨卫大电",
+      "label": "厨卫大电",
+      "query": "厨卫大电",
+      "bundle": true,
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "影音电器",
+      "label": "电视",
+      "query": "电视",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "影音电器",
+      "label": "激光电视",
+      "query": "激光电视",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "影音电器",
+      "label": "投影仪",
+      "query": "投影仪",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "影音电器",
+      "label": "蓝牙音箱",
+      "query": "蓝牙音箱",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "影音电器",
+      "label": "回音壁",
+      "query": "回音壁",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "影音电器",
+      "label": "家庭影院",
+      "query": "家庭影院",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "影音电器",
+      "label": "功放",
+      "query": "功放",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "影音电器",
+      "label": "麦克风",
+      "query": "麦克风",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "影音电器",
+      "label": "音响",
+      "query": "音响",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "影音电器",
+      "label": "播放器",
+      "query": "播放器",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "影音电器",
+      "label": "影音电器",
+      "query": "影音电器",
+      "bundle": true,
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "中央空调",
+      "label": "风管机",
+      "query": "风管机",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "中央空调",
+      "label": "多联机",
+      "query": "多联机",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "中央空调",
+      "label": "厨房空调",
+      "query": "厨房空调",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "中央空调",
+      "label": "商用柜机",
+      "query": "商用柜机",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "中央空调",
+      "label": "天花机",
+      "query": "天花机",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "中央空调",
+      "label": "中央空调面板",
+      "query": "中央空调面板",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "商用电器",
+      "label": "商用冰箱",
+      "query": "商用冰箱",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "商用电器",
+      "label": "商用冰柜",
+      "query": "商用冰柜",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "商用电器",
+      "label": "展示柜",
+      "query": "展示柜",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "商用电器",
+      "label": "制冰机",
+      "query": "制冰机",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "商用电器",
+      "label": "商用洗碗机",
+      "query": "商用洗碗机",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "商用电器",
+      "label": "商用烤箱",
+      "query": "商用烤箱",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "商用电器",
+      "label": "商用消毒柜",
+      "query": "商用消毒柜",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "商用电器",
+      "label": "商用饮水机",
+      "query": "商用饮水机",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "商用电器",
+      "label": "商用电器",
+      "query": "商用电器",
+      "bundle": true,
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "家电配件",
+      "label": "电视支架",
+      "query": "电视支架",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "家电配件",
+      "label": "遥控器",
+      "query": "遥控器",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "家电配件",
+      "label": "空调挡风板",
+      "query": "空调挡风板",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "家电配件",
+      "label": "冰箱收纳",
+      "query": "冰箱收纳",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "家电配件",
+      "label": "洗衣机底座",
+      "query": "洗衣机底座",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "家电配件",
+      "label": "净水器滤芯",
+      "query": "净水器滤芯",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "家电配件",
+      "label": "音响线材",
+      "query": "音响线材",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "家电配件",
+      "label": "热水器配件",
+      "query": "热水器配件",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "家电配件",
+      "label": "家电配件",
+      "query": "家电配件",
+      "bundle": true,
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "冷柜冰吧",
+      "label": "卧式冷柜",
+      "query": "卧式冷柜",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "冷柜冰吧",
+      "label": "立式冷柜",
+      "query": "立式冷柜",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "冷柜冰吧",
+      "label": "小型冷柜",
+      "query": "小型冷柜",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "冷柜冰吧",
+      "label": "冷藏柜",
+      "query": "冷藏柜",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "冷柜冰吧",
+      "label": "冰吧",
+      "query": "冰吧",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "冷柜冰吧",
+      "label": "双温冷柜",
+      "query": "双温冷柜",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "appliances",
+      "category": "家用电器",
+      "section": "冷柜冰吧",
+      "label": "冷柜冰吧",
+      "query": "冷柜冰吧",
+      "bundle": true,
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "电脑整机",
+      "label": "笔记本电脑",
+      "query": "笔记本",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "电脑整机",
+      "label": "轻薄本",
+      "query": "轻薄本",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "电脑整机",
+      "label": "游戏本",
+      "query": "游戏本",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "电脑整机",
+      "label": "台式电脑",
+      "query": "台式电脑",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "电脑整机",
+      "label": "一体机",
+      "query": "一体机",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "电脑整机",
+      "label": "平板电脑",
+      "query": "平板电脑",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "电脑整机",
+      "label": "电脑整机",
+      "query": "电脑整机",
+      "bundle": true,
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "电脑配件",
+      "label": "显示器",
+      "query": "显示器",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "电脑配件",
+      "label": "主板",
+      "query": "主板",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "电脑配件",
+      "label": "显卡",
+      "query": "显卡",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "电脑配件",
+      "label": "处理器",
+      "query": "处理器",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "电脑配件",
+      "label": "内存",
+      "query": "内存",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "电脑配件",
+      "label": "固态硬盘",
+      "query": "固态硬盘",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "电脑配件",
+      "label": "电脑配件",
+      "query": "电脑配件",
+      "bundle": true,
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "外设产品",
+      "label": "键盘",
+      "query": "键盘",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "外设产品",
+      "label": "鼠标",
+      "query": "鼠标",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "外设产品",
+      "label": "鼠标垫",
+      "query": "鼠标垫",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "外设产品",
+      "label": "摄像头",
+      "query": "摄像头",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "外设产品",
+      "label": "拓展坞",
+      "query": "拓展坞",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "外设产品",
+      "label": "移动硬盘",
+      "query": "移动硬盘",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "外设产品",
+      "label": "外设产品",
+      "query": "外设产品",
+      "bundle": true,
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "办公设备",
+      "label": "打印机",
+      "query": "打印机",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "办公设备",
+      "label": "复印机",
+      "query": "复印机",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "办公设备",
+      "label": "扫描仪",
+      "query": "扫描仪",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "办公设备",
+      "label": "投影仪",
+      "query": "投影仪",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "办公设备",
+      "label": "碎纸机",
+      "query": "碎纸机",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "办公设备",
+      "label": "标签打印机",
+      "query": "标签打印机",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "办公设备",
+      "label": "办公设备",
+      "query": "办公设备",
+      "bundle": true,
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "文具耗材",
+      "label": "中性笔",
+      "query": "中性笔",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "文具耗材",
+      "label": "笔记本",
+      "query": "笔记本",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "文具耗材",
+      "label": "文件夹",
+      "query": "文件夹",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "文具耗材",
+      "label": "打印纸",
+      "query": "打印纸",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "文具耗材",
+      "label": "墨盒",
+      "query": "墨盒",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "文具耗材",
+      "label": "硒鼓",
+      "query": "硒鼓",
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "computers",
+      "category": "电脑办公",
+      "section": "文具耗材",
+      "label": "文具耗材",
+      "query": "文具耗材",
+      "bundle": true,
+      "brands": [
+        "Apple"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "手机通讯",
+      "label": "iPhone",
+      "query": "iphone",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "手机通讯",
+      "label": "安卓手机",
+      "query": "安卓手机",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "手机通讯",
+      "label": "折叠屏手机",
+      "query": "折叠屏手机",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "手机通讯",
+      "label": "老人手机",
+      "query": "老人手机",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "手机通讯",
+      "label": "游戏手机",
+      "query": "游戏手机",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "手机通讯",
+      "label": "手机壳",
+      "query": "手机壳",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "影音娱乐",
+      "label": "降噪耳机",
+      "query": "降噪耳机",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "影音娱乐",
+      "label": "无线耳机",
+      "query": "耳机",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "影音娱乐",
+      "label": "蓝牙耳机",
+      "query": "蓝牙耳机",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "影音娱乐",
+      "label": "头戴耳机",
+      "query": "头戴耳机",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "影音娱乐",
+      "label": "音箱",
+      "query": "音箱",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "影音娱乐",
+      "label": "音乐播放器",
+      "query": "音乐播放器",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "摄影摄像",
+      "label": "数码相机",
+      "query": "相机",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "摄影摄像",
+      "label": "微单相机",
+      "query": "微单",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "摄影摄像",
+      "label": "单反相机",
+      "query": "单反相机",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "摄影摄像",
+      "label": "运动相机",
+      "query": "运动相机",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "摄影摄像",
+      "label": "镜头",
+      "query": "镜头",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "摄影摄像",
+      "label": "相机包",
+      "query": "相机包",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "智能设备",
+      "label": "智能手环",
+      "query": "智能手环",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "智能设备",
+      "label": "智能眼镜",
+      "query": "智能眼镜",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "智能设备",
+      "label": "智能音箱",
+      "query": "智能音箱",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "智能设备",
+      "label": "无人机",
+      "query": "无人机",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "智能设备",
+      "label": "VR设备",
+      "query": "VR设备",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "智能设备",
+      "label": "电子阅读器",
+      "query": "电子阅读器",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "智能设备",
+      "label": "智能设备",
+      "query": "智能设备",
+      "bundle": true,
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "数码配件",
+      "label": "充电器",
+      "query": "充电器",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "数码配件",
+      "label": "数据线",
+      "query": "数据线",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "数码配件",
+      "label": "充电宝",
+      "query": "充电宝",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "数码配件",
+      "label": "存储卡",
+      "query": "存储卡",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "数码配件",
+      "label": "手机支架",
+      "query": "手机支架",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "数码配件",
+      "label": "自拍杆",
+      "query": "自拍杆",
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "digital",
+      "category": "手机数码",
+      "section": "数码配件",
+      "label": "数码配件",
+      "query": "数码配件",
+      "bundle": true,
+      "brands": [
+        "Apple",
+        "Sony",
+        "LUMO"
+      ]
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "环境电器",
+      "label": "空气净化器",
+      "query": "空气净化器"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "环境电器",
+      "label": "加湿器",
+      "query": "加湿器"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "环境电器",
+      "label": "除湿机",
+      "query": "除湿机"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "环境电器",
+      "label": "电风扇",
+      "query": "电风扇"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "环境电器",
+      "label": "取暖器",
+      "query": "取暖器"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "环境电器",
+      "label": "新风机",
+      "query": "新风机"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "环境电器",
+      "label": "环境电器",
+      "query": "环境电器",
+      "bundle": true
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "清洁电器",
+      "label": "扫地机器人",
+      "query": "扫地机器人"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "清洁电器",
+      "label": "洗地机",
+      "query": "洗地机"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "清洁电器",
+      "label": "吸尘器",
+      "query": "吸尘器"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "清洁电器",
+      "label": "蒸汽拖把",
+      "query": "蒸汽拖把"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "清洁电器",
+      "label": "除螨仪",
+      "query": "除螨仪"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "清洁电器",
+      "label": "擦窗机器人",
+      "query": "擦窗机器人"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "清洁电器",
+      "label": "清洁电器",
+      "query": "清洁电器",
+      "bundle": true
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "厨房小电",
+      "label": "电饭煲",
+      "query": "电饭煲"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "厨房小电",
+      "label": "空气炸锅",
+      "query": "空气炸锅"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "厨房小电",
+      "label": "微波炉",
+      "query": "微波炉"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "厨房小电",
+      "label": "烤箱",
+      "query": "烤箱"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "厨房小电",
+      "label": "破壁机",
+      "query": "破壁机"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "厨房小电",
+      "label": "电压力锅",
+      "query": "电压力锅"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "厨房小电",
+      "label": "厨房小电",
+      "query": "厨房小电",
+      "bundle": true
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "饮水咖啡",
+      "label": "咖啡机",
+      "query": "咖啡机"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "饮水咖啡",
+      "label": "电热水壶",
+      "query": "电热水壶"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "饮水咖啡",
+      "label": "养生壶",
+      "query": "养生壶"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "饮水咖啡",
+      "label": "净水器",
+      "query": "净水器"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "饮水咖啡",
+      "label": "饮水机",
+      "query": "饮水机"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "饮水咖啡",
+      "label": "榨汁机",
+      "query": "榨汁机"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "饮水咖啡",
+      "label": "饮水咖啡",
+      "query": "饮水咖啡",
+      "bundle": true
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "个护电器",
+      "label": "吹风机",
+      "query": "吹风机"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "个护电器",
+      "label": "剃须刀",
+      "query": "剃须刀"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "个护电器",
+      "label": "电动牙刷",
+      "query": "电动牙刷"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "个护电器",
+      "label": "冲牙器",
+      "query": "冲牙器"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "个护电器",
+      "label": "卷发棒",
+      "query": "卷发棒"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "个护电器",
+      "label": "按摩仪",
+      "query": "按摩仪"
+    },
+    {
+      "group": "small-appliances",
+      "category": "生活电器",
+      "section": "个护电器",
+      "label": "个护电器",
+      "query": "个护电器",
+      "bundle": true
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "咖啡茶饮",
+      "label": "咖啡豆",
+      "query": "咖啡豆",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "咖啡茶饮",
+      "label": "挂耳咖啡",
+      "query": "挂耳咖啡",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "咖啡茶饮",
+      "label": "速溶咖啡",
+      "query": "速溶咖啡",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "咖啡茶饮",
+      "label": "红茶",
+      "query": "红茶",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "咖啡茶饮",
+      "label": "绿茶",
+      "query": "绿茶",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "咖啡茶饮",
+      "label": "乌龙茶",
+      "query": "乌龙茶",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "休闲零食",
+      "label": "坚果",
+      "query": "坚果",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "休闲零食",
+      "label": "饼干",
+      "query": "饼干",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "休闲零食",
+      "label": "巧克力",
+      "query": "巧克力",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "休闲零食",
+      "label": "糖果",
+      "query": "糖果",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "休闲零食",
+      "label": "肉干",
+      "query": "肉干",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "休闲零食",
+      "label": "果干",
+      "query": "果干",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "休闲零食",
+      "label": "休闲零食",
+      "query": "休闲零食",
+      "bundle": true,
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "粮油调味",
+      "label": "大米",
+      "query": "大米",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "粮油调味",
+      "label": "面粉",
+      "query": "面粉",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "粮油调味",
+      "label": "食用油",
+      "query": "食用油",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "粮油调味",
+      "label": "酱油",
+      "query": "酱油",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "粮油调味",
+      "label": "调味料",
+      "query": "调味料",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "粮油调味",
+      "label": "杂粮",
+      "query": "杂粮",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "粮油调味",
+      "label": "粮油调味",
+      "query": "粮油调味",
+      "bundle": true,
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "生鲜冷藏",
+      "label": "牛奶",
+      "query": "牛奶",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "生鲜冷藏",
+      "label": "酸奶",
+      "query": "酸奶",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "生鲜冷藏",
+      "label": "水果",
+      "query": "水果",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "生鲜冷藏",
+      "label": "蔬菜",
+      "query": "蔬菜",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "生鲜冷藏",
+      "label": "肉类",
+      "query": "肉类",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "生鲜冷藏",
+      "label": "海鲜",
+      "query": "海鲜",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "生鲜冷藏",
+      "label": "生鲜冷藏",
+      "query": "生鲜冷藏",
+      "bundle": true,
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "酒水饮料",
+      "label": "白酒",
+      "query": "白酒",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "酒水饮料",
+      "label": "葡萄酒",
+      "query": "葡萄酒",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "酒水饮料",
+      "label": "啤酒",
+      "query": "啤酒",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "酒水饮料",
+      "label": "威士忌",
+      "query": "威士忌",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "酒水饮料",
+      "label": "果汁",
+      "query": "果汁",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "酒水饮料",
+      "label": "矿泉水",
+      "query": "矿泉水",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "food",
+      "category": "食品生鲜",
+      "section": "酒水饮料",
+      "label": "酒水饮料",
+      "query": "酒水饮料",
+      "bundle": true,
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "面部护肤",
+      "label": "洁面",
+      "query": "洁面",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "面部护肤",
+      "label": "爽肤水",
+      "query": "爽肤水",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "面部护肤",
+      "label": "精华",
+      "query": "精华",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "面部护肤",
+      "label": "乳液",
+      "query": "乳液",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "面部护肤",
+      "label": "面霜",
+      "query": "面霜",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "面部护肤",
+      "label": "防晒",
+      "query": "防晒",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "面部护肤",
+      "label": "面部护肤",
+      "query": "面部护肤",
+      "bundle": true,
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "彩妆香氛",
+      "label": "香水",
+      "query": "香水",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "彩妆香氛",
+      "label": "口红",
+      "query": "口红",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "彩妆香氛",
+      "label": "粉底",
+      "query": "粉底",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "彩妆香氛",
+      "label": "眼影",
+      "query": "眼影",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "彩妆香氛",
+      "label": "腮红",
+      "query": "腮红",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "彩妆香氛",
+      "label": "定妆粉",
+      "query": "定妆粉",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "身体护理",
+      "label": "身体乳",
+      "query": "身体乳",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "身体护理",
+      "label": "沐浴露",
+      "query": "沐浴露",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "身体护理",
+      "label": "护手霜",
+      "query": "护手霜",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "身体护理",
+      "label": "磨砂膏",
+      "query": "磨砂膏",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "身体护理",
+      "label": "身体精油",
+      "query": "身体精油",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "身体护理",
+      "label": "止汗露",
+      "query": "止汗露",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "身体护理",
+      "label": "身体护理",
+      "query": "身体护理",
+      "bundle": true,
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "洗发护发",
+      "label": "洗发水",
+      "query": "洗发水",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "洗发护发",
+      "label": "护发素",
+      "query": "护发素",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "洗发护发",
+      "label": "发膜",
+      "query": "发膜",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "洗发护发",
+      "label": "护发精油",
+      "query": "护发精油",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "洗发护发",
+      "label": "染发剂",
+      "query": "染发剂",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "洗发护发",
+      "label": "造型喷雾",
+      "query": "造型喷雾",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "洗发护发",
+      "label": "洗发护发",
+      "query": "洗发护发",
+      "bundle": true,
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "口腔清洁",
+      "label": "牙膏",
+      "query": "牙膏",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "口腔清洁",
+      "label": "牙刷",
+      "query": "牙刷",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "口腔清洁",
+      "label": "漱口水",
+      "query": "漱口水",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "口腔清洁",
+      "label": "牙线",
+      "query": "牙线",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "口腔清洁",
+      "label": "口腔喷雾",
+      "query": "口腔喷雾",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "口腔清洁",
+      "label": "假牙清洁",
+      "query": "假牙清洁",
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "beauty",
+      "category": "美妆个护",
+      "section": "口腔清洁",
+      "label": "口腔清洁",
+      "query": "口腔清洁",
+      "bundle": true,
+      "brands": [
+        "CHANEL"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "男装",
+      "label": "T恤",
+      "query": "T恤",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "男装",
+      "label": "衬衫",
+      "query": "衬衫",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "男装",
+      "label": "男士外套",
+      "query": "男士外套",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "男装",
+      "label": "牛仔裤",
+      "query": "牛仔裤",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "男装",
+      "label": "休闲裤",
+      "query": "休闲裤",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "男装",
+      "label": "西服",
+      "query": "西服",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "男装",
+      "label": "男装",
+      "query": "男装",
+      "bundle": true,
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "女装",
+      "label": "连衣裙",
+      "query": "连衣裙",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "女装",
+      "label": "女式衬衫",
+      "query": "女式衬衫",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "女装",
+      "label": "针织衫",
+      "query": "针织衫",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "女装",
+      "label": "半身裙",
+      "query": "半身裙",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "女装",
+      "label": "女士外套",
+      "query": "女士外套",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "女装",
+      "label": "女式牛仔裤",
+      "query": "女式牛仔裤",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "女装",
+      "label": "女装",
+      "query": "女装",
+      "bundle": true,
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "功能服饰",
+      "label": "防晒衣",
+      "query": "防晒衣",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "功能服饰",
+      "label": "羽绒服",
+      "query": "羽绒服",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "功能服饰",
+      "label": "保暖内衣",
+      "query": "保暖内衣",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "功能服饰",
+      "label": "家居服",
+      "query": "家居服",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "功能服饰",
+      "label": "睡衣",
+      "query": "睡衣",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "功能服饰",
+      "label": "袜子",
+      "query": "袜子",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "功能服饰",
+      "label": "功能服饰",
+      "query": "功能服饰",
+      "bundle": true,
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "通勤箱包",
+      "label": "通勤背包",
+      "query": "背包",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "通勤箱包",
+      "label": "双肩包",
+      "query": "背包",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "通勤箱包",
+      "label": "单肩包",
+      "query": "单肩包",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "通勤箱包",
+      "label": "手提包",
+      "query": "手提包",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "通勤箱包",
+      "label": "电脑包",
+      "query": "电脑包",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "通勤箱包",
+      "label": "公文包",
+      "query": "公文包",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "出行旅行",
+      "label": "行李箱",
+      "query": "行李箱",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "出行旅行",
+      "label": "登机箱",
+      "query": "登机箱",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "出行旅行",
+      "label": "旅行包",
+      "query": "旅行包",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "出行旅行",
+      "label": "收纳包",
+      "query": "收纳包",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "出行旅行",
+      "label": "洗漱包",
+      "query": "洗漱包",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "出行旅行",
+      "label": "钱包",
+      "query": "钱包",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "fashion",
+      "category": "服饰箱包",
+      "section": "出行旅行",
+      "label": "出行旅行",
+      "query": "出行旅行",
+      "bundle": true,
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "运动鞋服",
+      "label": "运动鞋",
+      "query": "运动鞋",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "运动鞋服",
+      "label": "跑步鞋",
+      "query": "跑步鞋",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "运动鞋服",
+      "label": "篮球鞋",
+      "query": "篮球鞋",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "运动鞋服",
+      "label": "训练鞋",
+      "query": "训练鞋",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "运动鞋服",
+      "label": "运动T恤",
+      "query": "运动T恤",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "运动鞋服",
+      "label": "运动裤",
+      "query": "运动裤",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "健身训练",
+      "label": "哑铃",
+      "query": "哑铃",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "健身训练",
+      "label": "瑜伽垫",
+      "query": "瑜伽垫",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "健身训练",
+      "label": "跳绳",
+      "query": "跳绳",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "健身训练",
+      "label": "跑步机",
+      "query": "跑步机",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "健身训练",
+      "label": "动感单车",
+      "query": "动感单车",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "健身训练",
+      "label": "筋膜枪",
+      "query": "筋膜枪",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "健身训练",
+      "label": "健身训练",
+      "query": "健身训练",
+      "bundle": true,
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "球类运动",
+      "label": "篮球",
+      "query": "篮球",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "球类运动",
+      "label": "足球",
+      "query": "足球",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "球类运动",
+      "label": "羽毛球拍",
+      "query": "羽毛球拍",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "球类运动",
+      "label": "网球拍",
+      "query": "网球拍",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "球类运动",
+      "label": "乒乓球拍",
+      "query": "乒乓球拍",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "球类运动",
+      "label": "高尔夫球",
+      "query": "高尔夫球",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "球类运动",
+      "label": "球类运动",
+      "query": "球类运动",
+      "bundle": true,
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "户外露营",
+      "label": "帐篷",
+      "query": "帐篷",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "户外露营",
+      "label": "天幕",
+      "query": "天幕",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "户外露营",
+      "label": "睡袋",
+      "query": "睡袋",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "户外露营",
+      "label": "折叠椅",
+      "query": "折叠椅",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "户外露营",
+      "label": "登山杖",
+      "query": "登山杖",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "户外露营",
+      "label": "户外背包",
+      "query": "户外背包",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "户外露营",
+      "label": "户外露营",
+      "query": "户外露营",
+      "bundle": true,
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "骑行游泳",
+      "label": "自行车",
+      "query": "自行车",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "骑行游泳",
+      "label": "骑行头盔",
+      "query": "骑行头盔",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "骑行游泳",
+      "label": "骑行手套",
+      "query": "骑行手套",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "骑行游泳",
+      "label": "泳衣",
+      "query": "泳衣",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "骑行游泳",
+      "label": "泳镜",
+      "query": "泳镜",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "骑行游泳",
+      "label": "冲浪板",
+      "query": "冲浪板",
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "sports",
+      "category": "运动户外",
+      "section": "骑行游泳",
+      "label": "骑行游泳",
+      "query": "骑行游泳",
+      "bundle": true,
+      "brands": [
+        "Nike"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "客厅家具",
+      "label": "沙发",
+      "query": "沙发",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "客厅家具",
+      "label": "茶几",
+      "query": "茶几",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "客厅家具",
+      "label": "电视柜",
+      "query": "电视柜",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "客厅家具",
+      "label": "边几",
+      "query": "边几",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "客厅家具",
+      "label": "置物架",
+      "query": "置物架",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "客厅家具",
+      "label": "休闲椅",
+      "query": "休闲椅",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "卧室家具",
+      "label": "床",
+      "query": "床",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "卧室家具",
+      "label": "床垫",
+      "query": "床垫",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "卧室家具",
+      "label": "床头柜",
+      "query": "床头柜",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "卧室家具",
+      "label": "衣柜",
+      "query": "衣柜",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "卧室家具",
+      "label": "梳妆台",
+      "query": "梳妆台",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "卧室家具",
+      "label": "斗柜",
+      "query": "斗柜",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "卧室家具",
+      "label": "卧室家具",
+      "query": "卧室家具",
+      "bundle": true,
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "床上用品",
+      "label": "床单",
+      "query": "床单",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "床上用品",
+      "label": "被套",
+      "query": "被套",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "床上用品",
+      "label": "四件套",
+      "query": "四件套",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "床上用品",
+      "label": "枕头",
+      "query": "枕头",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "床上用品",
+      "label": "被子",
+      "query": "被子",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "床上用品",
+      "label": "凉席",
+      "query": "凉席",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "床上用品",
+      "label": "床上用品",
+      "query": "床上用品",
+      "bundle": true,
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "居家日用",
+      "label": "雨伞",
+      "query": "雨伞",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "居家日用",
+      "label": "时钟",
+      "query": "时钟",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "居家日用",
+      "label": "香薰",
+      "query": "香薰",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "居家日用",
+      "label": "垃圾桶",
+      "query": "垃圾桶",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "居家日用",
+      "label": "衣架",
+      "query": "衣架",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "居家日用",
+      "label": "晾衣架",
+      "query": "晾衣架",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "居家日用",
+      "label": "居家日用",
+      "query": "居家日用",
+      "bundle": true,
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "收纳整理",
+      "label": "收纳箱",
+      "query": "收纳箱",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "收纳整理",
+      "label": "收纳柜",
+      "query": "收纳柜",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "收纳整理",
+      "label": "衣物收纳",
+      "query": "衣物收纳",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "收纳整理",
+      "label": "桌面收纳",
+      "query": "桌面收纳",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "收纳整理",
+      "label": "鞋架",
+      "query": "鞋架",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "收纳整理",
+      "label": "挂钩",
+      "query": "挂钩",
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "home",
+      "category": "家居生活",
+      "section": "收纳整理",
+      "label": "收纳整理",
+      "query": "收纳整理",
+      "bundle": true,
+      "brands": [
+        "LUMO"
+      ]
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "烹饪锅具",
+      "label": "炒锅",
+      "query": "炒锅"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "烹饪锅具",
+      "label": "煎锅",
+      "query": "煎锅"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "烹饪锅具",
+      "label": "汤锅",
+      "query": "汤锅"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "烹饪锅具",
+      "label": "蒸锅",
+      "query": "蒸锅"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "烹饪锅具",
+      "label": "奶锅",
+      "query": "奶锅"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "烹饪锅具",
+      "label": "压力锅",
+      "query": "压力锅"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "烹饪锅具",
+      "label": "烹饪锅具",
+      "query": "烹饪锅具",
+      "bundle": true
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "刀剪砧板",
+      "label": "菜刀",
+      "query": "菜刀"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "刀剪砧板",
+      "label": "水果刀",
+      "query": "水果刀"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "刀剪砧板",
+      "label": "剪刀",
+      "query": "剪刀"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "刀剪砧板",
+      "label": "砧板",
+      "query": "砧板"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "刀剪砧板",
+      "label": "磨刀器",
+      "query": "磨刀器"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "刀剪砧板",
+      "label": "刀具套装",
+      "query": "刀具套装"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "刀剪砧板",
+      "label": "刀剪砧板",
+      "query": "刀剪砧板",
+      "bundle": true
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "餐具用品",
+      "label": "碗",
+      "query": "碗"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "餐具用品",
+      "label": "餐盘",
+      "query": "餐盘"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "餐具用品",
+      "label": "筷子",
+      "query": "筷子"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "餐具用品",
+      "label": "勺子",
+      "query": "勺子"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "餐具用品",
+      "label": "餐具套装",
+      "query": "餐具套装"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "餐具用品",
+      "label": "便当盒",
+      "query": "便当盒"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "餐具用品",
+      "label": "餐具用品",
+      "query": "餐具用品",
+      "bundle": true
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "水具茶具",
+      "label": "保温杯",
+      "query": "保温杯"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "水具茶具",
+      "label": "玻璃杯",
+      "query": "玻璃杯"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "水具茶具",
+      "label": "水壶",
+      "query": "水壶"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "水具茶具",
+      "label": "茶壶",
+      "query": "茶壶"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "水具茶具",
+      "label": "茶杯",
+      "query": "茶杯"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "水具茶具",
+      "label": "咖啡杯",
+      "query": "咖啡杯"
+    },
+    {
+      "group": "kitchen",
+      "category": "厨具餐具",
+      "section": "水具茶具",
+      "label": "水具茶具",
+      "query": "水具茶具",
+      "bundle": true
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "照明灯饰",
+      "label": "吸顶灯",
+      "query": "吸顶灯"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "照明灯饰",
+      "label": "吊灯",
+      "query": "吊灯"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "照明灯饰",
+      "label": "台灯",
+      "query": "台灯"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "照明灯饰",
+      "label": "落地灯",
+      "query": "落地灯"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "照明灯饰",
+      "label": "筒灯",
+      "query": "筒灯"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "照明灯饰",
+      "label": "灯泡",
+      "query": "灯泡"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "照明灯饰",
+      "label": "照明灯饰",
+      "query": "照明灯饰",
+      "bundle": true
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "厨房卫浴",
+      "label": "水槽",
+      "query": "水槽"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "厨房卫浴",
+      "label": "龙头",
+      "query": "龙头"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "厨房卫浴",
+      "label": "花洒",
+      "query": "花洒"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "厨房卫浴",
+      "label": "马桶",
+      "query": "马桶"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "厨房卫浴",
+      "label": "浴室柜",
+      "query": "浴室柜"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "厨房卫浴",
+      "label": "智能马桶盖",
+      "query": "智能马桶盖"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "厨房卫浴",
+      "label": "厨房卫浴",
+      "query": "厨房卫浴",
+      "bundle": true
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "基础建材",
+      "label": "地板",
+      "query": "地板"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "基础建材",
+      "label": "瓷砖",
+      "query": "瓷砖"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "基础建材",
+      "label": "墙纸",
+      "query": "墙纸"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "基础建材",
+      "label": "油漆",
+      "query": "油漆"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "基础建材",
+      "label": "门锁",
+      "query": "门锁"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "基础建材",
+      "label": "五金配件",
+      "query": "五金配件"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "基础建材",
+      "label": "基础建材",
+      "query": "基础建材",
+      "bundle": true
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "电工电气",
+      "label": "开关",
+      "query": "开关"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "电工电气",
+      "label": "插座",
+      "query": "插座"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "电工电气",
+      "label": "插线板",
+      "query": "插线板"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "电工电气",
+      "label": "电线",
+      "query": "电线"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "电工电气",
+      "label": "断路器",
+      "query": "断路器"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "电工电气",
+      "label": "智能门铃",
+      "query": "智能门铃"
+    },
+    {
+      "group": "renovation",
+      "category": "家装建材",
+      "section": "电工电气",
+      "label": "电工电气",
+      "query": "电工电气",
+      "bundle": true
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "喂养用品",
+      "label": "奶粉",
+      "query": "奶粉"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "喂养用品",
+      "label": "奶瓶",
+      "query": "奶瓶"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "喂养用品",
+      "label": "奶嘴",
+      "query": "奶嘴"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "喂养用品",
+      "label": "吸奶器",
+      "query": "吸奶器"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "喂养用品",
+      "label": "辅食机",
+      "query": "辅食机"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "喂养用品",
+      "label": "儿童餐具",
+      "query": "儿童餐具"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "喂养用品",
+      "label": "喂养用品",
+      "query": "喂养用品",
+      "bundle": true
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "婴儿护理",
+      "label": "纸尿裤",
+      "query": "纸尿裤"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "婴儿护理",
+      "label": "湿巾",
+      "query": "湿巾"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "婴儿护理",
+      "label": "婴儿洗护",
+      "query": "婴儿洗护"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "婴儿护理",
+      "label": "婴儿床",
+      "query": "婴儿床"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "婴儿护理",
+      "label": "婴儿推车",
+      "query": "婴儿推车"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "婴儿护理",
+      "label": "安全座椅",
+      "query": "安全座椅"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "婴儿护理",
+      "label": "婴儿护理",
+      "query": "婴儿护理",
+      "bundle": true
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "益智玩具",
+      "label": "积木",
+      "query": "积木"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "益智玩具",
+      "label": "拼图",
+      "query": "拼图"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "益智玩具",
+      "label": "遥控玩具",
+      "query": "遥控玩具"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "益智玩具",
+      "label": "毛绒玩具",
+      "query": "毛绒玩具"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "益智玩具",
+      "label": "儿童绘画",
+      "query": "儿童绘画"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "益智玩具",
+      "label": "桌游",
+      "query": "桌游"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "益智玩具",
+      "label": "益智玩具",
+      "query": "益智玩具",
+      "bundle": true
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "童装童鞋",
+      "label": "婴儿服",
+      "query": "婴儿服"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "童装童鞋",
+      "label": "儿童T恤",
+      "query": "儿童T恤"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "童装童鞋",
+      "label": "儿童外套",
+      "query": "儿童外套"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "童装童鞋",
+      "label": "儿童裤装",
+      "query": "儿童裤装"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "童装童鞋",
+      "label": "学步鞋",
+      "query": "学步鞋"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "童装童鞋",
+      "label": "儿童运动鞋",
+      "query": "儿童运动鞋"
+    },
+    {
+      "group": "baby",
+      "category": "母婴玩具",
+      "section": "童装童鞋",
+      "label": "童装童鞋",
+      "query": "童装童鞋",
+      "bundle": true
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物食品",
+      "label": "猫粮",
+      "query": "猫粮"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物食品",
+      "label": "狗粮",
+      "query": "狗粮"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物食品",
+      "label": "宠物罐头",
+      "query": "宠物罐头"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物食品",
+      "label": "宠物零食",
+      "query": "宠物零食"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物食品",
+      "label": "冻干",
+      "query": "冻干"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物食品",
+      "label": "宠物营养品",
+      "query": "宠物营养品"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物食品",
+      "label": "宠物食品",
+      "query": "宠物食品",
+      "bundle": true
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物日用",
+      "label": "猫砂",
+      "query": "猫砂"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物日用",
+      "label": "猫砂盆",
+      "query": "猫砂盆"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物日用",
+      "label": "宠物窝",
+      "query": "宠物窝"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物日用",
+      "label": "食盆",
+      "query": "食盆"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物日用",
+      "label": "饮水机",
+      "query": "饮水机"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物日用",
+      "label": "宠物衣服",
+      "query": "宠物衣服"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物日用",
+      "label": "宠物日用",
+      "query": "宠物日用",
+      "bundle": true
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "玩具出行",
+      "label": "猫抓板",
+      "query": "猫抓板"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "玩具出行",
+      "label": "逗猫棒",
+      "query": "逗猫棒"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "玩具出行",
+      "label": "宠物球",
+      "query": "宠物球"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "玩具出行",
+      "label": "牵引绳",
+      "query": "牵引绳"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "玩具出行",
+      "label": "宠物包",
+      "query": "宠物包"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "玩具出行",
+      "label": "宠物笼",
+      "query": "宠物笼"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "玩具出行",
+      "label": "玩具出行",
+      "query": "玩具出行",
+      "bundle": true
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物清洁",
+      "label": "宠物香波",
+      "query": "宠物香波"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物清洁",
+      "label": "宠物梳",
+      "query": "宠物梳"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物清洁",
+      "label": "宠物指甲剪",
+      "query": "宠物指甲剪"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物清洁",
+      "label": "宠物湿巾",
+      "query": "宠物湿巾"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物清洁",
+      "label": "除味剂",
+      "query": "除味剂"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物清洁",
+      "label": "宠物尿垫",
+      "query": "宠物尿垫"
+    },
+    {
+      "group": "pets",
+      "category": "宠物生活",
+      "section": "宠物清洁",
+      "label": "宠物清洁",
+      "query": "宠物清洁",
+      "bundle": true
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "文学阅读",
+      "label": "小说",
+      "query": "小说"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "文学阅读",
+      "label": "散文",
+      "query": "散文"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "文学阅读",
+      "label": "诗歌",
+      "query": "诗歌"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "文学阅读",
+      "label": "传记",
+      "query": "传记"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "文学阅读",
+      "label": "经典文学",
+      "query": "经典文学"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "文学阅读",
+      "label": "科幻",
+      "query": "科幻"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "文学阅读",
+      "label": "文学阅读",
+      "query": "文学阅读",
+      "bundle": true
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "知识成长",
+      "label": "经济管理",
+      "query": "经济管理"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "知识成长",
+      "label": "历史",
+      "query": "历史"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "知识成长",
+      "label": "哲学",
+      "query": "哲学"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "知识成长",
+      "label": "心理学",
+      "query": "心理学"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "知识成长",
+      "label": "艺术设计",
+      "query": "艺术设计"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "知识成长",
+      "label": "计算机图书",
+      "query": "计算机图书"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "知识成长",
+      "label": "知识成长",
+      "query": "知识成长",
+      "bundle": true
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "少儿教育",
+      "label": "绘本",
+      "query": "绘本"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "少儿教育",
+      "label": "儿童文学",
+      "query": "儿童文学"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "少儿教育",
+      "label": "科普百科",
+      "query": "科普百科"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "少儿教育",
+      "label": "学前教育",
+      "query": "学前教育"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "少儿教育",
+      "label": "教材",
+      "query": "教材"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "少儿教育",
+      "label": "字典",
+      "query": "字典"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "少儿教育",
+      "label": "少儿教育",
+      "query": "少儿教育",
+      "bundle": true
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "乐器娱乐",
+      "label": "吉他",
+      "query": "吉他"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "乐器娱乐",
+      "label": "钢琴",
+      "query": "钢琴"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "乐器娱乐",
+      "label": "电子琴",
+      "query": "电子琴"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "乐器娱乐",
+      "label": "尤克里里",
+      "query": "尤克里里"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "乐器娱乐",
+      "label": "口琴",
+      "query": "口琴"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "乐器娱乐",
+      "label": "黑胶唱片",
+      "query": "黑胶唱片"
+    },
+    {
+      "group": "books",
+      "category": "图书文娱",
+      "section": "乐器娱乐",
+      "label": "乐器娱乐",
+      "query": "乐器娱乐",
+      "bundle": true
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "智能腕表",
+      "label": "智能腕表",
+      "query": "智能腕表"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "智能腕表",
+      "label": "运动手表",
+      "query": "运动手表"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "智能腕表",
+      "label": "儿童手表",
+      "query": "儿童手表"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "智能腕表",
+      "label": "手表表带",
+      "query": "手表表带"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "智能腕表",
+      "label": "手表充电器",
+      "query": "手表充电器"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "智能腕表",
+      "label": "手表配件",
+      "query": "手表配件"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "经典腕表",
+      "label": "机械表",
+      "query": "机械表"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "经典腕表",
+      "label": "石英表",
+      "query": "石英表"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "经典腕表",
+      "label": "情侣手表",
+      "query": "情侣手表"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "经典腕表",
+      "label": "商务手表",
+      "query": "商务手表"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "经典腕表",
+      "label": "怀表",
+      "query": "怀表"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "经典腕表",
+      "label": "钟表工具",
+      "query": "钟表工具"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "经典腕表",
+      "label": "经典腕表",
+      "query": "经典腕表",
+      "bundle": true
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "珠宝首饰",
+      "label": "黄金项链",
+      "query": "黄金项链"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "珠宝首饰",
+      "label": "黄金手镯",
+      "query": "黄金手镯"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "珠宝首饰",
+      "label": "钻石戒指",
+      "query": "钻石戒指"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "珠宝首饰",
+      "label": "翡翠",
+      "query": "翡翠"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "珠宝首饰",
+      "label": "珍珠",
+      "query": "珍珠"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "珠宝首饰",
+      "label": "彩色宝石",
+      "query": "彩色宝石"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "珠宝首饰",
+      "label": "珠宝首饰",
+      "query": "珠宝首饰",
+      "bundle": true
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "时尚饰品",
+      "label": "耳饰",
+      "query": "耳饰"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "时尚饰品",
+      "label": "项链",
+      "query": "项链"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "时尚饰品",
+      "label": "手链",
+      "query": "手链"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "时尚饰品",
+      "label": "戒指",
+      "query": "戒指"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "时尚饰品",
+      "label": "胸针",
+      "query": "胸针"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "时尚饰品",
+      "label": "发饰",
+      "query": "发饰"
+    },
+    {
+      "group": "jewelry",
+      "category": "珠宝钟表",
+      "section": "时尚饰品",
+      "label": "时尚饰品",
+      "query": "时尚饰品",
+      "bundle": true
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "男鞋",
+      "label": "男士休闲鞋",
+      "query": "男士休闲鞋"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "男鞋",
+      "label": "男士皮鞋",
+      "query": "男士皮鞋"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "男鞋",
+      "label": "帆布鞋",
+      "query": "帆布鞋"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "男鞋",
+      "label": "男士凉鞋",
+      "query": "男士凉鞋"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "男鞋",
+      "label": "男靴",
+      "query": "男靴"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "男鞋",
+      "label": "男士拖鞋",
+      "query": "男士拖鞋"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "男鞋",
+      "label": "男鞋",
+      "query": "男鞋",
+      "bundle": true
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "女鞋",
+      "label": "高跟鞋",
+      "query": "高跟鞋"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "女鞋",
+      "label": "女士平底鞋",
+      "query": "女士平底鞋"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "女鞋",
+      "label": "女士凉鞋",
+      "query": "女士凉鞋"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "女鞋",
+      "label": "短靴",
+      "query": "短靴"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "女鞋",
+      "label": "长靴",
+      "query": "长靴"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "女鞋",
+      "label": "女士拖鞋",
+      "query": "女士拖鞋"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "女鞋",
+      "label": "女鞋",
+      "query": "女鞋",
+      "bundle": true
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "鞋类配件",
+      "label": "鞋垫",
+      "query": "鞋垫"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "鞋类配件",
+      "label": "鞋带",
+      "query": "鞋带"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "鞋类配件",
+      "label": "鞋油",
+      "query": "鞋油"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "鞋类配件",
+      "label": "鞋刷",
+      "query": "鞋刷"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "鞋类配件",
+      "label": "鞋撑",
+      "query": "鞋撑"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "鞋类配件",
+      "label": "鞋盒",
+      "query": "鞋盒"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "鞋类配件",
+      "label": "鞋类配件",
+      "query": "鞋类配件",
+      "bundle": true
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "穿搭配饰",
+      "label": "帽子",
+      "query": "帽子"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "穿搭配饰",
+      "label": "围巾",
+      "query": "围巾"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "穿搭配饰",
+      "label": "手套",
+      "query": "手套"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "穿搭配饰",
+      "label": "腰带",
+      "query": "腰带"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "穿搭配饰",
+      "label": "太阳镜",
+      "query": "太阳镜"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "穿搭配饰",
+      "label": "领带",
+      "query": "领带"
+    },
+    {
+      "group": "shoes",
+      "category": "鞋靴配饰",
+      "section": "穿搭配饰",
+      "label": "穿搭配饰",
+      "query": "穿搭配饰",
+      "bundle": true
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "汽车养护",
+      "label": "机油",
+      "query": "机油"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "汽车养护",
+      "label": "玻璃水",
+      "query": "玻璃水"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "汽车养护",
+      "label": "燃油添加剂",
+      "query": "燃油添加剂"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "汽车养护",
+      "label": "防冻液",
+      "query": "防冻液"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "汽车养护",
+      "label": "汽车蜡",
+      "query": "汽车蜡"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "汽车养护",
+      "label": "清洗剂",
+      "query": "清洗剂"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "汽车养护",
+      "label": "汽车养护",
+      "query": "汽车养护",
+      "bundle": true
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "汽车配件",
+      "label": "轮胎",
+      "query": "轮胎"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "汽车配件",
+      "label": "蓄电池",
+      "query": "蓄电池"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "汽车配件",
+      "label": "雨刷",
+      "query": "雨刷"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "汽车配件",
+      "label": "空调滤芯",
+      "query": "空调滤芯"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "汽车配件",
+      "label": "空气滤芯",
+      "query": "空气滤芯"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "汽车配件",
+      "label": "火花塞",
+      "query": "火花塞"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "汽车配件",
+      "label": "汽车配件",
+      "query": "汽车配件",
+      "bundle": true
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "车载电器",
+      "label": "行车记录仪",
+      "query": "行车记录仪"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "车载电器",
+      "label": "车载充电器",
+      "query": "车载充电器"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "车载电器",
+      "label": "车载吸尘器",
+      "query": "车载吸尘器"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "车载电器",
+      "label": "车载冰箱",
+      "query": "车载冰箱"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "车载电器",
+      "label": "车载支架",
+      "query": "车载支架"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "车载电器",
+      "label": "胎压监测",
+      "query": "胎压监测"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "车载电器",
+      "label": "车载电器",
+      "query": "车载电器",
+      "bundle": true
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "内饰清洁",
+      "label": "汽车脚垫",
+      "query": "汽车脚垫"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "内饰清洁",
+      "label": "座垫",
+      "query": "座垫"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "内饰清洁",
+      "label": "方向盘套",
+      "query": "方向盘套"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "内饰清洁",
+      "label": "洗车机",
+      "query": "洗车机"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "内饰清洁",
+      "label": "洗车毛巾",
+      "query": "洗车毛巾"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "内饰清洁",
+      "label": "车载收纳",
+      "query": "车载收纳"
+    },
+    {
+      "group": "automotive",
+      "category": "汽车用品",
+      "section": "内饰清洁",
+      "label": "内饰清洁",
+      "query": "内饰清洁",
+      "bundle": true
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "手动工具",
+      "label": "螺丝刀",
+      "query": "螺丝刀"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "手动工具",
+      "label": "扳手",
+      "query": "扳手"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "手动工具",
+      "label": "钳子",
+      "query": "钳子"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "手动工具",
+      "label": "工具箱",
+      "query": "工具箱"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "手动工具",
+      "label": "锤子",
+      "query": "锤子"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "手动工具",
+      "label": "卷尺",
+      "query": "卷尺"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "手动工具",
+      "label": "手动工具",
+      "query": "手动工具",
+      "bundle": true
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "电动工具",
+      "label": "电钻",
+      "query": "电钻"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "电动工具",
+      "label": "电锤",
+      "query": "电锤"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "电动工具",
+      "label": "角磨机",
+      "query": "角磨机"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "电动工具",
+      "label": "电锯",
+      "query": "电锯"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "电动工具",
+      "label": "热熔胶枪",
+      "query": "热熔胶枪"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "电动工具",
+      "label": "电动螺丝刀",
+      "query": "电动螺丝刀"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "电动工具",
+      "label": "电动工具",
+      "query": "电动工具",
+      "bundle": true
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "测量工具",
+      "label": "激光测距仪",
+      "query": "激光测距仪"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "测量工具",
+      "label": "水平仪",
+      "query": "水平仪"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "测量工具",
+      "label": "万用表",
+      "query": "万用表"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "测量工具",
+      "label": "卡尺",
+      "query": "卡尺"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "测量工具",
+      "label": "温度计",
+      "query": "温度计"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "测量工具",
+      "label": "电子秤",
+      "query": "电子秤"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "测量工具",
+      "label": "测量工具",
+      "query": "测量工具",
+      "bundle": true
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "劳保防护",
+      "label": "工作手套",
+      "query": "工作手套"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "劳保防护",
+      "label": "防护眼镜",
+      "query": "防护眼镜"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "劳保防护",
+      "label": "安全帽",
+      "query": "安全帽"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "劳保防护",
+      "label": "防尘口罩",
+      "query": "防尘口罩"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "劳保防护",
+      "label": "安全鞋",
+      "query": "安全鞋"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "劳保防护",
+      "label": "反光背心",
+      "query": "反光背心"
+    },
+    {
+      "group": "industrial",
+      "category": "工业工具",
+      "section": "劳保防护",
+      "label": "劳保防护",
+      "query": "劳保防护",
+      "bundle": true
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "鲜花礼赠",
+      "label": "玫瑰",
+      "query": "玫瑰"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "鲜花礼赠",
+      "label": "百合",
+      "query": "百合"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "鲜花礼赠",
+      "label": "康乃馨",
+      "query": "康乃馨"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "鲜花礼赠",
+      "label": "向日葵",
+      "query": "向日葵"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "鲜花礼赠",
+      "label": "永生花",
+      "query": "永生花"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "鲜花礼赠",
+      "label": "花束",
+      "query": "花束"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "鲜花礼赠",
+      "label": "鲜花礼赠",
+      "query": "鲜花礼赠",
+      "bundle": true
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "室内绿植",
+      "label": "绿萝",
+      "query": "绿萝"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "室内绿植",
+      "label": "多肉",
+      "query": "多肉"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "室内绿植",
+      "label": "龟背竹",
+      "query": "龟背竹"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "室内绿植",
+      "label": "发财树",
+      "query": "发财树"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "室内绿植",
+      "label": "兰花",
+      "query": "兰花"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "室内绿植",
+      "label": "盆栽",
+      "query": "盆栽"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "室内绿植",
+      "label": "室内绿植",
+      "query": "室内绿植",
+      "bundle": true
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "园艺用品",
+      "label": "花盆",
+      "query": "花盆"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "园艺用品",
+      "label": "营养土",
+      "query": "营养土"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "园艺用品",
+      "label": "肥料",
+      "query": "肥料"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "园艺用品",
+      "label": "园艺剪",
+      "query": "园艺剪"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "园艺用品",
+      "label": "喷壶",
+      "query": "喷壶"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "园艺用品",
+      "label": "园艺手套",
+      "query": "园艺手套"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "园艺用品",
+      "label": "园艺用品",
+      "query": "园艺用品",
+      "bundle": true
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "种子栽培",
+      "label": "花卉种子",
+      "query": "花卉种子"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "种子栽培",
+      "label": "蔬菜种子",
+      "query": "蔬菜种子"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "种子栽培",
+      "label": "育苗盘",
+      "query": "育苗盘"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "种子栽培",
+      "label": "种植箱",
+      "query": "种植箱"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "种子栽培",
+      "label": "支架",
+      "query": "支架"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "种子栽培",
+      "label": "水培用品",
+      "query": "水培用品"
+    },
+    {
+      "group": "garden",
+      "category": "鲜花绿植",
+      "section": "种子栽培",
+      "label": "种子栽培",
+      "query": "种子栽培",
+      "bundle": true
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "健康监测",
+      "label": "血压计",
+      "query": "血压计"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "健康监测",
+      "label": "体温计",
+      "query": "体温计"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "健康监测",
+      "label": "血氧仪",
+      "query": "血氧仪"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "健康监测",
+      "label": "体脂秤",
+      "query": "体脂秤"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "健康监测",
+      "label": "血糖仪",
+      "query": "血糖仪"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "健康监测",
+      "label": "健康手环",
+      "query": "健康手环"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "健康监测",
+      "label": "健康监测",
+      "query": "健康监测",
+      "bundle": true
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "日常防护",
+      "label": "口罩",
+      "query": "口罩"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "日常防护",
+      "label": "消毒液",
+      "query": "消毒液"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "日常防护",
+      "label": "酒精棉片",
+      "query": "酒精棉片"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "日常防护",
+      "label": "创可贴",
+      "query": "创可贴"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "日常防护",
+      "label": "急救包",
+      "query": "急救包"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "日常防护",
+      "label": "防护服",
+      "query": "防护服"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "日常防护",
+      "label": "日常防护",
+      "query": "日常防护",
+      "bundle": true
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "运动康复",
+      "label": "护膝",
+      "query": "护膝"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "运动康复",
+      "label": "护腰",
+      "query": "护腰"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "运动康复",
+      "label": "护腕",
+      "query": "护腕"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "运动康复",
+      "label": "颈托",
+      "query": "颈托"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "运动康复",
+      "label": "冰袋",
+      "query": "冰袋"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "运动康复",
+      "label": "弹力绷带",
+      "query": "弹力绷带"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "运动康复",
+      "label": "运动康复",
+      "query": "运动康复",
+      "bundle": true
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "居家护理",
+      "label": "护理垫",
+      "query": "护理垫"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "居家护理",
+      "label": "拐杖",
+      "query": "拐杖"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "居家护理",
+      "label": "轮椅",
+      "query": "轮椅"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "居家护理",
+      "label": "制氧机",
+      "query": "制氧机"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "居家护理",
+      "label": "雾化器",
+      "query": "雾化器"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "居家护理",
+      "label": "护理床",
+      "query": "护理床"
+    },
+    {
+      "group": "wellness",
+      "category": "健康护理",
+      "section": "居家护理",
+      "label": "居家护理",
+      "query": "居家护理",
+      "bundle": true
+    }
+  ]
+}

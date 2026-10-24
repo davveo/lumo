@@ -76,7 +76,7 @@ function setup(handler = async () => ({items: []}), initial = {}) {
     setTimeout(fn) { const id = ++timerID; timers.set(id, fn); return id; }, clearTimeout(id) { timers.delete(id); }
   };
   context.window = context;
-  const ctx = vm.createContext(context); vm.runInContext(fs.readFileSync(path.join(directory, 'discovery.js'), 'utf8'), ctx);
+  const ctx = vm.createContext(context); require('./load-constants.cjs')(ctx,directory); vm.runInContext(fs.readFileSync(path.join(directory, 'discovery.js'), 'utf8'), ctx);
   async function fire(collection, name, target, extra = {}) {
     const event = {target, relatedTarget: null, defaultPrevented: false, preventDefault() {this.defaultPrevented = true;}, ...extra};
     for (const fn of collection.get(name) || []) await fn(event);

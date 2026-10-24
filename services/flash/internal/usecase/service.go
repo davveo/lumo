@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"encoding/json"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/flash/internal/repository"
 	"github.com/redis/go-redis/v9"
@@ -22,23 +23,23 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	if c.Action == "list" {
+	if c.Action == constants.ActionList {
 		return s.Repo.List(ctx)
 	}
 	if e := platform.RequireUser(c); e != nil {
 		return nil, e
 	}
 	switch c.Action {
-	case "get":
+	case constants.ActionGet:
 		v, e := s.Repo.Get(ctx, c.ID)
 		if e != nil {
 			return nil, e
 		}
-		if v.UserID != c.UserID && c.Role != "admin" {
+		if v.UserID != c.UserID && c.Role != constants.RoleAdmin {
 			return nil, status.Error(codes.PermissionDenied, "flash request owner mismatch")
 		}
 		return platform.Map(v), nil
-	case "request":
+	case constants.ActionRequest:
 		if c.IdempotencyKey == "" || len(c.IdempotencyKey) > 120 || platform.Text(c.Data, "quote_id") == "" {
 			return nil, status.Error(codes.InvalidArgument, "idempotency_key and quote_id required")
 		}
@@ -52,7 +53,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		if s.RPC == nil {
 			return nil, status.Error(codes.Unavailable, "pricing service unavailable")
 		}
-		q, e := s.RPC.Call(ctx, "pricing", platform.Command{Action: "get", ID: platform.Text(c.Data, "quote_id"), UserID: c.UserID, Role: c.Role})
+		q, e := s.RPC.Call(ctx, constants.ServicePricing, platform.Command{Action: constants.ActionGet, ID: platform.Text(c.Data, "quote_id"), UserID: c.UserID, Role: c.Role})
 		if e != nil {
 			return nil, e
 		}
@@ -96,7 +97,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	return nil, status.Error(codes.Unimplemented, "unsupported action")
 }
 func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error) {
-	if e.Type != "FlashOrderRequested" {
+	if e.Type != constants.EventFlashOrderRequested {
 		return nil
 	}
 	ctx, sp := platform.Start(ctx, "usecase.flash.ProcessRequest")
@@ -107,7 +108,7 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 	if er != nil {
 		return er
 	}
-	if v.State == "SUCCEEDED" || v.State == "FAILED" {
+	if v.State == constants.FlashRequestStatusSucceeded || v.State == constants.FlashRequestStatusFailed {
 		return nil
 	}
 	if er = s.Repo.SetProcessing(ctx, v.ID); er != nil {
@@ -120,7 +121,7 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 	if er = json.Unmarshal([]byte(v.PayloadJSON), &data); er != nil {
 		return er
 	}
-	result, er := s.RPC.Call(ctx, "checkout", platform.Command{Action: "submit", UserID: v.UserID, Role: "system", IdempotencyKey: "flash:" + v.ID, Data: data})
+	result, er := s.RPC.Call(ctx, constants.ServiceCheckout, platform.Command{Action: constants.ActionSubmit, UserID: v.UserID, Role: constants.RoleSystem, IdempotencyKey: "flash:" + v.ID, Data: data})
 	if er != nil {
 		switch status.Code(er) {
 		case codes.Unavailable, codes.DeadlineExceeded, codes.Internal, codes.Aborted:
@@ -134,8 +135,8 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 	}
 	orderState := platform.Text(result, "status")
 	switch orderState {
-	case "PENDING_PAYMENT", "PAID_CONFIRMING", "PAID_WAIT_GROUP", "READY_TO_FULFILL", "SHIPPED", "COMPLETED", "PARTIALLY_REFUNDED", "REFUNDED":
-	case "CANCELLED", "CLOSED", "CREATE_FAILED":
+	case constants.OrderStatusPendingPayment, constants.OrderStatusPaidConfirming, constants.OrderStatusPaidWaitGroup, constants.OrderStatusReadyToFulfill, constants.OrderStatusShipped, constants.OrderStatusCompleted, constants.OrderStatusPartiallyRefunded, constants.OrderStatusRefunded:
+	case constants.OrderStatusCancelled, constants.OrderStatusClosed, constants.OrderStatusCreateFailed:
 		return s.Repo.Finish(ctx, v.ID, order, "order creation ended in "+orderState)
 	default:
 		return status.Error(codes.Aborted, "order creation still processing")

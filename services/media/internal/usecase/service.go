@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/media/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -14,7 +15,7 @@ import (
 const maxUploadSize int64 = 10 * 1024 * 1024
 const signedTTL = 10 * time.Minute
 
-var allowedMIME = map[string]bool{"image/jpeg": true, "image/png": true, "image/webp": true, "application/pdf": true, "text/plain": true}
+var allowedMIME = map[string]bool{constants.MediaContentTypeJPEG: true, constants.MediaContentTypePNG: true, constants.MediaContentTypeWebP: true, constants.MediaContentTypePDF: true, constants.MediaContentTypePlainText: true}
 
 func contentType(v string) (string, error) {
 	typ, _, e := mime.ParseMediaType(strings.TrimSpace(v))
@@ -32,7 +33,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		return nil, e
 	}
 	switch c.Action {
-	case "create":
+	case constants.ActionCreate:
 		name := platform.Text(c.Data, "file_name")
 		typ := platform.Text(c.Data, "content_type")
 		if typ == "" {
@@ -51,13 +52,13 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		}
 		id := platform.ID("file")
 		key := "private/" + id // never derive an object key from user-supplied names
-		mode := "metadata_only"
-		st := "REGISTERED"
+		mode := constants.MediaStorageModeMetadataOnly
+		st := constants.MediaStatusRegistered
 		data := map[string]any{"file_name": name, "content_type": ct, "mime_type": ct, "size_bytes": size, "size": size, "object_key": key, "upload_supported": s.store != nil}
 		var signed domain.SignedUpload
 		if s.store != nil {
-			mode = "minio"
-			st = "UPLOADING"
+			mode = constants.MediaStorageModeMinio
+			st = constants.MediaStatusUploading
 			signed, e = s.store.SignUpload(ctx, key, ct, size, signedTTL)
 			if e != nil {
 				return nil, status.Error(codes.Unavailable, "object upload signing unavailable")
@@ -66,7 +67,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			data["message"] = "Configure MINIO_ENDPOINT and credentials for binary upload"
 		}
 		data["storage_mode"] = mode
-		r := record(id, c.UserID, "metadata", st, data)
+		r := record(id, c.UserID, constants.MediaKindMetadata, st, data)
 		if e = s.repo.Save(ctx, &r, nil); e != nil {
 			return nil, e
 		}
@@ -79,7 +80,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			out["expires_in"] = int64(signedTTL / time.Second)
 		}
 		return out, nil
-	case "get", "download", "complete":
+	case constants.ActionGet, constants.ActionDownload, constants.ActionComplete:
 		if c.ID == "" {
 			return nil, bad("file ID required")
 		}
@@ -93,18 +94,18 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		out := view(r)
 		out["file_id"] = r.ID
 		if s.store == nil {
-			if c.Action == "complete" || c.Action == "download" {
+			if c.Action == constants.ActionComplete || c.Action == constants.ActionDownload {
 				return nil, status.Error(codes.FailedPrecondition, "object storage is not configured")
 			}
 			return out, nil
 		}
-		if c.Action == "get" && r.Status != "READY" {
+		if c.Action == constants.ActionGet && r.Status != constants.MediaStatusReady {
 			return out, nil
 		}
-		if c.Action == "download" && r.Status != "READY" {
+		if c.Action == constants.ActionDownload && r.Status != constants.MediaStatusReady {
 			return nil, status.Error(codes.FailedPrecondition, "upload is not completed")
 		}
-		if r.Status == "REJECTED" {
+		if r.Status == constants.MediaStatusRejected {
 			return nil, status.Error(codes.FailedPrecondition, "upload was rejected")
 		}
 		data := payload(r)
@@ -116,22 +117,22 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		ct, e := contentType(info.ContentType)
 		if e != nil || ct != platform.Text(data, "content_type") || info.Size != platform.Int(data, "size_bytes") || info.Size > maxUploadSize {
 			if _, saveErr := s.repo.Mutate(ctx, r, false, func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
-				v.Status = "REJECTED"
+				v.Status = constants.MediaStatusRejected
 				return nil, nil, nil
 			}); saveErr != nil {
 				return nil, saveErr
 			}
 			return nil, status.Error(codes.FailedPrecondition, "uploaded object size or content type does not match registration")
 		}
-		if c.Action == "complete" {
+		if c.Action == constants.ActionComplete {
 			r, e = s.repo.Mutate(ctx, r, false, func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
 				if e := own(c, *v); e != nil {
 					return nil, nil, e
 				}
-				if v.Status == "REJECTED" {
+				if v.Status == constants.MediaStatusRejected {
 					return nil, nil, status.Error(codes.FailedPrecondition, "upload was rejected")
 				}
-				v.Status = "READY"
+				v.Status = constants.MediaStatusReady
 				d := payload(*v)
 				d["etag"] = info.ETag
 				v.Payload = record(v.ID, v.UserID, v.Kind, v.Status, d).Payload

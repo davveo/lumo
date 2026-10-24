@@ -1,6 +1,8 @@
 package usecase
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"context"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/group/internal/repository"
@@ -19,47 +21,47 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	switch c.Action {
-	case "list":
+	case constants.ActionList:
 		return s.Repo.List(ctx)
-	case "get":
+	case constants.ActionGet:
 		return s.Repo.Get(ctx, c.ID)
 	}
 	if e := platform.RequireUser(c); e != nil {
 		return nil, e
 	}
-	if c.Action == "create" {
+	if c.Action == constants.ActionCreate {
 		if s.RPC != nil {
-			_, e := s.RPC.Call(ctx, "catalog", platform.Command{Action: "get", ID: platform.Text(c.Data, "sku_id"), UserID: c.UserID, Role: c.Role})
+			_, e := s.RPC.Call(ctx, constants.ServiceCatalog, platform.Command{Action: constants.ActionGet, ID: platform.Text(c.Data, "sku_id"), UserID: c.UserID, Role: c.Role})
 			if e != nil {
 				return nil, e
 			}
 		}
 		return s.Repo.Create(ctx, c)
 	}
-	if c.Role != "system" && c.Role != "admin" {
+	if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
 		return nil, status.Error(codes.PermissionDenied, "internal group command required")
 	}
 	switch c.Action {
-	case "reserve":
+	case constants.ActionReserve:
 		return s.Repo.Reserve(ctx, c)
-	case "paid":
+	case constants.ActionPaid:
 		return s.Repo.Paid(ctx, c)
-	case "cancel":
+	case constants.ActionCancel:
 		return s.Repo.Cancel(ctx, c)
-	case "expire":
+	case constants.ActionExpire:
 		return s.Repo.Expire(ctx)
 	}
 	return nil, status.Error(codes.Unimplemented, "unsupported action")
 }
 func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
-	if e.Type != "OrderPaymentAccepted" {
+	if e.Type != constants.EventOrderPaymentAccepted {
 		return nil
 	}
 	exists, er := s.Repo.HasSeat(ctx, e.AggregateID)
 	if er != nil || !exists {
 		return er
 	}
-	_, er = s.Execute(ctx, platform.Command{Action: "paid", ID: e.AggregateID, UserID: e.UserID, Role: "system"})
+	_, er = s.Execute(ctx, platform.Command{Action: constants.ActionPaid, ID: e.AggregateID, UserID: e.UserID, Role: constants.RoleSystem})
 	return er
 }
 func (s *Service) Tick(ctx context.Context) error { _, e := s.Repo.Expire(ctx); return e }

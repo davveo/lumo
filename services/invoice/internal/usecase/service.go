@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/invoice/internal/domain"
 	"github.com/davveo/lumo/services/invoice/internal/repository"
@@ -19,13 +20,13 @@ type Service struct {
 	RPC  platform.Caller
 }
 
-func (s *Service) Topics() []string { return []string{"RefundSucceeded"} }
+func (s *Service) Topics() []string { return []string{constants.EventRefundSucceeded} }
 func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error) {
 	ctx, span := platform.Start(ctx, "usecase.invoice.event."+e.Type)
 	defer span.End()
 	platform.TraceRequest(ctx, e)
 	defer func() { platform.TraceResponse(ctx, nil, traceErr) }()
-	if e.Type != "RefundSucceeded" {
+	if e.Type != constants.EventRefundSucceeded {
 		return nil
 	}
 	id := platform.Text(e.Data, "refund_id")
@@ -38,7 +39,9 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 	}
 	return s.Repo.ApplyRefund(ctx, orderID, id, e.UserID, platform.Int(e.Data, "amount_cents"), platform.Int(e.Data, "refunded_total_cents"))
 }
-func privileged(c platform.Command) bool { return c.Role == "admin" || c.Role == "system" }
+func privileged(c platform.Command) bool {
+	return c.Role == constants.RoleAdmin || c.Role == constants.RoleSystem
+}
 func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "usecase.invoice."+c.Action)
 	defer span.End()
@@ -47,7 +50,7 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 	if err := platform.RequireUser(c); err != nil {
 		return nil, err
 	}
-	if c.Action == "list" {
+	if c.Action == constants.ActionList {
 		user := c.UserID
 		if privileged(c) {
 			user = ""
@@ -55,7 +58,7 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 		rows, err := s.Repo.List(ctx, user)
 		return platform.Result{"items": rows}, err
 	}
-	if c.Action == "create" {
+	if c.Action == constants.ActionCreate {
 		return s.create(ctx, c)
 	}
 	row, err := s.Repo.Get(ctx, c.ID)
@@ -66,27 +69,27 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 		return nil, status.Error(codes.PermissionDenied, "invoice ownership mismatch")
 	}
 	switch c.Action {
-	case "get":
+	case constants.ActionGet:
 		return platform.Map(row), nil
-	case "reversals":
+	case constants.ActionReversals:
 		rows, err := s.Repo.Reversals(ctx, row.ID)
 		return platform.Result{"items": rows}, err
-	case "issue_demo":
-		if c.Role != "admin" {
+	case constants.ActionIssueDemo:
+		if c.Role != constants.RoleAdmin {
 			return nil, status.Error(codes.PermissionDenied, "invoice staff permission required")
 		}
 		if os.Getenv("DEMO_MODE") != "true" {
 			return nil, status.Error(codes.FailedPrecondition, "demo invoice provider disabled")
 		}
-		if row.Status == "ISSUED" {
+		if row.Status == constants.InvoiceStatusIssued {
 			return platform.Map(row), nil
 		}
-		order, err := s.RPC.Call(ctx, "order", platform.Command{Action: "get", ID: row.OrderID, UserID: row.UserID, Role: "system"})
+		order, err := s.RPC.Call(ctx, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: row.OrderID, UserID: row.UserID, Role: constants.RoleSystem})
 		if err != nil {
 			return nil, err
 		}
 		state := platform.Text(order, "status")
-		if state != "READY_TO_FULFILL" && state != "SHIPPED" && state != "COMPLETED" {
+		if state != constants.OrderStatusReadyToFulfill && state != constants.OrderStatusShipped && state != constants.OrderStatusCompleted {
 			return nil, status.Error(codes.FailedPrecondition, "order is not ready for invoicing")
 		}
 		if total := refundTotal(order); total > row.RefundedCents {
@@ -98,8 +101,8 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 		number := fmt.Sprintf("DEMO-INVOICE-%X", sum[:10])
 		row, err = s.Repo.IssueDemo(ctx, row.ID, number)
 		return platform.Map(row), err
-	case "adjust_demo":
-		if c.Role != "admin" {
+	case constants.ActionAdjustDemo:
+		if c.Role != constants.RoleAdmin {
 			return nil, status.Error(codes.PermissionDenied, "invoice staff permission required")
 		}
 		if os.Getenv("DEMO_MODE") != "true" {
@@ -115,16 +118,16 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 	title := strings.TrimSpace(platform.Text(c.Data, "title"))
 	kind := platform.Text(c.Data, "kind")
 	if kind == "" {
-		kind = "personal"
+		kind = constants.InvoiceKindPersonal
 	}
 	taxID := strings.ToUpper(strings.TrimSpace(platform.Text(c.Data, "tax_id")))
-	if orderID == "" || title == "" || len(title) > 200 || (kind != "personal" && kind != "company") {
+	if orderID == "" || title == "" || len(title) > 200 || (kind != constants.InvoiceKindPersonal && kind != constants.InvoiceKindCompany) {
 		return nil, status.Error(codes.InvalidArgument, "order, valid title and invoice kind required")
 	}
-	if kind == "company" && !regexp.MustCompile(`^[A-Z0-9]{18}$`).MatchString(taxID) {
+	if kind == constants.InvoiceKindCompany && !regexp.MustCompile(`^[A-Z0-9]{18}$`).MatchString(taxID) {
 		return nil, status.Error(codes.InvalidArgument, "company tax_id must contain 18 letters or digits")
 	}
-	order, err := s.RPC.Call(ctx, "order", platform.Command{Action: "get", ID: orderID, UserID: c.UserID, Role: c.Role})
+	order, err := s.RPC.Call(ctx, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: orderID, UserID: c.UserID, Role: c.Role})
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +136,7 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 		return nil, status.Error(codes.PermissionDenied, "order ownership mismatch")
 	}
 	state := platform.Text(order, "status")
-	if state != "READY_TO_FULFILL" && state != "SHIPPED" && state != "COMPLETED" && state != "PAID_WAIT_GROUP" && state != "PAID_CONFIRMING" {
+	if state != constants.OrderStatusReadyToFulfill && state != constants.OrderStatusShipped && state != constants.OrderStatusCompleted && state != constants.OrderStatusPaidWaitGroup && state != constants.OrderStatusPaidConfirming {
 		return nil, status.Error(codes.FailedPrecondition, "order is not paid")
 	}
 	refunded := refundTotal(order)
@@ -141,13 +144,13 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 	if amount-refunded <= 0 {
 		return nil, status.Error(codes.FailedPrecondition, "no invoiceable amount")
 	}
-	row := &domain.Record{ID: "inv:" + orderID, OrderID: orderID, UserID: user, Kind: kind, Title: title, TaxID: taxID, Status: "REQUESTED", AmountCents: amount, RefundedCents: refunded, Provider: "unsubmitted"}
+	row := &domain.Record{ID: "inv:" + orderID, OrderID: orderID, UserID: user, Kind: kind, Title: title, TaxID: taxID, Status: constants.InvoiceStatusRequested, AmountCents: amount, RefundedCents: refunded, Provider: constants.InvoiceProviderUnsubmitted}
 	if err = s.Repo.Create(ctx, row); err != nil {
 		return nil, err
 	}
 	// A refund may have arrived before this invoice existed. Re-read the owner
 	// snapshot; cumulative totals also make a later duplicated event harmless.
-	fresh, err := s.RPC.Call(ctx, "order", platform.Command{Action: "get", ID: orderID, UserID: user, Role: "system"})
+	fresh, err := s.RPC.Call(ctx, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: orderID, UserID: user, Role: constants.RoleSystem})
 	if err != nil {
 		return nil, err
 	}

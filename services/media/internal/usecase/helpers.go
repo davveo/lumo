@@ -1,6 +1,8 @@
 package usecase
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -59,7 +61,7 @@ func view(r domain.Record) platform.Result {
 	return v
 }
 func own(c platform.Command, r domain.Record) error {
-	if r.UserID != c.UserID && c.Role != "admin" {
+	if r.UserID != c.UserID && c.Role != constants.RoleAdmin {
 		return status.Error(codes.PermissionDenied, "resource belongs to another user")
 	}
 	return nil

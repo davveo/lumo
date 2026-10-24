@@ -1,6 +1,8 @@
 package bootstrap
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"fmt"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/address"
@@ -35,69 +37,69 @@ import (
 	"github.com/davveo/lumo/services/search"
 )
 
-var Names = []string{"iam", "member", "address", "catalog", "media", "interaction", "engagement", "search", "recommendation", "content", "analytics", "cart", "pricing", "checkout", "order", "campaign", "coupon", "points", "group", "flash", "inventory", "fulfillment", "logistics", "aftersale", "payment", "refund", "invoice", "reconciliation", "notification", "helpdesk"}
+var Names = []string{constants.ServiceIAM, constants.ServiceMember, constants.ServiceAddress, constants.ServiceCatalog, constants.ServiceMedia, constants.ServiceInteraction, constants.ServiceEngagement, constants.ServiceSearch, constants.ServiceRecommendation, constants.ServiceContent, constants.ServiceAnalytics, constants.ServiceCart, constants.ServicePricing, constants.ServiceCheckout, constants.ServiceOrder, constants.ServiceCampaign, constants.ServiceCoupon, constants.ServicePoints, constants.ServiceGroup, constants.ServiceFlash, constants.ServiceInventory, constants.ServiceFulfillment, constants.ServiceLogistics, constants.ServiceAftersale, constants.ServicePayment, constants.ServiceRefund, constants.ServiceInvoice, constants.ServiceReconciliation, constants.ServiceNotification, constants.ServiceHelpdesk}
 
 func New(name string, d platform.Dependencies) (platform.Module, error) {
 	switch name {
-	case "iam":
+	case constants.ServiceIAM:
 		return iam.New(d), nil
-	case "member":
+	case constants.ServiceMember:
 		return member.New(d), nil
-	case "address":
+	case constants.ServiceAddress:
 		return address.New(d), nil
-	case "catalog":
+	case constants.ServiceCatalog:
 		return catalog.New(d), nil
-	case "media":
+	case constants.ServiceMedia:
 		return media.New(d), nil
-	case "interaction":
+	case constants.ServiceInteraction:
 		return interaction.New(d), nil
-	case "engagement":
+	case constants.ServiceEngagement:
 		return engagement.New(d), nil
-	case "search":
+	case constants.ServiceSearch:
 		return search.New(d), nil
-	case "recommendation":
+	case constants.ServiceRecommendation:
 		return recommendation.New(d), nil
-	case "content":
+	case constants.ServiceContent:
 		return content.New(d), nil
-	case "analytics":
+	case constants.ServiceAnalytics:
 		return analytics.New(d), nil
-	case "cart":
+	case constants.ServiceCart:
 		return cart.New(d), nil
-	case "pricing":
+	case constants.ServicePricing:
 		return pricing.New(d), nil
-	case "checkout":
+	case constants.ServiceCheckout:
 		return checkout.New(d), nil
-	case "order":
+	case constants.ServiceOrder:
 		return order.New(d), nil
-	case "campaign":
+	case constants.ServiceCampaign:
 		return campaign.New(d), nil
-	case "coupon":
+	case constants.ServiceCoupon:
 		return coupon.New(d), nil
-	case "points":
+	case constants.ServicePoints:
 		return points.New(d), nil
-	case "group":
+	case constants.ServiceGroup:
 		return group.New(d), nil
-	case "flash":
+	case constants.ServiceFlash:
 		return flash.New(d), nil
-	case "inventory":
+	case constants.ServiceInventory:
 		return inventory.New(d), nil
-	case "fulfillment":
+	case constants.ServiceFulfillment:
 		return fulfillment.New(d), nil
-	case "logistics":
+	case constants.ServiceLogistics:
 		return logistics.New(d), nil
-	case "aftersale":
+	case constants.ServiceAftersale:
 		return aftersale.New(d), nil
-	case "payment":
+	case constants.ServicePayment:
 		return payment.New(d), nil
-	case "refund":
+	case constants.ServiceRefund:
 		return refund.New(d), nil
-	case "invoice":
+	case constants.ServiceInvoice:
 		return invoice.New(d), nil
-	case "reconciliation":
+	case constants.ServiceReconciliation:
 		return reconciliation.New(d), nil
-	case "notification":
+	case constants.ServiceNotification:
 		return notification.New(d), nil
-	case "helpdesk":
+	case constants.ServiceHelpdesk:
 		return helpdesk.New(d), nil
 	default:
 		return platform.Module{}, fmt.Errorf("unknown service %q", name)

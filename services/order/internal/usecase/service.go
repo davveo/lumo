@@ -1,6 +1,8 @@
 package usecase
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"context"
 	"errors"
 
@@ -26,13 +28,13 @@ func requireUser(actor Actor) error {
 	return nil
 }
 func own(actor Actor, order domain.Order) error {
-	if actor.UserID != order.UserID && actor.Role != "system" && actor.Role != "admin" {
+	if actor.UserID != order.UserID && actor.Role != constants.RoleSystem && actor.Role != constants.RoleAdmin {
 		return status.Error(codes.PermissionDenied, "order belongs to another member")
 	}
 	return nil
 }
 func requireInternal(actor Actor) error {
-	if actor.Role != "system" && actor.Role != "admin" {
+	if actor.Role != constants.RoleSystem && actor.Role != constants.RoleAdmin {
 		return status.Error(codes.PermissionDenied, "internal order command")
 	}
 	return nil

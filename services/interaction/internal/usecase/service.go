@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/interaction/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -14,16 +15,16 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	switch c.Action {
-	case "list":
+	case constants.ActionList:
 		kind := platform.Text(c.Data, "kind")
 		if kind == "" {
-			kind = "review"
+			kind = constants.InteractionKindReview
 		}
-		if kind != "review" && kind != "question" {
+		if kind != constants.InteractionKindReview && kind != constants.InteractionKindQuestion {
 			return nil, bad("kind must be review or question")
 		}
 		owner := ""
-		st := "PUBLISHED"
+		st := constants.InteractionStatusPublished
 		if pending, _ := c.Data["include_pending"].(bool); pending {
 			if e := platform.RequireAdmin(c); e != nil {
 				return nil, e
@@ -42,33 +43,33 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			return nil, e
 		}
 		return data, nil
-	case "create":
+	case constants.ActionCreate:
 		if e := platform.RequireUser(c); e != nil {
 			return nil, e
 		}
 		kind := platform.Text(c.Data, "kind")
 		if kind == "" {
-			kind = "review"
+			kind = constants.InteractionKindReview
 		}
 		sku := platform.Text(c.Data, "sku_id")
 		body := platform.Text(c.Data, "body")
 		if sku == "" || body == "" || len(body) > 4000 {
 			return nil, bad("sku_id and body required")
 		}
-		if _, e := call(ctx, s.rpc, "catalog", child(c, "get", sku, nil)); e != nil {
+		if _, e := call(ctx, s.rpc, constants.ServiceCatalog, child(c, constants.ActionGet, sku, nil)); e != nil {
 			return nil, e
 		}
-		if kind == "review" {
+		if kind == constants.InteractionKindReview {
 			rating := platform.Int(c.Data, "rating")
 			if rating < 1 || rating > 5 {
 				return nil, bad("rating must be 1..5")
 			}
 			oid := platform.Text(c.Data, "order_id")
-			o, e := call(ctx, s.rpc, "order", child(c, "get", oid, nil))
+			o, e := call(ctx, s.rpc, constants.ServiceOrder, child(c, constants.ActionGet, oid, nil))
 			if e != nil {
 				return nil, e
 			}
-			if platform.Text(o, "user_id") != c.UserID || platform.Text(o, "status") != "COMPLETED" {
+			if platform.Text(o, "user_id") != c.UserID || platform.Text(o, "status") != constants.OrderStatusCompleted {
 				return nil, status.Error(codes.FailedPrecondition, "completed owned order required")
 			}
 			var snap struct {
@@ -88,16 +89,16 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			if !found {
 				return nil, bad("SKU not purchased in order")
 			}
-			c.ID = stable(c.UserID, "review", oid, sku)
-		} else if kind == "question" {
+			c.ID = stable(c.UserID, constants.InteractionKindReview, oid, sku)
+		} else if kind == constants.InteractionKindQuestion {
 			if c.IdempotencyKey == "" {
 				return nil, bad("question idempotency_key required")
 			}
-			c.ID = stable(c.UserID, "question", c.IdempotencyKey)
+			c.ID = stable(c.UserID, constants.InteractionKindQuestion, c.IdempotencyKey)
 		} else {
 			return nil, bad("kind must be review or question")
 		}
-		r := record(c.ID, c.UserID, kind, "PENDING", map[string]any{"sku_id": sku, "body": body, "rating": platform.Int(c.Data, "rating"), "order_id": platform.Text(c.Data, "order_id")})
+		r := record(c.ID, c.UserID, kind, constants.InteractionStatusPending, map[string]any{"sku_id": sku, "body": body, "rating": platform.Int(c.Data, "rating"), "order_id": platform.Text(c.Data, "order_id")})
 		r.ParentID = sku
 		inserted, e := s.repo.InsertOnce(ctx, &r, nil)
 		if e != nil {
@@ -110,13 +111,13 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			}
 		}
 		return view(r), nil
-	case "moderate", "answer":
+	case constants.ActionModerate, constants.ActionAnswer:
 		if e := platform.RequireAdmin(c); e != nil {
 			return nil, e
 		}
 		r, e := s.repo.Mutate(ctx, domain.Record{ID: c.ID}, false, func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
 			approved, ok := c.Data["approved"].(bool)
-			if c.Action == "answer" {
+			if c.Action == constants.ActionAnswer {
 				approved = true
 				ok = true
 				if platform.Text(c.Data, "answer") == "" {
@@ -129,13 +130,13 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			if !ok {
 				return nil, nil, bad("approved boolean required")
 			}
-			v.Status = "REJECTED"
+			v.Status = constants.InteractionStatusRejected
 			if approved {
-				v.Status = "PUBLISHED"
+				v.Status = constants.InteractionStatusPublished
 			}
 			evt := &platform.Event{ID: platform.ID("evt"), Type: "QAChanged", AggregateID: v.ID, UserID: v.UserID, Data: view(*v)}
-			if v.Kind == "review" {
-				evt.Type = "ReviewPublished"
+			if v.Kind == constants.InteractionKindReview {
+				evt.Type = constants.EventReviewPublished
 			}
 			return nil, evt, nil
 		})
@@ -143,7 +144,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			return nil, e
 		}
 		return view(r), nil
-	case "like":
+	case constants.ActionLike:
 		if e := platform.RequireUser(c); e != nil {
 			return nil, e
 		}
@@ -151,15 +152,15 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		if e != nil {
 			return nil, e
 		}
-		if target.Status != "PUBLISHED" || target.Kind != "review" {
+		if target.Status != constants.InteractionStatusPublished || target.Kind != constants.InteractionKindReview {
 			return nil, status.Error(codes.FailedPrecondition, "published review required")
 		}
-		r := record(stable(c.UserID, "like", c.ID), c.UserID, "like", "ACTIVE", nil)
+		r := record(stable(c.UserID, constants.InteractionKindLike, c.ID), c.UserID, constants.InteractionKindLike, constants.InteractionStatusActive, nil)
 		r.ParentID = c.ID
 		if _, e = s.repo.InsertOnce(ctx, &r, nil); e != nil {
 			return nil, e
 		}
-		count, e := s.repo.Count(ctx, c.ID, "like")
+		count, e := s.repo.Count(ctx, c.ID, constants.InteractionKindLike)
 		if e != nil {
 			return nil, e
 		}

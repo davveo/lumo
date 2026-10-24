@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/catalog/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -14,6 +15,7 @@ import (
 type Repository struct {
 	db                    *gorm.DB
 	searchCategoryIndexed bool
+	searchDocumentIndexed bool
 }
 
 func New(db *gorm.DB) *Repository { return &Repository{db: db} }
@@ -23,7 +25,10 @@ func (r *Repository) Migrate(ctx context.Context) error {
 	if err := r.db.WithContext(ctx).AutoMigrate(&domain.Record{}); err != nil {
 		return err
 	}
-	return r.migrateSearchCategory(ctx)
+	if err := r.migrateSearchCategory(ctx); err != nil {
+		return err
+	}
+	return r.migrateSearchDocument(ctx)
 }
 func (r *Repository) Get(ctx context.Context, id string) (domain.Record, error) {
 	ctx, s := platform.Start(ctx, "catalog.repository.Get")
@@ -41,7 +46,7 @@ func (r *Repository) GetMany(ctx context.Context, ids []string, includeDisabled 
 	rows := []domain.Record{}
 	query := r.db.WithContext(ctx).Where("id IN ?", ids)
 	if !includeDisabled {
-		query = query.Where("status = ?", "ACTIVE")
+		query = query.Where("status = ?", constants.CatalogStatusActive)
 	}
 	err := query.Find(&rows).Error
 	return rows, err
@@ -164,12 +169,19 @@ func (r *Repository) DeleteKind(ctx context.Context, owner, kind string) error {
 func (r *Repository) ListProducts(ctx context.Context, state string, limit, offset int) ([]domain.Record, int64, error) {
 	ctx, sp := platform.Start(ctx, "catalog.repository.ListProducts")
 	defer sp.End()
-	q := r.db.WithContext(ctx).Model(&domain.Record{}).Where("parent_id = ? AND kind = ?", "", "sku")
+	q := r.db.WithContext(ctx).Model(&domain.Record{}).Where("parent_id = ? AND kind = ?", "", constants.CatalogKindSku)
 	if state != "" {
 		q = q.Where("status = ?", state)
 	}
 	var n int64
-	if e := q.Count(&n).Error; e != nil {
+	count := q
+	if r.db.Dialector.Name() == "mysql" {
+		// MySQL may otherwise choose the narrower parent_id index and fetch
+		// every matching payload row. Count on the existing covering index;
+		// retain the optimizer's choice for the separately ordered page read.
+		count = q.Session(&gorm.Session{}).Table("catalog_records FORCE INDEX (idx_catalog_page)")
+	}
+	if e := count.Count(&n).Error; e != nil {
 		return nil, 0, e
 	}
 	if limit < 1 || limit > 100 {
@@ -186,7 +198,7 @@ func (r *Repository) SaveProduct(ctx context.Context, productID string, rows []d
 	ctx, sp := platform.Start(ctx, "catalog.repository.SaveProduct")
 	defer sp.End()
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if e := tx.WithContext(ctx).Model(&domain.Record{}).Where("parent_id = ? AND kind = ?", productID, "sku").Update("status", "DISABLED").Error; e != nil {
+		if e := tx.WithContext(ctx).Model(&domain.Record{}).Where("parent_id = ? AND kind = ?", productID, constants.CatalogKindSku).Update("status", constants.CatalogStatusDisabled).Error; e != nil {
 			return e
 		}
 		for i := range rows {

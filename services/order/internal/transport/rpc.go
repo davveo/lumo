@@ -1,6 +1,8 @@
 package transport
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"context"
 	"time"
 
@@ -83,10 +85,10 @@ func (s *orderServer) ListOrders(ctx context.Context, in *mallv1.ListOrdersReque
 }
 
 func (s *orderServer) GetOrder(ctx context.Context, in *mallv1.OrderRequest) (*mallv1.Order, error) {
-	return callOrder(ctx, "get", in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.Get(ctx, request(in)) })
+	return callOrder(ctx, constants.ActionGet, in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.Get(ctx, request(in)) })
 }
 func (s *orderServer) CreateOrder(ctx context.Context, in *mallv1.CreateOrderRequest) (*mallv1.Order, error) {
-	return callOrder(ctx, "create", in.GetId(), in, func(ctx context.Context) (domain.Order, error) {
+	return callOrder(ctx, constants.ActionCreate, in.GetId(), in, func(ctx context.Context) (domain.Order, error) {
 		expiresAt, err := rpcTime(in.GetExpiresAt())
 		if err != nil {
 			return domain.Order{}, err
@@ -96,37 +98,37 @@ func (s *orderServer) CreateOrder(ctx context.Context, in *mallv1.CreateOrderReq
 	})
 }
 func (s *orderServer) MarkPending(ctx context.Context, in *mallv1.OrderRequest) (*mallv1.Order, error) {
-	return callOrder(ctx, "pending", in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.Pending(ctx, request(in)) })
+	return callOrder(ctx, constants.ActionPending, in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.Pending(ctx, request(in)) })
 }
 func (s *orderServer) MarkCreateFailed(ctx context.Context, in *mallv1.OrderRequest) (*mallv1.Order, error) {
-	return callOrder(ctx, "create_failed", in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.CreateFailed(ctx, request(in)) })
+	return callOrder(ctx, constants.ActionCreateFailed, in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.CreateFailed(ctx, request(in)) })
 }
 func (s *orderServer) MarkReady(ctx context.Context, in *mallv1.OrderRequest) (*mallv1.Order, error) {
-	return callOrder(ctx, "ready", in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.Ready(ctx, request(in)) })
+	return callOrder(ctx, constants.ActionReady, in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.Ready(ctx, request(in)) })
 }
 func (s *orderServer) WaitForGroup(ctx context.Context, in *mallv1.OrderRequest) (*mallv1.Order, error) {
-	return callOrder(ctx, "wait_group", in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.WaitGroup(ctx, request(in)) })
+	return callOrder(ctx, constants.ActionWaitGroup, in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.WaitGroup(ctx, request(in)) })
 }
 func (s *orderServer) BeginClose(ctx context.Context, in *mallv1.OrderRequest) (*mallv1.Order, error) {
-	return callOrder(ctx, "close_begin", in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.CloseBegin(ctx, request(in)) })
+	return callOrder(ctx, constants.ActionCloseBegin, in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.CloseBegin(ctx, request(in)) })
 }
 func (s *orderServer) CompleteClose(ctx context.Context, in *mallv1.OrderRequest) (*mallv1.Order, error) {
-	return callOrder(ctx, "close_complete", in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.CloseComplete(ctx, request(in)) })
+	return callOrder(ctx, constants.ActionCloseComplete, in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.CloseComplete(ctx, request(in)) })
 }
 func (s *orderServer) MarkGroupFormed(ctx context.Context, in *mallv1.OrderRequest) (*mallv1.Order, error) {
-	return callOrder(ctx, "group_formed", in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.GroupFormed(ctx, request(in)) })
+	return callOrder(ctx, constants.ActionGroupFormed, in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.GroupFormed(ctx, request(in)) })
 }
 func (s *orderServer) MarkGroupFailed(ctx context.Context, in *mallv1.OrderRequest) (*mallv1.Order, error) {
-	return callOrder(ctx, "group_failed", in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.GroupFailed(ctx, request(in)) })
+	return callOrder(ctx, constants.ActionGroupFailed, in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.GroupFailed(ctx, request(in)) })
 }
 func (s *orderServer) MarkShipped(ctx context.Context, in *mallv1.OrderRequest) (*mallv1.Order, error) {
-	return callOrder(ctx, "shipped", in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.Shipped(ctx, request(in)) })
+	return callOrder(ctx, constants.ActionShipped, in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.Shipped(ctx, request(in)) })
 }
 func (s *orderServer) CompleteOrder(ctx context.Context, in *mallv1.OrderRequest) (*mallv1.Order, error) {
-	return callOrder(ctx, "complete", in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.Complete(ctx, request(in)) })
+	return callOrder(ctx, constants.ActionComplete, in.GetId(), in, func(ctx context.Context) (domain.Order, error) { return s.service.Complete(ctx, request(in)) })
 }
 func (s *orderServer) RecordRefund(ctx context.Context, in *mallv1.RecordRefundRequest) (*mallv1.Order, error) {
-	return callOrder(ctx, "refunded", in.GetId(), in, func(ctx context.Context) (domain.Order, error) {
+	return callOrder(ctx, constants.ActionRefunded, in.GetId(), in, func(ctx context.Context) (domain.Order, error) {
 		return s.service.Refunded(ctx, usecase.RecordRefundRequest{OrderRequest: usecase.OrderRequest{Actor: actor(in.GetActor()), ID: in.GetId()}, RefundID: in.GetRefundId(), AmountCents: in.GetAmountCents()})
 	})
 }

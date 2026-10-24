@@ -1,6 +1,8 @@
 package httpgateway
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"bytes"
 	"context"
 	"encoding/json"
@@ -17,9 +19,9 @@ import (
 // These commands only read state. Do not infer safety from a verb such as
 // "quote": pricing/checkout quotes persist records and must remain independent.
 var aggregateReadActions = map[string]bool{
-	"get": true, "list": true, "query": true, "evaluate": true,
-	"templates": true, "templates_snapshot": true, "faq": true, "reversals": true,
-	"batch_get": true,
+	constants.ActionGet: true, constants.ActionList: true, constants.ActionQuery: true, constants.ActionEvaluate: true,
+	constants.ActionTemplates: true, constants.ActionTemplatesSnapshot: true, constants.ActionFaq: true, constants.ActionReversals: true,
+	constants.ActionBatchGet: true, constants.ActionPopupList: true,
 }
 
 type readCommand struct {
@@ -35,7 +37,13 @@ type readRequest struct {
 }
 
 func (g *gateway) storefront(ctx context.Context, c platform.Command) (platform.Result, error) {
-	if c.Action == "bootstrap" {
+	if c.Action == constants.ActionRecent {
+		return g.storefrontRecent(ctx, c)
+	}
+	if c.Action == constants.ActionPopup || c.Action == constants.ActionPopupEvent || c.Action == constants.ActionPopupClaim {
+		return g.storefrontPopup(ctx, c)
+	}
+	if c.Action == constants.ActionBootstrap {
 		return g.bootstrapReads(ctx, c)
 	}
 	var input struct {
@@ -62,7 +70,7 @@ func (g *gateway) storefront(ctx context.Context, c platform.Command) (platform.
 		if item.Command.Data == nil {
 			item.Command.Data = map[string]any{}
 		}
-		if (item.Service == "catalog" || item.Service == "inventory") && item.Action == "get" && (len(item.Command.ID) > 150 || strings.TrimSpace(item.Command.ID) != item.Command.ID) {
+		if (item.Service == constants.ServiceCatalog || item.Service == constants.ServiceInventory) && item.Action == constants.ActionGet && (len(item.Command.ID) > 150 || strings.TrimSpace(item.Command.ID) != item.Command.ID) {
 			return nil, status.Error(codes.InvalidArgument, "invalid SKU ID")
 		}
 		if err := authorizeRead(*item, c); err != nil {
@@ -74,20 +82,20 @@ func (g *gateway) storefront(ctx context.Context, c platform.Command) (platform.
 
 func authorizeRead(item readRequest, principal platform.Command) error {
 	key := item.Service + "/" + item.Action
-	if item.Service == "storefront" || item.Service == "iam" || (!aggregateReadActions[item.Action] && key != "logistics/quote") || (!publicActions[key] && !userActions[key] && !adminActions[key]) {
+	if item.Service == constants.ServiceStorefront || item.Service == constants.ServiceIAM || (!aggregateReadActions[item.Action] && key != constants.ServiceLogistics+"/"+constants.ActionQuote) || (!publicActions[key] && !userActions[key] && !adminActions[key]) {
 		return status.Error(codes.PermissionDenied, "command is not an exposed read action")
 	}
 	if !publicActions[key] && principal.UserID == "" {
 		return status.Error(codes.Unauthenticated, "Bearer token required for private reads")
 	}
-	if adminActions[key] && principal.Role != "admin" {
+	if adminActions[key] && principal.Role != constants.RoleAdmin {
 		return status.Error(codes.PermissionDenied, "administrator required")
 	}
 	return nil
 }
 
 func canonicalRead(item readRequest) string {
-	if item.Service == "coupon" && item.Action == "templates" && len(item.Command.Data) == 0 {
+	if item.Service == constants.ServiceCoupon && item.Action == constants.ActionTemplates && len(item.Command.Data) == 0 {
 		item.Command.Data = map[string]any{"page": 1, "page_size": 100}
 	}
 	b, _ := json.Marshal([]any{item.Service, item.Action, item.Command, item.auth})
@@ -141,7 +149,7 @@ func (g *gateway) runReads(ctx context.Context, requests []readRequest, principa
 	duplicates := map[string][]int{}
 	bulk := map[string][]int{}
 	for i, item := range requests {
-		if (item.Service == "catalog" || item.Service == "inventory") && item.Action == "get" && item.Command.ID != "" && len(item.Command.Data) == 0 {
+		if (item.Service == constants.ServiceCatalog || item.Service == constants.ServiceInventory) && item.Action == constants.ActionGet && item.Command.ID != "" && len(item.Command.Data) == 0 {
 			bulk[fmt.Sprintf("%s:%t", item.Service, item.auth)] = append(bulk[fmt.Sprintf("%s:%t", item.Service, item.auth)], i)
 		} else {
 			duplicates[canonicalRead(item)] = append(duplicates[canonicalRead(item)], i)
@@ -178,7 +186,7 @@ func (g *gateway) runReads(ctx context.Context, requests []readRequest, principa
 			chunk := append([]string(nil), ids[first:last]...)
 			item, byID := requests[positions[0]], byID
 			jobs = append(jobs, func() {
-				command := platform.Command{Action: "batch_get", Data: map[string]any{"ids": chunk}}
+				command := platform.Command{Action: constants.ActionBatchGet, Data: map[string]any{"ids": chunk}}
 				if item.auth {
 					command.UserID, command.Role = principal.UserID, principal.Role
 				}
@@ -187,7 +195,7 @@ func (g *gateway) runReads(ctx context.Context, requests []readRequest, principa
 				if err == nil {
 					for _, row := range resultRows(data) {
 						id := platform.Text(row, "id")
-						if item.Service == "inventory" {
+						if item.Service == constants.ServiceInventory {
 							id = platform.Text(row, "sku_id")
 						}
 						rows[id] = row
@@ -250,24 +258,24 @@ func (g *gateway) bootstrapReads(ctx context.Context, principal platform.Command
 		}
 		plan = append(plan, readRequest{Key: fmt.Sprintf("bootstrap-%d", len(plan)), Service: service, Action: action, Command: readCommand{Data: data}, auth: auth})
 	}
-	add("catalog", "list", map[string]any{"limit": 100}, false)
-	add("content", "list", map[string]any{"kind": "storefront", "limit": 100}, false)
-	add("content", "list", map[string]any{"kind": "faq", "limit": 100}, false)
-	add("campaign", "list", nil, false)
-	add("flash", "list", nil, false)
-	add("group", "list", nil, false)
-	add("coupon", "templates", map[string]any{"page": 1, "page_size": 100}, principal.UserID != "")
+	add(constants.ServiceCatalog, constants.ActionList, map[string]any{"limit": 100}, false)
+	add(constants.ServiceContent, constants.ActionList, map[string]any{"kind": constants.ContentKindStorefront, "limit": 100}, false)
+	add(constants.ServiceContent, constants.ActionList, map[string]any{"kind": constants.ContentKindFaq, "limit": 100}, false)
+	add(constants.ServiceCampaign, constants.ActionList, nil, false)
+	add(constants.ServiceFlash, constants.ActionList, nil, false)
+	add(constants.ServiceGroup, constants.ActionList, nil, false)
+	add(constants.ServiceCoupon, constants.ActionTemplates, map[string]any{"page": 1, "page_size": 100}, principal.UserID != "")
 	if principal.UserID != "" {
 		for _, entry := range []struct {
 			service, action string
 			data            map[string]any
 		}{
-			{"member", "get", nil}, {"address", "list", map[string]any{"limit": 100}}, {"coupon", "list", nil}, {"coupon", "templates", nil},
-			{"points", "get", nil}, {"cart", "list", nil}, {"order", "list", nil},
-			{"engagement", "list", map[string]any{"kind": "favorite", "limit": 100}}, {"engagement", "list", map[string]any{"kind": "history", "limit": 100}},
-			{"engagement", "list", map[string]any{"kind": "compare", "limit": 100}}, {"engagement", "list", map[string]any{"kind": "search", "limit": 100}},
-			{"interaction", "list", map[string]any{"kind": "review", "mine": true, "limit": 100}}, {"aftersale", "list", nil},
-			{"notification", "list", map[string]any{"limit": 100}}, {"invoice", "list", nil}, {"helpdesk", "list", map[string]any{"limit": 100}},
+			{constants.ServiceMember, constants.ActionGet, nil}, {constants.ServiceAddress, constants.ActionList, map[string]any{"limit": 100}}, {constants.ServiceCoupon, constants.ActionList, nil}, {constants.ServiceCoupon, constants.ActionTemplates, nil},
+			{constants.ServicePoints, constants.ActionGet, nil}, {constants.ServiceCart, constants.ActionList, nil}, {constants.ServiceOrder, constants.ActionList, nil},
+			{constants.ServiceEngagement, constants.ActionList, map[string]any{"kind": constants.EngagementKindFavorite, "limit": 100}}, {constants.ServiceEngagement, constants.ActionList, map[string]any{"kind": constants.EngagementKindHistory, "limit": 100}},
+			{constants.ServiceEngagement, constants.ActionList, map[string]any{"kind": constants.EngagementKindCompare, "limit": 100}}, {constants.ServiceEngagement, constants.ActionList, map[string]any{"kind": constants.EngagementKindSearch, "limit": 100}},
+			{constants.ServiceInteraction, constants.ActionList, map[string]any{"kind": constants.InteractionKindReview, "mine": true, "limit": 100}}, {constants.ServiceAftersale, constants.ActionList, nil},
+			{constants.ServiceNotification, constants.ActionList, map[string]any{"limit": 100}}, {constants.ServiceInvoice, constants.ActionList, nil}, {constants.ServiceHelpdesk, constants.ActionList, map[string]any{"limit": 100}},
 		} {
 			add(entry.service, entry.action, entry.data, true)
 		}
@@ -280,7 +288,7 @@ func (g *gateway) bootstrapReads(ctx context.Context, principal platform.Command
 		if !ok {
 			continue
 		}
-		if result["service"] == "catalog" {
+		if result["service"] == constants.ServiceCatalog {
 			for _, row := range resultRows(data) {
 				if id := platform.Text(row, "id"); id != "" {
 					stockIDs[id] = true
@@ -299,14 +307,14 @@ func (g *gateway) bootstrapReads(ctx context.Context, principal platform.Command
 				}
 			}
 		}
-		if result["service"] == "flash" {
+		if result["service"] == constants.ServiceFlash {
 			for _, row := range resultRows(data) {
 				if id := platform.Text(row, "sku_id"); id != "" {
 					stockIDs[id], flashIDs[id] = true, true
 				}
 			}
 		}
-		if result["service"] == "cart" {
+		if result["service"] == constants.ServiceCart {
 			for _, row := range resultRows(data) {
 				if id := platform.Text(row, "sku_id"); id != "" {
 					stockIDs[id] = true
@@ -315,9 +323,9 @@ func (g *gateway) bootstrapReads(ctx context.Context, principal platform.Command
 		}
 	}
 	bulk := []readRequest{}
-	for _, service := range []string{"inventory", "catalog"} {
+	for _, service := range []string{constants.ServiceInventory, constants.ServiceCatalog} {
 		ids := stockIDs
-		if service == "catalog" {
+		if service == constants.ServiceCatalog {
 			ids = flashIDs
 		}
 		ordered := make([]string, 0, len(ids))
@@ -326,10 +334,11 @@ func (g *gateway) bootstrapReads(ctx context.Context, principal platform.Command
 		}
 		sort.Strings(ordered)
 		for _, id := range ordered {
-			bulk = append(bulk, readRequest{Key: fmt.Sprintf("bootstrap-sku-%d", len(bulk)), Service: service, Action: "get", Command: readCommand{ID: id, Data: map[string]any{}}})
+			bulk = append(bulk, readRequest{Key: fmt.Sprintf("bootstrap-sku-%d", len(bulk)), Service: service, Action: constants.ActionGet, Command: readCommand{ID: id, Data: map[string]any{}}})
 		}
 	}
 	results = append(results, g.runReads(ctx, bulk, principal)...)
 	results = g.bootstrapRecommendations(ctx, results, principal)
-	return platform.Result{"results": g.bootstrapRecent(ctx, results, principal)}, nil
+	results = g.bootstrapRecent(ctx, results, principal)
+	return platform.Result{"results": results, "popup": g.bootstrapPopup(ctx, principal, results)}, nil
 }

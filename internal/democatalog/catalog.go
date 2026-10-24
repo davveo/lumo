@@ -23,9 +23,11 @@ func Products() []map[string]any {
 
 // SKUs returns every independently stocked color/option combination. The first
 // color and default option use the product ID, all others have stable suffixes.
-func SKUs() []string {
+func SKUs() []string { return productSKUs(Products()) }
+
+func productSKUs(products []map[string]any) []string {
 	var out []string
-	for _, p := range Products() {
+	for _, p := range products {
 		id := p["id"].(string)
 		colors := p["colors"].([]any)
 		options := p["options"].([]any)

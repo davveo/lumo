@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/cart/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -160,7 +161,7 @@ func (r *Repository) ConsumePaidOrder(ctx context.Context, user, order string, l
 	defer sp.End()
 	stableID := func(parts string) string { sum := sha256.Sum256([]byte(parts)); return hex.EncodeToString(sum[:]) }
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		receipt := domain.Record{ID: stableID(user + "\x00paid-order\x00" + order), UserID: user, Kind: "checkout_receipt", Status: "CONSUMED", Payload: "{}"}
+		receipt := domain.Record{ID: stableID(user + "\x00paid-order\x00" + order), UserID: user, Kind: constants.CartRecordKindCheckoutReceipt, Status: constants.CartStatusConsumed, Payload: "{}"}
 		created := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&receipt)
 		if created.Error != nil {
 			return created.Error
@@ -174,7 +175,7 @@ func (r *Repository) ConsumePaidOrder(ctx context.Context, user, order string, l
 			}
 			id := stableID(user + "\x00cart\x00" + line.SKUID)
 			var row domain.Record
-			if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&row, "id = ? AND user_id = ? AND kind = ?", id, user, "cart_item").Error; err != nil {
+			if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&row, "id = ? AND user_id = ? AND kind = ?", id, user, constants.CartRecordKindCartItem).Error; err != nil {
 				if errors.Is(err, gorm.ErrRecordNotFound) {
 					continue
 				}

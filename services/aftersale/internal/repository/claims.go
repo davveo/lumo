@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/aftersale/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -41,7 +42,7 @@ func (r *Repository) Claim(ctx context.Context, row *domain.Record, purchased ma
 			return err
 		}
 		existing := []domain.Record{}
-		if err = tx.WithContext(ctx).Where("order_id = ? AND status NOT IN ?", row.OrderID, []string{"REJECTED", "CANCELLED"}).Find(&existing).Error; err != nil {
+		if err = tx.WithContext(ctx).Where("order_id = ? AND status NOT IN ?", row.OrderID, []string{constants.AftersaleStatusRejected, constants.AftersaleStatusCancelled}).Find(&existing).Error; err != nil {
 			return err
 		}
 		used := map[string]int64{}
@@ -49,7 +50,7 @@ func (r *Repository) Claim(ctx context.Context, row *domain.Record, purchased ma
 		hasExchange := false
 		for _, a := range existing {
 			claimedCash += a.AmountCents
-			if a.Type == "exchange" {
+			if a.Type == constants.AftersaleTypeExchange {
 				hasExchange = true
 			}
 			var lines []domain.Line
@@ -80,10 +81,10 @@ func (r *Repository) Claim(ctx context.Context, row *domain.Record, purchased ma
 				all = false
 			}
 		}
-		if all && row.Type != "exchange" && !hasExchange {
+		if all && row.Type != constants.AftersaleTypeExchange && !hasExchange {
 			row.AmountCents = payable - claimedCash
 		}
-		if row.Type != "exchange" && row.AmountCents <= 0 {
+		if row.Type != constants.AftersaleTypeExchange && row.AmountCents <= 0 {
 			return status.Error(codes.FailedPrecondition, "cash refund quota is exhausted")
 		}
 		if err = tx.WithContext(ctx).Create(row).Error; err != nil {

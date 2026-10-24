@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/flash/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -68,7 +69,7 @@ func (r *Repository) Create(ctx context.Context, c platform.Command) (platform.R
 	}
 	sum := sha256.Sum256([]byte(c.UserID + "\x00" + c.IdempotencyKey))
 	id := "flash-" + hex.EncodeToString(sum[:16])
-	v := domain.Request{ID: id, UserID: c.UserID, Key: c.IdempotencyKey, QuoteID: platform.Text(c.Data, "quote_id"), PayloadJSON: string(payload), State: "QUEUED"}
+	v := domain.Request{ID: id, UserID: c.UserID, Key: c.IdempotencyKey, QuoteID: platform.Text(c.Data, "quote_id"), PayloadJSON: string(payload), State: constants.FlashRequestStatusQueued}
 	e = r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var prior domain.Request
 		er := tx.WithContext(ctx).First(&prior, "id = ?", id).Error
@@ -85,21 +86,21 @@ func (r *Repository) Create(ctx context.Context, c platform.Command) (platform.R
 		if er = tx.WithContext(ctx).Create(&v).Error; er != nil {
 			return er
 		}
-		return platform.Enqueue(ctx, tx, platform.Event{ID: id + ":requested", Type: "FlashOrderRequested", AggregateID: id, UserID: c.UserID, Data: map[string]any{"request_id": id}})
+		return platform.Enqueue(ctx, tx, platform.Event{ID: id + ":requested", Type: constants.EventFlashOrderRequested, AggregateID: id, UserID: c.UserID, Data: map[string]any{"request_id": id}})
 	})
 	return platform.Map(v), e
 }
 func (r *Repository) SetProcessing(ctx context.Context, id string) error {
 	ctx, s := platform.Start(ctx, "repository.flash.SetProcessing")
 	defer s.End()
-	return r.DB.WithContext(ctx).Model(&domain.Request{}).Where("id = ? AND state = ?", id, "QUEUED").Update("state", "PROCESSING").Error
+	return r.DB.WithContext(ctx).Model(&domain.Request{}).Where("id = ? AND state = ?", id, constants.FlashRequestStatusQueued).Update("state", constants.FlashRequestStatusProcessing).Error
 }
 func (r *Repository) Finish(ctx context.Context, id, order, reason string) error {
 	ctx, s := platform.Start(ctx, "repository.flash.Finish")
 	defer s.End()
-	next := "SUCCEEDED"
+	next := constants.FlashRequestStatusSucceeded
 	if reason != "" {
-		next = "FAILED"
+		next = constants.FlashRequestStatusFailed
 	}
-	return r.DB.WithContext(ctx).Model(&domain.Request{}).Where("id = ? AND state IN ?", id, []string{"QUEUED", "PROCESSING"}).Updates(map[string]any{"state": next, "order_id": order, "error": reason}).Error
+	return r.DB.WithContext(ctx).Model(&domain.Request{}).Where("id = ? AND state IN ?", id, []string{constants.FlashRequestStatusQueued, constants.FlashRequestStatusProcessing}).Updates(map[string]any{"state": next, "order_id": order, "error": reason}).Error
 }

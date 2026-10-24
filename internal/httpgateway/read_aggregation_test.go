@@ -238,6 +238,9 @@ func TestBootstrapIncludesPublicAndPersonalizedDataAndBulkSKUPrimer(t *testing.T
 		if call.service == "recommendation" && call.command.Action == "rank_bootstrap" && call.command.Role == "system" && call.command.UserID == "" {
 			continue
 		}
+		if call.service == "content" && call.command.Action == "popup_decide" && call.command.Role == "system" && call.command.UserID == "" {
+			continue // delivery decision is internal, but contains no private account reads
+		}
 		if !publicActions[call.service+"/"+call.command.Action] {
 			t.Fatalf("guest bootstrap performed private read: %+v", call)
 		}

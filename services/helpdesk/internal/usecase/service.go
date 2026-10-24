@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/helpdesk/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -13,20 +14,20 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	if c.Action == "faq" {
-		return call(ctx, s.rpc, "content", child(c, "list", "", map[string]any{"kind": "faq", "limit": 100}))
+	if c.Action == constants.ActionFaq {
+		return call(ctx, s.rpc, constants.ServiceContent, child(c, constants.ActionList, "", map[string]any{"kind": constants.ContentKindFaq, "limit": 100}))
 	}
 	if e := platform.RequireUser(c); e != nil {
 		return nil, e
 	}
 	switch c.Action {
-	case "list":
+	case constants.ActionList:
 		owner := c.UserID
-		if c.Role == "admin" {
+		if c.Role == constants.RoleAdmin {
 			owner = ""
 		}
-		return s.list(ctx, c, owner, "ticket", "")
-	case "get":
+		return s.list(ctx, c, owner, constants.HelpdeskKindTicket, "")
+	case constants.ActionGet:
 		r, e := s.repo.Get(ctx, c.ID)
 		if e != nil {
 			return nil, e
@@ -35,7 +36,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			return nil, e
 		}
 		out := view(r)
-		msgs, e := s.repo.Children(ctx, r.ID, "message")
+		msgs, e := s.repo.Children(ctx, r.ID, constants.HelpdeskKindMessage)
 		if e != nil {
 			return nil, e
 		}
@@ -45,7 +46,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		}
 		out["messages"] = v
 		return out, nil
-	case "create":
+	case constants.ActionCreate:
 		if c.IdempotencyKey == "" {
 			return nil, bad("ticket idempotency_key required")
 		}
@@ -56,7 +57,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		}
 		oid := platform.Text(c.Data, "order_id")
 		if oid != "" {
-			o, e := call(ctx, s.rpc, "order", child(c, "get", oid, nil))
+			o, e := call(ctx, s.rpc, constants.ServiceOrder, child(c, constants.ActionGet, oid, nil))
 			if e != nil {
 				return nil, e
 			}
@@ -64,7 +65,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 				return nil, status.Error(codes.PermissionDenied, "order belongs to another user")
 			}
 		}
-		r := record(stable(c.UserID, "ticket", c.IdempotencyKey), c.UserID, "ticket", "OPEN", map[string]any{"title": title, "body": body, "order_id": oid})
+		r := record(stable(c.UserID, constants.HelpdeskKindTicket, c.IdempotencyKey), c.UserID, constants.HelpdeskKindTicket, constants.HelpdeskStatusOpen, map[string]any{"title": title, "body": body, "order_id": oid})
 		inserted, e := s.repo.InsertOnce(ctx, &r, nil)
 		if e != nil {
 			return nil, e
@@ -76,16 +77,16 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			}
 		}
 		return view(r), nil
-	case "reply", "close":
+	case constants.ActionReply, constants.ActionClose:
 		r, e := s.repo.Mutate(ctx, domain.Record{ID: c.ID}, false, func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
 			if e := own(c, *v); e != nil {
 				return nil, nil, e
 			}
-			if c.Action == "close" {
-				v.Status = "CLOSED"
+			if c.Action == constants.ActionClose {
+				v.Status = constants.HelpdeskStatusClosed
 				return nil, nil, nil
 			}
-			if v.Status == "CLOSED" {
+			if v.Status == constants.HelpdeskStatusClosed {
 				return nil, nil, status.Error(codes.FailedPrecondition, "ticket is closed")
 			}
 			body := platform.Text(c.Data, "body")
@@ -96,13 +97,13 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 				return nil, nil, bad("reply idempotency_key required")
 			}
 			id := stable(c.UserID, v.ID, c.IdempotencyKey)
-			msg := record(id, c.UserID, "message", "SENT", map[string]any{"body": body, "role": c.Role})
+			msg := record(id, c.UserID, constants.HelpdeskKindMessage, constants.HelpdeskStatusSent, map[string]any{"body": body, "role": c.Role})
 			msg.ParentID = v.ID
-			evt := &platform.Event{ID: id, Type: "TicketReplied", AggregateID: v.ID, UserID: v.UserID, Data: map[string]any{"ticket_id": v.ID}}
-			if c.Role == "admin" {
-				v.Status = "REPLIED"
+			evt := &platform.Event{ID: id, Type: constants.EventTicketReplied, AggregateID: v.ID, UserID: v.UserID, Data: map[string]any{"ticket_id": v.ID}}
+			if c.Role == constants.RoleAdmin {
+				v.Status = constants.HelpdeskStatusReplied
 			} else {
-				v.Status = "OPEN"
+				v.Status = constants.HelpdeskStatusOpen
 			}
 			return []domain.Record{msg}, evt, nil
 		})

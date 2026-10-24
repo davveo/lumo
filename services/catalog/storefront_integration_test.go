@@ -9,6 +9,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/davveo/lumo/internal/democatalog"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/address"
 	"github.com/davveo/lumo/services/analytics"
@@ -190,8 +191,16 @@ func TestCartStockLimitAndIdempotentMerge(t *testing.T) {
 func TestSearchAndRecommendationUseRPC(t *testing.T) {
 	p := setup(t)
 	v := run(t, p, "search", cmd("query", "", "", "", map[string]any{"query": "Apple", "in_stock": true}))
-	if len(items(t, v)) != 2 {
-		t.Fatalf("search results %+v", v)
+	found := map[string]bool{}
+	for _, row := range items(t, v) {
+		found[platform.Text(row, "id")] = true
+		text := strings.ToLower(platform.Text(row, "name") + " " + platform.Text(row, "brand") + " " + platform.Text(row, "category"))
+		if !strings.Contains(text, "apple") || platform.Int(row, "available") < 1 {
+			t.Fatalf("search returned unrelated or unavailable product: %v", row)
+		}
+	}
+	if !found["iphone"] || !found["macbook"] {
+		t.Fatal("search lost the original matching Apple products")
 	}
 	r := items(t, run(t, p, "recommendation", cmd("list", "", "demo", "user", map[string]any{"order_id": "owned-order"})))
 	for _, x := range r {
@@ -333,8 +342,9 @@ func TestCatalogAdminUpdatePreservesCreationTime(t *testing.T) {
 func TestCatalogVariantsHaveAuthoritativePricesAndVisibility(t *testing.T) {
 	p := setup(t)
 	all := run(t, p, "catalog", cmd("list", "", "", "", map[string]any{"limit": 100}))
-	if len(items(t, all)) != 12 {
-		t.Fatalf("expected 12 product/default SKUs, got %+v", all)
+	wantTotal := len(democatalog.Products()) + len(democatalog.ExpandedProducts())
+	if len(items(t, all)) != min(wantTotal, 100) || platform.Int(all, "total") != int64(wantTotal) {
+		t.Fatalf("expected bounded product/default SKU page and total %d, got %+v", wantTotal, all)
 	}
 	product := run(t, p, "catalog", cmd("get", "iphone", "", "", nil))
 	variant := run(t, p, "catalog", cmd("get", "iphone--1-2", "", "", nil))
@@ -359,12 +369,17 @@ func TestCatalogVariantsHaveAuthoritativePricesAndVisibility(t *testing.T) {
 	if _, e := p.Call(context.Background(), "catalog", cmd("get", "iphone--0-0", "demo", "user", nil)); status.Code(e) != codes.NotFound {
 		t.Fatalf("disabled variant still purchasable: %v", e)
 	}
-	public := items(t, run(t, p, "catalog", cmd("list", "", "", "", map[string]any{"limit": 100})))
-	if len(public) != 11 {
+	publicResult := run(t, p, "catalog", cmd("list", "", "", "", map[string]any{"limit": 100}))
+	if platform.Int(publicResult, "total") != int64(wantTotal-1) {
 		t.Fatal("disabled product leaked to public list")
 	}
-	admin := items(t, run(t, p, "catalog", cmd("list", "", "admin", "admin", map[string]any{"limit": 100, "include_disabled": true})))
-	if len(admin) != 12 {
+	for _, row := range items(t, publicResult) {
+		if platform.Text(row, "id") == "iphone" {
+			t.Fatal("disabled product leaked to public page")
+		}
+	}
+	adminResult := run(t, p, "catalog", cmd("list", "", "admin", "admin", map[string]any{"limit": 100, "include_disabled": true}))
+	if platform.Int(adminResult, "total") != int64(wantTotal) {
 		t.Fatal("admin cannot view disabled product")
 	}
 	if len(items(t, run(t, p, "catalog", cmd("list", "", "", "", map[string]any{"limit": 5, "offset": 5})))) != 5 {

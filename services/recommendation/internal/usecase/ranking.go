@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"github.com/davveo/lumo/internal/constants"
 	"math"
 	"sort"
 	"strings"
@@ -48,7 +49,7 @@ func productFrom(row map[string]any) product {
 	if enabled, ok := row["active"].(bool); ok && !enabled {
 		active = false
 	}
-	if text("status") == "DISABLED" {
+	if text("status") == constants.CatalogStatusDisabled {
 		active = false
 	}
 	if visible, ok := row["catalog_visible"].(bool); ok && !visible {
@@ -91,7 +92,7 @@ func decay(now, timeAt time.Time, halfLife float64) float64 {
 }
 func paidOrder(row map[string]any) bool {
 	switch platform.Text(row, "status") {
-	case "PAID", "PAID_CONFIRMING", "PAID_WAIT_GROUP", "READY_TO_FULFILL", "SHIPPED", "COMPLETED", "AWAITING_GROUP", "WAITING_GROUP", "FULFILLING":
+	case constants.OrderStatusPaid, constants.OrderStatusPaidConfirming, constants.OrderStatusPaidWaitGroup, constants.OrderStatusReadyToFulfill, constants.OrderStatusShipped, constants.OrderStatusCompleted, constants.OrderStatusAwaitingGroup, constants.OrderStatusWaitingGroup, constants.OrderStatusFulfilling:
 		return true
 	}
 	return false
@@ -118,7 +119,7 @@ func buildProfile(rows signalRows, metadata map[string]product, now time.Time) p
 		rows   []map[string]any
 		kind   string
 		weight float64
-	}{{rows.Favorite, "favorite", 8}, {rows.Compare, "compare", 5}, {rows.History, "history", 3}} {
+	}{{rows.Favorite, constants.RecommendationSignalFavorite, 8}, {rows.Compare, constants.RecommendationSignalCompare, 5}, {rows.History, constants.RecommendationSignalHistory, 3}} {
 		for _, row := range signal.rows {
 			add(platform.Text(row, "sku_id"), signal.kind, signal.weight, signalTime(row))
 		}
@@ -143,7 +144,7 @@ func buildProfile(rows signalRows, metadata map[string]product, now time.Time) p
 			if v, ok := metadata[id]; ok {
 				p.purchased[v.id] = true
 			}
-			add(id, "purchase", 12, signalTime(row))
+			add(id, constants.RecommendationSignalPurchase, 12, signalTime(row))
 		}
 	}
 	for _, signal := range interests {
@@ -311,7 +312,7 @@ func rankProducts(products []product, profile preference, contextProduct *produc
 		// source position only breaks otherwise identical cold-start candidates.
 		score := .18*math.Log1p(math.Max(0, p.sales)) + .35*decay(now, p.created, 45) + .001/float64(index+1)
 		reason := "精选在售好物"
-		reasons := []string{"catalog_discovery"}
+		reasons := []string{constants.RecommendationReasonCatalogDiscovery}
 		bestWeight := 0.
 		weights, total := 0., 0.
 		bestKind := ""
@@ -328,8 +329,8 @@ func rankProducts(products []product, profile preference, contextProduct *produc
 			personal := weights / total * math.Min(1, total/8)
 			score += personal * 6
 			if personal > .15 {
-				reasons = append(reasons, "preference_affinity")
-				reason = map[string]string{"favorite": "根据你收藏的好物推荐", "compare": "根据你对比过的商品推荐", "history": "根据你近期浏览的偏好推荐", "purchase": "根据你已购商品的偏好推荐"}[bestKind]
+				reasons = append(reasons, constants.RecommendationReasonPreferenceAffinity)
+				reason = map[string]string{constants.RecommendationSignalFavorite: "根据你收藏的好物推荐", constants.RecommendationSignalCompare: "根据你对比过的商品推荐", constants.RecommendationSignalHistory: "根据你近期浏览的偏好推荐", constants.RecommendationSignalPurchase: "根据你已购商品的偏好推荐"}[bestKind]
 			}
 		}
 		searchScore := 0.
@@ -338,25 +339,25 @@ func rankProducts(products []product, profile preference, contextProduct *produc
 		}
 		if searchScore > .5 {
 			score += searchScore
-			reasons = append(reasons, "recent_search")
+			reasons = append(reasons, constants.RecommendationReasonRecentSearch)
 			reason = "与你近期搜索的兴趣相关"
 		}
 		if contextProduct != nil {
 			similar := similarity(p, *contextProduct)
 			score += similar * 9
 			if similar > .2 {
-				reasons = append(reasons, "similar_product")
+				reasons = append(reasons, constants.RecommendationReasonSimilarProduct)
 				reason = "与你正在看的商品相似"
 			}
 		}
-		if scene == "post_purchase" && len(anchors) > 0 {
+		if scene == constants.RecommendationScenePostPurchase && len(anchors) > 0 {
 			best := 0.
 			for _, anchor := range anchors {
 				best = math.Max(best, similarity(p, anchor))
 			}
 			score += best * 5
 			if best > .25 {
-				reasons = append(reasons, "purchase_related")
+				reasons = append(reasons, constants.RecommendationReasonPurchaseRelated)
 				reason = "根据本单商品为你推荐"
 			}
 		}

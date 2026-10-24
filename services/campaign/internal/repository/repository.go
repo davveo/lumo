@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/campaign/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -18,13 +19,13 @@ func (r *Repository) Migrate(ctx context.Context) error {
 }
 func (r *Repository) Seed(ctx context.Context) error {
 	for _, a := range []domain.Activity{
-		{ID: "addon-coffee", Kind: "addon", Threshold: 100000, Discount: 6000, Quota: 50, Active: true},
-		{ID: "flash-demo", Kind: "flash", Quota: 20, Active: true},
-		{ID: "group-demo", Kind: "group", Quota: 30, Active: true},
-		{ID: "reduction-demo", Kind: "reduction", Name: "满额立减", Description: "商品满300元减30元，每人限享一次", Threshold: 30000, Discount: 3000, MinQuantity: 1, Quota: 1000, Active: true},
-		{ID: "discount-demo", Kind: "discount", Name: "折扣特惠", Description: "商品享9折，每人限享一次", PayRateBPS: 9000, MinQuantity: 1, Quota: 1000, Active: true},
-		{ID: "quantity-discount-demo", Kind: "quantity_discount", Name: "多件优惠", Description: "商品满2件享8.5折，每人限享一次", PayRateBPS: 8500, MinQuantity: 2, Quota: 1000, Active: true},
-		{ID: "direct-demo", Kind: "direct", Name: "限量直降", Description: "每单立减20元，商品金额须大于20元，每人限享一次", Discount: 2000, MinQuantity: 1, Quota: 1000, Active: true},
+		{ID: "addon-coffee", Kind: constants.CampaignKindAddon, Threshold: 100000, Discount: 6000, Quota: 50, Active: true},
+		{ID: "flash-demo", Kind: constants.CampaignKindFlash, Quota: 20, Active: true},
+		{ID: "group-demo", Kind: constants.CampaignKindGroup, Quota: 30, Active: true},
+		{ID: "reduction-demo", Kind: constants.CampaignKindReduction, Name: "满额立减", Description: "商品满300元减30元，每人限享一次", Threshold: 30000, Discount: 3000, MinQuantity: 1, Quota: 1000, Active: true},
+		{ID: "discount-demo", Kind: constants.CampaignKindDiscount, Name: "折扣特惠", Description: "商品享9折，每人限享一次", PayRateBPS: 9000, MinQuantity: 1, Quota: 1000, Active: true},
+		{ID: "quantity-discount-demo", Kind: constants.CampaignKindQuantityDiscount, Name: "多件优惠", Description: "商品满2件享8.5折，每人限享一次", PayRateBPS: 8500, MinQuantity: 2, Quota: 1000, Active: true},
+		{ID: "direct-demo", Kind: constants.CampaignKindDirect, Name: "限量直降", Description: "每单立减20元，商品金额须大于20元，每人限享一次", Discount: 2000, MinQuantity: 1, Quota: 1000, Active: true},
 	} {
 		if e := r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&a).Error; e != nil {
 			return e
@@ -68,7 +69,7 @@ func (r *Repository) Evaluate(ctx context.Context, c platform.Command) (platform
 
 func evaluate(a domain.Activity, subtotal, quantity int64) (int64, string, string) {
 	policy := "v1"
-	modern := a.Kind == "reduction" || a.Kind == "discount" || a.Kind == "quantity_discount" || a.Kind == "direct"
+	modern := a.Kind == constants.CampaignKindReduction || a.Kind == constants.CampaignKindDiscount || a.Kind == constants.CampaignKindQuantityDiscount || a.Kind == constants.CampaignKindDirect
 	if modern {
 		policy = "v2"
 	}
@@ -90,14 +91,14 @@ func evaluate(a domain.Activity, subtotal, quantity int64) (int64, string, strin
 	}
 	discount := a.Discount
 	switch a.Kind {
-	case "flash", "group", "addon":
+	case constants.CampaignKindFlash, constants.CampaignKindGroup, constants.CampaignKindAddon:
 		// Preserve the existing fixed-discount rules and their zero-discount
 		// flash/group quota contracts.
-	case "reduction", "direct":
+	case constants.CampaignKindReduction, constants.CampaignKindDirect:
 		if discount < 1 {
 			return reject("invalid_rule")
 		}
-	case "discount", "quantity_discount":
+	case constants.CampaignKindDiscount, constants.CampaignKindQuantityDiscount:
 		if a.PayRateBPS < 1 || a.PayRateBPS >= 10000 {
 			return reject("invalid_rule")
 		}
@@ -130,7 +131,7 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.
 			if h.UserID != c.UserID {
 				return status.Error(codes.PermissionDenied, "activity hold owner mismatch")
 			}
-			if h.State == "CANCELLED" {
+			if h.State == constants.CampaignHoldStateCancelled {
 				return status.Error(codes.FailedPrecondition, "activity hold cancelled")
 			}
 			if h.ActivityID != id || h.Quantity != qty {
@@ -149,13 +150,13 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.
 			return status.Error(codes.FailedPrecondition, "inactive activity")
 		}
 		var count int64
-		if er = tx.WithContext(ctx).Model(&domain.Hold{}).Where("user_id = ? AND activity_id = ? AND state IN ?", c.UserID, id, []string{"RESERVED", "CONFIRMED"}).Count(&count).Error; er != nil {
+		if er = tx.WithContext(ctx).Model(&domain.Hold{}).Where("user_id = ? AND activity_id = ? AND state IN ?", c.UserID, id, []string{constants.CampaignHoldStateReserved, constants.CampaignHoldStateConfirmed}).Count(&count).Error; er != nil {
 			return er
 		}
 		if count > 0 {
 			return status.Error(codes.ResourceExhausted, "one purchase per user per activity")
 		}
-		h = domain.Hold{ID: c.ID, UserID: c.UserID, ActivityID: id, Quantity: qty, State: "RESERVED"}
+		h = domain.Hold{ID: c.ID, UserID: c.UserID, ActivityID: id, Quantity: qty, State: constants.CampaignHoldStateReserved}
 		if er = tx.WithContext(ctx).Create(&h).Error; er != nil {
 			return er
 		}
@@ -179,8 +180,8 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 	var h domain.Hold
 	e := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		er := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&h, "id = ?", c.ID).Error
-		if errors.Is(er, gorm.ErrRecordNotFound) && c.Action == "cancel" {
-			h = domain.Hold{ID: c.ID, UserID: c.UserID, State: "CANCELLED"}
+		if errors.Is(er, gorm.ErrRecordNotFound) && c.Action == constants.ActionCancel {
+			h = domain.Hold{ID: c.ID, UserID: c.UserID, State: constants.CampaignHoldStateCancelled}
 			return tx.WithContext(ctx).Create(&h).Error
 		}
 		if er != nil {
@@ -189,18 +190,18 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 		if h.UserID != c.UserID {
 			return status.Error(codes.PermissionDenied, "activity hold owner mismatch")
 		}
-		target := "CONFIRMED"
-		if c.Action == "cancel" {
-			target = "CANCELLED"
+		target := constants.CampaignHoldStateConfirmed
+		if c.Action == constants.ActionCancel {
+			target = constants.CampaignHoldStateCancelled
 		}
 		if h.State == target {
 			return nil
 		}
-		if h.State != "RESERVED" {
+		if h.State != constants.CampaignHoldStateReserved {
 			return status.Error(codes.FailedPrecondition, "invalid activity transition")
 		}
 		u := map[string]any{"held": gorm.Expr("held - ?", h.Quantity)}
-		if target == "CONFIRMED" {
+		if target == constants.CampaignHoldStateConfirmed {
 			u["used"] = gorm.Expr("used + ?", h.Quantity)
 		}
 		if er = tx.WithContext(ctx).Model(&domain.Activity{}).Where("id = ? AND held >= ?", h.ActivityID, h.Quantity).Updates(u).Error; er != nil {

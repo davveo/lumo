@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"encoding/json"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/reconciliation/internal/domain"
 	"github.com/davveo/lumo/services/reconciliation/internal/repository"
@@ -28,7 +29,7 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 		return nil, err
 	}
 	switch c.Action {
-	case "list":
+	case constants.ActionList:
 		rows, err := s.r.List(ctx)
 		if err != nil {
 			return nil, err
@@ -42,8 +43,8 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 			items = append(items, v)
 		}
 		return platform.Result{"items": items}, nil
-	case "run":
-		payments, err := s.rpc.Call(ctx, "payment", platform.Command{Action: "list", UserID: c.UserID, Role: "system"})
+	case constants.ActionRun:
+		payments, err := s.rpc.Call(ctx, constants.ServicePayment, platform.Command{Action: constants.ActionList, UserID: c.UserID, Role: constants.RoleSystem})
 		if err != nil {
 			return nil, err
 		}
@@ -54,26 +55,26 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 		}
 		diffs := []platform.Result{}
 		for _, p := range rows {
-			if platform.Text(p, "status") != "SUCCEEDED" {
+			if platform.Text(p, "status") != constants.PaymentStatusSucceeded {
 				continue
 			}
-			o, e := s.rpc.Call(ctx, "order", platform.Command{Action: "get", ID: platform.Text(p, "order_id"), UserID: c.UserID, Role: "system"})
+			o, e := s.rpc.Call(ctx, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: platform.Text(p, "order_id"), UserID: c.UserID, Role: constants.RoleSystem})
 			if e != nil {
-				diffs = append(diffs, platform.Result{"payment_id": p["id"], "kind": "ORDER_UNAVAILABLE"})
+				diffs = append(diffs, platform.Result{"payment_id": p["id"], "kind": constants.ReconciliationDifferenceKindOrderUnavailable})
 				continue
 			}
 			if platform.Int(o, "payable_cents") != platform.Int(p, "amount_cents") {
-				diffs = append(diffs, platform.Result{"payment_id": p["id"], "kind": "AMOUNT_MISMATCH"})
+				diffs = append(diffs, platform.Result{"payment_id": p["id"], "kind": constants.ReconciliationDifferenceKindAmountMismatch})
 			}
 			if platform.Text(o, "payment_id") != platform.Text(p, "id") {
-				diffs = append(diffs, platform.Result{"payment_id": p["id"], "kind": "PAYMENT_NOT_ACCEPTED_OR_PENDING_EVENT"})
+				diffs = append(diffs, platform.Result{"payment_id": p["id"], "kind": constants.ReconciliationDifferenceKindPaymentNotAcceptedOrPendingEvent})
 			}
 		}
 		details := platform.Result{"checked_payments": len(rows), "differences": diffs, "scope": "internal-demo-ledgers; external channel bill adapter not configured"}
 		raw, _ := json.Marshal(details)
-		state := "MATCHED"
+		state := constants.ReconciliationStatusMatched
 		if len(diffs) > 0 {
-			state = "DIFFERENCES"
+			state = constants.ReconciliationStatusDifferences
 		}
 		run := domain.Run{ID: platform.ID("recon"), Status: state, Details: string(raw)}
 		if err = s.r.Create(ctx, &run); err != nil {

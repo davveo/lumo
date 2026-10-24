@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/davveo/lumo/internal/constants"
 	"io"
 	"log/slog"
 	"net"
@@ -121,10 +122,10 @@ func (c *Consul) Resolve(ctx context.Context, service string) ([]string, error) 
 		passing := true
 		serviceCheck := false
 		for _, check := range row.Checks {
-			if check.Status != "passing" {
+			if check.Status != constants.ConsulHealthStatusPassing {
 				passing = false
 			}
-			if row.Service.ID != "" && check.ServiceID == row.Service.ID && check.CheckID != "" && check.Status == "passing" {
+			if row.Service.ID != "" && check.ServiceID == row.Service.ID && check.CheckID != "" && check.Status == constants.ConsulHealthStatusPassing {
 				serviceCheck = true
 			}
 		}

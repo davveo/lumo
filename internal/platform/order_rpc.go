@@ -1,6 +1,8 @@
 package platform
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"context"
 	"encoding/json"
 	"strings"
@@ -19,30 +21,30 @@ type orderRPC func(context.Context, mallv1.OrderServiceClient, Command) (Result,
 // This is a legacy caller adapter. New clients can use OrderServiceClient
 // directly; usecases never receive an action string or a platform.Command.
 var orderRPCs = map[string]orderRPC{
-	"list": func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionList: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		response, err := client.ListOrders(ctx, &mallv1.ListOrdersRequest{Actor: orderActor(c)})
 		if err != nil {
 			return nil, err
 		}
 		return orderwire.ListResult(response), nil
 	},
-	"get": func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionGet: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		return orderResult(client.GetOrder(ctx, orderRequest(c)))
 	},
-	"create": func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionCreate: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		quote, _ := json.Marshal(c.Data["quote"])
 		address, _ := json.Marshal(c.Data["address"])
 		return orderResult(client.CreateOrder(ctx, &mallv1.CreateOrderRequest{Actor: orderActor(c), Id: c.ID,
 			QuoteSnapshotJson: quote, AddressSnapshotJson: address, Note: Text(c.Data, "note"),
 			Source: Text(c.Data, "source"), ExpiresAt: orderTime(Text(c.Data, "expires_at"))}))
 	},
-	"pending": func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionPending: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		return orderResult(client.MarkPending(ctx, orderRequest(c)))
 	},
-	"create_failed": func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionCreateFailed: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		return orderResult(client.MarkCreateFailed(ctx, orderRequest(c)))
 	},
-	"accept_payment": func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionAcceptPayment: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		response, err := client.AcceptPayment(ctx, &mallv1.AcceptPaymentRequest{Actor: orderActor(c), Id: c.ID,
 			PaymentId: Text(c.Data, "payment_id"), AmountCents: Int(c.Data, "amount_cents"), PaidAt: orderTime(Text(c.Data, "paid_at"))})
 		if err != nil {
@@ -50,31 +52,31 @@ var orderRPCs = map[string]orderRPC{
 		}
 		return orderwire.PaymentResult(response), nil
 	},
-	"ready": func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionReady: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		return orderResult(client.MarkReady(ctx, orderRequest(c)))
 	},
-	"wait_group": func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionWaitGroup: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		return orderResult(client.WaitForGroup(ctx, orderRequest(c)))
 	},
-	"close_begin": func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionCloseBegin: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		return orderResult(client.BeginClose(ctx, orderRequest(c)))
 	},
-	"close_complete": func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionCloseComplete: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		return orderResult(client.CompleteClose(ctx, orderRequest(c)))
 	},
-	"group_formed": func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionGroupFormed: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		return orderResult(client.MarkGroupFormed(ctx, orderRequest(c)))
 	},
-	"group_failed": func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionGroupFailed: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		return orderResult(client.MarkGroupFailed(ctx, orderRequest(c)))
 	},
-	"shipped": func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionShipped: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		return orderResult(client.MarkShipped(ctx, orderRequest(c)))
 	},
-	"complete": func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionComplete: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		return orderResult(client.CompleteOrder(ctx, orderRequest(c)))
 	},
-	"refunded": func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+	constants.ActionRefunded: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		return orderResult(client.RecordRefund(ctx, &mallv1.RecordRefundRequest{Actor: orderActor(c), Id: c.ID,
 			RefundId: Text(c.Data, "refund_id"), AmountCents: Int(c.Data, "amount_cents")}))
 	},

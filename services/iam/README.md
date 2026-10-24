@@ -14,3 +14,5 @@
 本服务只写自己的数据库schema。跨服务通过 `platform.Caller` 访问 gRPC，禁止直接读写对方业务表。网关验证会话后填入调用主体，服务再次检查用户资源归属与管理员角色。
 
 演示账号只在 DEMO_MODE 开启时写入。密码为 bcrypt 摘要；随机令牌只保存 SHA-256 摘要；validate 同时检查会话撤销、期限和账号状态。refresh 在本地事务中轮换令牌。
+
+`login/validate/refresh` 返回账号表原始 `CreatedAt` 对应的 `registered_at`（UTC RFC3339）。网关使用它判断营销弹窗的新老会员，而非会话签发时间或首次加载会员档案的时间；浏览器不能覆盖这个事实。

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/group/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -20,7 +21,7 @@ func (r *Repository) Migrate(ctx context.Context) error {
 	return r.DB.WithContext(ctx).AutoMigrate(&domain.Team{}, &domain.Seat{})
 }
 func (r *Repository) Seed(ctx context.Context) error {
-	return r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&domain.Team{ID: "group-demo", SKUID: "sku-headphones", CreatorID: "demo", Required: 2, State: "OPEN", ExpiresAt: time.Now().Add(24 * time.Hour)}).Error
+	return r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&domain.Team{ID: "group-demo", SKUID: "sku-headphones", CreatorID: "demo", Required: 2, State: constants.GroupStatusOpen, ExpiresAt: time.Now().Add(24 * time.Hour)}).Error
 }
 func (r *Repository) List(ctx context.Context) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.group.List")
@@ -37,7 +38,7 @@ func (r *Repository) Get(ctx context.Context, id string) (platform.Result, error
 		return nil, status.Error(codes.NotFound, "group not found")
 	}
 	out := platform.Map(t)
-	out["formed"] = t.State == "FORMED"
+	out["formed"] = t.State == constants.GroupStatusFormed
 	return out, nil
 }
 func (r *Repository) Create(ctx context.Context, c platform.Command) (platform.Result, error) {
@@ -61,7 +62,7 @@ func (r *Repository) Create(ctx context.Context, c platform.Command) (platform.R
 			return nil, status.Error(codes.InvalidArgument, "idempotency key too long")
 		}
 	}
-	t := domain.Team{ID: id, SKUID: sku, CreatorID: c.UserID, Required: required, State: "OPEN", ExpiresAt: time.Now().Add(30 * time.Minute)}
+	t := domain.Team{ID: id, SKUID: sku, CreatorID: c.UserID, Required: required, State: constants.GroupStatusOpen, ExpiresAt: time.Now().Add(30 * time.Minute)}
 	e := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var old domain.Team
 		er := tx.WithContext(ctx).First(&old, "id = ?", id).Error
@@ -96,7 +97,7 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.
 			if seat.UserID != c.UserID {
 				return status.Error(codes.PermissionDenied, "seat owner mismatch")
 			}
-			if seat.State == "CANCELLED" {
+			if seat.State == constants.GroupSeatStateCancelled {
 				return status.Error(codes.FailedPrecondition, "seat cancelled")
 			}
 			if seat.GroupID != gid {
@@ -111,21 +112,21 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.
 		if er = tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&t, "id = ?", gid).Error; er != nil {
 			return status.Error(codes.NotFound, "group not found")
 		}
-		if t.State != "OPEN" || time.Now().After(t.ExpiresAt) {
+		if t.State != constants.GroupStatusOpen || time.Now().After(t.ExpiresAt) {
 			return status.Error(codes.FailedPrecondition, "group not open")
 		}
 		var prior int64
-		if er = tx.WithContext(ctx).Model(&domain.Seat{}).Where("group_id = ? AND user_id = ? AND state <> ?", gid, c.UserID, "CANCELLED").Count(&prior).Error; er != nil {
+		if er = tx.WithContext(ctx).Model(&domain.Seat{}).Where("group_id = ? AND user_id = ? AND state <> ?", gid, c.UserID, constants.GroupSeatStateCancelled).Count(&prior).Error; er != nil {
 			return er
 		}
 		if prior > 0 {
 			return status.Error(codes.AlreadyExists, "user already joined group")
 		}
-		seat = domain.Seat{ID: c.ID, GroupID: gid, UserID: c.UserID, State: "RESERVED"}
+		seat = domain.Seat{ID: c.ID, GroupID: gid, UserID: c.UserID, State: constants.GroupSeatStateReserved}
 		if er = tx.WithContext(ctx).Create(&seat).Error; er != nil {
 			return er
 		}
-		u := tx.WithContext(ctx).Model(&t).Where("occupied < required AND state = ?", "OPEN").Update("occupied", gorm.Expr("occupied + 1"))
+		u := tx.WithContext(ctx).Model(&t).Where("occupied < required AND state = ?", constants.GroupStatusOpen).Update("occupied", gorm.Expr("occupied + 1"))
 		if u.Error != nil {
 			return u.Error
 		}
@@ -138,7 +139,7 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.
 }
 func emit(ctx context.Context, tx *gorm.DB, t domain.Team, kind string) error {
 	var seats []domain.Seat
-	if e := tx.WithContext(ctx).Where("group_id = ? AND state IN ?", t.ID, []string{"PAID", "LATE_PAID"}).Find(&seats).Error; e != nil {
+	if e := tx.WithContext(ctx).Where("group_id = ? AND state IN ?", t.ID, []string{constants.GroupSeatStatePaid, constants.GroupSeatStateLatePaid}).Find(&seats).Error; e != nil {
 		return e
 	}
 	for _, s := range seats {
@@ -167,49 +168,49 @@ func (r *Repository) Paid(ctx context.Context, c platform.Command) (platform.Res
 		if er = tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&t, "id = ?", seat.GroupID).Error; er != nil {
 			return er
 		}
-		if seat.State == "PAID" || seat.State == "LATE_PAID" {
+		if seat.State == constants.GroupSeatStatePaid || seat.State == constants.GroupSeatStateLatePaid {
 			return nil
 		}
-		if seat.State != "RESERVED" {
+		if seat.State != constants.GroupSeatStateReserved {
 			return status.Error(codes.FailedPrecondition, "seat not reserved")
 		}
-		if t.State == "FAILED" || time.Now().After(t.ExpiresAt) {
-			if t.State == "OPEN" {
-				if er = tx.WithContext(ctx).Model(&t).Update("state", "FAILED").Error; er != nil {
+		if t.State == constants.GroupStatusFailed || time.Now().After(t.ExpiresAt) {
+			if t.State == constants.GroupStatusOpen {
+				if er = tx.WithContext(ctx).Model(&t).Update("state", constants.GroupStatusFailed).Error; er != nil {
 					return er
 				}
-				t.State = "FAILED"
-				if er = emit(ctx, tx, t, "GroupFailed"); er != nil {
+				t.State = constants.GroupStatusFailed
+				if er = emit(ctx, tx, t, constants.EventGroupFailed); er != nil {
 					return er
 				}
 			}
-			if er = tx.WithContext(ctx).Model(&seat).Update("state", "LATE_PAID").Error; er != nil {
+			if er = tx.WithContext(ctx).Model(&seat).Update("state", constants.GroupSeatStateLatePaid).Error; er != nil {
 				return er
 			}
-			return platform.Enqueue(ctx, tx, platform.Event{ID: eventID(t.ID, "GroupFailed", seat.ID), Type: "GroupFailed", AggregateID: seat.ID, UserID: seat.UserID, Data: map[string]any{"group_id": t.ID, "order_id": seat.ID, "status": "FAILED"}})
+			return platform.Enqueue(ctx, tx, platform.Event{ID: eventID(t.ID, constants.EventGroupFailed, seat.ID), Type: constants.EventGroupFailed, AggregateID: seat.ID, UserID: seat.UserID, Data: map[string]any{"group_id": t.ID, "order_id": seat.ID, "status": constants.GroupStatusFailed}})
 		}
-		if t.State != "OPEN" {
+		if t.State != constants.GroupStatusOpen {
 			return status.Error(codes.FailedPrecondition, "group closed")
 		}
-		if er = tx.WithContext(ctx).Model(&seat).Update("state", "PAID").Error; er != nil {
+		if er = tx.WithContext(ctx).Model(&seat).Update("state", constants.GroupSeatStatePaid).Error; er != nil {
 			return er
 		}
 		t.Paid++
-		next := "OPEN"
+		next := constants.GroupStatusOpen
 		if t.Paid >= t.Required {
-			next = "FORMED"
+			next = constants.GroupStatusFormed
 		}
 		if er = tx.WithContext(ctx).Model(&t).Updates(map[string]any{"paid": t.Paid, "state": next}).Error; er != nil {
 			return er
 		}
 		t.State = next
-		if next == "FORMED" {
-			return emit(ctx, tx, t, "GroupFormed")
+		if next == constants.GroupStatusFormed {
+			return emit(ctx, tx, t, constants.EventGroupFormed)
 		}
 		return nil
 	})
 	out := platform.Map(t)
-	out["formed"] = t.State == "FORMED"
+	out["formed"] = t.State == constants.GroupStatusFormed
 	return out, e
 }
 func (r *Repository) Cancel(ctx context.Context, c platform.Command) (platform.Result, error) {
@@ -222,7 +223,7 @@ func (r *Repository) Cancel(ctx context.Context, c platform.Command) (platform.R
 	e := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		er := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&seat, "id = ?", c.ID).Error
 		if errors.Is(er, gorm.ErrRecordNotFound) {
-			seat = domain.Seat{ID: c.ID, UserID: c.UserID, State: "CANCELLED"}
+			seat = domain.Seat{ID: c.ID, UserID: c.UserID, State: constants.GroupSeatStateCancelled}
 			return tx.WithContext(ctx).Create(&seat).Error
 		}
 		if er != nil {
@@ -231,19 +232,19 @@ func (r *Repository) Cancel(ctx context.Context, c platform.Command) (platform.R
 		if seat.UserID != c.UserID {
 			return status.Error(codes.PermissionDenied, "seat owner mismatch")
 		}
-		if seat.State == "CANCELLED" {
+		if seat.State == constants.GroupSeatStateCancelled {
 			return nil
 		}
-		if seat.State != "RESERVED" {
+		if seat.State != constants.GroupSeatStateReserved {
 			return status.Error(codes.FailedPrecondition, "paid seat requires group/refund workflow")
 		}
 		if er = tx.WithContext(ctx).Model(&domain.Team{}).Where("id = ? AND occupied > 0", seat.GroupID).Update("occupied", gorm.Expr("occupied - 1")).Error; er != nil {
 			return er
 		}
-		if er = tx.WithContext(ctx).Model(&seat).Update("state", "CANCELLED").Error; er != nil {
+		if er = tx.WithContext(ctx).Model(&seat).Update("state", constants.GroupSeatStateCancelled).Error; er != nil {
 			return er
 		}
-		seat.State = "CANCELLED"
+		seat.State = constants.GroupSeatStateCancelled
 		return nil
 	})
 	return platform.Map(seat), e
@@ -252,7 +253,7 @@ func (r *Repository) Expire(ctx context.Context) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.group.Expire")
 	defer s.End()
 	var teams []domain.Team
-	if e := r.DB.WithContext(ctx).Where("state = ? AND expires_at <= ?", "OPEN", time.Now()).Limit(100).Find(&teams).Error; e != nil {
+	if e := r.DB.WithContext(ctx).Where("state = ? AND expires_at <= ?", constants.GroupStatusOpen, time.Now()).Limit(100).Find(&teams).Error; e != nil {
 		return nil, e
 	}
 	count := 0
@@ -262,14 +263,14 @@ func (r *Repository) Expire(ctx context.Context) (platform.Result, error) {
 			if er := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&t, "id = ?", team.ID).Error; er != nil {
 				return er
 			}
-			if t.State != "OPEN" || t.ExpiresAt.After(time.Now()) {
+			if t.State != constants.GroupStatusOpen || t.ExpiresAt.After(time.Now()) {
 				return nil
 			}
-			if er := tx.WithContext(ctx).Model(&t).Update("state", "FAILED").Error; er != nil {
+			if er := tx.WithContext(ctx).Model(&t).Update("state", constants.GroupStatusFailed).Error; er != nil {
 				return er
 			}
-			t.State = "FAILED"
-			if er := emit(ctx, tx, t, "GroupFailed"); er != nil {
+			t.State = constants.GroupStatusFailed
+			if er := emit(ctx, tx, t, constants.EventGroupFailed); er != nil {
 				return er
 			}
 			count++

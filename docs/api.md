@@ -28,6 +28,10 @@
 
 网关还收集商品默认及规格 SKU、秒杀 SKU 和本人购物车 SKU，批量读取库存，并补齐秒杀商品信息。推荐服务复用已读取的商品、库存及本人行为、订单快照进行首页排序，仅补查新增候选；结果包含 `recommendation/list` 的 `scene:home,limit:20` 条目和新增推荐商品的库存。页面模块直接消费这些快照，不额外逐商品请求。
 
+左侧“最近感兴趣”通过 `POST /api/v1/storefront/recent` 一次读取，请求固定为 `{"data":{}}`，可选 Bearer；不接受商品、用户、画像或数量参数。响应 `data` 为 `{items,inventory_items,personalized,degraded,limit:6,count}`：`items` 是最多6个不同的、可展示且有实际可用库存的父商品，保留完整公开商品字段，并增加 `recent_source=history|favorite|recommendation|featured`；推荐商品可包含推荐理由。`inventory_items` 与商品一一对应，提供其默认SKU真实库存。优先展示本人的浏览和收藏，缺额按包含浏览、收藏、搜索、对比、购买偏好的现有推荐排序补齐；无行为或游客使用真实精选商品。禁用、隐藏、缺失、无名称、无有效价格或无可用库存的商品跳过，多个规格只计一个父商品。首批目录不足时才继续读取目录页；库存依赖故障停止无效扫描，保留已知真实结果并标记 `degraded:true`，不伪造库存或商品补数。仅在真实可展示可售商品不足时正常少于6条；关键目录失败返回错误，不伪装为空列表。
+
+`bootstrap.results` 预载同结构条目：`key=bootstrap-recent`、`service=storefront`、`action=recent`、`command={data:{}}`，`auth` 在登录时为 `true`、游客为 `false`。组装复用本轮已读取的行为、订单、目录、推荐和批量库存，不重复读取个人画像。前端首屏消费对应会话快照；浏览/收藏变化后只刷新该聚合接口，无需逐商品调用 `catalog/get` 或 `inventory/get`。此入口仅接受POST，不可嵌套到通用 `batch`；登录时必须携带当前用户 Bearer，不能按匿名模式缓存个性化结果。
+
 其他页面通过 `POST /api/v1/storefront/batch` 合并同一轮并发的只读请求，例如：
 
 ```json
@@ -74,13 +78,25 @@ curl -s http://localhost:8080/api/v1/iam/logout \
 
 管理员调用 `POST /api/v1/content/upsert`，固定 `id=storefront-categories`、`data.kind=storefront`，提交标题和JSON正文。配置包含大类 `id/category/label/title/icon/enabled`，快捷入口 `shortcuts[{label,query}]`、分组 `rows[{title,query,items:[{label,query,featured}]}]`、品牌 `brands[{label,brand}]`；数组顺序即展示顺序。完整结构及边界见 [内容服务说明](../services/content/README.md)。管理端“分类导航”提供可视化编辑。首次迁移初始化，重复启动不会覆盖已保存配置。
 
+## 营销弹窗
+
+营销弹窗由内容服务独立保存配置及展示记录。管理员使用 `content/popup_list` 读取活动及全局设置，`content/popup_upsert` 保存活动（更新必须携带当前 `version`，并发编辑冲突返回409），`content/popup_configure` 保存全局 `enabled/max_per_session/min_gap_seconds`。管理页面为 `/admin.html` 的“营销弹窗”。完整规则字段及持久化语义见 [内容服务说明](../services/content/README.md)。
+
+`storefront/bootstrap` 可在 `data.placement` 传入 `home/category/product/coupons/none`，默认 `home`；响应在原有 `results` 之外附带顶层 `popup`，不匹配时为 `null`。用户身份、人群画像及注册时间来自会话与已有后端快照，不接收浏览器提供的画像。后续页面进入使用 `POST storefront/popup`、`{"data":{"placement":"product"}}` 重新匹配；登录、结算、支付和管理页使用 `none`，不展示营销内容。可选营销服务异常不会阻断商城启动。
+
+返回的弹窗包含 `delivery_id/campaign_id/content/coupon/expires_at`；内容不含用户名单或完整人群规则。前端在页面可见、其他对话框关闭、配置延迟结束后，以 `storefront/popup_event` 提交 `delivery_id/view_id/event=impression`，仅在 `allowed:true` 后显示；`click/dismiss/auto_close` 沿用同一凭证且统计幂等。匹配本身不扣减展示次数，不会领取优惠券。
+
+登录用户通过 `POST storefront/popup_claim`，提交 `{"data":{"delivery_id":"返回的投放编号","view_id":"已确认展示的视图编号"}}` 领取已配置的优惠券。服务端校验本人投放凭证并调用权威 `coupon/claim`，返回 `coupon/already_claimed`，不能通过请求覆盖券模板。内部 `content/popup_decide|popup_event|popup_claim`、`coupon/templates_by_ids` 不向浏览器或通用只读聚合开放。公开决策、展示事件及领取入口全部仅接受POST；领取要求Bearer，匿名Cookie不构成登录。
+
+访客频控需要同源 `HttpOnly/SameSite=Lax` 访客与会话Cookie；HTTPS下附加Secure。API客户端仅发送同源Cookie，跨域不开放凭据。独立部署前端时请用同源反向代理转发 `/api`；仅配置跨域Bearer访问不足以保留访客弹窗身份，无法确认曝光时前端不会弹出。
+
 ## 主要动作表
 
 | 服务 | 用户/公开动作 | 管理员动作 |
 | --- | --- | --- |
-| storefront | bootstrap/batch（仅聚合已授权只读动作） | 子请求沿用管理员权限校验 |
+| storefront | bootstrap/batch（仅聚合已授权只读动作）；recent（可选登录，最多6个真实不同父商品）；popup/popup_event；popup_claim（登录） | 子请求沿用管理员权限校验 |
 | catalog | list/get/batch_get | upsert |
-| search/recommendation/content | query/list/list | content.upsert |
+| search/recommendation/content | query/list/list | content.upsert/popup_list/popup_upsert/popup_configure |
 | member/address | get/update；list/create/update/delete/default | 按服务业务权限 |
 | cart | list/add/remove/clear/merge | 无 |
 | engagement | list/put/delete（favorite/compare/history） | 无 |
@@ -102,11 +118,13 @@ curl -s http://localhost:8080/api/v1/iam/logout \
 
 ## 商品品类与结构化搜索
 
-`POST /api/v1/search/query` 可传 `query`、`category`、`brand`、`sort`、`in_stock`、`limit` 和 `offset`。类目、品牌与关键词是联合约束；关键词在商品名称、品牌和类目中匹配，`%`、`_` 等字符按字面处理。支持 `price_asc`、`price_desc`、`sales` 和 `newest` 排序。
+`POST /api/v1/search/query` 可传 `query`（最多120字）、`category`、`brand`（各最多80字）、`sort`、`in_stock`、`limit` 和 `offset`。类目、品牌与关键词是联合约束；关键词在商品名称、品牌和类目中匹配，`%`、`_` 等字符按字面处理。支持 `price_asc`、`price_desc`、`sales` 和 `newest` 排序。
 
 搜索先在完整目录应用条件和排序，再读取最多100个可见、启用的父商品；库存仅做一次批量查询。响应的 `items` 为完整商品，`inventory_items` 为实际返回商品的实时库存，`candidate_limit:100` 表示本次有界候选窗口，`total` 是窗口内经库存筛选后的数量，并非全站精确匹配数。`in_stock` 在权威库存读取后过滤，不按浏览器缓存判定。
 
 首页细分入口复用该接口，按一级类目与关键词或品牌查询；悬停展开类目面板不请求接口。内部 `catalog/search_products` 仅允许系统调用，不提供HTTP入口；MySQL按派生自JSON的只读类目列建立索引，以支持已有大目录和无商品的新类目，现有商品分类与载荷不变。
+
+MySQL关键词搜索使用随商品行自动更新的只读覆盖索引，先筛选有界商品ID，再读取完整载荷，避免在大目录中逐行解析JSON。超长字段仍按原JSON值精确筛选，不因索引长度而遗漏；价格、销量及时间排序保持原有规则。迁移使用在线DDL，搜索保留2秒截止；SQLite保持等价的JSON查询行为。演示模式提供覆盖默认20品类、全部586细分类的实际商品和SKU，搜索结果继续包含权威库存。
 
 ## 推荐场景与个性化排序
 

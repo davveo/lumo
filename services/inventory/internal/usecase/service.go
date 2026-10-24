@@ -1,6 +1,8 @@
 package usecase
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"context"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/inventory/internal/domain"
@@ -17,10 +19,10 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	if c.Action == "get" {
+	if c.Action == constants.ActionGet {
 		return s.Repo.Get(ctx, c.ID)
 	}
-	if c.Action == "batch_get" {
+	if c.Action == constants.ActionBatchGet {
 		var input struct {
 			IDs []string `json:"ids"`
 		}
@@ -42,11 +44,11 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	if e := platform.RequireUser(c); e != nil {
 		return nil, e
 	}
-	if c.Role != "admin" && c.Role != "system" {
+	if c.Role != constants.RoleAdmin && c.Role != constants.RoleSystem {
 		return nil, status.Error(codes.PermissionDenied, "internal inventory command required")
 	}
 	switch c.Action {
-	case "reserve":
+	case constants.ActionReserve:
 		var v struct {
 			OrderID string        `json:"order_id"`
 			Lines   []domain.Line `json:"lines"`
@@ -55,11 +57,11 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			return nil, status.Error(codes.InvalidArgument, "invalid reservation")
 		}
 		return s.Repo.Reserve(ctx, c, v.OrderID, v.Lines)
-	case "confirm", "cancel", "dispatch":
+	case constants.ActionConfirm, constants.ActionCancel, constants.ActionDispatch:
 		return s.Repo.Transition(ctx, c)
-	case "restock":
+	case constants.ActionRestock:
 		return s.Repo.Restock(ctx, c)
-	case "adjust":
+	case constants.ActionAdjust:
 		if e := platform.RequireAdmin(c); e != nil {
 			return nil, e
 		}

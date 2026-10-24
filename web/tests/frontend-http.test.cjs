@@ -28,6 +28,9 @@ async function main() {
     equal(reads.length,1,'Guest homepage uses one physical HTTP request');
     equal(reads[0].service+'/'+reads[0].action,'storefront/bootstrap','Homepage data is read through the top-level bootstrap');
     check(boot.ids.get('app').innerHTML.includes('精选推荐')&&boot.ids.get('app').innerHTML.includes('home-recommendation-card'),'Guest homepage must render actual recommendation results and reasons');
+    const railLinks=[...boot.ctx.LumoSidebars.render().matchAll(/<a class="interest-item" href="([^"]+)"/g)].map(row=>row[1]);
+    equal(railLinks.length,6,'Guest rail is filled by six actual server-selected products');
+    equal(new Set(railLinks).size,6,'Variant SKUs cannot consume duplicate guest rail slots');
   } finally { boot.dispose(); }
   const app = createHarness(directory, baseURL);
   const api = (...args) => app.ctx.LumoAPI.call(...args);
@@ -70,6 +73,9 @@ async function main() {
       equal(reads.length,2,'Member homepage uses one identity check and one bootstrap request');
       equal(reads.filter(r=>r.service==='storefront'&&r.action==='bootstrap').length,1,'Member homepage data is aggregated once');
       equal(reads.filter(r=>r.service==='iam'&&r.action==='current').length,1,'Saved session is validated once');
+      const railLinks=[...memberBoot.ctx.LumoSidebars.render().matchAll(/<a class="interest-item" href="([^"]+)"/g)].map(row=>row[1]);
+      equal(railLinks.length,6,'Member rail receives six products even with no browsing history');
+      equal(new Set(railLinks).size,6,'Member rail products are unique');
     } finally { memberBoot.dispose(); }
     await app.ctx.LumoCommerce.refresh();
     // This harness skips api-bootstrap: reproduce its inventory hydration after

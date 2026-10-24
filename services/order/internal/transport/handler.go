@@ -2,6 +2,7 @@ package transport
 
 import (
 	"context"
+	"github.com/davveo/lumo/internal/constants"
 
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/order/internal/usecase"
@@ -17,21 +18,21 @@ type legacyAdapter struct{ service *usecase.Service }
 func New(service *usecase.Service) func(context.Context, platform.Command) (platform.Result, error) {
 	adapter := legacyAdapter{service: service}
 	actions := map[string]legacyAction{
-		"list":           adapter.list,
-		"get":            legacyOrder(service.Get),
-		"create":         adapter.create,
-		"pending":        legacyOrder(service.Pending),
-		"create_failed":  legacyOrder(service.CreateFailed),
-		"accept_payment": adapter.acceptPayment,
-		"ready":          legacyOrder(service.Ready),
-		"wait_group":     legacyOrder(service.WaitGroup),
-		"close_begin":    legacyOrder(service.CloseBegin),
-		"close_complete": legacyOrder(service.CloseComplete),
-		"group_formed":   legacyOrder(service.GroupFormed),
-		"group_failed":   legacyOrder(service.GroupFailed),
-		"shipped":        legacyOrder(service.Shipped),
-		"complete":       legacyOrder(service.Complete),
-		"refunded":       adapter.refunded,
+		constants.ActionList:          adapter.list,
+		constants.ActionGet:           legacyOrder(service.Get),
+		constants.ActionCreate:        adapter.create,
+		constants.ActionPending:       legacyOrder(service.Pending),
+		constants.ActionCreateFailed:  legacyOrder(service.CreateFailed),
+		constants.ActionAcceptPayment: adapter.acceptPayment,
+		constants.ActionReady:         legacyOrder(service.Ready),
+		constants.ActionWaitGroup:     legacyOrder(service.WaitGroup),
+		constants.ActionCloseBegin:    legacyOrder(service.CloseBegin),
+		constants.ActionCloseComplete: legacyOrder(service.CloseComplete),
+		constants.ActionGroupFormed:   legacyOrder(service.GroupFormed),
+		constants.ActionGroupFailed:   legacyOrder(service.GroupFailed),
+		constants.ActionShipped:       legacyOrder(service.Shipped),
+		constants.ActionComplete:      legacyOrder(service.Complete),
+		constants.ActionRefunded:      adapter.refunded,
 	}
 	return func(ctx context.Context, command platform.Command) (traceResult platform.Result, traceErr error) {
 		ctx, span := platform.Start(ctx, "order.transport."+command.Action)

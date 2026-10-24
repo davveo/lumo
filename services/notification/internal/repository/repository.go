@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/notification/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -145,6 +146,6 @@ func (r *Repository) DeleteKind(ctx context.Context, owner, kind string) error {
 func (r *Repository) MarkAllRead(ctx context.Context, owner string) (int64, error) {
 	ctx, span := platform.Start(ctx, "notification.repository.MarkAllRead")
 	defer span.End()
-	res := r.db.WithContext(ctx).Model(&domain.Record{}).Where("user_id = ? AND kind = ? AND status = ?", owner, "inbox", "UNREAD").Update("status", "READ")
+	res := r.db.WithContext(ctx).Model(&domain.Record{}).Where("user_id = ? AND kind = ? AND status = ?", owner, constants.NotificationKindInbox, constants.NotificationStatusUnread).Update("status", constants.NotificationStatusRead)
 	return res.RowsAffected, res.Error
 }

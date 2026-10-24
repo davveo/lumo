@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" role="img" aria-label="鲜花绿植演示商品封面">
+  <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#f7efea"/><stop offset="1" stop-color="#fff"/></linearGradient></defs>
+  <rect width="800" height="800" fill="url(#bg)"/>
+  <circle cx="400" cy="345" r="220" fill="#fff" opacity=".58"/>
+  <circle cx="675" cy="155" r="68" fill="#ae795b" opacity=".055"/>
+  <text x="58" y="70" font-family="Arial,sans-serif" font-size="21" font-weight="700" letter-spacing="5" fill="#ae795b">LUMO COLLECTION</text>
+  <g transform="translate(228 175) scale(1.44)" fill="none" stroke="#ae795b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M74 146h92l-12 62H86zM121 145V54M121 103C69 109 56 72 58 51c36-1 61 18 63 52M121 81c39 2 63-26 60-53-40 0-60 24-60 53M70 146h100"/></g>
+  <ellipse cx="400" cy="563" rx="144" ry="14" fill="#ae795b" opacity=".07"/>
+  <text x="400" y="654" text-anchor="middle" font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="40" font-weight="600" letter-spacing="8" fill="#ae795b">鲜花绿植</text>
+  <text x="400" y="701" text-anchor="middle" font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="18" letter-spacing="4" fill="#ae795b" opacity=".65">演示商品 · 品类示意图</text>
+</svg>

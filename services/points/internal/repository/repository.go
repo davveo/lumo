@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/points/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -61,7 +62,7 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.
 			if out.UserID != c.UserID {
 				return status.Error(codes.PermissionDenied, "hold owner mismatch")
 			}
-			if out.State == "CANCELLED" {
+			if out.State == constants.PointsHoldStateCancelled {
 				return status.Error(codes.FailedPrecondition, "hold cancelled")
 			}
 			if out.Amount != n {
@@ -72,7 +73,7 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.
 		if !errors.Is(er, gorm.ErrRecordNotFound) {
 			return er
 		}
-		out = domain.Hold{ID: c.ID, UserID: c.UserID, Amount: n, State: "RESERVED"}
+		out = domain.Hold{ID: c.ID, UserID: c.UserID, Amount: n, State: constants.PointsHoldStateReserved}
 		if er = tx.WithContext(ctx).Create(&out).Error; er != nil {
 			return er
 		}
@@ -83,7 +84,7 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.
 		if u.RowsAffected != 1 {
 			return status.Error(codes.ResourceExhausted, "insufficient points or outstanding debt")
 		}
-		return tx.WithContext(ctx).Create(&domain.Ledger{ID: c.ID + ":reserve", UserID: c.UserID, OrderID: c.ID, Amount: -n, Kind: "FREEZE"}).Error
+		return tx.WithContext(ctx).Create(&domain.Ledger{ID: c.ID + ":reserve", UserID: c.UserID, OrderID: c.ID, Amount: -n, Kind: constants.PointsLedgerKindFreeze}).Error
 	})
 	return platform.Map(out), e
 }
@@ -99,8 +100,8 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 			return lockErr
 		}
 		er := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&out, "id = ?", c.ID).Error
-		if errors.Is(er, gorm.ErrRecordNotFound) && c.Action == "cancel" {
-			out = domain.Hold{ID: c.ID, UserID: c.UserID, State: "CANCELLED"}
+		if errors.Is(er, gorm.ErrRecordNotFound) && c.Action == constants.ActionCancel {
+			out = domain.Hold{ID: c.ID, UserID: c.UserID, State: constants.PointsHoldStateCancelled}
 			return tx.WithContext(ctx).Create(&out).Error
 		}
 		if er != nil {
@@ -112,18 +113,18 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 		if out.UserID != c.UserID {
 			return status.Error(codes.PermissionDenied, "hold owner mismatch")
 		}
-		target := "CONFIRMED"
-		if c.Action == "cancel" {
-			target = "CANCELLED"
+		target := constants.PointsHoldStateConfirmed
+		if c.Action == constants.ActionCancel {
+			target = constants.PointsHoldStateCancelled
 		}
 		if out.State == target {
 			return nil
 		}
-		if out.State != "RESERVED" {
+		if out.State != constants.PointsHoldStateReserved {
 			return status.Error(codes.FailedPrecondition, "invalid points transition")
 		}
 		updates := map[string]any{"frozen": gorm.Expr("frozen - ?", out.Amount)}
-		if target == "CANCELLED" {
+		if target == constants.PointsHoldStateCancelled {
 			updates["available"] = gorm.Expr("available + ?", out.Amount)
 		}
 		u := tx.WithContext(ctx).Model(&domain.Account{}).Where("user_id = ? AND frozen >= ?", out.UserID, out.Amount).Updates(updates)
@@ -146,12 +147,12 @@ func (r *Repository) Credit(ctx context.Context, c platform.Command, checkin boo
 	defer s.End()
 	n := platform.Int(c.Data, "amount")
 	id := "reward:" + c.ID
-	kind := "REWARD"
+	kind := constants.PointsLedgerKindReward
 	order := c.ID
 	if checkin {
 		n = 20
 		id = "checkin:" + c.UserID + ":" + time.Now().UTC().Format("2006-01-02")
-		kind = "CHECKIN"
+		kind = constants.PointsLedgerKindCheckin
 		order = ""
 	}
 	if n < 0 || n > 100000000 || (!checkin && c.ID == "") {
@@ -195,7 +196,7 @@ func (r *Repository) Credit(ctx context.Context, c platform.Command, checkin boo
 				return er
 			}
 			if reversed > 0 {
-				if er = tx.WithContext(ctx).Create(&domain.Ledger{ID: "reversal:reward:" + order, UserID: c.UserID, OrderID: order, Amount: -reversed, Kind: "REWARD_REVERSAL"}).Error; er != nil {
+				if er = tx.WithContext(ctx).Create(&domain.Ledger{ID: "reversal:reward:" + order, UserID: c.UserID, OrderID: order, Amount: -reversed, Kind: constants.PointsLedgerKindRewardReversal}).Error; er != nil {
 					return er
 				}
 			}
@@ -264,7 +265,7 @@ func (r *Repository) Refund(ctx context.Context, c platform.Command) (platform.R
 			if hold.UserID != c.UserID {
 				return status.Error(codes.PermissionDenied, "hold owner mismatch")
 			}
-			if hold.State != "CONFIRMED" && hold.State != "REFUNDED" {
+			if hold.State != constants.PointsHoldStateConfirmed && hold.State != constants.PointsHoldStateRefunded {
 				return status.Error(codes.FailedPrecondition, "points not consumed")
 			}
 			target := portion(hold.Amount, total, payable)
@@ -277,9 +278,9 @@ func (r *Repository) Refund(ctx context.Context, c platform.Command) (platform.R
 			}
 			if er = tx.WithContext(ctx).Model(&hold).Updates(map[string]any{"returned": hold.Returned + returned, "state": func() string {
 				if total == payable {
-					return "REFUNDED"
+					return constants.PointsHoldStateRefunded
 				}
-				return "CONFIRMED"
+				return constants.PointsHoldStateConfirmed
 			}()}).Error; er != nil {
 				return er
 			}
@@ -317,11 +318,11 @@ func (r *Repository) Refund(ctx context.Context, c platform.Command) (platform.R
 		if er = tx.WithContext(ctx).Model(&a).Updates(map[string]any{"available": a.Available, "debt": a.Debt}).Error; er != nil {
 			return er
 		}
-		if er = tx.WithContext(ctx).Create(&domain.Ledger{ID: "refund:" + c.ID, UserID: c.UserID, OrderID: order, Amount: returned, Kind: "REFUND"}).Error; er != nil {
+		if er = tx.WithContext(ctx).Create(&domain.Ledger{ID: "refund:" + c.ID, UserID: c.UserID, OrderID: order, Amount: returned, Kind: constants.PointsLedgerKindRefund}).Error; er != nil {
 			return er
 		}
 		if reversed > 0 {
-			if er = tx.WithContext(ctx).Create(&domain.Ledger{ID: "reversal:" + c.ID, UserID: c.UserID, OrderID: order, Amount: -reversed, Kind: "REWARD_REVERSAL"}).Error; er != nil {
+			if er = tx.WithContext(ctx).Create(&domain.Ledger{ID: "reversal:" + c.ID, UserID: c.UserID, OrderID: order, Amount: -reversed, Kind: constants.PointsLedgerKindRewardReversal}).Error; er != nil {
 				return er
 			}
 		}

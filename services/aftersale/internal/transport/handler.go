@@ -1,6 +1,8 @@
 package transport
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"context"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/aftersale/internal/usecase"
@@ -19,7 +21,7 @@ func (h *Handler) Handle(ctx context.Context, c platform.Command) (traceResult p
 		c.Data = map[string]any{}
 	}
 	switch c.Action {
-	case "create", "get", "list", "approve", "reject", "cancel", "return", "inspect", "refund", "exchange":
+	case constants.ActionCreate, constants.ActionGet, constants.ActionList, constants.ActionApprove, constants.ActionReject, constants.ActionCancel, constants.ActionReturn, constants.ActionInspect, constants.ActionRefund, constants.ActionExchange:
 		return h.Service.Handle(ctx, c)
 	default:
 		return nil, status.Error(codes.Unimplemented, "unsupported aftersale action")

@@ -1,6 +1,8 @@
 package usecase
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"bytes"
 	"context"
 	"encoding/json"
@@ -17,7 +19,7 @@ import (
 // recommendationCandidates is an internal, bounded recall operation. It does
 // not change the public catalog listing or trust caller-provided ranking data.
 func (s *Service) recommendationCandidates(ctx context.Context, c platform.Command) (platform.Result, error) {
-	if c.Role != "system" {
+	if c.Role != constants.RoleSystem {
 		return nil, status.Error(codes.PermissionDenied, "internal recommendation recall required")
 	}
 	var input struct {

@@ -17,7 +17,7 @@ func New(db *gorm.DB) *Repository { return &Repository{db: db} }
 func (r *Repository) Migrate(ctx context.Context) error {
 	ctx, s := platform.Start(ctx, "content.repository.Migrate")
 	defer s.End()
-	return r.db.WithContext(ctx).AutoMigrate(&domain.Record{})
+	return r.db.WithContext(ctx).AutoMigrate(&domain.Record{}, &domain.PopupCampaign{}, &domain.PopupSettings{}, &domain.PopupVisitor{}, &domain.PopupSubject{}, &domain.PopupCounter{}, &domain.PopupDelivery{})
 }
 func (r *Repository) Get(ctx context.Context, id string) (domain.Record, error) {
 	ctx, s := platform.Start(ctx, "content.repository.Get")

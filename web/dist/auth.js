@@ -1,5 +1,6 @@
 (function () {
   'use strict';
+  const C = window.LumoConstants;
   const SESSION_KEY = 'lumo-api-session-v2';
   const RETURN_KEY = 'lumo-api-return-v2';
   const EVENT_KEY = 'lumo-api-auth-event-v2';
@@ -49,7 +50,7 @@
     if (typeof state !== 'undefined') {
       state.cart = []; state.orders = []; state.pending = null; state.favorites = []; state.address = null; state.coupon = 0; state.points = false;
     }
-    if (broadcast) { try { localStorage.setItem(EVENT_KEY, JSON.stringify({ type: 'logout', userId: previous?.userId, at: Date.now() })); } catch (_) {} }
+    if (broadcast) { try { localStorage.setItem(EVENT_KEY, JSON.stringify({ type: C.AuthBroadcastType.Logout, userId: previous?.userId, at: Date.now() })); } catch (_) {} }
     if (reason) ui.error = reason;
     emit('lumo:logout', { userId: previous?.userId, reason });
   }
@@ -67,7 +68,7 @@
     const token = session.token;
     refreshPromise = (async () => {
       try {
-        const current = await window.LumoAPI.call('iam', 'current', {}, { token });
+        const current = await window.LumoAPI.call(C.Service.IAM, C.Action.Current, {}, { token });
         if (!session || session.token !== token) return null;
         session.userId = current.user_id; session.role = current.role; session.expiresAt = Date.parse(current.expires_at);
         if (!current.user_id || !Number.isFinite(session.expiresAt)) throw new Error('身份服务返回的会话不完整');
@@ -96,7 +97,7 @@
   }
   function gate(route) {
     if (privateRoute(route) && !ensureSession()) { requireLogin(location.hash); return false; }
-    if (route[0] === 'editor' && user()?.role !== 'admin') { location.hash = '#/member'; message('商城编辑需要管理员账号'); return false; }
+    if (route[0] === 'editor' && user()?.role !== C.Role.Admin) { location.hash = '#/member'; message('商城编辑需要管理员账号'); return false; }
     if (route[0] === 'login' && ensureSession()) { location.hash = safeHash(ui.returnTo); return false; }
     return true;
   }
@@ -111,7 +112,7 @@
     ui.busy = true; ui.error = ''; ui.remember = remember;
     const destination = safeHash(ui.returnTo);
     try {
-      const result = await window.LumoAPI.call('iam', 'login', { data: { username, password } }, { auth: false });
+      const result = await window.LumoAPI.call(C.Service.IAM, C.Action.Login, { data: { username, password } }, { auth: false });
       memory.clear();
       persistSession(result, remember);
       remove(sessionStorage, RETURN_KEY);
@@ -132,14 +133,14 @@
     if (ui.busy) return;
     ui.busy = true;
     try {
-      await window.LumoAPI.call('iam', all ? 'logout_all' : 'logout');
+      await window.LumoAPI.call(C.Service.IAM, all ? C.Action.LogoutAll : C.Action.Logout);
       clearSession('', true); if (typeof closeModal === 'function') closeModal(); location.hash = '#/'; redraw();
     } catch (error) { message(error.message); }
     finally { ui.busy = false; }
   }
   async function renew() {
     if (!ensureSession()) throw new Error('请先登录');
-    const result = await window.LumoAPI.call('iam', 'refresh');
+    const result = await window.LumoAPI.call(C.Service.IAM, C.Action.Refresh);
     persistSession(result, ui.remember); return user();
   }
   document.addEventListener('click', event => {
@@ -171,7 +172,7 @@
     const protectedPromo = ['buy-flash', 'create-group', 'join-group', 'select-exchange', 'remove-exchange'];
     if (serviceButton || memberButton || editorButton || appButton && protectedApp.includes(appButton.dataset.action) || promoButton && protectedPromo.includes(promoButton.dataset.promoAction)) {
       if (!ensureSession()) { event.preventDefault(); event.stopImmediatePropagation(); requireLogin(editorButton ? '#/editor' : location.hash); }
-      else if (editorButton && user()?.role !== 'admin') { event.preventDefault(); event.stopImmediatePropagation(); message('商城编辑需要管理员账号'); }
+      else if (editorButton && user()?.role !== C.Role.Admin) { event.preventDefault(); event.stopImmediatePropagation(); message('商城编辑需要管理员账号'); }
     }
   }, true);
   document.addEventListener('submit', event => {
@@ -199,7 +200,7 @@
     redraw();
   });
   window.addEventListener('storage', event => {
-    if (event.key === EVENT_KEY && parse(event.newValue)?.type === 'logout' && session && parse(event.newValue)?.userId === session.userId) { clearSession('账号已在另一个页面退出'); location.hash = '#/'; redraw(); }
+    if (event.key === EVENT_KEY && parse(event.newValue)?.type === C.AuthBroadcastType.Logout && session && parse(event.newValue)?.userId === session.userId) { clearSession('账号已在另一个页面退出'); location.hash = '#/'; redraw(); }
     if (event.key === SESSION_KEY && event.storageArea === localStorage && event.newValue) {
       // Reload before an account switch so no module can retain another user's
       // transient addresses, balances or orders.

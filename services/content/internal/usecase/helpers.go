@@ -1,6 +1,8 @@
 package usecase
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -18,6 +20,7 @@ import (
 type Service struct {
 	repo *repository.Repository
 	rpc  platform.Caller
+	now  func() time.Time
 }
 
 func New(r *repository.Repository, rpc platform.Caller) *Service { return &Service{repo: r, rpc: rpc} }
@@ -25,7 +28,11 @@ func (s *Service) Migrate(ctx context.Context) error {
 	if err := s.repo.Migrate(ctx); err != nil {
 		return err
 	}
-	return s.initializeCategoryNavigation(ctx)
+	if err := s.initializeCategoryNavigation(ctx); err != nil {
+		return err
+	}
+	_, err := s.repo.PopupSettings(ctx)
+	return err
 }
 func bad(s string) error { return status.Error(codes.InvalidArgument, s) }
 func stable(parts ...string) string {
@@ -51,7 +58,7 @@ func view(r domain.Record) platform.Result {
 	return v
 }
 func own(c platform.Command, r domain.Record) error {
-	if r.UserID != c.UserID && c.Role != "admin" {
+	if r.UserID != c.UserID && c.Role != constants.RoleAdmin {
 		return status.Error(codes.PermissionDenied, "resource belongs to another user")
 	}
 	return nil

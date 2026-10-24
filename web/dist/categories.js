@@ -1,5 +1,6 @@
 (function () {
   'use strict';
+  const C = window.LumoConstants;
   const DOCUMENT_ID = 'storefront-categories';
   const clone = value => JSON.parse(JSON.stringify(value));
   const icons = new Set('home bell search cart heart bag user arrow chevron back check close trash minus plus shield truck return support filter sort pin ticket coin chip camera layers sparkles info clock edit'.split(' '));
@@ -67,7 +68,7 @@
     request.promise=(async()=>{
       try {
         if(typeof window.LumoAPI?.call!=='function')throw new Error('商品分类服务尚未连接');
-        const response=await window.LumoAPI.call('content','get',{id:DOCUMENT_ID},{auth:false});
+        const response=await window.LumoAPI.call(C.Service.Content,C.Action.Get,{id:DOCUMENT_ID},{auth:false});
         if(ticket!==revision||current!==context())return;
         const next=normalize(response);
         close();configuration=next;visibleGroups=next.groups.filter(value=>value.enabled);loaded=true;lastError=null;updateCategories();
@@ -90,7 +91,7 @@
   }
   function directory() {
     ensureContext();
-    return `<aside class="category-directory" aria-label="全部商品分类"><div class="category-directory-head">${icon('layers')}<span>全部商品分类</span><small>${visibleGroups.length} 大品类</small></div><div class="category-directory-list">${visibleGroups.map(value=>`<button type="button" class="category-directory-item" data-category-group="${esc(value.id)}" aria-controls="category-mega-panel" aria-expanded="false">${icon(value.icon)}<span>${esc(value.label)}</span>${icon('chevron')}</button>`).join('')}${visibleGroups.length ? '' : `<div class="category-directory-empty" role="${lastError ? 'alert' : 'status'}">${esc(lastError ? '品类配置加载失败，请重新连接重试' : loaded ? '暂无商品分类' : '正在加载商品分类…')}</div>`}</div><section id="category-mega-panel" class="category-mega-panel" role="region" aria-label="品类详情" hidden></section></aside>`;
+    return `<aside class="category-directory" aria-label="全部商品分类"><div class="category-directory-head">${icon('layers')}<span>全部商品分类</span><small>${!loaded && !lastError ? '加载中' : `${visibleGroups.length} 大品类`}</small></div><div class="category-directory-list">${visibleGroups.map(value=>`<button type="button" class="category-directory-item" data-category-group="${esc(value.id)}" aria-controls="category-mega-panel" aria-expanded="false">${icon(value.icon)}<span>${esc(value.label)}</span>${icon('chevron')}</button>`).join('')}${visibleGroups.length ? '' : !loaded && !lastError ? (window.LumoSkeleton?.render('navigation',{count:12,label:'正在加载商品分类'})||'') : `<div class="category-directory-empty" role="${lastError ? 'alert' : 'status'}">${esc(lastError ? '品类配置加载失败，请重新连接重试' : loaded ? '暂无商品分类' : '正在加载商品分类…')}</div>`}</div><section id="category-mega-panel" class="category-mega-panel" role="region" aria-label="品类详情" hidden></section></aside>`;
   }
   function show(id) {
     ensureContext();

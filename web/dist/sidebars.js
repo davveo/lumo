@@ -1,66 +1,57 @@
 (function () {
   'use strict';
+  const C = window.LumoConstants;
   const LIMIT = 6, PREF_KEY = 'lumo-sidebar-ui-v1';
   const scope = () => JSON.stringify([window.LumoAuth?.user()?.id || window.LumoAuth?.user()?.user_id || '',window.LumoAPI?.getToken?.() || '',window.LumoAPI?.getBase?.() || location.origin]);
   const loggedIn = () => window.LumoAuth?.isLoggedIn() === true;
   const route = () => (location.hash || '#/').slice(2).split('/')[0];
   const allowed = () => !['login','editor','payment','checkout'].includes(route());
-  let owner = scope(), revision = 0, rows = [], pending = null, loading = false, failed = false;
+  let owner=scope(),revision=0,rows=[],pending=null,loading=false,loaded=false,error='',personalized=false,degraded=false;
   let preferences = {interestCollapsed:false,quickCollapsed:false};
   try {const saved=JSON.parse(localStorage.getItem(PREF_KEY) || '{}');preferences={interestCollapsed:saved.interestCollapsed===true,quickCollapsed:saved.quickCollapsed===true};} catch(_) {}
-  const known = id => products.find(p=>p.id===id || p.skuId===id || p.variants?.some(v=>v.sku_id===id));
-  function reset() {revision++;owner=scope();rows=[];pending=null;loading=false;failed=false;window.LumoRecommendations?.restoreItems?.('recent',[]);}
-  function ensureScope() {if(owner!==scope())reset();}
-  function sourceIDs() {
-    if(!loggedIn())return [];
-    const history=window.LumoMember?.model()?.history || [], seen=new Set();
-    return [...history.map(row=>row.sku_id || row.id),...(state.favoriteSKUs?.length ? state.favoriteSKUs : state.favorites || [])].filter(id=>typeof id==='string' && id && !seen.has(id) && seen.add(id)).slice(0,LIMIT);
+  function reset(){revision++;owner=scope();rows=[];pending=null;loading=false;loaded=false;error='';personalized=false;degraded=false;window.LumoRecommendations?.restoreItems?.(C.ProductPool.Recent,[]);}
+  function ensureScope(){if(owner!==scope())reset();}
+  function visibleRows(){return rows.map(row=>row.product);}
+  function normalizeRows(data){
+    if(!data||!Array.isArray(data.items)||!Array.isArray(data.inventory_items))throw Error('兴趣好物返回格式不完整，请重试');
+    const seen=new Set(),result=[];
+    for(const raw of data.items.slice(0,24)){
+      if(!raw||raw.active===false||raw.status===C.CatalogStatus.Disabled||raw.catalog_visible===false)continue;
+      const fields={...(raw.attributes||raw.presentation||{}),...raw};
+      if(!String(fields.name||'').trim()||fields.price_cents==null||!Number.isFinite(Number(fields.price_cents))||Number(fields.price_cents)<0)continue;
+      const product=window.LumoCommerce?.normalizeProduct?.(raw),id=product?.id;
+      if(!product||!id||seen.has(id)||product.visible===false||!product.name||!Number.isFinite(product.price)||product.price<0)continue;
+      seen.add(id);result.push({product,source:[C.RecommendationSource.History,C.RecommendationSource.Favorite,C.RecommendationSource.Recommendation,C.RecommendationSource.Featured].includes(raw.recent_source)?raw.recent_source:C.RecommendationSource.Recommendation,reason:typeof raw.recommendation_reason==='string'?raw.recommendation_reason.slice(0,120):''});
+      if(result.length===LIMIT)break;
+    }
+    return result;
   }
-  function visibleRows() {
-    const seen=new Set();
-    return sourceIDs().map(id=>rows.find(row=>row.source===id)?.product || known(id)).filter(p=>p && p.visible!==false && p.name && !seen.has(p.id) && seen.add(p.id)).slice(0,LIMIT);
-  }
-  async function refresh() {
-    ensureScope();
-    const context=owner, ids=sourceIDs(), key=JSON.stringify([context,ids]);
-    if(pending?.key===key)return pending.promise;
-    const version=++revision, active=()=>context===scope() && version===revision;
-    const ticket=window.LumoInventory?.hydrationTicket?.();
-    loading=ids.length>0;failed=false;
-    const entry={key};pending=entry;
+  function refresh(force=false){
+    ensureScope();if(pending&&!force)return pending.promise;
+    const context=owner,version=++revision,active=()=>context===scope()&&version===revision,ticket=window.LumoInventory?.hydrationTicket?.();
+    loading=true;error='';update();
+    const entry={};pending=entry;
     entry.promise=(async()=>{
-      const resolved=await Promise.all(ids.map(async id=>{
-        try {
-          let product=rows.find(row=>row.source===id)?.product || known(id);
-          if(!product) {
-            let raw=await window.LumoAPI.call('catalog','get',{id},{auth:false});
-            if(!active())return null;
-            const parent=raw.product_id || raw.parent_id || raw.attributes?.product_id || raw.attributes?.parent_id;
-            if(parent && parent!==raw.id)raw=await window.LumoAPI.call('catalog','get',{id:parent},{auth:false});
-            if(!active())return null;
-            if(raw.active===false || raw.status==='DISABLED' || raw.catalog_visible===false)return null;
-            product=window.LumoCommerce?.normalizeProduct?.(raw);
-          }
-          if(!product || product.visible===false || !active())return null;
-          let stock=window.LumoInventory?.snapshot?.(product);
-          if(!stock)stock=await window.LumoAPI.call('inventory','get',{id:product.skuId || product.sku_id || product.id},{auth:false});
-          return active()?{source:id,product,stock}:null;
-        } catch(_) {if(active())failed=true;return null;}
-      }));
-      if(!active())return [];
-      rows=resolved.filter(Boolean);
-      const items=rows.map(row=>row.product), inventory=rows.map(row=>row.stock).filter(Boolean);
-      if(window.LumoRecommendations?.mapItems)window.LumoRecommendations.mapItems({items,inventory_items:inventory},'recent',[],ticket);
-      else window.LumoInventory?.prime?.(inventory,ticket);
-      loading=false;update();return items;
-    })().finally(()=>{if(pending===entry){pending=null;loading=false;}});
+      try{
+        const data=await window.LumoAPI.call(C.Service.Storefront,C.Action.Recent,{}, {auth:loggedIn()});
+        if(!active())return [];
+        const next=normalizeRows(data);
+        if(!active())return [];
+        rows=next;loaded=true;personalized=data.personalized===true;degraded=data.degraded===true;
+        window.LumoInventory?.prime?.(data.inventory_items,ticket);
+        window.LumoRecommendations?.restoreItems?.(C.ProductPool.Recent,rows);
+        return visibleRows();
+      }catch(cause){if(active())error=cause?.message||'暂时无法加载兴趣好物，请重试';return [];}
+      finally{if(active()){loading=false;update();}if(pending===entry)pending=null;}
+    })();
     return entry.promise;
   }
-  function interest() {
-    if(preferences.interestCollapsed)return `<button type="button" class="interest-rail-reopen" data-sidebar-action="toggle-interest" aria-label="展开感兴趣商品">${icon('heart')}<span>最近感兴趣</span>${icon('chevron')}</button>`;
-    const items=visibleRows();
-    const content=items.length?items.map(p=>`<a class="interest-item" href="#/product/${encodeURIComponent(p.id)}" aria-label="查看${esc(p.name)}"><img src="${esc(asset(p.image))}" alt="${esc(p.name)}" loading="lazy"><span class="interest-item-name">${esc(p.name)}</span><strong>¥${money(p.price)}</strong></a>`).join(''):`<div class="interest-empty"><span>${icon('heart')}</span><p>${!loggedIn()?'登录查看你的兴趣好物':loading?'正在整理最近的好物…':failed?'部分商品暂时无法展示':'浏览或收藏商品后，在这里轻松找回'}</p>${!loggedIn()?'<a href="#/login">去登录</a>':failed?'<button type="button" data-sidebar-action="retry-interest">重试</button>':'<a href="#/member/history">查看足迹</a>'}</div>`;
-    return `<aside class="interest-rail" aria-label="最近感兴趣"><div class="interest-rail-head"><h2>最近感兴趣</h2></div><div class="interest-rail-list">${content}</div><button type="button" class="interest-rail-toggle" data-sidebar-action="toggle-interest" aria-label="收起感兴趣商品">${icon('back')}</button></aside>`;
+  function interest(){
+    const title=loaded?(personalized?'最近感兴趣':'精选好物'):loggedIn()?'最近感兴趣':'精选好物';
+    if(preferences.interestCollapsed)return `<button type="button" class="interest-rail-reopen" data-sidebar-action="toggle-interest" aria-label="展开感兴趣商品">${icon('heart')}<span>${title}</span>${icon('chevron')}</button>`;
+    const busy=!rows.length&&!loaded&&!error,warning=error?`<div class="interest-empty" role="alert"><p>${esc(error)}</p><button type="button" data-sidebar-action="retry-interest">重试</button></div>`:'';
+    const content=busy?(window.LumoSkeleton?.render('products',{count:6,label:'正在加载'+title,className:'sk-interest'})||''):rows.length?rows.map(row=>{const p=row.product;return `<a class="interest-item" href="#/product/${encodeURIComponent(p.id)}" aria-label="查看${esc(p.name)}"${row.reason?` title="${esc(row.reason)}"`:''}><img src="${esc(asset(p.image))}" alt="${esc(p.name)}" loading="lazy"><span class="interest-item-name">${esc(p.name)}</span><strong>¥${money(p.price)}</strong></a>`;}).join(''):error?'':`<div class="interest-empty"><span>${icon('heart')}</span><p>暂时没有可推荐的在售好物</p><button type="button" data-sidebar-action="retry-interest">重新加载</button></div>`;
+    return `<aside class="interest-rail" aria-label="${title}"><div class="interest-rail-head"><h2>${title}</h2></div><div class="interest-rail-list"${loading?' aria-busy="true"':''}>${warning}${content}</div><button type="button" class="interest-rail-toggle" data-sidebar-action="toggle-interest" aria-label="收起感兴趣商品">${icon('back')}</button></aside>`;
   }
   function quick() {
     if(preferences.quickCollapsed)return `<button type="button" class="quick-rail-reopen" data-sidebar-action="toggle-quick" aria-label="展开快捷工具">${icon('layers')}<span>工具</span>${icon('back')}</button>`;
@@ -83,11 +74,14 @@
       const key=action==='toggle-interest'?'interestCollapsed':'quickCollapsed';preferences[key]=!preferences[key];
       try{localStorage.setItem(PREF_KEY,JSON.stringify(preferences));}catch(_){}update();return;
     }
-    if(action==='retry-interest'){void refresh();return;}
+    if(action==='retry-interest'){void refresh(true);return;}
     if(action==='home'){window.LumoDiscovery?.resetFilters();Object.assign(ui,{category:'全部好物',categoryLabel:'',query:'',onlyFavorites:false,min:'',max:'',sort:'综合'});go('');return;}
     if(action==='top'){window.scrollTo({top:0,behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});return;}
     if(action==='feedback')window.LumoServices?.openFeedback?.();
   });
-  for(const event of ['lumo:login','lumo:logout','lumo:session-expired'])window.addEventListener?.(event,()=>{reset();update();});
-  window.LumoSidebars={render,refresh,afterRender,reset};
+  // A behavior write invalidates a pending result; its existing caller then
+  // explicitly refreshes this aggregate. Pure render/collapse never fetches.
+  window.addEventListener?.('lumo:api-request',event=>{const row=event.detail;if(row?.ok&&row.service===C.Service.Engagement&&[C.Action.Put,C.Action.Delete].includes(row.action)&&pending){revision++;pending=null;loading=false;}});
+  for(const event of ['lumo:login','lumo:logout','lumo:session-expired','lumo:api-scope-changed'])window.addEventListener?.(event,()=>{reset();update();});
+  window.LumoSidebars={render,refresh,afterRender,reset,model(){ensureScope();return {loading,loaded,error,personalized,degraded,count:rows.length,items:rows.map(row=>({...row.product,recent_source:row.source,recommendation_reason:row.reason}))};}};
 })();

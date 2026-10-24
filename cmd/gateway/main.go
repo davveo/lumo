@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/httpgateway"
 	"github.com/davveo/lumo/internal/platform"
 	"log/slog"
@@ -108,7 +109,7 @@ func run() error {
 	if token == "" {
 		return fmt.Errorf("INTERNAL_RPC_TOKEN must be set")
 	}
-	shutdown, err := platform.InitTelemetry(ctx, "gateway", os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+	shutdown, err := platform.InitTelemetry(ctx, constants.ServiceGateway, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 	if err != nil {
 		return fmt.Errorf("telemetry init failed: %w", err)
 	}
@@ -128,7 +129,7 @@ func run() error {
 		}
 	}()
 	unregister, err := platform.RegisterConsulService(ctx,
-		consul, "gateway", env("HTTP_ADDR", ":8080"), "http")
+		consul, constants.ServiceGateway, env("HTTP_ADDR", ":8080"), "http")
 	if err != nil {
 		return fmt.Errorf("Consul registration: %w", err)
 	}

@@ -6,6 +6,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/davveo/lumo/internal/democatalog"
 	"github.com/davveo/lumo/internal/httpgateway"
 	"github.com/davveo/lumo/internal/platform"
 )
@@ -120,7 +121,7 @@ func TestHTTPReadAggregationBatchesFreshReadsAndIsolatesPrincipals(t *testing.T)
 	}
 	assertGuest := func(rows []map[string]any) {
 		t.Helper()
-		public := map[string]bool{"catalog": true, "inventory": true, "content": true, "campaign": true, "flash": true, "group": true, "coupon": true, "recommendation": true}
+		public := map[string]bool{"catalog": true, "inventory": true, "content": true, "campaign": true, "flash": true, "group": true, "coupon": true, "recommendation": true, "storefront": true}
 		for _, row := range rows {
 			if row["auth"] != false || !public[platform.Text(row, "service")] || (row["service"] == "coupon" && row["action"] != "templates") {
 				t.Fatalf("guest received private fragment: %#v", row)
@@ -128,6 +129,11 @@ func TestHTTPReadAggregationBatchesFreshReadsAndIsolatesPrincipals(t *testing.T)
 		}
 		for _, call := range counted.snapshot() {
 			if call.service == "recommendation" && call.command.Action == "rank_bootstrap" && call.command.UserID == "" && call.command.Role == "system" {
+				continue
+			}
+			// Anonymous popup decisions use trusted gateway facts and opaque
+			// visitor cookies, never an authenticated shopper principal.
+			if call.service == "content" && call.command.Action == "popup_decide" && call.command.UserID == "" && call.command.Role == "system" {
 				continue
 			}
 			if call.command.UserID != "" || call.command.Role != "" {
@@ -145,8 +151,17 @@ func TestHTTPReadAggregationBatchesFreshReadsAndIsolatesPrincipals(t *testing.T)
 	assertBootstrapCounts(guest, false)
 	assertGuest(guest)
 	products := mapItems(aggregateFragment(t, guest, "catalog", "list"))
-	if len(products) != 12 {
-		t.Fatalf("bootstrap catalog omitted products: got %d, want 12", len(products))
+	if len(products) != 100 {
+		t.Fatalf("bootstrap must keep its bounded catalog page: got %d, want 100", len(products))
+	}
+	seenProducts := map[string]bool{}
+	for _, product := range products {
+		seenProducts[platform.Text(product, "id")] = true
+	}
+	for _, product := range democatalog.Products() {
+		if !seenProducts[platform.Text(product, "id")] {
+			t.Fatalf("expanded demo seed displaced the original storefront selection: %s", platform.Text(product, "id"))
+		}
 	}
 	stockFragments := 0
 	for _, row := range guest {

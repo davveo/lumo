@@ -22,3 +22,5 @@
 所有内部写动作要求 system/admin 角色，并核对原资源用户归属。网关不公开内部动作。服务只写自己的 schema，所有 GORM 操作使用请求 context，SQL 模板追踪由共享平台统一记录。
 
 测试：`go test ./services/inventory/...`。
+
+扩展分类商品库存仅在 `DEMO_MODE=true/1` 时初始化，SKU来源与商品服务共用 `internal/democatalog` 定义，各自只写本服务数据库。按100个SKU批量插入，仅为不存在的SKU建立50件初始库存；重复启动不增加已有库存，不改变预占、分配、缺货状态和库存流水。原基础SKU种子行为保留。

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/coupon/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -21,7 +22,7 @@ func (r *Repository) Migrate(ctx context.Context) error {
 	return r.DB.WithContext(ctx).AutoMigrate(&domain.Coupon{}, &domain.Hold{}, &domain.Ledger{}, &domain.Template{}, &domain.Claim{})
 }
 func (r *Repository) Seed(ctx context.Context) error {
-	if e := r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&domain.Coupon{ID: "coupon-demo-100", UserID: "demo", Amount: 10000, Minimum: 100000, State: "AVAILABLE", ExpiresAt: time.Now().AddDate(1, 0, 0)}).Error; e != nil {
+	if e := r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&domain.Coupon{ID: "coupon-demo-100", UserID: "demo", Amount: 10000, Minimum: 100000, State: constants.CouponStatusAvailable, ExpiresAt: time.Now().AddDate(1, 0, 0)}).Error; e != nil {
 		return e
 	}
 	now := time.Now()
@@ -68,6 +69,14 @@ func (r *Repository) templates(ctx context.Context, c platform.Command, maxSize 
 	if e := q.Order("id").Offset(int((page - 1) * size)).Limit(int(size)).Find(&templates).Error; e != nil {
 		return nil, e
 	}
+	items, now, err := r.templateItems(ctx, c, templates)
+	if err != nil {
+		return nil, err
+	}
+	return platform.Result{"items": items, "total": total, "page": page, "page_size": size, "has_more": page*size < total, "server_time": now}, nil
+}
+
+func (r *Repository) templateItems(ctx context.Context, c platform.Command, templates []domain.Template) ([]platform.Result, time.Time, error) {
 	var claims []domain.Claim
 	if c.UserID != "" && len(templates) > 0 {
 		ids := make([]string, 0, len(templates))
@@ -75,7 +84,7 @@ func (r *Repository) templates(ctx context.Context, c platform.Command, maxSize 
 			ids = append(ids, v.ID)
 		}
 		if e := r.DB.WithContext(ctx).Where("user_id = ? AND template_id IN ?", c.UserID, ids).Find(&claims).Error; e != nil {
-			return nil, e
+			return nil, time.Time{}, e
 		}
 	}
 	claimed := map[string]string{}
@@ -87,26 +96,28 @@ func (r *Repository) templates(ctx context.Context, c platform.Command, maxSize 
 	for _, v := range templates {
 		m := platform.Map(v)
 		m["claimed"] = claimed[v.ID] != ""
-		state, reason := "available", "可立即领取"
+		state, reason := constants.CouponClaimStatusAvailable, "可立即领取"
 		switch {
+		case !v.Active:
+			state, reason = constants.CouponClaimStatusUnavailable, "优惠券已停用"
 		case claimed[v.ID] != "":
 			m["coupon_id"] = claimed[v.ID]
-			state, reason = "claimed", "已领取，每人限领一张"
+			state, reason = constants.CouponClaimStatusClaimed, "已领取，每人限领一张"
 		case !v.ExpiresAt.After(now):
-			state, reason = "ended", "领取已结束"
+			state, reason = constants.CouponClaimStatusEnded, "领取已结束"
 		case v.StartsAt != nil && v.StartsAt.After(now):
-			state, reason = "upcoming", "尚未到领取时间"
+			state, reason = constants.CouponClaimStatusUpcoming, "尚未到领取时间"
 		case v.Remaining < 1:
-			state, reason = "exhausted", "优惠券已领完"
+			state, reason = constants.CouponClaimStatusExhausted, "优惠券已领完"
 		case !validTemplate(v):
-			state, reason = "unavailable", "优惠券暂不可领取"
+			state, reason = constants.CouponClaimStatusUnavailable, "优惠券暂不可领取"
 		case c.UserID == "":
-			state, reason = "login_required", "登录后领取"
+			state, reason = constants.CouponClaimStatusLoginRequired, "登录后领取"
 		}
-		m["claim_status"], m["claim_reason"], m["claimable"] = state, reason, state == "available"
+		m["claim_status"], m["claim_reason"], m["claimable"] = state, reason, state == constants.CouponClaimStatusAvailable
 		items = append(items, m)
 	}
-	return platform.Result{"items": items, "total": total, "page": page, "page_size": size, "has_more": page*size < total, "server_time": now}, nil
+	return items, now, nil
 }
 func validTemplate(v domain.Template) bool {
 	return v.ValidDays >= 1 && v.ValidDays <= 3660 && v.Amount > 0 && v.Minimum >= 0 && v.MinPoints >= 0 && v.MinGrowth >= 0 && (v.StartsAt == nil || v.StartsAt.Before(v.ExpiresAt))
@@ -167,7 +178,7 @@ func (r *Repository) Claim(ctx context.Context, c platform.Command, eligible fun
 		sum := sha256.Sum256([]byte(c.UserID + "\x00" + id))
 		claimID := "claim-" + hex.EncodeToString(sum[:])
 		expires := now.AddDate(0, 0, int(template.ValidDays))
-		out = domain.Coupon{ID: claimID, TemplateID: id, UserID: c.UserID, Amount: template.Amount, Minimum: template.Minimum, State: "AVAILABLE", ExpiresAt: expires}
+		out = domain.Coupon{ID: claimID, TemplateID: id, UserID: c.UserID, Amount: template.Amount, Minimum: template.Minimum, State: constants.CouponStatusAvailable, ExpiresAt: expires}
 		if er = tx.WithContext(ctx).Create(&domain.Claim{ID: claimID, UserID: c.UserID, TemplateID: id, CouponID: claimID}).Error; er != nil {
 			return er
 		}
@@ -217,7 +228,7 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.
 			if out.UserID != c.UserID {
 				return status.Error(codes.PermissionDenied, "hold owner mismatch")
 			}
-			if out.State == "CANCELLED" {
+			if out.State == constants.CouponHoldStateCancelled {
 				return status.Error(codes.FailedPrecondition, "hold cancelled")
 			}
 			if out.CouponID != id {
@@ -235,14 +246,14 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command) (platform.
 		if cp.UserID != c.UserID {
 			return status.Error(codes.PermissionDenied, "coupon owner mismatch")
 		}
-		if cp.State != "AVAILABLE" || time.Now().After(cp.ExpiresAt) || sub < cp.Minimum {
+		if cp.State != constants.CouponStatusAvailable || time.Now().After(cp.ExpiresAt) || sub < cp.Minimum {
 			return status.Error(codes.FailedPrecondition, "coupon unavailable or threshold unmet")
 		}
-		out = domain.Hold{ID: c.ID, UserID: c.UserID, CouponID: id, Amount: cp.Amount, State: "RESERVED"}
+		out = domain.Hold{ID: c.ID, UserID: c.UserID, CouponID: id, Amount: cp.Amount, State: constants.CouponHoldStateReserved}
 		if er = tx.WithContext(ctx).Create(&out).Error; er != nil {
 			return er
 		}
-		u := tx.WithContext(ctx).Model(&cp).Where("state = ?", "AVAILABLE").Update("state", "HELD")
+		u := tx.WithContext(ctx).Model(&cp).Where("state = ?", constants.CouponStatusAvailable).Update("state", constants.CouponStatusHeld)
 		if u.Error != nil {
 			return u.Error
 		}
@@ -262,8 +273,8 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 	var out domain.Hold
 	e := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		er := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&out, "id = ?", c.ID).Error
-		if errors.Is(er, gorm.ErrRecordNotFound) && c.Action == "cancel" {
-			out = domain.Hold{ID: c.ID, UserID: c.UserID, State: "CANCELLED"}
+		if errors.Is(er, gorm.ErrRecordNotFound) && c.Action == constants.ActionCancel {
+			out = domain.Hold{ID: c.ID, UserID: c.UserID, State: constants.CouponHoldStateCancelled}
 			return tx.WithContext(ctx).Create(&out).Error
 		}
 		if er != nil {
@@ -275,25 +286,25 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 		if out.UserID != c.UserID {
 			return status.Error(codes.PermissionDenied, "hold owner mismatch")
 		}
-		target := "CONFIRMED"
-		if c.Action == "cancel" {
-			target = "CANCELLED"
+		target := constants.CouponHoldStateConfirmed
+		if c.Action == constants.ActionCancel {
+			target = constants.CouponHoldStateCancelled
 		}
 		if out.State == target {
 			return nil
 		}
-		if out.State != "RESERVED" {
+		if out.State != constants.CouponHoldStateReserved {
 			return status.Error(codes.FailedPrecondition, "invalid coupon transition")
 		}
-		cpState := "USED"
-		if target == "CANCELLED" {
+		cpState := constants.CouponStatusUsed
+		if target == constants.CouponHoldStateCancelled {
 			var cp domain.Coupon
 			if er = tx.WithContext(ctx).First(&cp, "id = ?", out.CouponID).Error; er != nil {
 				return er
 			}
-			cpState = "AVAILABLE"
+			cpState = constants.CouponStatusAvailable
 			if time.Now().After(cp.ExpiresAt) {
-				cpState = "EXPIRED"
+				cpState = constants.CouponStatusExpired
 			}
 		}
 		if er = tx.WithContext(ctx).Model(&domain.Coupon{}).Where("id = ?", out.CouponID).Update("state", cpState).Error; er != nil {
@@ -317,14 +328,14 @@ func (r *Repository) Refund(ctx context.Context, c platform.Command) (platform.R
 	payable := platform.Int(c.Data, "payable_cents")
 	total := platform.Int(c.Data, "refunded_total_cents")
 	if payable <= 0 || total < payable {
-		return platform.Result{"status": "NOT_ELIGIBLE", "policy": "full_refund_only"}, nil
+		return platform.Result{"status": constants.CouponRefundStatusNotEligible, "policy": constants.CouponRefundPolicyFullRefundOnly}, nil
 	}
-	result := platform.Result{"status": "RETURNED"}
+	result := platform.Result{"status": constants.CouponRefundStatusReturned}
 	e := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var hold domain.Hold
 		er := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&hold, "id = ?", order).Error
 		if errors.Is(er, gorm.ErrRecordNotFound) {
-			result["status"] = "NO_COUPON"
+			result["status"] = constants.CouponRefundStatusNoCoupon
 			return nil
 		}
 		if er != nil {
@@ -333,25 +344,25 @@ func (r *Repository) Refund(ctx context.Context, c platform.Command) (platform.R
 		if hold.UserID != c.UserID {
 			return status.Error(codes.PermissionDenied, "hold owner mismatch")
 		}
-		if hold.State == "REFUNDED" {
+		if hold.State == constants.CouponHoldStateRefunded {
 			return nil
 		}
-		if hold.State != "CONFIRMED" {
+		if hold.State != constants.CouponHoldStateConfirmed {
 			return status.Error(codes.FailedPrecondition, "coupon not consumed")
 		}
 		var cp domain.Coupon
 		if er = tx.WithContext(ctx).First(&cp, "id = ?", hold.CouponID).Error; er != nil {
 			return er
 		}
-		next := "AVAILABLE"
+		next := constants.CouponStatusAvailable
 		if time.Now().After(cp.ExpiresAt) {
-			next = "EXPIRED"
-			result["status"] = "EXPIRED_NO_RETURN"
+			next = constants.CouponStatusExpired
+			result["status"] = constants.CouponRefundStatusExpiredNoReturn
 		}
 		if er = tx.WithContext(ctx).Model(&cp).Update("state", next).Error; er != nil {
 			return er
 		}
-		if er = tx.WithContext(ctx).Model(&hold).Update("state", "REFUNDED").Error; er != nil {
+		if er = tx.WithContext(ctx).Model(&hold).Update("state", constants.CouponHoldStateRefunded).Error; er != nil {
 			return er
 		}
 		return tx.WithContext(ctx).Create(&domain.Ledger{ID: "refund:" + c.ID, OrderID: order, CouponID: hold.CouponID, Kind: next}).Error

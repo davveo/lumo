@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/member/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -24,10 +25,10 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		id = c.ID
 	}
 	switch c.Action {
-	case "get", "update":
-		seed := record(id, id, "profile", "ACTIVE", map[string]any{"display_name": id, "avatar": "", "preferences": map[string]any{}})
+	case constants.ActionGet, constants.ActionUpdate:
+		seed := record(id, id, constants.MemberKindProfile, constants.MemberStatusActive, map[string]any{"display_name": id, "avatar": "", "preferences": map[string]any{}})
 		r, e := s.repo.Mutate(ctx, seed, true, func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
-			if c.Action == "update" {
+			if c.Action == constants.ActionUpdate {
 				d := payload(*v)
 				for k, x := range c.Data {
 					switch k {
@@ -46,15 +47,15 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			return nil, e
 		}
 		out := view(r)
-		growth, e := s.repo.Sum(ctx, id, "growth")
+		growth, e := s.repo.Sum(ctx, id, constants.MemberKindGrowth)
 		if e != nil {
 			return nil, e
 		}
 		out["growth"] = growth
 		if growth >= 1000 {
-			out["level"] = "gold"
+			out["level"] = constants.MemberLevelGold
 		} else {
-			out["level"] = "member"
+			out["level"] = constants.MemberLevelMember
 		}
 		return out, nil
 	default:
@@ -67,10 +68,10 @@ func (s *Service) event(ctx context.Context, e platform.Event) (traceErr error) 
 	defer span.End()
 	platform.TraceRequest(ctx, e)
 	defer func() { platform.TraceResponse(ctx, nil, traceErr) }()
-	if e.Type != "OrderCompleted" || e.UserID == "" {
+	if e.Type != constants.EventOrderCompleted || e.UserID == "" {
 		return nil
 	}
-	r := record(stable(e.ID, e.UserID), e.UserID, "growth", "POSTED", map[string]any{"order_id": e.AggregateID})
+	r := record(stable(e.ID, e.UserID), e.UserID, constants.MemberKindGrowth, constants.MemberStatusPosted, map[string]any{"order_id": e.AggregateID})
 	r.Amount = platform.Int(e.Data, "payable_cents") / 10000
 	if r.Amount < 1 {
 		r.Amount = 1

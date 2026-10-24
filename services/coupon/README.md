@@ -1,6 +1,6 @@
 # coupon-service / 优惠券实例与核销账
 
-公开 `templates/templates_snapshot`；用户 `list/claim`；内部 `reserve/confirm/cancel/refund`。
+公开 `templates/templates_snapshot`；用户 `list/claim`；内部 `templates_by_ids/reserve/confirm/cancel/refund`。
 
 ## 目录分层
 
@@ -25,6 +25,7 @@
 - `min_points` 为可用积分门槛，领取不扣积分；`min_growth` 为会员成长值门槛，两项同时配置时需同时满足。coupon 通过 `points/get`、`member/get` 查询当前登录用户的真实值，不接受请求里的积分、成长值或门槛覆盖。资格服务不可用时拒绝条件券领取，普通券仍可正常浏览和领取。
 - 每项提供 `claim_status/claimable/claim_reason/claimed`，已领取时另有 `coupon_id`。状态为 `available/login_required/upcoming/ended/exhausted/claimed/conditions_unmet/unavailable`；已领取状态优先，重复领取即使当前已停用、过期、领完或不满足新门槛，也返回原券，不额外扣库存。
 - 新增日常满100减10、限时满200减25、明日满500减50、5000积分专享满300减30、1000成长值专享满600减80等演示模板。所有种子只补缺失项，重启不会覆盖运营配置、已消耗额度和领取记录。
+- 内部 `templates_by_ids` 仅接受 `system`，`data.ids` 必须为1～50个有效模板ID。一次按ID集合读取模板、一次查询本人领取记录，复用公开模板的状态投影和积分/成长值资格校验；不扫描领券中心分页。可返回已停用模板的 `unavailable` 状态，未知ID不返回。网关禁止直接访问和只读批处理访问这个内部动作。
 - 用户 `list` 返回每张券的 `template_name`，通过一次本地关联查询解析本人已领券名称，不依赖公开模板分页，也保留已停用模板的名称；无模板的历史券返回“品质生活优惠券”。
 
 所有内部写动作要求 system/admin 角色，并核对原资源用户归属。网关不公开内部动作。服务只写自己的 schema，所有 GORM 操作使用请求 context，SQL 模板追踪由共享平台统一记录。

@@ -150,6 +150,7 @@ test('dynamic category names are escaped in actual product options and storefron
     assert.ok(options.includes(encoded));assert.ok(!options.includes(category));
     assert.doesNotMatch(options,/<img\b/,'category text cannot create an element in the select');
     assert.equal((options.match(/<option\b/g)||[]).length,2,'untrusted names cannot close or create options');
+    await fixture.app.ctx.LumoStudio.refresh();
     await fixture.app.click({editorAction:'tab',value:'design'});
     const html=fixture.app.ctx.LumoStudio.renderEditor();
     const preview=html.match(/<div class="studio-preview-categories">([\s\S]*?)<\/div><div class="studio-preview-heading">/)?.[1];

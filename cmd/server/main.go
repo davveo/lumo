@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/davveo/lumo/internal/constants"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -44,7 +45,7 @@ func main() {
 func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
-	name := env("SERVICE_NAME", "catalog")
+	name := env("SERVICE_NAME", constants.ServiceCatalog)
 	shutdown, err := platform.InitTelemetry(ctx, name, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 	if err != nil {
 		return err

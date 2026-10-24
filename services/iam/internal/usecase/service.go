@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/iam/internal/domain"
 	"github.com/davveo/lumo/services/iam/internal/repository"
@@ -32,7 +33,7 @@ func (s *Service) Seed(ctx context.Context) error {
 	if os.Getenv("DEMO_MODE") != "true" && os.Getenv("DEMO_MODE") != "1" {
 		return nil
 	}
-	for _, v := range []struct{ User, Password, Role string }{{"demo", "Lumo@2026", "user"}, {"admin", "Admin@2026", "admin"}} {
+	for _, v := range []struct{ User, Password, Role string }{{"demo", "Lumo@2026", constants.RoleUser}, {constants.RoleAdmin, "Admin@2026", constants.RoleAdmin}} {
 		b, e := bcrypt.GenerateFromPassword([]byte(v.Password), bcrypt.DefaultCost)
 		if e != nil {
 			return e
@@ -50,7 +51,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	switch c.Action {
-	case "login":
+	case constants.ActionLogin:
 		username := strings.TrimSpace(platform.Text(c.Data, "username"))
 		password := platform.Text(c.Data, "password")
 		if username == "" || len(username) > 128 || password == "" || len(password) > 1024 {
@@ -68,8 +69,8 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		if e = s.repo.CreateSession(ctx, &sess); e != nil {
 			return nil, e
 		}
-		return platform.Result{"token": raw, "token_type": "Bearer", "expires_at": sess.ExpiresAt.Format(time.RFC3339), "user_id": a.ID, "role": a.Role}, nil
-	case "validate", "refresh", "logout":
+		return platform.Result{"token": raw, "token_type": constants.IAMTokenTypeBearer, "expires_at": sess.ExpiresAt.Format(time.RFC3339), "user_id": a.ID, "role": a.Role, "registered_at": a.CreatedAt.UTC().Format(time.RFC3339)}, nil
+	case constants.ActionValidate, constants.ActionRefresh, constants.ActionLogout:
 		raw := platform.Text(c.Data, "token")
 		if len(raw) != 64 {
 			return nil, status.Error(codes.Unauthenticated, "invalid session")
@@ -82,7 +83,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		if e != nil || !a.Active {
 			return nil, status.Error(codes.Unauthenticated, "account unavailable")
 		}
-		if c.Action == "logout" {
+		if c.Action == constants.ActionLogout {
 			if c.UserID != "" && c.UserID != a.ID {
 				return nil, status.Error(codes.PermissionDenied, "session owner mismatch")
 			}
@@ -91,7 +92,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			}
 			return platform.Result{"revoked": true}, nil
 		}
-		if c.Action == "refresh" {
+		if c.Action == constants.ActionRefresh {
 			next, e := token()
 			if e != nil {
 				return nil, e
@@ -100,10 +101,10 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			if e = s.repo.Rotate(ctx, sess.Digest, &v); e != nil {
 				return nil, e
 			}
-			return platform.Result{"token": next, "token_type": "Bearer", "user_id": a.ID, "role": a.Role, "expires_at": v.ExpiresAt.Format(time.RFC3339)}, nil
+			return platform.Result{"token": next, "token_type": constants.IAMTokenTypeBearer, "user_id": a.ID, "role": a.Role, "expires_at": v.ExpiresAt.Format(time.RFC3339), "registered_at": a.CreatedAt.UTC().Format(time.RFC3339)}, nil
 		}
-		return platform.Result{"user_id": a.ID, "role": a.Role, "session_valid": true, "expires_at": sess.ExpiresAt.Format(time.RFC3339)}, nil
-	case "logout_all":
+		return platform.Result{"user_id": a.ID, "role": a.Role, "session_valid": true, "expires_at": sess.ExpiresAt.Format(time.RFC3339), "registered_at": a.CreatedAt.UTC().Format(time.RFC3339)}, nil
+	case constants.ActionLogoutAll:
 		if e := platform.RequireUser(c); e != nil {
 			return nil, e
 		}

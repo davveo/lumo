@@ -1,6 +1,8 @@
 package usecase
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"context"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/points/internal/repository"
@@ -19,37 +21,37 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		return nil, e
 	}
 	switch c.Action {
-	case "get":
+	case constants.ActionGet:
 		return s.Repo.Get(ctx, c)
-	case "checkin":
+	case constants.ActionCheckin:
 		return s.Repo.Credit(ctx, c, true)
 	}
-	if c.Role != "system" && c.Role != "admin" {
+	if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
 		return nil, status.Error(codes.PermissionDenied, "internal points command required")
 	}
 	switch c.Action {
-	case "reserve":
+	case constants.ActionReserve:
 		return s.Repo.Reserve(ctx, c)
-	case "confirm", "cancel":
+	case constants.ActionConfirm, constants.ActionCancel:
 		return s.Repo.Transition(ctx, c)
-	case "refund":
+	case constants.ActionRefund:
 		return s.Repo.Refund(ctx, c)
-	case "reward":
+	case constants.ActionReward:
 		return s.Repo.Credit(ctx, c, false)
 	}
 	return nil, status.Error(codes.Unimplemented, "unsupported action")
 }
 func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
-	if e.Type == "RefundSucceeded" {
-		_, err := s.Execute(ctx, platform.Command{Action: "refund", ID: e.AggregateID, UserID: e.UserID, Role: "system", Data: e.Data})
+	if e.Type == constants.EventRefundSucceeded {
+		_, err := s.Execute(ctx, platform.Command{Action: constants.ActionRefund, ID: e.AggregateID, UserID: e.UserID, Role: constants.RoleSystem, Data: e.Data})
 		return err
 	}
-	if e.Type == "OrderCompleted" {
+	if e.Type == constants.EventOrderCompleted {
 		amount := platform.Int(e.Data, "reward_points")
 		if amount == 0 {
 			amount = platform.Int(e.Data, "payable_cents") / 100
 		}
-		_, err := s.Execute(ctx, platform.Command{Action: "reward", ID: e.AggregateID, UserID: e.UserID, Role: "system", Data: map[string]any{"amount": amount}})
+		_, err := s.Execute(ctx, platform.Command{Action: constants.ActionReward, ID: e.AggregateID, UserID: e.UserID, Role: constants.RoleSystem, Data: map[string]any{"amount": amount}})
 		return err
 	}
 	return nil

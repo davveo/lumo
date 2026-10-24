@@ -15,7 +15,7 @@ function setup(handler=async()=>({items:[]})) {
     LumoAuth:{user:()=>user?{id:user}:null,isLoggedIn:()=>!!user,gate:()=>true,requireLogin:()=>!!user,afterRender(){}},
     LumoInventory:{stockFor:()=>50,limit:()=>10,badge:()=>'',hydrationTicket:()=>++ticket,prime:(rows,version)=>primes.push({rows:json(rows),version})}
   }});
-  app.load('app.js');app.evaluate('products.push(...presentationProducts.slice(0,4))');app.load('recommendations.js');app.ctx.LumoRecommendations.catalogChanged();
+  app.load('skeleton.js');app.load('app.js');app.evaluate('products.push(...presentationProducts.slice(0,4));commerceState.catalogLoaded=true');app.load('recommendations.js');app.ctx.LumoRecommendations.catalogChanged();
   return {app,calls,primes,recommendations:app.ctx.LumoRecommendations,setContext(next){if('user'in next)user=next.user;if('token'in next)token=next.token;if('base'in next)base=next.base;}};
 }
 
@@ -101,7 +101,7 @@ test('similar results use the current product and keep the correct cached explan
     assert.deepEqual(calls.map(c=>c.command.data),[{scene:'similar',product_id:'iphone',limit:8},{scene:'similar',product_id:'headphones',limit:8}]);
     assert.match(extras.related(fixture.app.json("products.find(p=>p.id==='iphone')")),/与手机品牌相近/);
     assert.doesNotMatch(extras.related(fixture.app.json("products.find(p=>p.id==='iphone')")),/与耳机价格相近/);
-    fixture.setContext({base:'http://other.test'});assert.equal(extras.related(fixture.app.json("products.find(p=>p.id==='iphone')")),'');
+    fixture.setContext({base:'http://other.test'});const pending=extras.related(fixture.app.json("products.find(p=>p.id==='iphone')"));assert.match(pending,/aria-busy="true"/);assert.doesNotMatch(pending,/与手机品牌相近/);
   } finally {fixture.app.dispose();}
 });
 

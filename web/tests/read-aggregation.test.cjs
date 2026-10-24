@@ -21,6 +21,7 @@ function setup(handler, enable = true) {
     async fetch(url, options) { const call = {url, options, body: JSON.parse(options.body)}; calls.push(call); return handler(call); }
   };
   context.window = context;
+  require('./load-constants.cjs')(context);
   vm.runInNewContext(source, context, {filename: 'api-client.js'});
   const api = context.LumoAPI;
   if (enable) api.enableReadBatching();

@@ -1,6 +1,8 @@
 package platform
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"bytes"
 	"context"
 	"crypto/rand"
@@ -116,7 +118,7 @@ func RequireAdmin(c Command) error {
 	if err := RequireUser(c); err != nil {
 		return err
 	}
-	if c.Role != "admin" {
+	if c.Role != constants.RoleAdmin {
 		return status.Error(codes.PermissionDenied, "administrator required")
 	}
 	return nil

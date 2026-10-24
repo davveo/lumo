@@ -32,6 +32,7 @@ window.LumoAPI={getBase:()=>gateway,call:async(service,action,command={},options
 }};
 const document={addEventListener:(type,fn)=>(listeners[type]??=[]).push(fn),querySelectorAll:()=>[],querySelector:()=>null};
 const context=vm.createContext({window,document,products:catalog,state:{cart:[],orders:[]},location:{hash:'#/checkout',origin:'http://localhost',pathname:'/'},checkoutMode:'cart',directItem:null,detail:{id:'headphones'},crypto:require('node:crypto').webcrypto,CustomEvent:class{},navigator:{clipboard:{writeText:async()=>{}}},setInterval,clearInterval,Date,console,toast:()=>{},renderKeepScroll:()=>{},setCheckout:(mode,item)=>{checkout={mode,item};context.checkoutMode=mode;context.directItem=item},go:()=>{},modal:()=>{},money:String,esc:String,icon:()=>'',asset:s=>s,productCard:p=>p.name,header:()=>'',footer:()=>''});
+require('./load-constants.cjs')(context,dir);
 for(const f of ['inventory.js','promotions.js','promo-views.js','recommendations.js'])vm.runInContext(fs.readFileSync(path.join(dir,f),'utf8'),context,{filename:f});
 async function checkReadAggregation() {
  for(const failedService of ['', 'catalog', 'inventory']) {
@@ -54,7 +55,7 @@ async function checkReadAggregation() {
     return {status:200,ok:true,headers:{get:()=>''},json:async()=>({data:{results}})};
    }
   };
-  fixture.window=fixture;vm.createContext(fixture);
+  fixture.window=fixture;vm.createContext(fixture);require('./load-constants.cjs')(fixture,dir);
   for(const f of ['api-client.js','inventory.js','promotions.js'])vm.runInContext(fs.readFileSync(path.join(dir,f),'utf8'),fixture,{filename:f});
   fixture.LumoAPI.enableReadBatching();
   if(failedService)await assert.rejects(fixture.LumoPromotions.refresh(),error=>error.code==='Unavailable');

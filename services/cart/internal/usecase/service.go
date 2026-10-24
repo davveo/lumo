@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"encoding/json"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/cart/internal/domain"
 	"github.com/davveo/lumo/services/cart/internal/repository"
@@ -19,11 +20,11 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		return nil, e
 	}
 	switch c.Action {
-	case "list":
-		return s.list(ctx, c, c.UserID, "cart_item", "")
-	case "add", "set":
+	case constants.ActionList:
+		return s.list(ctx, c, c.UserID, constants.CartRecordKindCartItem, "")
+	case constants.ActionAdd, constants.ActionSet:
 		return s.add(ctx, c)
-	case "remove":
+	case constants.ActionRemove:
 		id := c.ID
 		if _, e := s.repo.Get(ctx, id); status.Code(e) == codes.NotFound {
 			id = stable(c.UserID, "cart", c.ID)
@@ -32,12 +33,12 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			return nil, e
 		}
 		return platform.Result{"removed": true}, nil
-	case "clear":
-		if e := s.repo.DeleteKind(ctx, c.UserID, "cart_item"); e != nil {
+	case constants.ActionClear:
+		if e := s.repo.DeleteKind(ctx, c.UserID, constants.CartRecordKindCartItem); e != nil {
 			return nil, e
 		}
 		return platform.Result{"cleared": true}, nil
-	case "merge":
+	case constants.ActionMerge:
 		if c.IdempotencyKey == "" {
 			return nil, bad("merge idempotency_key required")
 		}
@@ -59,13 +60,13 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			if it.Quantity < 1 || it.Quantity > 10 {
 				return nil, bad("quantity must be 1..10")
 			}
-			if _, e := call(ctx, s.rpc, "catalog", child(c, "get", it.SKU, nil)); e != nil {
+			if _, e := call(ctx, s.rpc, constants.ServiceCatalog, child(c, constants.ActionGet, it.SKU, nil)); e != nil {
 				return nil, e
 			}
 		}
 		for _, it := range input.Items {
 			id := stable(c.UserID, "cart", it.SKU)
-			seed := record(id, c.UserID, "cart_item", "ACTIVE", map[string]any{"sku_id": it.SKU, "quantity": it.Quantity})
+			seed := record(id, c.UserID, constants.CartRecordKindCartItem, constants.CartStatusActive, map[string]any{"sku_id": it.SKU, "quantity": it.Quantity})
 			if _, e := s.repo.Mutate(ctx, seed, true, func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
 				d := payload(*v)
 				if it.Quantity > platform.Int(d, "quantity") {
@@ -77,7 +78,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 				return nil, e
 			}
 		}
-		return s.list(ctx, c, c.UserID, "cart_item", "")
+		return s.list(ctx, c, c.UserID, constants.CartRecordKindCartItem, "")
 	default:
 		return nil, status.Error(codes.Unimplemented, "unsupported cart action")
 	}
@@ -88,20 +89,20 @@ func (s *Service) add(ctx context.Context, c platform.Command) (platform.Result,
 	if sku == "" || quantity < 1 || quantity > 10 {
 		return nil, bad("sku_id and quantity 1..10 required")
 	}
-	if _, e := call(ctx, s.rpc, "catalog", child(c, "get", sku, nil)); e != nil {
+	if _, e := call(ctx, s.rpc, constants.ServiceCatalog, child(c, constants.ActionGet, sku, nil)); e != nil {
 		return nil, e
 	}
-	stock, e := call(ctx, s.rpc, "inventory", child(c, "get", sku, nil))
+	stock, e := call(ctx, s.rpc, constants.ServiceInventory, child(c, constants.ActionGet, sku, nil))
 	if e != nil {
 		return nil, e
 	}
 	available := platform.Int(stock, "available")
 	id := stable(c.UserID, "cart", sku)
-	seed := record(id, c.UserID, "cart_item", "ACTIVE", map[string]any{"sku_id": sku, "quantity": 0})
+	seed := record(id, c.UserID, constants.CartRecordKindCartItem, constants.CartStatusActive, map[string]any{"sku_id": sku, "quantity": 0})
 	v, e := s.repo.Mutate(ctx, seed, true, func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
 		d := payload(*v)
 		next := platform.Int(d, "quantity") + quantity
-		if c.Action == "set" {
+		if c.Action == constants.ActionSet {
 			next = quantity
 		}
 		if next > 10 || next > available {
@@ -118,21 +119,21 @@ func (s *Service) add(ctx context.Context, c platform.Command) (platform.Result,
 }
 func (s *Service) seed(context.Context) error { return nil }
 func (s *Service) event(ctx context.Context, e platform.Event) (traceErr error) {
-	if e.Type != "OrderPaymentAccepted" || e.UserID == "" {
+	if e.Type != constants.EventOrderPaymentAccepted || e.UserID == "" {
 		return nil
 	}
 	ctx, sp := platform.Start(ctx, "cart.usecase.ConsumePaidOrder")
 	defer sp.End()
 	platform.TraceRequest(ctx, e)
 	defer func() { platform.TraceResponse(ctx, nil, traceErr) }()
-	o, err := call(ctx, s.rpc, "order", platform.Command{Action: "get", ID: e.AggregateID, UserID: e.UserID, Role: "system"})
+	o, err := call(ctx, s.rpc, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: e.AggregateID, UserID: e.UserID, Role: constants.RoleSystem})
 	if err != nil {
 		return err
 	}
 	if platform.Text(o, "user_id") != e.UserID {
 		return status.Error(codes.PermissionDenied, "paid cart event owner mismatch")
 	}
-	if platform.Text(o, "source") != "cart" {
+	if platform.Text(o, "source") != constants.OrderSourceCart {
 		return nil
 	}
 	b, err := json.Marshal(o["items"])

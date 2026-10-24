@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/davveo/lumo/internal/constants"
 	"net"
 	"os"
 	"path/filepath"
@@ -152,7 +153,7 @@ func (s *Stack) Pump(ctx context.Context) error {
 		count := 0
 		for _, producer := range bootstrap.Names {
 			var rows []platform.Outbox
-			if err := s.dbs[producer].WithContext(ctx).Where("state = ? AND next_attempt_at <= ?", "PENDING", time.Now().UTC()).Order("created_at ASC").Limit(100).Find(&rows).Error; err != nil {
+			if err := s.dbs[producer].WithContext(ctx).Where("state = ? AND next_attempt_at <= ?", constants.OutboxStatePending, time.Now().UTC()).Order("created_at ASC").Limit(100).Find(&rows).Error; err != nil {
 				return err
 			}
 			for _, row := range rows {
@@ -181,7 +182,7 @@ func (s *Stack) Pump(ctx context.Context) error {
 					}
 					db := s.dbs[consumer]
 					var seen int64
-					if err := db.WithContext(ctx).Model(&platform.Inbox{}).Where("consumer = ? AND event_id = ? AND state = ?", consumer, event.ID, "DONE").Count(&seen).Error; err != nil {
+					if err := db.WithContext(ctx).Model(&platform.Inbox{}).Where("consumer = ? AND event_id = ? AND state = ?", consumer, event.ID, constants.InboxStateDone).Count(&seen).Error; err != nil {
 						return err
 					}
 					if seen > 0 {
@@ -197,7 +198,7 @@ func (s *Stack) Pump(ctx context.Context) error {
 						_ = s.dbs[producer].WithContext(ctx).Model(&platform.Outbox{}).Where("id = ?", row.ID).Updates(map[string]any{"attempts": gorm.Expr("attempts + 1"), "next_attempt_at": time.Now().UTC().Add(time.Second)}).Error
 						return fmt.Errorf("%s -> %s (%s): %w", producer, consumer, event.Type, err)
 					}
-					inbox := platform.Inbox{Consumer: consumer, EventID: event.ID, State: "DONE", Attempts: 1, UpdatedAt: time.Now().UTC()}
+					inbox := platform.Inbox{Consumer: consumer, EventID: event.ID, State: constants.InboxStateDone, Attempts: 1, UpdatedAt: time.Now().UTC()}
 					err = db.WithContext(eventCtx).Clauses(clause.OnConflict{DoNothing: true}).Create(&inbox).Error
 					platform.TraceResponse(eventCtx, platform.Result{"event_id": event.ID, "inbox_recorded": err == nil}, err)
 					sp.End()
@@ -206,7 +207,7 @@ func (s *Stack) Pump(ctx context.Context) error {
 					}
 				}
 				now := time.Now().UTC()
-				if err := s.dbs[producer].WithContext(ctx).Model(&platform.Outbox{}).Where("id = ?", row.ID).Updates(map[string]any{"state": "PUBLISHED", "published_at": now}).Error; err != nil {
+				if err := s.dbs[producer].WithContext(ctx).Model(&platform.Outbox{}).Where("id = ?", row.ID).Updates(map[string]any{"state": constants.OutboxStatePublished, "published_at": now}).Error; err != nil {
 					return err
 				}
 			}

@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/coupon/internal/domain"
 	"github.com/davveo/lumo/services/coupon/internal/repository"
@@ -21,10 +22,16 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	defer sp.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	if c.Action == "templates" || c.Action == "templates_snapshot" {
+	if c.Action == constants.ActionTemplates || c.Action == constants.ActionTemplatesSnapshot || c.Action == constants.ActionTemplatesByIds {
+		if c.Action == constants.ActionTemplatesByIds && c.Role != constants.RoleSystem {
+			return nil, status.Error(codes.PermissionDenied, "internal coupon command required")
+		}
 		read := s.Repo.Templates
-		if c.Action == "templates_snapshot" {
+		if c.Action == constants.ActionTemplatesSnapshot {
 			read = s.Repo.TemplateSnapshot
+		}
+		if c.Action == constants.ActionTemplatesByIds {
+			read = s.Repo.TemplatesByIDs
 		}
 		out, err := read(ctx, c)
 		if err != nil {
@@ -32,14 +39,14 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		}
 		check := &eligibility{rpc: s.RPC, user: c.UserID, role: c.Role}
 		for _, item := range out["items"].([]platform.Result) {
-			if item["claim_status"] != "available" {
+			if item["claim_status"] != constants.CouponClaimStatusAvailable {
 				continue
 			}
 			t := domain.Template{MinPoints: platform.Int(item, "min_points"), MinGrowth: platform.Int(item, "min_growth")}
 			if err := check.check(ctx, t); err != nil {
-				item["claim_status"] = "conditions_unmet"
+				item["claim_status"] = constants.CouponClaimStatusConditionsUnmet
 				if status.Code(err) == codes.Unavailable {
-					item["claim_status"] = "unavailable"
+					item["claim_status"] = constants.CouponClaimStatusUnavailable
 				}
 				item["claim_reason"], item["claimable"] = status.Convert(err).Message(), false
 			}
@@ -49,35 +56,35 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	if e := platform.RequireUser(c); e != nil {
 		return nil, e
 	}
-	if c.Action == "list" {
+	if c.Action == constants.ActionList {
 		return s.Repo.List(ctx, c)
 	}
-	if c.Action == "claim" {
+	if c.Action == constants.ActionClaim {
 		check := &eligibility{rpc: s.RPC, user: c.UserID, role: c.Role}
 		return s.Repo.Claim(ctx, c, check.check)
 	}
-	if c.Role != "system" && c.Role != "admin" {
+	if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
 		return nil, status.Error(codes.PermissionDenied, "internal coupon command required")
 	}
 	switch c.Action {
-	case "reserve":
+	case constants.ActionReserve:
 		return s.Repo.Reserve(ctx, c)
-	case "confirm", "cancel":
+	case constants.ActionConfirm, constants.ActionCancel:
 		return s.Repo.Transition(ctx, c)
-	case "refund":
+	case constants.ActionRefund:
 		return s.Repo.Refund(ctx, c)
 	}
 	return nil, status.Error(codes.Unimplemented, "unsupported action")
 }
 func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
-	if e.Type != "RefundSucceeded" {
+	if e.Type != constants.EventRefundSucceeded {
 		return nil
 	}
 	data := e.Data
 	if data == nil {
 		data = map[string]any{}
 	}
-	_, err := s.Execute(ctx, platform.Command{Action: "refund", ID: e.AggregateID, UserID: e.UserID, Role: "system", Data: data})
+	_, err := s.Execute(ctx, platform.Command{Action: constants.ActionRefund, ID: e.AggregateID, UserID: e.UserID, Role: constants.RoleSystem, Data: data})
 	return err
 }
 
@@ -97,7 +104,7 @@ func (e *eligibility) read(ctx context.Context, service, field string) (int64, e
 	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	v, err := e.rpc.Call(ctx, service, platform.Command{Action: "get", UserID: e.user, Role: e.role})
+	v, err := e.rpc.Call(ctx, service, platform.Command{Action: constants.ActionGet, UserID: e.user, Role: e.role})
 	if err != nil {
 		return 0, status.Error(codes.Unavailable, "领取资格暂时无法核验，请稍后重试")
 	}
@@ -109,7 +116,7 @@ func (e *eligibility) read(ctx context.Context, service, field string) (int64, e
 func (e *eligibility) check(ctx context.Context, t domain.Template) error {
 	if t.MinPoints > 0 {
 		if !e.pointsRead {
-			e.points, e.pointsErr = e.read(ctx, "points", "available")
+			e.points, e.pointsErr = e.read(ctx, constants.ServicePoints, "available")
 			e.pointsRead = true
 		}
 		if e.pointsErr != nil {
@@ -121,7 +128,7 @@ func (e *eligibility) check(ctx context.Context, t domain.Template) error {
 	}
 	if t.MinGrowth > 0 {
 		if !e.growthRead {
-			e.growth, e.growthErr = e.read(ctx, "member", "growth")
+			e.growth, e.growthErr = e.read(ctx, constants.ServiceMember, "growth")
 			e.growthRead = true
 		}
 		if e.growthErr != nil {

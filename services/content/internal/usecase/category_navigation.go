@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"github.com/davveo/lumo/internal/constants"
 	"io"
 	"regexp"
 	"strings"
@@ -224,7 +225,7 @@ func (s *Service) initializeCategoryNavigation(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("embedded category navigation: %w", err)
 	}
-	row := record(categoryNavigationID, "", "storefront", "PUBLISHED", map[string]any{
+	row := record(categoryNavigationID, "", constants.ContentKindStorefront, constants.ContentStatusPublished, map[string]any{
 		"title": "商城分类导航", "body": body, "version": time.Now().Unix(),
 	})
 	_, err = s.repo.InsertOnce(ctx, &row, nil)

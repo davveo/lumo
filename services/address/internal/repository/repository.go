@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/address/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -146,7 +147,7 @@ func (r *Repository) SetDefault(ctx context.Context, id, owner string) error {
 	ctx, s := platform.Start(ctx, "address.repository.SetDefault")
 	defer s.End()
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		lock := domain.Record{ID: "owner-lock-" + owner, UserID: owner, Kind: "_lock"}
+		lock := domain.Record{ID: "owner-lock-" + owner, UserID: owner, Kind: constants.AddressKindOwnerLock}
 		if err := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&lock).Error; err != nil {
 			return err
 		}
@@ -154,10 +155,10 @@ func (r *Repository) SetDefault(ctx context.Context, id, owner string) error {
 			return err
 		}
 		var v domain.Record
-		if err := tx.WithContext(ctx).First(&v, "id = ? AND user_id = ? AND kind = ?", id, owner, "address").Error; err != nil {
+		if err := tx.WithContext(ctx).First(&v, "id = ? AND user_id = ? AND kind = ?", id, owner, constants.AddressKindAddress).Error; err != nil {
 			return status.Error(codes.NotFound, "address not found")
 		}
-		if err := tx.WithContext(ctx).Model(&domain.Record{}).Where("user_id = ? AND kind = ?", owner, "address").Update("is_default", false).Error; err != nil {
+		if err := tx.WithContext(ctx).Model(&domain.Record{}).Where("user_id = ? AND kind = ?", owner, constants.AddressKindAddress).Update("is_default", false).Error; err != nil {
 			return err
 		}
 		return tx.WithContext(ctx).Model(&domain.Record{}).Where("id = ?", id).Update("is_default", true).Error

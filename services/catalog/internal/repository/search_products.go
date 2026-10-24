@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"github.com/davveo/lumo/internal/constants"
 	"strings"
 	"time"
 
@@ -24,6 +25,13 @@ func (r *Repository) SearchProducts(ctx context.Context, input ProductSearch) ([
 	defer cancel()
 	ctx, span := platform.Start(ctx, "catalog.repository.SearchProducts")
 	defer span.End()
+	if r.searchDocumentIndexed {
+		rows, err := r.searchProjectedProducts(ctx, input)
+		if ctx.Err() != nil {
+			return nil, status.FromContextError(ctx.Err()).Err()
+		}
+		return rows, err
+	}
 	text := func(path string) string {
 		document := "CASE WHEN JSON_VALID(payload) THEN payload ELSE '{}' END"
 		if r.db.Dialector.Name() == "mysql" {
@@ -32,7 +40,7 @@ func (r *Repository) SearchProducts(ctx context.Context, input ProductSearch) ([
 		return "json_extract(" + document + ", '" + path + "')"
 	}
 	query := r.db.WithContext(ctx).Model(&domain.Record{}).
-		Where("kind = ? AND parent_id = ? AND status = ?", "sku", "", "ACTIVE").
+		Where("kind = ? AND parent_id = ? AND status = ?", constants.CatalogKindSku, "", constants.CatalogStatusActive).
 		Where("JSON_VALID(payload)").
 		Where("COALESCE(CAST(" + text("$.catalog_visible") + " AS CHAR),'true') NOT IN ('false','0')")
 	if input.Category != "" {
@@ -62,11 +70,11 @@ func (r *Repository) SearchProducts(ctx context.Context, input ProductSearch) ([
 		return "CAST(COALESCE(" + text(path) + ",0) AS " + kind + ")"
 	}
 	switch input.Sort {
-	case "price_asc":
+	case constants.CatalogSortPriceAsc:
 		query = query.Order(number("$.price_cents") + " ASC")
-	case "price_desc":
+	case constants.CatalogSortPriceDesc:
 		query = query.Order(number("$.price_cents") + " DESC")
-	case "sales", "sales_desc":
+	case constants.CatalogSortSales, constants.CatalogSortSalesDesc:
 		query = query.Order(number("$.sales") + " DESC")
 	}
 	rows := []domain.Record{}

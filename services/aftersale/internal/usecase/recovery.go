@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 )
 
@@ -20,15 +21,15 @@ func (s *Service) Tick(ctx context.Context) (traceErr error) {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		c := platform.Command{ID: row.ID, UserID: row.UserID, Role: "system", Data: map[string]any{}}
+		c := platform.Command{ID: row.ID, UserID: row.UserID, Role: constants.RoleSystem, Data: map[string]any{}}
 		switch row.Status {
-		case "INSPECTING":
-			c.Action = "inspect"
+		case constants.AftersaleStatusInspecting:
+			c.Action = constants.ActionInspect
 			c.Data["condition"] = row.Condition
-		case "REFUND_REQUESTED":
-			c.Action = "refund"
-		case "EXCHANGE_PREPARING":
-			c.Action = "exchange"
+		case constants.AftersaleStatusRefundRequested:
+			c.Action = constants.ActionRefund
+		case constants.AftersaleStatusExchangePreparing:
+			c.Action = constants.ActionExchange
 		}
 		if _, err = s.Handle(ctx, c); err != nil {
 			failures = append(failures, err)

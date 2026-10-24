@@ -2,6 +2,43 @@
 
 最近补充：2026-10-24。此记录区分静态配置、镜像元数据核对与真实容器运行。
 
+## 2026-10-24 全局业务枚举集中维护
+
+- 新增 `internal/constants/`，按30个服务、公共角色/服务名/RPC动作/事件、消息投递与前端投影分文件维护117组、521个无类型字符串常量。生产服务、仓储查询和恢复任务、Saga步骤、事件订阅/发布、RPC适配、网关白名单与前端状态映射都改用语义明确的引用；数据库、JSON、RPC及事件原值保持不变，不需要迁移已有状态记录。不同状态机的同值常量仍分组，旧协议兼容值显式保留。
+- `go generate ./internal/constants` 从Go声明生成深冻结的 `web/dist/constants.js`，两个HTML入口在API及业务脚本之前载入。生成器支持空默认值及gofmt注释排版，拒绝类型化/隐式/非字面量/重复分组；`-check` 只校验、不改写过期文件。前端测试脚本首先检查生成同步，再检查所有生产引用存在性和加载顺序。
+- 新增Go与前端源码守卫，阻止生产代码重新内联已定义的大写持久化状态。测试fixture保留原始协议字面量验证兼容；前端额外以不同的测试值区分原本同值的领域，确认订单完成操作不依赖售后状态、支付成功不借用秒杀状态、券包和发票各自独立。字段键、提示文案、DOM操作、SQL/Redis关键字和外部库协议保持原位。
+- 全量Go、生成器与源码守卫、相关go vet、交易关键路径race通过；完整前端239项Node检查、107项真实HTTP检查、47项会员检查及23个脚本语法检查通过。最后只增加源码守卫断言，专项复跑也通过。实际写入链路回归均使用独立临时数据库。
+- 已执行 `sh start.sh` 更新30个业务服务及gateway，保留中间件和数据卷；运行健康/就绪200、Consul无critical服务。27个脚本和入口文件（包含生成常量）与工作区一致。实际游客首页1次业务HTTP（166ms）、会员2次（576ms），均无加载错误；仅创建/退出自己的探针会话，未修改运行商城的商品、订单、库存或行为数据。
+- 维护说明 `internal/constants/README.md`；验证日志 `/private/tmp/lumo-enums-go-final.log`、`/private/tmp/lumo-enums-frontend-final.log`、`/private/tmp/lumo-enums-trading-race.log`、`/private/tmp/lumo-enums-platform-final.log`，运行证据 `/private/tmp/lumo-enums-live-verification.json`。部署日志 `/private/tmp/lumo-enums-deploy.log` 含访问凭据，保存在受限临时文件中。
+
+## 2026-10-24 贴边侧栏、六件兴趣商品和主区扩宽
+
+- 桌面左侧兴趣栏、右侧快捷工具及各自展开入口固定到浏览器左右边缘，不再跟随1280px内容容器定位。主区在侧栏安全空间内居中，最大宽度1760px；收起任意一栏会回收对应空间。平板/手机隐藏兴趣栏、精简快捷入口并保留安全间距。
+- 新增公开、可选认证的 `POST /api/v1/storefront/recent`，空命令返回最多6个完整、唯一、可售父商品及默认SKU实际库存。本人浏览优先、收藏次之，剩余按既有搜索/对比/购买等信号的推荐排序补齐，最后使用真实可售精选；不同规格只占一个商品位置。无行为及游客显示精选来源，可售目录确实不足或依赖故障时诚实返回更少及降级标记。
+- 首屏聚合直接预载recent结果，复用已有行为、订单、商品、推荐及库存；后续行为变化只刷新一次recent聚合，前端取消逐商品/库存读取。缺失SKU和父商品在后端批量解析，禁用、缺失和无货商品跳过补位；首100件不足时继续查真实目录，库存服务故障则停止无效扫描。折叠、展开和普通渲染不读取接口，账号、令牌、地址和读取版本保护旧响应。
+- 全量 `go test ./...`、网关全包race、相关go vet、完整前端107项真实HTTP检查与会员47项通过。新增真实HTTP/gRPC测试验证0至5条历史各自补齐6条、变体去重和第六件收藏、本人行为优先、游客/管理员隔离及bootstrap复用；正常首屏仍只执行一次推荐排序及每种行为读取。网关单测补充隐藏/禁用/缺货、目录翻页及库存故障边界；前端侧栏与聚合相关75项回归通过。
+- 隔离浏览器验证两栏贴边、滚动保持位置、双侧折叠后主区释放空间及再次展开。只有2条历史的会员得到2件历史商品加4件推荐，AX中共6个不同链接；游客显示6件精选商品。截图 `/private/tmp/lumo-rails-personalized.png`、`/private/tmp/lumo-rails-collapsed.png`、`/private/tmp/lumo-rails-scrolled.png`。浏览和弹窗配置测试只使用独立临时数据库，测试会话已退出，临时开发服务和浏览器页已关闭。
+- 已执行 `sh start.sh gateway`，实际健康/就绪200，Consul无critical服务，侧栏脚本/样式、API客户端和首页与工作区一致。游客与会员recent均返回6个不同商品和6份可用库存；会员结果带 `degraded:true`，仍完整返回6件真实收藏商品。实际首页业务HTTP为游客1次（212ms）、会员2次（569ms），均无加载错误，探针会话已退出，未写入商品、库存或行为记录。
+- 证据 `/private/tmp/lumo-rails-live-verification.json`、`/private/tmp/lumo-rails-live-requests.json`、`/private/tmp/lumo-rails-go-tests.log`、`/private/tmp/lumo-rails-frontend.log`、`/private/tmp/lumo-recent-gateway-race-tests.log`；部署日志 `/private/tmp/lumo-rails-deploy.log` 含访问凭据，保存在受限临时文件中。
+
+## 2026-10-24 全局统一加载占位
+
+- 新增共用 `skeleton.js/css`，使用浅灰色图片、文字和价格块匹配真实商品布局，并提供优惠券、列表、详情、个人资料、表单、统计、导航和表格形状。覆盖首页/搜索/商品详情、活动/领券/推荐、购物车/结算/支付/订单、会员/客服、分类/兴趣侧栏、评价问答和后台配置；辅助技术只读取加载状态，减少动态效果设置下关闭流光。
+- 按资源区分首次加载、成功为空和失败，首次读取完成前不展示虚假的“0件”或空结果操作；失败提供重试，后台更新保留已有内容。地址、券包和开票选择器复用未完成读取，关闭、换账号或切换接口后丢弃旧响应。缺少详情商品时仅补读一次实际商品；占位本身不请求数据。
+- 隔离浏览器人为暂缓启动聚合和搜索/领券读取，确认商品区域显示图片、名称和价格占位，完成后替换为实际数据；领券中心显示同一风格的券卡。截图 `/private/tmp/lumo-skeleton-search-loading.png`、`/private/tmp/lumo-skeleton-coupons-loading.png`，慢请求代理和临时开发服务已停止，未修改运行商城业务数据。
+- 完整前端回归包含103项真实HTTP检查、47项会员服务检查、231项Node测试及22个脚本语法检查；其中42项加载状态测试覆盖被延迟、被拒绝、成功空结果、后台刷新、请求合并、关闭弹窗和账号切换。补充修复个人搜索历史失败阻塞公开商品查询的问题，相同上下文的在途搜索复用Promise，旧账号结果不能覆盖当前搜索；真实无结果页显示默认帮助文案。验证结果保存在 `/private/tmp/lumo-skeleton-final-frontend.log`。
+- 已执行 `sh start.sh gateway` 更新本地商城，健康/就绪200，Consul无critical服务，20个相关页面、脚本和样式与工作区一致。实际访客首页1次业务HTTP（启动聚合），会员首页2次（会话恢复和启动聚合），均无加载错误；探针会话已退出。证据 `/private/tmp/lumo-skeleton-live-verification.json`、`/private/tmp/lumo-skeleton-live-requests.json`；部署日志 `/private/tmp/lumo-skeleton-final-deploy.log` 含访问凭据，仅保存在受限临时文件中。
+
+## 2026-10-24 按人群投放的营销弹窗
+
+- 内容服务新增独立的私有活动配置、访客、投放凭证、全局及单活动频控表；后台“营销弹窗”支持草稿、发布/暂停、复制、文案/主题/券模板与按钮配置、实时预览、优先级、生效时间、投放页面及展示/点击/领取统计。版本冲突阻止覆盖其他管理员的修改，重启只补缺失演示配置。
+- 资格由后端按真实IAM注册时间、首次/再次访客、会员等级、可用积分/成长值、兴趣品类及用户允许/排除名单判断。游客、新会员、老会员及成长会员四份演示活动展示不同内容；默认每人每活动最多一次，每天/同一会话最多一次，关闭后不连弹。生产模式没有自动活动种子。
+- 首次决策复用首页聚合已加载的会员、积分及行为快照；无匹配时不增加浏览器请求，符合条件时实际显示前确认一次曝光。凭证有5分钟期限，绑定本人/访客、会话和视图；跨标签页并发频控通过数据库事务原子校验。后台标签页及已有表单等待展示；登录/退出、路由和接口作用域变化丢弃旧响应，领券不会在进入页面时自动执行。
+- 全量Go、完整前端HTTP103项与会员47项通过；新增后台9项、营销弹窗15项、启动生命周期10项通过。内容、网关、IAM、优惠券及跨服务专项race检查通过，`go vet ./...` 和差异检查通过。隔离真实HTTP/gRPC测试覆盖新老客规则、暂停/配置更新失效、跨账号拒绝、重复领取仅一张及已领券进入真实报价；并发测试使用共享数据库上的两个服务对象确认跨实例频控。
+- 隔离浏览器完成后台修改标题并保存、首次访客欢迎弹窗、新会员专享弹窗、真实领取成功及刷新不再展示。后台统计为2次曝光、1次点击、1次领取，与操作一致；测试只修改独立临时数据库。截图为 `/private/tmp/lumo-marketing-popup-guest.png`、`/private/tmp/lumo-marketing-popup-claimed.png`、`/private/tmp/lumo-popup-admin-editor.png`、`/private/tmp/lumo-popup-admin-list.png`。
+- `sh start.sh` 已更新业务服务与网关，保留中间件及数据卷。实际商城健康/就绪200、Consul无critical服务；9个相关页面/脚本/样式与工作区文件一致。全新访客启动聚合113ms返回首次访客活动及日常券候选，管理员能读取四份已启用活动及全局每会话1次/间隔60秒设置。运行环境未提交测试曝光、未领取券，探针管理员会话已退出；投放记录仅为正常决策生成的短时凭证。
+- 新增访客/投放/视图标识及允许/排除用户名单已纳入统一Trace脱敏。当前部署前端与API同源；以后独立部署前端需要同源反向代理 `/api` 保留第一方访客Cookie，跨域不开放凭据。证据为 `/private/tmp/lumo-popup-live-verification.json`，部署日志 `/private/tmp/lumo-popup-deploy.log`（含访问凭据，不公开附件）。
+
 ## 2026-10-24 Trace调用入参和返回值验收
 
 - 统一 `TraceRequest` / `TraceResponse` 记录 `lumo.request`、`lumo.response`、规范错误码及redacted/truncated标记。接入HTTP、Dispatch/Forward、每一跳自动gRPC client/server、RPC transport、30个领域的旧transport与业务入口、订单15个独立用例、现有事件/恢复调用及MQ publish/consume；本地开发事件消费使用同一预览方式。没有新增替代业务span或改变实际调用参数、响应、鉴权及请求数量。
@@ -57,6 +94,16 @@
 - 全量Go回归通过，网关新增6项聚合预载测试；前端18项侧栏测试、完整真实HTTP业务103项和会员服务47项检查通过。专项覆盖规格归并、目录外补位、账号/令牌/网关切换、旧响应丢弃、初始快照复用和工具真实入口。修正测试中等待异步履约记录时提前404的轮询处理，仍要求最终状态为READY；所有业务写入测试使用隔离数据库。
 - 已定向部署 `gateway`。实际首页访客1次业务HTTP（143ms）、登录2次（529ms），均无加载错误；健康/就绪200、Consul无critical服务，七项前端资源与工作区字节一致。运行账号展示真实兴趣商品及购物车数量；本次运行环境验收只读取业务数据，未修改商品、订单、库存、足迹或收藏。
 - 截图：`/private/tmp/lumo-sidebars-runtime.png`、`/private/tmp/lumo-sidebars-desktop.png`、`/private/tmp/lumo-sidebars-collapsed.png`、`/private/tmp/lumo-sidebars-mobile.png`。
+
+## 2026-10-24 完整品类演示商品与搜索性能验收
+
+- 原始演示目录仅12件，导航20类/586细分类多数没有对应商品。现按后端默认导航派生演示商品计划，新增1,838件商品、3,676个独立SKU；每个细分类至少3款，另有80个分组主题组合。每类新增75–251件，所有分组、快捷入口和配置品牌均有实际搜索结果；价格、规格、演示来源标记和图片由后端保存，库存由inventory独立初始化为50。
+- 商品按父聚合幂等批量初始化，已存在父商品整组跳过；库存只插入缺失SKU，不重置预占、分配或账本。新增样例创建时间取原12件最早时间减1小时，使展示商品继续优先，新样例也能出现在较旧压力数据之前。真实商城发布前后比对原12件的名称、价格、规格、状态及库存完全一致。
+- 排查同时确认全局“养生壶/猫粮/冰箱”原本均触发2秒504。MySQL新增自动随商品行变化的只读生成投影和覆盖索引，短字段先索引过滤排序再按主键加载命中商品；超长字段使用互斥的精确JSON分支，单SQL合并后统一排序和限量，不截断漏检。保留大小写处理、独立字段匹配、字面通配符、原排序及2秒截止。
+- 独立30万行MySQL中在线DDL约19.9秒，搜索63–126ms，无结果搜索67ms；EXPLAIN确认常规分支使用覆盖索引，仅最终结果按主键回表。165组新旧查询对照、生成列表达式验证及17项独立边界审查通过；完整Catalog race、数据和购买链路race通过，全量Go、完整前端/103项真实HTTP/47项会员检查及16项指纹检查通过。
+- 已执行 `sh start.sh catalog inventory gateway`。实际库逐批读回全部1,838商品及3,676 SKU，全部可用库存50；20类浏览及20类叶词查询均成功，新样例进入各品类前列。全局养生壶3件/87ms、猫粮3件/87ms、冰箱43个候选/90ms、篮球6件/86ms、打印机6件/86ms；小写apple返回18个候选/81ms，无结果78ms。仍保持浏览器访客1次、会员2次首屏请求；健康/就绪200、Consul critical为0。
+- 证据：`/private/tmp/lumo-assortment-live-verification.json`、`/private/tmp/lumo-assortment-live-home-requests.json`、`/private/tmp/lumo-search-document-mysql-scale.log`；实际商城浏览器确认“养生壶”3款商品，截图 `/private/tmp/lumo-assortment-search-live.png`。完整支付验证仅在隔离测试商城执行，未向实际商城创建测试订单。
+- 上线复核发现MySQL计数选择parent_id单列索引回表，刷新统计后仍导致catalog/list约911ms。仅为MySQL COUNT固定既有 `idx_catalog_page` 覆盖索引，分页SELECT与SQLite不变；真实MySQL验证ACTIVE/DISABLED/include_disabled/空页计数和顺序均正确、COUNT使用覆盖索引。定向再次更新catalog后，实际catalog/list返回301851件总数/82ms，访客首页180ms、会员564ms且仍为1/2次请求；并发复测搜索89–225ms，无超时。最终性能证据 `/private/tmp/lumo-assortment-final-performance.json`。
 
 ## 2026-10-24 分类导航后端配置化验收
 

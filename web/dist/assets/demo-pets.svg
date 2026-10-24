@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" role="img" aria-label="宠物生活演示商品封面">
+  <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#eaf2f2"/><stop offset="1" stop-color="#fff"/></linearGradient></defs>
+  <rect width="800" height="800" fill="url(#bg)"/>
+  <circle cx="400" cy="345" r="220" fill="#fff" opacity=".58"/>
+  <circle cx="675" cy="155" r="68" fill="#367c7b" opacity=".055"/>
+  <text x="58" y="70" font-family="Arial,sans-serif" font-size="21" font-weight="700" letter-spacing="5" fill="#367c7b">LUMO COLLECTION</text>
+  <g transform="translate(228 175) scale(1.44)" fill="none" stroke="#367c7b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="120" cy="153" rx="48" ry="40"/><ellipse cx="66" cy="106" rx="19" ry="27" transform="rotate(-26 66 106)"/><ellipse cx="98" cy="66" rx="18" ry="26" transform="rotate(-10 98 66)"/><ellipse cx="143" cy="68" rx="18" ry="26" transform="rotate(10 143 68)"/><ellipse cx="179" cy="107" rx="19" ry="27" transform="rotate(26 179 107)"/></g>
+  <ellipse cx="400" cy="563" rx="144" ry="14" fill="#367c7b" opacity=".07"/>
+  <text x="400" y="654" text-anchor="middle" font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="40" font-weight="600" letter-spacing="8" fill="#367c7b">宠物生活</text>
+  <text x="400" y="701" text-anchor="middle" font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="18" letter-spacing="4" fill="#367c7b" opacity=".65">演示商品 · 品类示意图</text>
+</svg>

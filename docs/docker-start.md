@@ -87,6 +87,8 @@ sh scripts/down.sh
 
 默认顾客账号 `demo / Lumo@2026`，管理员账号 `admin / Admin@2026`。支付等外部渠道仍为演示适配器。
 
+`DEMO_MODE=true` 时，catalog和inventory各自增量初始化完整品类样例：除原12件外，新增1,838件商品、3,676个SKU，覆盖20品类的全部586个细分类。重复启动不覆盖已编辑商品、上下架状态和实际库存；关闭演示模式不自动创建这些扩展样例，也不删除已有数据。只更新这部分与前端资源时可执行 `sh start.sh catalog inventory gateway`，保留已有数据库和中间件。修改后端初始分类词条后，可用 `go generate ./internal/democatalog` 重建派生商品计划，用 `python3 scripts/generate-demo-category-assets.py` 重建本地示意图；这些开发工具不是日常启动依赖。
+
 启动成功后，各访问地址下会输出对应登录信息。商城、管理端与联调台在 IAM 启用演示模式时显示初始演示账号；关闭演示模式时提示使用已有账号。RabbitMQ显示运行容器配置的初始化账号密码，MinIO显示运行容器的Access Key和Secret Key，Consul与Jaeger标注默认无需账号密码。已在应用内修改过的密码以实际账号为准。
 
 编辑 `.env` 的 `GATEWAY_PORT`、`CONSUL_UI_PORT`、`JAEGER_PORT`、`RABBITMQ_UI_PORT`、`MINIO_API_PORT`、`MINIO_CONSOLE_PORT` 可调整映射；完成时脚本从Docker查询实际地址。成功提示后集中列出“可访问地址”，包括商城、管理端、联调台、Consul、Jaeger、RabbitMQ和MinIO；同时发布IPv4/IPv6时每个入口只输出一条URL，通配监听地址转换为本机可访问地址。新版示例中MinIO上传来源引用网关端口，签名端点引用MinIO API端口。沿用旧配置时同步其中写死的 `MINIO_CORS_ORIGINS`、`MINIO_PUBLIC_ENDPOINT`；浏览器跨域部署见 `cors.md`。中间件映射调整需显式更新中间件容器。

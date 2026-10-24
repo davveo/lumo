@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"github.com/davveo/lumo/internal/constants"
 
 	"github.com/davveo/lumo/services/order/internal/domain"
 	"github.com/davveo/lumo/services/order/internal/repository"
@@ -11,7 +12,7 @@ import (
 )
 
 func (s *Service) GroupFormed(ctx context.Context, request OrderRequest) (domain.Order, error) {
-	return s.update(ctx, "group_formed", request, internalAccess, func(_ *repository.Tx, order *domain.Order) (transition, error) {
+	return s.update(ctx, constants.ActionGroupFormed, request, internalAccess, func(_ *repository.Tx, order *domain.Order) (transition, error) {
 		if order.GroupFailed {
 			return transition{}, status.Error(codes.FailedPrecondition, "group already failed")
 		}
@@ -20,14 +21,14 @@ func (s *Service) GroupFormed(ctx context.Context, request OrderRequest) (domain
 	})
 }
 func (s *Service) GroupFailed(ctx context.Context, request OrderRequest) (domain.Order, error) {
-	return s.update(ctx, "group_failed", request, internalAccess, func(_ *repository.Tx, order *domain.Order) (transition, error) {
-		if order.Status == "SHIPPED" || order.Status == "COMPLETED" {
+	return s.update(ctx, constants.ActionGroupFailed, request, internalAccess, func(_ *repository.Tx, order *domain.Order) (transition, error) {
+		if order.Status == constants.OrderStatusShipped || order.Status == constants.OrderStatusCompleted {
 			return transition{}, status.Error(codes.FailedPrecondition, "cannot fail dispatched group order")
 		}
 		order.GroupFailed = true
-		order.Status = "TERMINATED"
+		order.Status = constants.OrderStatusTerminated
 		return transition{
-			eventType: "GroupOrderTerminated",
+			eventType: constants.EventGroupOrderTerminated,
 			data:      map[string]any{"order_id": order.ID, "payment_id": order.PaymentID, "amount_cents": order.Payable}}, nil
 	})
 }

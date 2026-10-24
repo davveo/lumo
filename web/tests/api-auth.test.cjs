@@ -26,7 +26,7 @@ function environment() {
   ctx.window = ctx;
   return vm.createContext(ctx);
 }
-function load(ctx, filename) { vm.runInContext(fs.readFileSync(scripts + filename, 'utf8'), ctx, { filename }); }
+function load(ctx, filename) { require('./load-constants.cjs')(ctx, scripts); vm.runInContext(fs.readFileSync(scripts + filename, 'utf8'), ctx, { filename }); }
 function response(status, body, trace = 'c'.repeat(32)) { return { status, ok: status < 400, headers: { get: () => trace }, async json() { return body; } }; }
 let assertions = 0;
 async function main() {
@@ -37,7 +37,7 @@ async function main() {
   assert.equal((await ctx.LumoAPI.call('catalog', 'get', { id: 'sku-coffee', user_id: 'attacker', role: 'admin' }, { auth: false })).id, 'sku-coffee'); assertions++;
   assert.equal(received.url, '/api/v1/catalog/get'); assertions++;
   assert.equal(received.options.headers.Authorization, undefined); assertions++;
-  assert.equal(received.options.credentials, 'omit'); assertions++;
+  assert.equal(received.options.credentials, 'same-origin'); assertions++;
   assert.equal(JSON.parse(received.options.body).role, undefined); assertions++;
   assert.match(received.options.headers.traceparent, /^00-[a-f0-9]{32}-[a-f0-9]{16}-01$/); assertions++;
   await ctx.LumoAPI.call('checkout', 'submit', { idempotency_key: 'stable-001', data: { quote_id: 'q' } });

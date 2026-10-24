@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/notification/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -17,21 +18,21 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		return nil, e
 	}
 	switch c.Action {
-	case "list":
-		return s.list(ctx, c, c.UserID, "inbox", "")
-	case "read":
+	case constants.ActionList:
+		return s.list(ctx, c, c.UserID, constants.NotificationKindInbox, "")
+	case constants.ActionRead:
 		r, e := s.repo.Mutate(ctx, domain.Record{ID: c.ID}, false, func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
 			if e := own(c, *v); e != nil {
 				return nil, nil, e
 			}
-			v.Status = "READ"
+			v.Status = constants.NotificationStatusRead
 			return nil, nil, nil
 		})
 		if e != nil {
 			return nil, e
 		}
 		return view(r), nil
-	case "read_all":
+	case constants.ActionReadAll:
 		count, e := s.repo.MarkAllRead(ctx, c.UserID)
 		if e != nil {
 			return nil, e
@@ -50,7 +51,7 @@ func (s *Service) event(ctx context.Context, e platform.Event) (traceErr error) 
 	if e.UserID == "" {
 		return nil
 	}
-	r := record(stable(e.ID, e.UserID, "inbox"), e.UserID, "inbox", "UNREAD", map[string]any{"event_id": e.ID, "event_type": e.Type, "business_id": e.AggregateID, "title": e.Type, "delivery_mode": "inbox_only", "external_delivery": "not_configured"})
+	r := record(stable(e.ID, e.UserID, constants.NotificationKindInbox), e.UserID, constants.NotificationKindInbox, constants.NotificationStatusUnread, map[string]any{"event_id": e.ID, "event_type": e.Type, "business_id": e.AggregateID, "title": e.Type, "delivery_mode": constants.NotificationDeliveryModeInboxOnly, "external_delivery": constants.NotificationExternalDeliveryNotConfigured})
 	_, err := s.repo.InsertOnce(ctx, &r, nil)
 	return err
 }

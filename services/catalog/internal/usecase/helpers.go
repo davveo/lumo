@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/catalog/internal/domain"
 	"github.com/davveo/lumo/services/catalog/internal/repository"
@@ -42,12 +43,12 @@ func view(r domain.Record) platform.Result {
 	v["user_id"] = r.UserID
 	v["status"] = r.Status
 	v["kind"] = r.Kind
-	v["active"] = r.Status == "ACTIVE"
+	v["active"] = r.Status == constants.CatalogStatusActive
 	v["created_at"] = r.CreatedAt.Format(time.RFC3339)
 	return v
 }
 func own(c platform.Command, r domain.Record) error {
-	if r.UserID != c.UserID && c.Role != "admin" {
+	if r.UserID != c.UserID && c.Role != constants.RoleAdmin {
 		return status.Error(codes.PermissionDenied, "resource belongs to another user")
 	}
 	return nil

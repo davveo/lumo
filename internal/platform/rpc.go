@@ -1,6 +1,8 @@
 package platform
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"bytes"
 	"context"
 	"crypto/subtle"
@@ -115,7 +117,7 @@ func (c *rpcCaller) Call(ctx context.Context, service string, command Command) (
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	ctx = metadata.AppendToOutgoingContext(ctx, rpcTokenHeader, c.token)
-	if service == "order" {
+	if service == constants.ServiceOrder {
 		out, handled, typedErr := callTypedOrder(ctx, conn, command)
 		// A rolling upgrade may reach an order instance that only has Execute.
 		// Business errors never retry through a different transport method.

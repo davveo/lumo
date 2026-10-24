@@ -12,7 +12,7 @@ function deferred() {
   const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
   return {promise, resolve, reject};
 }
-function setup({catalog, inventory, discovery, recommendations, categories, prefetch, render} = {}) {
+function setup({catalog, inventory, discovery, recommendations, categories, prefetch, render, marketing} = {}) {
   let now = 0, sequence = 0;
   const timers = new Map(), statusChanges = [], views = [], events = [], listeners = new Map();
   const clock = {
@@ -55,6 +55,7 @@ function setup({catalog, inventory, discovery, recommendations, categories, pref
     LumoInventory: {refresh: inventory || (async () => {})},
     LumoDiscovery: {refresh: discovery || (async () => {})},
     LumoRecommendations: {refresh: recommendations || (async () => {})},
+    LumoMarketing: marketing,
     addEventListener() {},
     dispatchEvent(event) { events.push(event); }
   };
@@ -64,6 +65,7 @@ function setup({catalog, inventory, discovery, recommendations, categories, pref
     CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options.detail; } },
     render() { views.push({ready: window.LumoConnection.ready}); render?.(); }
   };
+  require('./load-constants.cjs')(context);
   vm.runInNewContext(source, context);
   return {
     window, clock, statusChanges, views, events,
@@ -197,4 +199,20 @@ test('unexpected render errors leave an error state instead of stuck loading', a
   app.clock.advance(5000);
   assert.doesNotMatch(app.status.innerHTML, /正在加载/);
   assert.equal(app.clock.pending, 0);
+});
+
+test('bootstrap passes placement once and delivers its popup only after all account hydration', async () => {
+  const background = deferred(), stages = [], ticket = {placement: 'coupons', route: '#/coupons'};
+  const popup = {delivery_id: 'server-decided'};
+  const app = setup({prefetch: async command => {assert.equal(command.data.placement, 'coupons');stages.push('bootstrap');return {results: [],popup};}, recommendations: () => background.promise,
+    marketing: {beginBootstrap() {stages.push('begin');return ticket;},hydrate(value, context) {assert.equal(value,popup);assert.equal(context,ticket);stages.push('popup');}}});
+  await tick(); assert.deepEqual(stages,['begin','bootstrap']);
+  background.resolve(); await app.window.LumoAppReady;
+  assert.deepEqual(stages,['begin','bootstrap','popup']); assert.equal(app.window.LumoConnection.ready,true);
+});
+
+test('optional popup renderer errors never replace a usable storefront with a connection error', async () => {
+  const app = setup({prefetch: async () => ({results:[],popup:{delivery_id:'candidate'}}),marketing:{beginBootstrap(){return {placement:'home'};},hydrate(){throw Error('optional marketing renderer failed');}}});
+  const result = await app.window.LumoAppReady;
+  assert.equal(result.ready,true);assert.equal(result.errors.length,0);assert.equal(app.status.hidden,true);
 });

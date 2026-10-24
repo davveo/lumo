@@ -1,6 +1,8 @@
 package usecase
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"context"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/campaign/internal/repository"
@@ -16,21 +18,21 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	switch c.Action {
-	case "list":
+	case constants.ActionList:
 		return s.Repo.List(ctx)
-	case "evaluate":
+	case constants.ActionEvaluate:
 		return s.Repo.Evaluate(ctx, c)
 	}
 	if e := platform.RequireUser(c); e != nil {
 		return nil, e
 	}
-	if c.Role != "system" && c.Role != "admin" {
+	if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
 		return nil, status.Error(codes.PermissionDenied, "internal campaign command required")
 	}
 	switch c.Action {
-	case "reserve":
+	case constants.ActionReserve:
 		return s.Repo.Reserve(ctx, c)
-	case "confirm", "cancel":
+	case constants.ActionConfirm, constants.ActionCancel:
 		return s.Repo.Transition(ctx, c)
 	}
 	return nil, status.Error(codes.Unimplemented, "unsupported action")

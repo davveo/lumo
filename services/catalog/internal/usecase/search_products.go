@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/davveo/lumo/internal/constants"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -15,7 +16,7 @@ import (
 )
 
 func (s *Service) searchProducts(ctx context.Context, c platform.Command) (platform.Result, error) {
-	if c.Role != "system" {
+	if c.Role != constants.RoleSystem {
 		return nil, status.Error(codes.PermissionDenied, "internal product search required")
 	}
 	var input struct {
@@ -37,7 +38,7 @@ func (s *Service) searchProducts(ctx context.Context, c platform.Command) (platf
 	for _, field := range []struct {
 		value *string
 		max   int
-	}{{&input.Query, 80}, {&input.Category, 64}, {&input.Brand, 64}} {
+	}{{&input.Query, 120}, {&input.Category, 80}, {&input.Brand, 80}} {
 		*field.value = strings.TrimSpace(*field.value)
 		if !utf8.ValidString(*field.value) || utf8.RuneCountInString(*field.value) > field.max || strings.IndexFunc(*field.value, unicode.IsControl) >= 0 {
 			return nil, bad("invalid product search text")
@@ -50,7 +51,7 @@ func (s *Service) searchProducts(ctx context.Context, c platform.Command) (platf
 		return nil, bad("product search limit must be between 1 and 100")
 	}
 	switch input.Sort {
-	case "", "price_asc", "price_desc", "sales", "sales_desc", "newest":
+	case constants.CatalogSortDefault, constants.CatalogSortPriceAsc, constants.CatalogSortPriceDesc, constants.CatalogSortSales, constants.CatalogSortSalesDesc, constants.CatalogSortNewest:
 	default:
 		return nil, bad("invalid product search sort")
 	}

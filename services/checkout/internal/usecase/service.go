@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/checkout/internal/domain"
 	"github.com/davveo/lumo/services/checkout/internal/repository"
@@ -25,10 +26,10 @@ type Service struct {
 
 func New(r *repository.Repository, rpc platform.Caller) *Service { return &Service{r, rpc} }
 func (s *Service) Topics() []string {
-	return []string{"OrderPaymentAccepted", "OrderClosed", "GroupFormed", "GroupFailed"}
+	return []string{constants.EventOrderPaymentAccepted, constants.EventOrderClosed, constants.EventGroupFormed, constants.EventGroupFailed}
 }
 func (s *Service) call(ctx context.Context, target, action, id, user string, data map[string]any) (platform.Result, error) {
-	return s.rpc.Call(ctx, target, platform.Command{Action: action, ID: id, UserID: user, Role: "system", Data: data})
+	return s.rpc.Call(ctx, target, platform.Command{Action: action, ID: id, UserID: user, Role: constants.RoleSystem, Data: data})
 }
 func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
 	ctx, sp := platform.Start(ctx, "checkout.usecase."+c.Action)
@@ -39,26 +40,26 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 		return nil, err
 	}
 	switch c.Action {
-	case "quote":
-		c.Action = "quote"
-		return s.rpc.Call(ctx, "pricing", c)
-	case "submit":
+	case constants.ActionQuote:
+		c.Action = constants.ActionQuote
+		return s.rpc.Call(ctx, constants.ServicePricing, c)
+	case constants.ActionSubmit:
 		return s.submit(ctx, c)
-	case "get":
+	case constants.ActionGet:
 		a, err := s.r.Get(ctx, c.ID)
 		if err != nil {
 			return nil, err
 		}
-		if a.UserID != c.UserID && c.Role != "system" && c.Role != "admin" {
+		if a.UserID != c.UserID && c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
 			return nil, status.Error(codes.PermissionDenied, "checkout belongs to another member")
 		}
 		return platform.Map(a), nil
-	case "paid":
-		if c.Role != "system" && c.Role != "admin" {
+	case constants.ActionPaid:
+		if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
 			return nil, status.Error(codes.PermissionDenied, "internal payment workflow")
 		}
-		return s.run(ctx, c.ID, c.UserID, "paid")
-	case "cancel":
+		return s.run(ctx, c.ID, c.UserID, constants.CheckoutModePaid)
+	case constants.ActionCancel:
 		return s.cancel(ctx, c)
 	default:
 		return nil, status.Error(codes.Unimplemented, "unsupported checkout action")
@@ -82,12 +83,12 @@ func (s *Service) submit(ctx context.Context, c platform.Command) (platform.Resu
 		if old.QuoteID != platform.Text(c.Data, "quote_id") || (old.RequestHash != "" && old.RequestHash != requestHash) {
 			return nil, status.Error(codes.AlreadyExists, "idempotency key reused with a different quote")
 		}
-		return s.run(ctx, id, c.UserID, "create")
+		return s.run(ctx, id, c.UserID, constants.CheckoutModeCreate)
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
-	q, err := s.rpc.Call(ctx, "pricing", platform.Command{Action: "get", ID: platform.Text(c.Data, "quote_id"), UserID: c.UserID, Role: c.Role})
+	q, err := s.rpc.Call(ctx, constants.ServicePricing, platform.Command{Action: constants.ActionGet, ID: platform.Text(c.Data, "quote_id"), UserID: c.UserID, Role: c.Role})
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +117,7 @@ func (s *Service) submit(ctx context.Context, c platform.Command) (platform.Resu
 		}
 	}
 	sort.Strings(ids)
-	catalog, err := s.rpc.Call(ctx, "catalog", platform.Command{Action: "batch_get", UserID: c.UserID, Role: c.Role, Data: map[string]any{"ids": ids}})
+	catalog, err := s.rpc.Call(ctx, constants.ServiceCatalog, platform.Command{Action: constants.ActionBatchGet, UserID: c.UserID, Role: c.Role, Data: map[string]any{"ids": ids}})
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +148,7 @@ func (s *Service) submit(ctx context.Context, c platform.Command) (platform.Resu
 		if mainSubtotal == 0 {
 			mainSubtotal = platform.Int(q, "subtotal_cents")
 		}
-		current, e := s.rpc.Call(ctx, "campaign", platform.Command{Action: "evaluate", UserID: c.UserID, Role: c.Role, Data: map[string]any{"subtotal_cents": mainSubtotal, "quantity": quantity, "addon_sku_id": q["addon_sku_id"], "activity_id": q["activity_id"]}})
+		current, e := s.rpc.Call(ctx, constants.ServiceCampaign, platform.Command{Action: constants.ActionEvaluate, UserID: c.UserID, Role: c.Role, Data: map[string]any{"subtotal_cents": mainSubtotal, "quantity": quantity, "addon_sku_id": q["addon_sku_id"], "activity_id": q["activity_id"]}})
 		if e != nil {
 			return nil, e
 		}
@@ -158,9 +159,9 @@ func (s *Service) submit(ctx context.Context, c platform.Command) (platform.Resu
 	}
 	source := platform.Text(c.Data, "source")
 	if source == "" {
-		source = "direct"
+		source = constants.OrderSourceDirect
 	}
-	if source != "cart" && source != "direct" {
+	if source != constants.OrderSourceCart && source != constants.OrderSourceDirect {
 		return nil, status.Error(codes.InvalidArgument, "source must be cart or direct")
 	}
 	note := strings.TrimSpace(platform.Text(c.Data, "note"))
@@ -169,7 +170,7 @@ func (s *Service) submit(ctx context.Context, c platform.Command) (platform.Resu
 	}
 	address := c.Data["address"]
 	if aid := platform.Text(c.Data, "address_id"); aid != "" {
-		list, e := s.rpc.Call(ctx, "address", platform.Command{Action: "list", UserID: c.UserID, Role: c.Role})
+		list, e := s.rpc.Call(ctx, constants.ServiceAddress, platform.Command{Action: constants.ActionList, UserID: c.UserID, Role: c.Role})
 		if e != nil {
 			return nil, e
 		}
@@ -216,11 +217,11 @@ func (s *Service) submit(ctx context.Context, c platform.Command) (platform.Resu
 	address = ship
 	qb, _ := json.Marshal(q)
 	ab, _ := json.Marshal(address)
-	a := domain.Saga{ID: id, UserID: c.UserID, RequestKey: key, RequestHash: requestHash, QuoteID: platform.Text(q, "quote_id"), Quote: string(qb), Address: string(ab), Note: note, Source: source, State: "CREATING", Steps: "{}", LeaseUntil: time.Now().UTC()}
+	a := domain.Saga{ID: id, UserID: c.UserID, RequestKey: key, RequestHash: requestHash, QuoteID: platform.Text(q, "quote_id"), Quote: string(qb), Address: string(ab), Note: note, Source: source, State: constants.CheckoutStateCreating, Steps: "{}", LeaseUntil: time.Now().UTC()}
 	if err = s.r.Ensure(ctx, &a); err != nil {
 		return nil, err
 	}
-	return s.run(ctx, id, c.UserID, "create")
+	return s.run(ctx, id, c.UserID, constants.CheckoutModeCreate)
 }
 func (s *Service) run(ctx context.Context, id, user, mode string) (platform.Result, error) {
 	owner := platform.ID("lease")
@@ -229,7 +230,7 @@ func (s *Service) run(ctx context.Context, id, user, mode string) (platform.Resu
 		return nil, err
 	}
 	if !ok {
-		return platform.Result{"order_id": id, "status": "PROCESSING"}, status.Error(codes.Aborted, "checkout workflow is already processing; query original order")
+		return platform.Result{"order_id": id, "status": constants.CheckoutStateProcessing}, status.Error(codes.Aborted, "checkout workflow is already processing; query original order")
 	}
 	defer func() {
 		releaseCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
@@ -251,142 +252,142 @@ func (s *Service) run(ctx context.Context, id, user, mode string) (platform.Resu
 		steps = map[string]string{}
 	}
 	save := func() error { b, _ := json.Marshal(steps); a.Steps = string(b); return s.r.Save(ctx, &a, owner) }
-	if mode == "create" {
-		if a.State != "CREATING" {
+	if mode == constants.CheckoutModeCreate {
+		if a.State != constants.CheckoutStateCreating {
 			return platform.Result{"order_id": id, "status": a.State}, nil
 		}
 		var address any
 		_ = json.Unmarshal([]byte(a.Address), &address)
-		if _, err = s.call(ctx, "order", "create", id, user, map[string]any{"quote": q, "address": address, "note": a.Note, "source": a.Source}); err != nil {
+		if _, err = s.call(ctx, constants.ServiceOrder, constants.ActionCreate, id, user, map[string]any{"quote": q, "address": address, "note": a.Note, "source": a.Source}); err != nil {
 			return nil, err
 		}
-		resources := []string{"inventory"}
+		resources := []string{constants.ServiceInventory}
 		if platform.Text(q, "activity_id") != "" {
-			resources = append(resources, "campaign")
+			resources = append(resources, constants.ServiceCampaign)
 		}
 		if platform.Text(q, "group_id") != "" {
-			resources = append(resources, "group")
+			resources = append(resources, constants.ServiceGroup)
 		}
 		if platform.Text(q, "coupon_id") != "" {
-			resources = append(resources, "coupon")
+			resources = append(resources, constants.ServiceCoupon)
 		}
 		if platform.Int(q, "points") > 0 {
-			resources = append(resources, "points")
+			resources = append(resources, constants.ServicePoints)
 		}
 		for _, resource := range resources {
-			if steps[resource] == "RESERVED" {
+			if steps[resource] == constants.CheckoutStepStatusReserved {
 				continue
 			}
-			steps[resource] = "TRYING"
+			steps[resource] = constants.CheckoutStepStatusTrying
 			if err = save(); err != nil {
 				return nil, err
 			}
 			data := map[string]any{"order_id": id}
 			switch resource {
-			case "inventory":
+			case constants.ServiceInventory:
 				data["lines"] = q["items"]
-			case "campaign":
+			case constants.ServiceCampaign:
 				data["activity_id"] = q["activity_id"]
 				data["quantity"] = int64(1)
-			case "group":
+			case constants.ServiceGroup:
 				data["group_id"] = q["group_id"]
-			case "coupon":
+			case constants.ServiceCoupon:
 				data["coupon_id"] = q["coupon_id"]
 				data["subtotal_cents"] = q["subtotal_cents"]
-			case "points":
+			case constants.ServicePoints:
 				data["amount"] = q["points"]
 			}
-			reserved, e := s.call(ctx, resource, "reserve", id, user, data)
-			if e == nil && resource == "coupon" && platform.Int(reserved, "discount_cents") != platform.Int(q, "coupon_discount_cents") {
+			reserved, e := s.call(ctx, resource, constants.ActionReserve, id, user, data)
+			if e == nil && resource == constants.ServiceCoupon && platform.Int(reserved, "discount_cents") != platform.Int(q, "coupon_discount_cents") {
 				e = status.Error(codes.FailedPrecondition, "coupon changed; requote required")
 			}
 			if e != nil {
-				steps[resource] = "UNKNOWN"
-				a.State = "CANCELLING"
+				steps[resource] = constants.CheckoutStepStatusUnknown
+				a.State = constants.CheckoutStateCancelling
 				a.LastError = status.Code(e).String()
 				if err = save(); err != nil {
 					return nil, err
 				}
 				_ = s.releaseResources(ctx, &a, q, steps, save)
-				_, _ = s.call(ctx, "order", "create_failed", id, user, nil)
+				_, _ = s.call(ctx, constants.ServiceOrder, constants.ActionCreateFailed, id, user, nil)
 				return nil, e
 			}
-			steps[resource] = "RESERVED"
+			steps[resource] = constants.CheckoutStepStatusReserved
 			if err = save(); err != nil {
 				return nil, err
 			}
 		}
-		if _, err = s.call(ctx, "order", "pending", id, user, nil); err != nil {
+		if _, err = s.call(ctx, constants.ServiceOrder, constants.ActionPending, id, user, nil); err != nil {
 			return nil, err
 		}
-		a.State = "PENDING_PAYMENT"
+		a.State = constants.CheckoutStatePendingPayment
 		if err = save(); err != nil {
 			return nil, err
 		}
 		return platform.Result{"order_id": id, "status": a.State}, nil
 	}
-	if mode == "release" || a.State == "CANCELLING" {
-		a.State = "CANCELLING"
+	if mode == constants.CheckoutModeRelease || a.State == constants.CheckoutStateCancelling {
+		a.State = constants.CheckoutStateCancelling
 		if err = save(); err != nil {
 			return nil, err
 		}
 		err = s.releaseResources(ctx, &a, q, steps, save)
 		return platform.Result{"order_id": id, "status": a.State}, err
 	}
-	if mode == "paid" {
-		if a.State == "READY_TO_FULFILL" {
+	if mode == constants.CheckoutModePaid {
+		if a.State == constants.CheckoutStateReadyToFulfill {
 			return platform.Result{"order_id": id, "status": a.State}, nil
 		}
-		o, e := s.call(ctx, "order", "get", id, user, nil)
+		o, e := s.call(ctx, constants.ServiceOrder, constants.ActionGet, id, user, nil)
 		if e != nil {
 			return nil, e
 		}
 		st := platform.Text(o, "status")
-		if st != "PAID_CONFIRMING" && st != "PAID_WAIT_GROUP" && st != "READY_TO_FULFILL" {
+		if st != constants.OrderStatusPaidConfirming && st != constants.OrderStatusPaidWaitGroup && st != constants.OrderStatusReadyToFulfill {
 			return nil, status.Error(codes.FailedPrecondition, "order has not accepted payment")
 		}
-		a.State = "PAID_CONFIRMING"
+		a.State = constants.CheckoutStatePaidConfirming
 		if err = save(); err != nil {
 			return nil, err
 		}
-		for _, resource := range []string{"coupon", "points", "campaign"} {
-			if steps[resource] == "" || steps[resource] == "CONFIRMED" {
+		for _, resource := range []string{constants.ServiceCoupon, constants.ServicePoints, constants.ServiceCampaign} {
+			if steps[resource] == "" || steps[resource] == constants.CheckoutStepStatusConfirmed {
 				continue
 			}
-			if _, err = s.call(ctx, resource, "confirm", id, user, nil); err != nil {
+			if _, err = s.call(ctx, resource, constants.ActionConfirm, id, user, nil); err != nil {
 				return nil, err
 			}
-			steps[resource] = "CONFIRMED"
+			steps[resource] = constants.CheckoutStepStatusConfirmed
 			if err = save(); err != nil {
 				return nil, err
 			}
 		}
 		if gid := platform.Text(q, "group_id"); gid != "" {
-			team, e := s.call(ctx, "group", "paid", id, user, map[string]any{"group_id": gid})
+			team, e := s.call(ctx, constants.ServiceGroup, constants.ActionPaid, id, user, map[string]any{"group_id": gid})
 			if e != nil {
 				return nil, e
 			}
-			if platform.Text(team, "status") == "FAILED" || platform.Text(team, "status") == "failed" {
-				if _, e = s.call(ctx, "order", "group_failed", id, user, nil); e != nil {
+			if platform.Text(team, "status") == constants.GroupStatusFailed || platform.Text(team, "status") == constants.GroupStatusLegacyFailed {
+				if _, e = s.call(ctx, constants.ServiceOrder, constants.ActionGroupFailed, id, user, nil); e != nil {
 					return nil, e
 				}
-				if _, e = s.call(ctx, "payment", "close", id, user, nil); e != nil {
+				if _, e = s.call(ctx, constants.ServicePayment, constants.ActionClose, id, user, nil); e != nil {
 					return nil, e
 				}
-				a.State = "CANCELLING"
+				a.State = constants.CheckoutStateCancelling
 				if e = save(); e != nil {
 					return nil, e
 				}
 				e = s.releaseResources(ctx, &a, q, steps, save)
 				return platform.Result{"order_id": id, "status": a.State}, e
 			}
-			formed := platform.Text(team, "status") == "FORMED" || platform.Text(team, "status") == "formed"
+			formed := platform.Text(team, "status") == constants.GroupStatusFormed || platform.Text(team, "status") == constants.GroupStatusLegacyFormed
 			if b, _ := team["formed"].(bool); b {
 				formed = true
 			}
 			if !formed {
-				a.State = "PAID_WAIT_GROUP"
-				if _, e = s.call(ctx, "order", "wait_group", id, user, nil); e != nil {
+				a.State = constants.CheckoutStatePaidWaitGroup
+				if _, e = s.call(ctx, constants.ServiceOrder, constants.ActionWaitGroup, id, user, nil); e != nil {
 					return nil, e
 				}
 				if e = save(); e != nil {
@@ -394,23 +395,23 @@ func (s *Service) run(ctx context.Context, id, user, mode string) (platform.Resu
 				}
 				return platform.Result{"order_id": id, "status": a.State}, nil
 			}
-			if _, e = s.call(ctx, "order", "group_formed", id, user, nil); e != nil {
+			if _, e = s.call(ctx, constants.ServiceOrder, constants.ActionGroupFormed, id, user, nil); e != nil {
 				return nil, e
 			}
 		}
-		if steps["inventory"] != "CONFIRMED" {
-			if _, err = s.call(ctx, "inventory", "confirm", id, user, nil); err != nil {
+		if steps[constants.ServiceInventory] != constants.CheckoutStepStatusConfirmed {
+			if _, err = s.call(ctx, constants.ServiceInventory, constants.ActionConfirm, id, user, nil); err != nil {
 				return nil, err
 			}
-			steps["inventory"] = "CONFIRMED"
+			steps[constants.ServiceInventory] = constants.CheckoutStepStatusConfirmed
 			if err = save(); err != nil {
 				return nil, err
 			}
 		}
-		if _, err = s.call(ctx, "order", "ready", id, user, nil); err != nil {
+		if _, err = s.call(ctx, constants.ServiceOrder, constants.ActionReady, id, user, nil); err != nil {
 			return nil, err
 		}
-		a.State = "READY_TO_FULFILL"
+		a.State = constants.CheckoutStateReadyToFulfill
 		if err = save(); err != nil {
 			return nil, err
 		}
@@ -419,89 +420,89 @@ func (s *Service) run(ctx context.Context, id, user, mode string) (platform.Resu
 	return nil, status.Error(codes.InvalidArgument, "invalid workflow mode")
 }
 func (s *Service) releaseResources(ctx context.Context, a *domain.Saga, q map[string]any, steps map[string]string, save func() error) error {
-	for _, resource := range []string{"points", "coupon", "group", "campaign", "inventory"} {
+	for _, resource := range []string{constants.ServicePoints, constants.ServiceCoupon, constants.ServiceGroup, constants.ServiceCampaign, constants.ServiceInventory} {
 		st := steps[resource]
-		if st == "" || st == "CANCELLED" {
+		if st == "" || st == constants.CheckoutStepStatusCancelled {
 			continue
 		}
-		if st == "CONFIRMED" && resource != "inventory" {
+		if st == constants.CheckoutStepStatusConfirmed && resource != constants.ServiceInventory {
 			continue
 		}
-		if resource == "inventory" && st == "CONFIRMED" {
-			if _, err := s.call(ctx, "fulfillment", "cancel", a.ID, a.UserID, nil); err != nil {
+		if resource == constants.ServiceInventory && st == constants.CheckoutStepStatusConfirmed {
+			if _, err := s.call(ctx, constants.ServiceFulfillment, constants.ActionCancel, a.ID, a.UserID, nil); err != nil {
 				return err
 			}
 		}
-		if _, err := s.call(ctx, resource, "cancel", a.ID, a.UserID, nil); err != nil {
-			if resource != "group" || status.Code(err) != codes.FailedPrecondition {
+		if _, err := s.call(ctx, resource, constants.ActionCancel, a.ID, a.UserID, nil); err != nil {
+			if resource != constants.ServiceGroup || status.Code(err) != codes.FailedPrecondition {
 				return err
 			}
 		}
-		steps[resource] = "CANCELLED"
+		steps[resource] = constants.CheckoutStepStatusCancelled
 		if err := save(); err != nil {
 			return err
 		}
 	}
-	a.State = "CANCELLED"
+	a.State = constants.CheckoutStateCancelled
 	return save()
 }
 func (s *Service) cancel(ctx context.Context, c platform.Command) (platform.Result, error) {
-	o, err := s.rpc.Call(ctx, "order", platform.Command{Action: "get", ID: c.ID, UserID: c.UserID, Role: c.Role})
+	o, err := s.rpc.Call(ctx, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: c.ID, UserID: c.UserID, Role: c.Role})
 	if err != nil {
 		return nil, err
 	}
 	user := platform.Text(o, "user_id")
 	st := platform.Text(o, "status")
-	if st == "CLOSED" || st == "CREATE_FAILED" {
-		return s.run(ctx, c.ID, user, "release")
+	if st == constants.OrderStatusClosed || st == constants.OrderStatusCreateFailed {
+		return s.run(ctx, c.ID, user, constants.CheckoutModeRelease)
 	}
-	if _, err = s.call(ctx, "order", "close_begin", c.ID, user, nil); err != nil {
+	if _, err = s.call(ctx, constants.ServiceOrder, constants.ActionCloseBegin, c.ID, user, nil); err != nil {
 		return nil, err
 	}
-	p, err := s.call(ctx, "payment", "close", c.ID, user, nil)
+	p, err := s.call(ctx, constants.ServicePayment, constants.ActionClose, c.ID, user, nil)
 	if err != nil {
 		return nil, err
 	}
 	paid, _ := p["paid"].(bool)
 	if paid {
 		p["payment_id"] = p["id"]
-		accept, e := s.call(ctx, "order", "accept_payment", c.ID, user, p)
+		accept, e := s.call(ctx, constants.ServiceOrder, constants.ActionAcceptPayment, c.ID, user, p)
 		if e != nil {
 			err = e
 			return nil, err
 		}
 		if accepted, _ := accept["accepted"].(bool); !accepted {
-			return s.run(ctx, c.ID, user, "release")
+			return s.run(ctx, c.ID, user, constants.CheckoutModeRelease)
 		}
-		return s.run(ctx, c.ID, user, "paid")
+		return s.run(ctx, c.ID, user, constants.CheckoutModePaid)
 	}
-	if _, err = s.call(ctx, "order", "close_complete", c.ID, user, nil); err != nil {
+	if _, err = s.call(ctx, constants.ServiceOrder, constants.ActionCloseComplete, c.ID, user, nil); err != nil {
 		return nil, err
 	}
-	return s.run(ctx, c.ID, user, "release")
+	return s.run(ctx, c.ID, user, constants.CheckoutModeRelease)
 }
 func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error) {
 	ctx, sp := platform.Start(ctx, "checkout.usecase.OnEvent."+e.Type)
 	defer sp.End()
 	platform.TraceRequest(ctx, e)
 	defer func() { platform.TraceResponse(ctx, nil, traceErr) }()
-	if e.Type == "OrderPaymentAccepted" {
+	if e.Type == constants.EventOrderPaymentAccepted {
 		id := platform.Text(e.Data, "order_id")
 		if id == "" {
 			id = e.AggregateID
 		}
-		_, err := s.run(ctx, id, e.UserID, "paid")
+		_, err := s.run(ctx, id, e.UserID, constants.CheckoutModePaid)
 		return err
 	}
-	if e.Type == "OrderClosed" {
+	if e.Type == constants.EventOrderClosed {
 		id := platform.Text(e.Data, "order_id")
 		if id == "" {
 			id = e.AggregateID
 		}
-		_, err := s.run(ctx, id, e.UserID, "release")
+		_, err := s.run(ctx, id, e.UserID, constants.CheckoutModeRelease)
 		return err
 	}
-	if e.Type == "GroupFormed" || e.Type == "GroupFailed" {
+	if e.Type == constants.EventGroupFormed || e.Type == constants.EventGroupFailed {
 		ids := []string{}
 		if id := platform.Text(e.Data, "order_id"); id != "" {
 			ids = append(ids, id)
@@ -521,21 +522,21 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 			if err != nil {
 				return err
 			}
-			if e.Type == "GroupFormed" {
-				if _, err = s.call(ctx, "order", "group_formed", id, a.UserID, nil); err != nil {
+			if e.Type == constants.EventGroupFormed {
+				if _, err = s.call(ctx, constants.ServiceOrder, constants.ActionGroupFormed, id, a.UserID, nil); err != nil {
 					return err
 				}
-				if _, err = s.run(ctx, id, a.UserID, "paid"); err != nil {
+				if _, err = s.run(ctx, id, a.UserID, constants.CheckoutModePaid); err != nil {
 					return err
 				}
 			} else {
-				if _, err = s.call(ctx, "order", "group_failed", id, a.UserID, nil); err != nil {
+				if _, err = s.call(ctx, constants.ServiceOrder, constants.ActionGroupFailed, id, a.UserID, nil); err != nil {
 					return err
 				}
-				if _, err = s.call(ctx, "payment", "close", id, a.UserID, nil); err != nil {
+				if _, err = s.call(ctx, constants.ServicePayment, constants.ActionClose, id, a.UserID, nil); err != nil {
 					return err
 				}
-				if _, err = s.run(ctx, id, a.UserID, "release"); err != nil {
+				if _, err = s.run(ctx, id, a.UserID, constants.CheckoutModeRelease); err != nil {
 					return err
 				}
 			}
@@ -550,12 +551,12 @@ func (s *Service) Tick(ctx context.Context) error {
 		return err
 	}
 	for _, a := range rows {
-		mode := "create"
+		mode := constants.CheckoutModeCreate
 		switch a.State {
-		case "CANCELLING":
-			mode = "release"
-		case "PAID_CONFIRMING", "PAID_WAIT_GROUP":
-			mode = "paid"
+		case constants.CheckoutStateCancelling:
+			mode = constants.CheckoutModeRelease
+		case constants.CheckoutStatePaidConfirming, constants.CheckoutStatePaidWaitGroup:
+			mode = constants.CheckoutModePaid
 		}
 		if _, e := s.run(ctx, a.ID, a.UserID, mode); e != nil && status.Code(e) != codes.Aborted && status.Code(e) != codes.FailedPrecondition {
 			return e

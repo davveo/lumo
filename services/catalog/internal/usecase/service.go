@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/democatalog"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/catalog/internal/domain"
@@ -10,6 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 	"math"
 	"strings"
+	"time"
 )
 
 func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult platform.Result, traceErr error) {
@@ -18,11 +20,11 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	switch c.Action {
-	case "search_products":
+	case constants.ActionSearchProducts:
 		return s.searchProducts(ctx, c)
-	case "recommendation_candidates":
+	case constants.ActionRecommendationCandidates:
 		return s.recommendationCandidates(ctx, c)
-	case "batch_get":
+	case constants.ActionBatchGet:
 		var input struct {
 			IDs []string `json:"ids"`
 		}
@@ -39,7 +41,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 				seen[id] = true
 			}
 		}
-		rows, err := s.repo.GetMany(ctx, ids, c.Role == "admin")
+		rows, err := s.repo.GetMany(ctx, ids, c.Role == constants.RoleAdmin)
 		if err != nil {
 			return nil, err
 		}
@@ -56,9 +58,9 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			}
 		}
 		return platform.Result{"items": items, "missing_ids": missing}, nil
-	case "list":
-		st := "ACTIVE"
-		if include, _ := c.Data["include_disabled"].(bool); c.Role == "admin" && include {
+	case constants.ActionList:
+		st := constants.CatalogStatusActive
+		if include, _ := c.Data["include_disabled"].(bool); c.Role == constants.RoleAdmin && include {
 			st = ""
 		}
 		vs, total, err := s.repo.ListProducts(ctx, st, int(platform.Int(c.Data, "limit")), int(platform.Int(c.Data, "offset")))
@@ -70,7 +72,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 			items = append(items, view(v))
 		}
 		return platform.Result{"items": items, "total": total}, nil
-	case "get":
+	case constants.ActionGet:
 		if c.ID == "" {
 			return nil, bad("sku ID required")
 		}
@@ -78,11 +80,11 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		if e != nil {
 			return nil, e
 		}
-		if r.Status != "ACTIVE" && c.Role != "admin" {
+		if r.Status != constants.CatalogStatusActive && c.Role != constants.RoleAdmin {
 			return nil, status.Error(codes.NotFound, "SKU unavailable")
 		}
 		return view(r), nil
-	case "upsert":
+	case constants.ActionUpsert:
 		if e := platform.RequireAdmin(c); e != nil {
 			return nil, e
 		}
@@ -95,15 +97,15 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		if !ok {
 			active = true
 		}
-		st := "ACTIVE"
+		st := constants.CatalogStatusActive
 		if !active {
-			st = "DISABLED"
+			st = constants.CatalogStatusDisabled
 		}
 		rows, e := catalogRows(c.ID, c.Data, st)
 		if e != nil {
 			return nil, e
 		}
-		evt := platform.Event{ID: platform.ID("evt"), Type: "ProductChanged", AggregateID: c.ID, UserID: c.UserID, Data: view(rows[0])}
+		evt := platform.Event{ID: platform.ID("evt"), Type: constants.EventProductChanged, AggregateID: c.ID, UserID: c.UserID, Data: view(rows[0])}
 		if e = s.repo.SaveProduct(ctx, c.ID, rows, &evt); e != nil {
 			return nil, e
 		}
@@ -131,7 +133,7 @@ func (s *Service) seed(ctx context.Context) error {
 		{"sku-watch", "智能运动手表", "LUMO", "服饰箱包", 114900},
 		{"sku-coffee", "全自动咖啡机", "LUMO", "家用电器", 39900},
 	} {
-		r := record(p.ID, "", "sku", "ACTIVE", map[string]any{"name": p.Name, "price_cents": p.Price, "brand": p.Brand, "category": p.Category, "active": true, "catalog_visible": false})
+		r := record(p.ID, "", constants.CatalogKindSku, constants.CatalogStatusActive, map[string]any{"name": p.Name, "price_cents": p.Price, "brand": p.Brand, "category": p.Category, "active": true, "catalog_visible": false})
 		aliases := map[string]string{"sku-phone": "iphone", "sku-headphones": "headphones", "sku-watch": "watch", "sku-coffee": "coffee"}
 		if alias := aliases[p.ID]; alias != "" {
 			d := payload(r)
@@ -143,9 +145,9 @@ func (s *Service) seed(ctx context.Context) error {
 					d["option"] = product["defaultOption"]
 				}
 			}
-			r = record(p.ID, "", "sku", "ACTIVE", d)
+			r = record(p.ID, "", constants.CatalogKindSku, constants.CatalogStatusActive, d)
 		}
-		r.ParentID = "__legacy__"
+		r.ParentID = constants.CatalogParentLegacy
 		inserted, e := s.repo.InsertOnce(ctx, &r, nil)
 		if e != nil {
 			return e
@@ -162,25 +164,57 @@ func (s *Service) seed(ctx context.Context) error {
 				}
 			}
 			updated := record(old.ID, old.UserID, old.Kind, old.Status, d)
-			updated.ParentID = "__legacy__"
+			updated.ParentID = constants.CatalogParentLegacy
 			if e = s.repo.Save(ctx, &updated, nil); e != nil {
 				return e
 			}
 		}
 	}
-	for _, p := range democatalog.Products() {
-		p["price_cents"] = int64(math.Round(p["price"].(float64) * 100))
-		rows, e := catalogRows(p["id"].(string), p, "ACTIVE")
-		if e != nil {
-			return e
+	baseProducts := democatalog.Products()
+	baseRows := make([][]domain.Record, 0, len(baseProducts))
+	baseIDs := make([]string, 0, len(baseProducts))
+	for _, product := range baseProducts {
+		product["price_cents"] = int64(math.Round(product["price"].(float64) * 100))
+		rows, err := catalogRows(product["id"].(string), product, constants.CatalogStatusActive)
+		if err != nil {
+			return err
 		}
-		for i := range rows {
-			if _, e = s.repo.InsertOnce(ctx, &rows[i], nil); e != nil {
-				return e
-			}
+		baseRows = append(baseRows, rows)
+		baseIDs = append(baseIDs, rows[0].ID)
+	}
+	if err := s.repo.InsertSeedProducts(ctx, baseRows); err != nil {
+		return err
+	}
+	// Place new examples immediately behind the original showcase, but ahead
+	// of older load-test data. Existing products keep their creation timestamps.
+	showcase, err := s.repo.GetMany(ctx, baseIDs, true)
+	if err != nil {
+		return err
+	}
+	var earliest time.Time
+	for _, product := range showcase {
+		if !product.CreatedAt.IsZero() && (earliest.IsZero() || product.CreatedAt.Before(earliest)) {
+			earliest = product.CreatedAt
 		}
 	}
-	return nil
+	if earliest.IsZero() {
+		earliest = time.Now().UTC()
+	}
+	created := earliest.Add(-time.Hour)
+	expanded := democatalog.ExpandedProducts()
+	seedProducts := make([][]domain.Record, 0, len(expanded))
+	for _, product := range expanded {
+		product["price_cents"] = int64(math.Round(product["price"].(float64) * 100))
+		rows, err := catalogRows(product["id"].(string), product, constants.CatalogStatusActive)
+		if err != nil {
+			return err
+		}
+		for index := range rows {
+			rows[index].CreatedAt, rows[index].UpdatedAt = created, created
+		}
+		seedProducts = append(seedProducts, rows)
+	}
+	return s.repo.InsertSeedProducts(ctx, seedProducts)
 }
 func (s *Service) event(context.Context, platform.Event) error { return nil }
 
@@ -250,7 +284,7 @@ func catalogRows(id string, data map[string]any, state string) ([]domain.Record,
 		}
 	}
 	attrs := map[string]any{}
-	for _, k := range []string{"name", "brand", "category", "description", "sub", "image", "old", "sales", "label", "highlights", "highSubs", "specs", "image_file_id"} {
+	for _, k := range []string{"name", "brand", "category", "description", "sub", "image", "old", "sales", "label", "highlights", "highSubs", "specs", "image_file_id", "demo", "demo_source"} {
 		if v, ok := data[k]; ok {
 			attrs[k] = v
 		}
@@ -281,9 +315,9 @@ func catalogRows(id string, data map[string]any, state string) ([]domain.Record,
 			p["color"] = color
 			p["option"] = option
 			p["price_cents"] = prices[oi]
-			p["active"] = state == "ACTIVE"
+			p["active"] = state == constants.CatalogStatusActive
 			p["catalog_visible"] = sku == id
-			r := record(sku, "", "sku", state, p)
+			r := record(sku, "", constants.CatalogKindSku, state, p)
 			if sku != id {
 				r.ParentID = id
 				rows = append(rows, r)
@@ -294,6 +328,6 @@ func catalogRows(id string, data map[string]any, state string) ([]domain.Record,
 	}
 	p := payload(rows[0])
 	p["variants"] = variants
-	rows[0] = record(id, "", "sku", state, p)
+	rows[0] = record(id, "", constants.CatalogKindSku, state, p)
 	return rows, nil
 }

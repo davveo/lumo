@@ -198,3 +198,48 @@ func TestTracePayloadBoundsRepeatedSensitiveJSONFields(t *testing.T) {
 		t.Fatalf("repeated sensitive keys bypassed bounded redaction: %s", preview)
 	}
 }
+
+func TestTracePayloadRedactsMarketingOwnershipAndAudienceAcrossBoundaries(t *testing.T) {
+	data := map[string]any{
+		"campaign_id": "welcome-campaign", "placement": "home",
+		"visitor_id": "private-popup-visitor", "delivery_id": "private-popup-delivery", "view_id": "private-popup-view", "session_id": "private-popup-session",
+		"audience": map[string]any{"segments": []string{"new_member"}, "include_user_ids": []string{"private-allowed-a", "private-allowed-b"}, "exclude_user_ids": []any{"private-excluded-a", "private-excluded-b"}},
+		// Key normalization must cover camelCase and separators in embedded data.
+		"nested": map[string]any{"visitorId": "private-camel-visitor", "Delivery-ID": "private-separated-delivery", "viewId": "private-camel-view", "rules": []any{map[string]any{"includeUserIDs": []string{"private-camel-allowed"}, "exclude-user-ids": []string{"private-separated-excluded"}}}},
+	}
+	raw, err := json.Marshal(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := append([]byte(nil), raw...)
+	command := Command{Action: "popup_event", Data: data}
+	protoCommand := &mallv1.Command{Action: "popup_event", PayloadJson: raw}
+	protoResult := &mallv1.Result{PayloadJson: raw}
+	for _, test := range []struct {
+		name              string
+		request, response any
+	}{
+		{"http-usecase-command", command, map[string]any{"popup": data}},
+		{"rpc-json-bytes", protoCommand, protoResult},
+		{"embedded-document", map[string]any{"payload": string(raw)}, json.RawMessage(raw)},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			_, attrs := captureTracePayload(t, test.request, test.response, nil)
+			for _, key := range []string{"lumo.request", "lumo.response"} {
+				preview := attrs[key].AsString()
+				if !json.Valid([]byte(preview)) || strings.Contains(preview, "private-") || !attrs[key+".redacted"].AsBool() {
+					t.Fatalf("marketing identity or audience principal exported by %s: %s", key, preview)
+				}
+				for _, business := range []string{"welcome-campaign", "home", "new_member"} {
+					if !strings.Contains(preview, business) {
+						t.Errorf("marketing business metadata %q missing from %s: %s", business, key, preview)
+					}
+				}
+			}
+		})
+	}
+	after, err := json.Marshal(data)
+	if err != nil || !bytes.Equal(before, after) || !bytes.Equal(raw, protoCommand.PayloadJson) || !bytes.Equal(raw, protoResult.PayloadJson) {
+		t.Fatal("marketing trace redaction mutated business commands or RPC bytes")
+	}
+}

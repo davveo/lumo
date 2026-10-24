@@ -21,16 +21,19 @@
     modal('后端连接',`<p class="api-config-help">完整工程由网关同时提供商城和接口，本地启动后访问 http://localhost:8080，无需填写地址。若前端单独部署，请填写允许该前端来源访问的 HTTPS 网关地址。</p><form id="api-config-form"><label class="api-config-field">网关地址<input name="base" type="url" placeholder="留空使用当前站点" value="${escaped(API.getBase())}"></label><p class="api-config-help">更换地址后需重新登录。</p><button class="primary">保存并连接</button><div id="api-config-error" class="api-config-error"></div></form><div class="api-trace-details">${API.requests().slice(0,4).map(r=>`${escaped(r.service+'/'+r.action)} · ${r.status} · ${escaped(r.traceId||'无链路编号')}`).join('<br>')}</div>`);
   }
   async function invoke(object,method,...args){if(typeof object?.[method]==='function')return object[method](...args);}
+  function marketing(method,...args){try{return window.LumoMarketing?.[method]?.(...args);}catch(_){return null;}}
   async function stage(tasks,errors){const results=await Promise.allSettled(tasks.map(fn=>Promise.resolve().then(fn)));for(const result of results)if(result.status==='rejected')errors.push(result.reason);}
   async function refresh(){
     if(running){queued=true;return running;}
     beginLoading();
     running=(async()=>{
       const errors=[];
+      let marketingContext=null,bootstrapData=null;
       try{
         try{await invoke(window.LumoAuth,'refresh');}catch(error){errors.push(error);}
         await invoke(API,'enableReadBatching');
-        await invoke(API,'prefetchBootstrap');
+        marketingContext=marketing('beginBootstrap')||null;
+        bootstrapData=await invoke(API,'prefetchBootstrap',marketingContext?{data:{placement:marketingContext.placement}}:{});
         await stage([()=>invoke(window.LumoCategories,'refresh')],errors);
         let catalogOK=true;
         try{await invoke(window.LumoCommerce,'refreshCatalog');}catch(error){catalogOK=false;errors.push(error);}
@@ -45,6 +48,7 @@
         await stage([()=>invoke(window.LumoProductExtras,'refresh'),()=>invoke(window.LumoRecommendations,'refresh'),()=>invoke(window.LumoSidebars,'refresh')],errors);
       }catch(error){errors.push(error);}finally{await invoke(API,'endBootstrap');stopLoading();}
       draw(errors);report(errors);
+      if(ready&&marketingContext)marketing('hydrate',bootstrapData?.popup||null,marketingContext);
       window.dispatchEvent(new CustomEvent('lumo:ready',{detail:{ready,errors:errors.map(e=>e?.message||'加载失败')}}));
       return {ready,errors};
     })().finally(()=>{running=null;if(queued){queued=false;refresh();}});

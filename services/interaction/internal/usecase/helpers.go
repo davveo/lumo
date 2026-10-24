@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/interaction/internal/domain"
 	"github.com/davveo/lumo/services/interaction/internal/repository"
@@ -46,7 +47,7 @@ func view(r domain.Record) platform.Result {
 	return v
 }
 func own(c platform.Command, r domain.Record) error {
-	if r.UserID != c.UserID && c.Role != "admin" {
+	if r.UserID != c.UserID && c.Role != constants.RoleAdmin {
 		return status.Error(codes.PermissionDenied, "resource belongs to another user")
 	}
 	return nil
@@ -55,7 +56,7 @@ func (s *Service) list(ctx context.Context, c platform.Command, owner, kind, st 
 	skus := []string{}
 	if sku := platform.Text(c.Data, "sku_id"); sku != "" {
 		skus = append(skus, sku)
-		product, e := call(ctx, s.rpc, "catalog", child(c, "get", sku, nil))
+		product, e := call(ctx, s.rpc, constants.ServiceCatalog, child(c, constants.ActionGet, sku, nil))
 		if e != nil {
 			return nil, e
 		}
@@ -80,8 +81,8 @@ func (s *Service) list(ctx context.Context, c platform.Command, owner, kind, st 
 	items := make([]platform.Result, 0, len(vs))
 	for _, v := range vs {
 		item := view(v)
-		if v.Kind == "review" {
-			count, e := s.repo.Count(ctx, v.ID, "like")
+		if v.Kind == constants.InteractionKindReview {
+			count, e := s.repo.Count(ctx, v.ID, constants.InteractionKindLike)
 			if e != nil {
 				return nil, e
 			}

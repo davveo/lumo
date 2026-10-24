@@ -7,7 +7,7 @@ function setup(file, backend){
  const document={readyState:'complete',documentElement:{style:{setProperty(){}}},addEventListener(name,fn){(handlers[name] ||= []).push(fn)},querySelector(){return null},body:{classList:{toggle(){}}}};
  const window={LumoAPI:{async call(service,action,command={},options={}){calls.push({service,action,command,options});return backend(service,action,command,options)}},LumoAuth:{user:()=>principal,isLoggedIn:()=>!!principal,requireLogin:()=>!!principal},LumoMember:{model:()=>({profile:{nickname:'Tester'}})},scrollTo(){}};
  const ctx={window,document,products,presentationProducts:products,state:{},ui:{query:'',category:'全部好物',sort:'综合'},location:{hash:'#/product/iphone',origin:'http://localhost',pathname:'/'},categories:['全部好物','手机数码','食品生鲜'],categoryImages:[],crypto:{randomUUID:()=>String(calls.length)},setTimeout,clearTimeout,Map,Set,console,esc:String,asset:String,money:String,icon:()=>'',price:String,productCard:p=>p.name,save(){},toast(){},header:()=>'',footer:()=>'',go(){},closeModal(){},renderKeepScroll(){},render(){},FormData:global.FormData,Date};
- vm.createContext(ctx);vm.runInContext(fs.readFileSync(source+file,'utf8'),ctx);
+ vm.createContext(ctx);require('./load-constants.cjs')(ctx,source);vm.runInContext(fs.readFileSync(source+file,'utf8'),ctx);
  return {ctx,window,document,calls,handlers,setUser(value){principal=value}};
 }
 (async()=>{

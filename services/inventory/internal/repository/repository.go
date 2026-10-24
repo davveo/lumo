@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/democatalog"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/inventory/internal/domain"
@@ -13,6 +14,7 @@ import (
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"os"
 	"sort"
 )
 
@@ -22,12 +24,17 @@ func (r *Repository) Migrate(ctx context.Context) error {
 	return r.DB.WithContext(ctx).AutoMigrate(&domain.Stock{}, &domain.Reservation{}, &domain.Ledger{})
 }
 func (r *Repository) Seed(ctx context.Context) error {
-	for _, id := range append([]string{"sku-phone", "sku-headphones", "sku-watch", "sku-coffee"}, democatalog.SKUs()...) {
-		if e := r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&domain.Stock{SKUID: id, OnHand: 50}).Error; e != nil {
-			return e
-		}
+	ids := append([]string{"sku-phone", "sku-headphones", "sku-watch", "sku-coffee"}, democatalog.SKUs()...)
+	if os.Getenv("DEMO_MODE") == "true" || os.Getenv("DEMO_MODE") == "1" {
+		ids = append(ids, democatalog.ExpandedSKUs()...)
 	}
-	return nil
+	stocks := make([]domain.Stock, 0, len(ids))
+	for _, id := range ids {
+		stocks = append(stocks, domain.Stock{SKUID: id, OnHand: 50})
+	}
+	// Only absent SKU rows are initialized; restarts must preserve actual stock,
+	// reservations, allocations and movement history from the demo purchase flow.
+	return r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).CreateInBatches(stocks, 100).Error
 }
 func (r *Repository) Get(ctx context.Context, id string) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.inventory.Get")
@@ -99,7 +106,7 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command, order stri
 			if old.UserID != c.UserID {
 				return status.Error(codes.PermissionDenied, "reservation belongs to another user")
 			}
-			if old.State == "CANCELLED" {
+			if old.State == constants.InventoryReservationStateCancelled {
 				return status.Error(codes.FailedPrecondition, "reservation cancelled")
 			}
 			if old.OrderID != order || old.LinesJSON != string(b) {
@@ -111,7 +118,7 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command, order stri
 		if !errors.Is(er, gorm.ErrRecordNotFound) {
 			return er
 		}
-		out = domain.Reservation{ID: c.ID, UserID: c.UserID, OrderID: order, State: "RESERVED", LinesJSON: string(b)}
+		out = domain.Reservation{ID: c.ID, UserID: c.UserID, OrderID: order, State: constants.InventoryReservationStateReserved, LinesJSON: string(b)}
 		if er = tx.WithContext(ctx).Create(&out).Error; er != nil {
 			return er
 		}
@@ -123,7 +130,7 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Command, order stri
 			if v.RowsAffected != 1 {
 				return status.Error(codes.ResourceExhausted, "insufficient SKU stock")
 			}
-			if er = movement(ctx, tx, c.ID, c.UserID, l, "RESERVE"); er != nil {
+			if er = movement(ctx, tx, c.ID, c.UserID, l, constants.InventoryMovementKindReserve); er != nil {
 				return er
 			}
 		}
@@ -140,8 +147,8 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 	var out domain.Reservation
 	e := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		er := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&out, "id = ?", c.ID).Error
-		if errors.Is(er, gorm.ErrRecordNotFound) && c.Action == "cancel" {
-			out = domain.Reservation{ID: c.ID, UserID: c.UserID, State: "CANCELLED", LinesJSON: "[]"}
+		if errors.Is(er, gorm.ErrRecordNotFound) && c.Action == constants.ActionCancel {
+			out = domain.Reservation{ID: c.ID, UserID: c.UserID, State: constants.InventoryReservationStateCancelled, LinesJSON: "[]"}
 			return tx.WithContext(ctx).Create(&out).Error
 		}
 		if er != nil {
@@ -155,17 +162,17 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 		}
 		target := ""
 		switch c.Action {
-		case "confirm":
-			target = "ALLOCATED"
-		case "cancel":
-			target = "CANCELLED"
-		case "dispatch":
-			target = "DISPATCHED"
+		case constants.ActionConfirm:
+			target = constants.InventoryReservationStateAllocated
+		case constants.ActionCancel:
+			target = constants.InventoryReservationStateCancelled
+		case constants.ActionDispatch:
+			target = constants.InventoryReservationStateDispatched
 		}
 		if out.State == target {
 			return nil
 		}
-		if out.State == "CANCELLED" || out.State == "DISPATCHED" {
+		if out.State == constants.InventoryReservationStateCancelled || out.State == constants.InventoryReservationStateDispatched {
 			return status.Error(codes.FailedPrecondition, "terminal reservation")
 		}
 		var ls []domain.Line
@@ -175,20 +182,20 @@ func (r *Repository) Transition(ctx context.Context, c platform.Command) (platfo
 		for _, l := range ls {
 			u := map[string]any{}
 			switch c.Action {
-			case "confirm":
-				if out.State != "RESERVED" {
+			case constants.ActionConfirm:
+				if out.State != constants.InventoryReservationStateReserved {
 					return status.Error(codes.FailedPrecondition, "must be reserved")
 				}
 				u["reserved"] = gorm.Expr("reserved - ?", l.Quantity)
 				u["allocated"] = gorm.Expr("allocated + ?", l.Quantity)
-			case "dispatch":
-				if out.State != "ALLOCATED" {
+			case constants.ActionDispatch:
+				if out.State != constants.InventoryReservationStateAllocated {
 					return status.Error(codes.FailedPrecondition, "must be allocated before dispatch")
 				}
 				u["on_hand"] = gorm.Expr("on_hand - ?", l.Quantity)
 				u["allocated"] = gorm.Expr("allocated - ?", l.Quantity)
-			case "cancel":
-				if out.State == "ALLOCATED" {
+			case constants.ActionCancel:
+				if out.State == constants.InventoryReservationStateAllocated {
 					if yes, _ := c.Data["warehouse_confirmed"].(bool); !yes {
 						return status.Error(codes.FailedPrecondition, "warehouse cancellation confirmation required")
 					}
@@ -218,7 +225,7 @@ func (r *Repository) Restock(ctx context.Context, c platform.Command) (platform.
 	sku := platform.Text(c.Data, "sku_id")
 	qty := platform.Int(c.Data, "quantity")
 	condition := platform.Text(c.Data, "condition")
-	if c.ID == "" || sku == "" || qty < 1 || qty > 100000 || (condition != "sellable" && condition != "damaged" && condition != "unsellable") {
+	if c.ID == "" || sku == "" || qty < 1 || qty > 100000 || (condition != constants.StockConditionSellable && condition != constants.StockConditionDamaged && condition != constants.StockConditionUnsellable) {
 		return nil, status.Error(codes.InvalidArgument, "valid inspection, SKU, quantity, condition required")
 	}
 	l := domain.Ledger{ID: c.ID, ReferenceID: c.ID, UserID: c.UserID, SKUID: sku, Quantity: qty, Kind: condition}
@@ -239,7 +246,7 @@ func (r *Repository) Restock(ctx context.Context, c platform.Command) (platform.
 		if er := tx.WithContext(ctx).Create(&l).Error; er != nil {
 			return er
 		}
-		if condition == "sellable" {
+		if condition == constants.StockConditionSellable {
 			return tx.WithContext(ctx).Model(&domain.Stock{}).Where("sku_id = ?", sku).Update("on_hand", gorm.Expr("on_hand + ?", qty)).Error
 		}
 		return nil

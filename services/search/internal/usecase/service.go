@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -14,7 +15,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	if c.Action != "query" && c.Action != "suggest" {
+	if c.Action != constants.ActionQuery && c.Action != constants.ActionSuggest {
 		return nil, status.Error(codes.Unimplemented, "unsupported search action")
 	}
 	cfg, e := s.repo.Get(ctx, "search-policy")
@@ -27,15 +28,15 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	sortKey := platform.Text(c.Data, "sort")
 	catalogSort := sortKey
 	switch catalogSort {
-	case "", "price_asc", "price_desc", "sales", "sales_desc", "newest":
+	case constants.CatalogSortDefault, constants.CatalogSortPriceAsc, constants.CatalogSortPriceDesc, constants.CatalogSortSales, constants.CatalogSortSalesDesc, constants.CatalogSortNewest:
 	default:
 		catalogSort = ""
 	}
-	catalogCommand := platform.Command{Action: "search_products", Role: "system", Data: map[string]any{
+	catalogCommand := platform.Command{Action: constants.ActionSearchProducts, Role: constants.RoleSystem, Data: map[string]any{
 		"query": strings.TrimSpace(platform.Text(c.Data, "query")), "category": strings.TrimSpace(platform.Text(c.Data, "category")),
 		"brand": strings.TrimSpace(platform.Text(c.Data, "brand")), "sort": catalogSort, "limit": 100,
 	}}
-	data, e := call(ctx, s.rpc, "catalog", catalogCommand)
+	data, e := call(ctx, s.rpc, constants.ServiceCatalog, catalogCommand)
 	if e != nil {
 		return nil, e
 	}
@@ -71,7 +72,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	stocks := map[string]map[string]any{}
 	if len(ids) > 0 {
 		sort.Strings(ids)
-		batch, err := call(ctx, s.rpc, "inventory", child(c, "batch_get", "", map[string]any{"ids": ids}))
+		batch, err := call(ctx, s.rpc, constants.ServiceInventory, child(c, constants.ActionBatchGet, "", map[string]any{"ids": ids}))
 		if err != nil {
 			return nil, err
 		}
@@ -97,10 +98,10 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		}
 		items = append(items, p)
 	}
-	if sortKey == "price_asc" || sortKey == "price_desc" {
+	if sortKey == constants.CatalogSortPriceAsc || sortKey == constants.CatalogSortPriceDesc {
 		sort.SliceStable(items, func(i, j int) bool {
 			a, b := platform.Int(items[i], "price_cents"), platform.Int(items[j], "price_cents")
-			if sortKey == "price_desc" {
+			if sortKey == constants.CatalogSortPriceDesc {
 				return a > b
 			}
 			return a < b
@@ -127,10 +128,10 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	for _, product := range selected {
 		inventory = append(inventory, stocks[platform.Text(product, "id")])
 	}
-	return platform.Result{"items": selected, "inventory_items": inventory, "total": total, "offset": offset, "limit": limit, "candidate_limit": 100, "engine": "catalog_rpc"}, nil
+	return platform.Result{"items": selected, "inventory_items": inventory, "total": total, "offset": offset, "limit": limit, "candidate_limit": 100, "engine": constants.SearchEngineCatalogRPC}, nil
 }
 func (s *Service) seed(ctx context.Context) error {
-	r := record("search-policy", "", "policy", "ACTIVE", map[string]any{"engine": "catalog_rpc", "note": "Elasticsearch adapter is not enabled; authoritative RPC reads"})
+	r := record("search-policy", "", constants.SearchKindPolicy, constants.SearchStatusActive, map[string]any{"engine": constants.SearchEngineCatalogRPC, "note": "Elasticsearch adapter is not enabled; authoritative RPC reads"})
 	_, e := s.repo.InsertOnce(ctx, &r, nil)
 	return e
 }

@@ -17,6 +17,7 @@ function setup(handler, items = products(100)) {
     return Promise.resolve().then(() => handler(call));
   }}};
   const context = {window, products: items, state: {cart: []}};
+  require('./load-constants.cjs')(context,dir);
   vm.runInNewContext(inventorySource, context, {filename: 'inventory.js'});
   return {inventory: window.LumoInventory, calls, context};
 }
@@ -240,7 +241,7 @@ function gatewaySetup(prefetch = false) {
     }
   };
   context.window = context;
-  vm.createContext(context);
+  vm.createContext(context);require('./load-constants.cjs')(context,dir);
   vm.runInContext(apiSource, context, {filename: 'api-client.js'});
   vm.runInContext(inventorySource, context, {filename: 'inventory.js'});
   context.LumoAPI.enableReadBatching();

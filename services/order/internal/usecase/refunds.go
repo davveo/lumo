@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"github.com/davveo/lumo/internal/constants"
 
 	"github.com/davveo/lumo/services/order/internal/domain"
 	"github.com/davveo/lumo/services/order/internal/repository"
@@ -13,7 +14,7 @@ import (
 )
 
 func (s *Service) Refunded(ctx context.Context, request RecordRefundRequest) (domain.Order, error) {
-	return s.update(ctx, "refunded", request.OrderRequest, internalAccess, func(tx *repository.Tx, order *domain.Order) (transition, error) {
+	return s.update(ctx, constants.ActionRefunded, request.OrderRequest, internalAccess, func(tx *repository.Tx, order *domain.Order) (transition, error) {
 		if request.RefundID == "" || request.AmountCents <= 0 {
 			return transition{}, status.Error(codes.InvalidArgument, "refund receipt required")
 		}

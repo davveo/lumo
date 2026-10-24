@@ -1,11 +1,12 @@
 (function () {
   'use strict';
+  const C = window.LumoConstants;
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const clone = value => JSON.parse(JSON.stringify(value));
   const icons = [['layers','家居与家电'],['chip','电脑与工具'],['camera','数码'],['sparkles','精选'],['bag','购物'],['heart','生活'],['shield','健康'],['edit','图书'],['clock','钟表'],['truck','汽车']];
   let adapter = {}, scope = '', revision = 0, published = null, draft = null, selected = 0, dirty = false, busy = false, warning = '', editing = null, dialog = null, previousOverflow = '';
   const API = () => window.LumoAPI;
-  const authorized = () => adapter.isAdmin ? adapter.isAdmin() : window.LumoAuth?.user?.()?.role === 'admin';
+  const authorized = () => adapter.isAdmin ? adapter.isAdmin() : window.LumoAuth?.user?.()?.role === C.Role.Admin;
   const currentScope = () => adapter.scope ? adapter.scope() : [API()?.getBase?.() || '', API()?.getToken?.() || '', window.LumoAuth?.user?.()?.user_id || ''].join('|');
   const call = (...args) => adapter.call ? adapter.call(...args) : API().call(...args);
   const notify = text => adapter.notify ? adapter.notify(text) : typeof toast === 'function' ? toast(text) : undefined;
@@ -25,7 +26,7 @@
     checkScope();const ticket=++revision, origin=scope;
     busy=true;warning='';
     try {
-      const result=await call('content','get',{id:'storefront-categories'},{auth:false});
+      const result=await call(C.Service.Content,C.Action.Get,{id:'storefront-categories'},{auth:false});
       if(ticket!==revision||origin!==currentScope())return false;
       adopt(result);
       if(!adapter.call)window.LumoCategories?.apply?.(published);
@@ -41,7 +42,7 @@
   function render() {
     synchronize();
     if(!authorized())return '<section class="ce-card"><h2>分类导航</h2><p>请使用管理员账号登录后配置分类导航。</p></section>';
-    if(!draft)return `<section class="ce-card"><h2>分类导航</h2><p>${esc(warning || '正在加载后端分类配置…')}</p>${button('reload','重新加载')}</section>`;
+    if(!draft)return `<section class="ce-card"><h2>分类导航</h2>${warning?`<p class="ce-error" role="alert">${esc(warning)}</p>${button('reload','重新加载')}`:(window.LumoSkeleton?.render('form',{count:6,label:'正在加载分类导航配置'})||'')}</section>`;
     const groups=draft.groups, group=groups[selected], enabled=groups.filter(value=>value.enabled!==false).length;
     const rows=groups.reduce((sum,value)=>sum+(value.rows?.length||0),0), leaves=groups.reduce((sum,value)=>sum+(value.rows||[]).reduce((n,row)=>n+(row.items?.length||0),0),0);
     return `<section class="ce-editor" aria-label="分类导航配置">
@@ -79,7 +80,7 @@
     checkScope();if(!authorized()||!draft||busy)return;
     const ticket=++revision, origin=scope, configuration=clone(draft);busy=true;warning='';draw();
     try {
-      const result=await call('content','upsert',{id:'storefront-categories',data:{kind:'storefront',title:'商城分类导航',body:JSON.stringify(configuration)}},{auth:true});
+      const result=await call(C.Service.Content,C.Action.Upsert,{id:'storefront-categories',data:{kind:C.ContentKind.Storefront,title:'商城分类导航',body:JSON.stringify(configuration)}},{auth:true});
       if(ticket!==revision||origin!==currentScope()||!authorized())return;
       adopt(result);window.LumoCategories?.apply?.(published);notify('分类导航已保存并发布');
     } catch(cause) {if(ticket===revision&&origin===currentScope())warning=cause.message||'分类保存失败';}

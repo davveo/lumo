@@ -1,6 +1,8 @@
 package transport
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"context"
 	"github.com/davveo/lumo/internal/platform"
 	"google.golang.org/grpc/codes"
@@ -18,7 +20,7 @@ func (h *Handler) Handle(ctx context.Context, c platform.Command) (traceResult p
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	switch c.Action {
-	case "get", "reserve", "confirm", "cancel", "refund", "reward", "checkin":
+	case constants.ActionGet, constants.ActionReserve, constants.ActionConfirm, constants.ActionCancel, constants.ActionRefund, constants.ActionReward, constants.ActionCheckin:
 		return h.App.Execute(ctx, c)
 	default:
 		return nil, status.Error(codes.Unimplemented, "unsupported points action")

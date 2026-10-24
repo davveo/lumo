@@ -3,6 +3,8 @@
 package orderwire
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"bytes"
 	"encoding/json"
 	"strconv"
@@ -64,20 +66,20 @@ func PaymentResult(response *mallv1.AcceptPaymentResponse) map[string]any {
 
 func Actions() map[string]string {
 	return map[string]string{
-		mallv1.OrderService_ListOrders_FullMethodName:       "list",
-		mallv1.OrderService_GetOrder_FullMethodName:         "get",
-		mallv1.OrderService_CreateOrder_FullMethodName:      "create",
-		mallv1.OrderService_MarkPending_FullMethodName:      "pending",
-		mallv1.OrderService_MarkCreateFailed_FullMethodName: "create_failed",
-		mallv1.OrderService_AcceptPayment_FullMethodName:    "accept_payment",
-		mallv1.OrderService_MarkReady_FullMethodName:        "ready",
-		mallv1.OrderService_WaitForGroup_FullMethodName:     "wait_group",
-		mallv1.OrderService_BeginClose_FullMethodName:       "close_begin",
-		mallv1.OrderService_CompleteClose_FullMethodName:    "close_complete",
-		mallv1.OrderService_MarkGroupFormed_FullMethodName:  "group_formed",
-		mallv1.OrderService_MarkGroupFailed_FullMethodName:  "group_failed",
-		mallv1.OrderService_MarkShipped_FullMethodName:      "shipped",
-		mallv1.OrderService_CompleteOrder_FullMethodName:    "complete",
-		mallv1.OrderService_RecordRefund_FullMethodName:     "refunded",
+		mallv1.OrderService_ListOrders_FullMethodName:       constants.ActionList,
+		mallv1.OrderService_GetOrder_FullMethodName:         constants.ActionGet,
+		mallv1.OrderService_CreateOrder_FullMethodName:      constants.ActionCreate,
+		mallv1.OrderService_MarkPending_FullMethodName:      constants.ActionPending,
+		mallv1.OrderService_MarkCreateFailed_FullMethodName: constants.ActionCreateFailed,
+		mallv1.OrderService_AcceptPayment_FullMethodName:    constants.ActionAcceptPayment,
+		mallv1.OrderService_MarkReady_FullMethodName:        constants.ActionReady,
+		mallv1.OrderService_WaitForGroup_FullMethodName:     constants.ActionWaitGroup,
+		mallv1.OrderService_BeginClose_FullMethodName:       constants.ActionCloseBegin,
+		mallv1.OrderService_CompleteClose_FullMethodName:    constants.ActionCloseComplete,
+		mallv1.OrderService_MarkGroupFormed_FullMethodName:  constants.ActionGroupFormed,
+		mallv1.OrderService_MarkGroupFailed_FullMethodName:  constants.ActionGroupFailed,
+		mallv1.OrderService_MarkShipped_FullMethodName:      constants.ActionShipped,
+		mallv1.OrderService_CompleteOrder_FullMethodName:    constants.ActionComplete,
+		mallv1.OrderService_RecordRefund_FullMethodName:     constants.ActionRefunded,
 	}
 }

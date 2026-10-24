@@ -29,7 +29,8 @@ func corsOrigins(raw string) map[string]bool {
 var corsHeaders = map[string]bool{"authorization": true, "content-type": true, "idempotency-key": true, "traceparent": true, "tracestate": true}
 
 // applyCORS returns false when it has answered a preflight or denied an origin.
-// Bearer credentials are explicit headers; cookie credentials are never enabled.
+// Bearer credentials are explicit headers; cross-origin cookie credentials are
+// never enabled. First-party marketing cookies do not authenticate accounts.
 func applyCORS(w http.ResponseWriter, r *http.Request, allowed map[string]bool) bool {
 	origin := r.Header.Get("Origin")
 	if origin == "" {

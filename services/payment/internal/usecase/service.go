@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/payment/internal/domain"
 	"github.com/davveo/lumo/services/payment/internal/repository"
@@ -19,10 +20,12 @@ type Service struct {
 }
 
 func New(r *repository.Repository, rpc platform.Caller) *Service { return &Service{r, rpc} }
-func (s *Service) Topics() []string                              { return []string{"PaymentRejected", "GroupOrderTerminated"} }
-func (s *Service) Tick(context.Context) error                    { return nil }
+func (s *Service) Topics() []string {
+	return []string{constants.EventPaymentRejected, constants.EventGroupOrderTerminated}
+}
+func (s *Service) Tick(context.Context) error { return nil }
 func own(c platform.Command, p domain.Payment) error {
-	if p.UserID != c.UserID && c.Role != "admin" && c.Role != "system" {
+	if p.UserID != c.UserID && c.Role != constants.RoleAdmin && c.Role != constants.RoleSystem {
 		return status.Error(codes.PermissionDenied, "payment belongs to another member")
 	}
 	return nil
@@ -36,7 +39,7 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 		return nil, err
 	}
 	switch c.Action {
-	case "get":
+	case constants.ActionGet:
 		p, err := s.r.Get(ctx, c.ID)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "payment not found")
@@ -48,23 +51,23 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 			return nil, err
 		}
 		return platform.Map(p), nil
-	case "list":
-		if c.Role != "admin" && c.Role != "system" {
+	case constants.ActionList:
+		if c.Role != constants.RoleAdmin && c.Role != constants.RoleSystem {
 			return nil, status.Error(codes.PermissionDenied, "internal payment listing")
 		}
 		rows, err := s.r.List(ctx, c.UserID, true)
 		return platform.Result{"items": rows}, err
-	case "create":
+	case constants.ActionCreate:
 		return s.create(ctx, c)
-	case "submit_demo":
+	case constants.ActionSubmitDemo:
 		return s.confirmDemo(ctx, c)
-	case "confirm_demo":
+	case constants.ActionConfirmDemo:
 		if err := platform.RequireAdmin(c); err != nil {
 			return nil, err
 		}
 		return s.confirmDemo(ctx, c)
-	case "close":
-		if c.Role != "system" && c.Role != "admin" {
+	case constants.ActionClose:
+		if c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
 			return nil, status.Error(codes.PermissionDenied, "internal payment close")
 		}
 		var out platform.Result
@@ -84,13 +87,13 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 			if err != nil {
 				return err
 			}
-			if p.Status == "SUCCEEDED" {
+			if p.Status == constants.PaymentStatusSucceeded {
 				out = platform.Map(p)
 				out["paid"] = true
 				out["payment_id"] = p.ID
 				return nil
 			}
-			p.Status = "CLOSED"
+			p.Status = constants.PaymentStatusClosed
 			if err = tx.Save(&p); err != nil {
 				return err
 			}
@@ -106,7 +109,7 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 // requirePayableOrder checks server-owned state and deadlines; browser data
 // never supplies the captured amount, owner, provider, or success timestamp.
 func requirePayableOrder(o platform.Result, now time.Time) error {
-	if platform.Text(o, "status") != "PENDING_PAYMENT" {
+	if platform.Text(o, "status") != constants.OrderStatusPendingPayment {
 		return status.Error(codes.FailedPrecondition, "order cannot be paid")
 	}
 	expires, err := time.Parse(time.RFC3339Nano, platform.Text(o, "expires_at"))
@@ -145,21 +148,21 @@ func (s *Service) confirmDemo(ctx context.Context, c platform.Command) (platform
 		if err = own(c, p); err != nil {
 			return err
 		}
-		if p.Provider != "demo" {
+		if p.Provider != constants.PaymentProviderDemo {
 			return status.Error(codes.FailedPrecondition, "payment is not a demo payment")
 		}
-		if p.Status == "SUCCEEDED" {
+		if p.Status == constants.PaymentStatusSucceeded {
 			out = platform.Map(p)
 			return nil
 		}
-		if g.Frozen || p.Status != "PENDING" {
+		if g.Frozen || p.Status != constants.PaymentStatusPending {
 			return status.Error(codes.FailedPrecondition, "payment is closed")
 		}
 		now := time.Now().UTC()
-		if c.Action == "submit_demo" {
+		if c.Action == constants.ActionSubmitDemo {
 			// Hold the payment gate while observing order state so a concurrent
 			// close cannot freeze the payment between validation and capture.
-			o, err := s.rpc.Call(ctx, "order", platform.Command{Action: "get", ID: p.OrderID, UserID: c.UserID, Role: c.Role})
+			o, err := s.rpc.Call(ctx, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: p.OrderID, UserID: c.UserID, Role: c.Role})
 			if err != nil {
 				return err
 			}
@@ -171,13 +174,13 @@ func (s *Service) confirmDemo(ctx context.Context, c platform.Command) (platform
 				return status.Error(codes.FailedPrecondition, "payment does not match order")
 			}
 		}
-		p.Status = "SUCCEEDED"
+		p.Status = constants.PaymentStatusSucceeded
 		p.PaidAt = &now
 		p.Receipt = "demo-receipt-" + p.ID
 		if err = tx.Save(&p); err != nil {
 			return err
 		}
-		if err = tx.Emit(platform.Event{ID: "PaymentSucceeded-" + p.ID, Type: "PaymentSucceeded", AggregateID: p.ID, UserID: p.UserID, Data: map[string]any{"payment_id": p.ID, "order_id": p.OrderID, "amount_cents": p.Amount, "paid_at": now.Format(time.RFC3339Nano), "provider": "demo"}}); err != nil {
+		if err = tx.Emit(platform.Event{ID: "PaymentSucceeded-" + p.ID, Type: constants.EventPaymentSucceeded, AggregateID: p.ID, UserID: p.UserID, Data: map[string]any{"payment_id": p.ID, "order_id": p.OrderID, "amount_cents": p.Amount, "paid_at": now.Format(time.RFC3339Nano), "provider": constants.PaymentProviderDemo}}); err != nil {
 			return err
 		}
 		out = platform.Map(p)
@@ -190,7 +193,7 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 	if os.Getenv("DEMO_MODE") != "true" && os.Getenv("DEMO_MODE") != "1" {
 		return nil, status.Error(codes.FailedPrecondition, "no production payment adapter configured")
 	}
-	o, err := s.rpc.Call(ctx, "order", platform.Command{Action: "get", ID: c.ID, UserID: c.UserID, Role: c.Role})
+	o, err := s.rpc.Call(ctx, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: c.ID, UserID: c.UserID, Role: c.Role})
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +220,7 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
-		p = domain.Payment{ID: platform.ID("pay"), OrderID: c.ID, UserID: platform.Text(o, "user_id"), Amount: platform.Int(o, "payable_cents"), Status: "PENDING", Provider: "demo"}
+		p = domain.Payment{ID: platform.ID("pay"), OrderID: c.ID, UserID: platform.Text(o, "user_id"), Amount: platform.Int(o, "payable_cents"), Status: constants.PaymentStatusPending, Provider: constants.PaymentProviderDemo}
 		if err = tx.Create(&p); err != nil {
 			return err
 		}
@@ -227,7 +230,7 @@ func (s *Service) create(ctx context.Context, c platform.Command) (platform.Resu
 	return out, err
 }
 func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
-	if e.Type != "PaymentRejected" && e.Type != "GroupOrderTerminated" {
+	if e.Type != constants.EventPaymentRejected && e.Type != constants.EventGroupOrderTerminated {
 		return nil
 	}
 	pid := platform.Text(e.Data, "payment_id")
@@ -238,9 +241,9 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
 	if err != nil {
 		return err
 	}
-	if p.Status != "SUCCEEDED" {
+	if p.Status != constants.PaymentStatusSucceeded {
 		return status.Error(codes.FailedPrecondition, "cannot refund unconfirmed payment")
 	}
-	_, err = s.rpc.Call(ctx, "refund", platform.Command{Action: "create", ID: "automatic-" + p.ID, UserID: p.UserID, Role: "system", Data: map[string]any{"payment_id": p.ID, "order_id": p.OrderID, "amount_cents": p.Amount, "reason": e.Type}})
+	_, err = s.rpc.Call(ctx, constants.ServiceRefund, platform.Command{Action: constants.ActionCreate, ID: "automatic-" + p.ID, UserID: p.UserID, Role: constants.RoleSystem, Data: map[string]any{"payment_id": p.ID, "order_id": p.OrderID, "amount_cents": p.Amount, "reason": e.Type}})
 	return err
 }

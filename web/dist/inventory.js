@@ -1,5 +1,6 @@
 (function () {
   'use strict';
+  const C = window.LumoConstants;
   const snapshots = new Map();
   const errors = new Map();
   // A late response from an older read must not replace newer stock or errors.
@@ -31,13 +32,13 @@
     const key=sku(id);
     if(!key)return;
     const version=beginRead(key);
-    try { const row=await window.LumoAPI.call('inventory','get',{id:key},{auth:false}); if(latestRead(key,version)){snapshots.set(key,row);errors.delete(key);} return row; }
+    try { const row=await window.LumoAPI.call(C.Service.Inventory,C.Action.Get,{id:key},{auth:false}); if(latestRead(key,version)){snapshots.set(key,row);errors.delete(key);} return row; }
     catch(e){if(latestRead(key,version)){snapshots.delete(key);errors.set(key,e);}throw e;}
   }
   async function refreshBatch(keys) {
     const versions=new Map(keys.map(key=>[key,beginRead(key)]));
     let result;
-    try { result=await window.LumoAPI.call('inventory','batch_get',{data:{ids:keys}},{auth:false}); }
+    try { result=await window.LumoAPI.call(C.Service.Inventory,C.Action.BatchGet,{data:{ids:keys}},{auth:false}); }
     catch(error){
       for(const key of keys)if(latestRead(key,versions.get(key))){snapshots.delete(key);errors.set(key,error);}
       return {loaded:0,failed:keys.length,error};
@@ -52,7 +53,7 @@
       }
       else{
         const unavailable=new Error('未找到商品库存，请刷新后重试');
-        unavailable.code='NotFound';
+        unavailable.code=C.ApiErrorCode.NotFound;
         if(latestRead(key,versions.get(key))){snapshots.delete(key);errors.set(key,unavailable);}
         failed++;error ||= unavailable;
       }

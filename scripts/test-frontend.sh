@@ -19,9 +19,10 @@ trap cleanup EXIT HUP INT TERM
 export FRONTEND_DIR="$PROJECT_DIR/web/dist"
 export API_BASE="http://127.0.0.1:${FRONTEND_TEST_PORT:-18080}"
 export LUMO_TEST_URL="$API_BASE"
+go run ./internal/constants/generate -source internal/constants -output web/dist/constants.js -check
 for script in web/dist/*.js; do node --check "$script"; done
 CGO_ENABLED=1 go build -buildvcs=false -o "$TEST_TEMP/devstack" ./cmd/devstack
-for suite in web/tests/api-auth.test.cjs web/tests/bootstrap-lifecycle.test.cjs web/tests/payment-flow.test.cjs web/tests/promotions-api.test.cjs web/tests/promotion-pagination.test.cjs web/tests/coupon-center.test.cjs web/tests/navigation.test.cjs web/tests/read-aggregation.test.cjs web/tests/inventory-batch.test.cjs web/tests/editor-batch.test.cjs web/tests/recommendations.test.cjs web/tests/search-panel.test.cjs web/tests/categories.test.cjs web/tests/category-editor.test.cjs web/tests/sidebars.test.cjs web/tests/discovery-editor.test.cjs; do
+for suite in web/tests/constants.test.cjs web/tests/skeleton.test.cjs web/tests/marketing-loading.test.cjs web/tests/member-loading.test.cjs web/tests/skeleton-admin.test.cjs web/tests/api-auth.test.cjs web/tests/bootstrap-lifecycle.test.cjs web/tests/payment-flow.test.cjs web/tests/promotions-api.test.cjs web/tests/promotion-pagination.test.cjs web/tests/coupon-center.test.cjs web/tests/navigation.test.cjs web/tests/read-aggregation.test.cjs web/tests/inventory-batch.test.cjs web/tests/editor-batch.test.cjs web/tests/demo-product-assets.test.cjs web/tests/recommendations.test.cjs web/tests/search-panel.test.cjs web/tests/categories.test.cjs web/tests/category-editor.test.cjs web/tests/popup-admin.test.cjs web/tests/marketing-popup.test.cjs web/tests/sidebars.test.cjs web/tests/discovery-editor.test.cjs; do
   if [ -f "$suite" ]; then node "$suite"; fi
 done
 run_http_suite() {

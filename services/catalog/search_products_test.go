@@ -112,7 +112,7 @@ func TestProductSearchValidatesInternalRoleAndBoundsBeforeSQL(t *testing.T) {
 			t.Fatalf("non-system search allowed: %q %v", role, err)
 		}
 	}
-	for _, data := range []map[string]any{{"limit": -1}, {"limit": 101}, {"limit": 1.5}, {"query": strings.Repeat("长", 81)}, {"brand": strings.Repeat("a", 65)}, {"category": "bad\x00"}, {"query": []string{"a"}}, {"sort": "price_cents; DROP TABLE catalog_records"}, {"user_id": "other"}} {
+	for _, data := range []map[string]any{{"limit": -1}, {"limit": 101}, {"limit": 1.5}, {"query": strings.Repeat("长", 121)}, {"brand": strings.Repeat("a", 81)}, {"category": strings.Repeat("类", 81)}, {"category": "bad\x00"}, {"query": []string{"a"}}, {"sort": "price_cents; DROP TABLE catalog_records"}, {"user_id": "other"}} {
 		_, err := m.Handle(context.Background(), platform.Command{Action: "search_products", Role: "system", Data: data})
 		if status.Code(err) != codes.InvalidArgument {
 			t.Fatalf("invalid search accepted: %v %v", data, err)
@@ -126,5 +126,15 @@ func TestProductSearchValidatesInternalRoleAndBoundsBeforeSQL(t *testing.T) {
 	_, err := m.Handle(ctx, platform.Command{Action: "search_products", Role: "system"})
 	if status.Code(err) != codes.Canceled {
 		t.Fatalf("search ignored cancellation: %v", err)
+	}
+}
+
+func TestProductSearchAcceptsNavigationConfigurationTextBounds(t *testing.T) {
+	m, db := recallSetup(t)
+	query, category, brand := strings.Repeat("词", 120), strings.Repeat("类", 80), strings.Repeat("牌", 80)
+	insertRecallProduct(t, db, "configured-long-query", query, brand, category, "ACTIVE", "", true, time.Now())
+	rows := searchProducts(t, m, map[string]any{"query": query, "category": category, "brand": brand})
+	if len(rows) != 1 || platform.Text(rows[0], "id") != "configured-long-query" {
+		t.Fatalf("valid navigation text was truncated or rejected: %v", rows)
 	}
 }

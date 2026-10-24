@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"github.com/davveo/lumo/internal/constants"
 	"sort"
 	"strings"
 	"sync"
@@ -12,7 +13,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const strategy = "hybrid_content_v2"
+const strategy = constants.RecommendationStrategyHybridContentV2
 
 type recommendationRequest struct {
 	Scene     string `json:"scene"`
@@ -42,11 +43,11 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	if ctx.Err() != nil {
 		return nil, status.FromContextError(ctx.Err()).Err()
 	}
-	internal := c.Action == "rank_bootstrap"
-	if c.Action != "list" && !internal {
+	internal := c.Action == constants.ActionRankBootstrap
+	if c.Action != constants.ActionList && !internal {
 		return nil, status.Error(codes.Unimplemented, "unsupported recommendation action")
 	}
-	if internal && c.Role != "system" {
+	if internal && c.Role != constants.RoleSystem {
 		return nil, status.Error(codes.PermissionDenied, "bootstrap ranking is internal")
 	}
 	var in recommendationRequest
@@ -54,12 +55,12 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		return nil, bad("invalid recommendation request")
 	}
 	if in.Scene == "" {
-		in.Scene = "home"
+		in.Scene = constants.RecommendationSceneHome
 		if in.OrderID != "" {
-			in.Scene = "post_purchase"
+			in.Scene = constants.RecommendationScenePostPurchase
 		}
 	}
-	if in.Scene != "home" && in.Scene != "similar" && in.Scene != "post_purchase" {
+	if in.Scene != constants.RecommendationSceneHome && in.Scene != constants.RecommendationSceneSimilar && in.Scene != constants.RecommendationScenePostPurchase {
 		return nil, bad("scene must be home, similar or post_purchase")
 	}
 	if in.Limit == 0 {
@@ -71,13 +72,13 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	if !validID(in.ProductID) || !validID(in.OrderID) {
 		return nil, bad("invalid product or order ID")
 	}
-	if in.Scene == "similar" && in.ProductID == "" {
+	if in.Scene == constants.RecommendationSceneSimilar && in.ProductID == "" {
 		return nil, bad("similar recommendations require product_id")
 	}
-	if in.Scene == "post_purchase" && in.OrderID == "" {
+	if in.Scene == constants.RecommendationScenePostPurchase && in.OrderID == "" {
 		return nil, bad("post_purchase recommendations require order_id")
 	}
-	if internal && (in.Scene != "home" || in.OrderID != "" || in.ProductID != "") {
+	if internal && (in.Scene != constants.RecommendationSceneHome || in.OrderID != "" || in.ProductID != "") {
 		return nil, bad("bootstrap ranking only accepts home scene")
 	}
 	if _, err := s.repo.Get(ctx, "recommendation-policy"); err != nil {
@@ -96,7 +97,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	} else {
 		// Client data cannot supply or choose another principal's profile.
 		var err error
-		base, err = s.catalogRows(ctx, "list", map[string]any{"limit": 100})
+		base, err = s.catalogRows(ctx, constants.ActionList, map[string]any{"limit": 100})
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +118,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		if err := platform.RequireUser(c); err != nil {
 			return nil, err
 		}
-		result, err := call(ctx, s.rpc, "order", platform.Command{Action: "get", ID: in.OrderID, UserID: c.UserID, Role: "user"})
+		result, err := call(ctx, s.rpc, constants.ServiceOrder, platform.Command{Action: constants.ActionGet, ID: in.OrderID, UserID: c.UserID, Role: constants.RoleUser})
 		if err != nil {
 			return nil, err
 		}
@@ -142,7 +143,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		}
 	}
 	if len(missing) > 0 {
-		rows, err := s.catalogRows(ctx, "batch_get", map[string]any{"ids": missing})
+		rows, err := s.catalogRows(ctx, constants.ActionBatchGet, map[string]any{"ids": missing})
 		if err != nil {
 			if in.ProductID != "" {
 				return nil, err
@@ -169,7 +170,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		}
 	}
 	if len(parents) > 0 {
-		rows, err := s.catalogRows(ctx, "batch_get", map[string]any{"ids": parents})
+		rows, err := s.catalogRows(ctx, constants.ActionBatchGet, map[string]any{"ids": parents})
 		if err != nil {
 			degraded = true
 		} else {
@@ -213,7 +214,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 	categories, brands, queries := profile.recall(contextProduct, contextOrder, metadata)
 	recalled := []map[string]any{}
 	if len(categories)+len(brands)+len(queries) > 0 {
-		recall, err := call(ctx, s.rpc, "catalog", platform.Command{Action: "recommendation_candidates", Role: "system", Data: map[string]any{"categories": categories, "brands": brands, "queries": queries, "limit": 200}})
+		recall, err := call(ctx, s.rpc, constants.ServiceCatalog, platform.Command{Action: constants.ActionRecommendationCandidates, Role: constants.RoleSystem, Data: map[string]any{"categories": categories, "brands": brands, "queries": queries, "limit": 200}})
 		if err != nil {
 			if ctx.Err() != nil {
 				return nil, status.FromContextError(ctx.Err()).Err()
@@ -263,7 +264,7 @@ func (s *Service) Execute(ctx context.Context, c platform.Command) (traceResult 
 		}
 	}
 	if len(stockIDs) > 0 {
-		rows, err := s.peerRows(ctx, "inventory", platform.Command{Action: "batch_get", Data: map[string]any{"ids": stockIDs}})
+		rows, err := s.peerRows(ctx, constants.ServiceInventory, platform.Command{Action: constants.ActionBatchGet, Data: map[string]any{"ids": stockIDs}})
 		if err != nil {
 			if !internal || len(stocks) == 0 {
 				return nil, err
@@ -339,7 +340,7 @@ func (s *Service) peerRows(ctx context.Context, target string, c platform.Comman
 	return out.Items, nil
 }
 func (s *Service) catalogRows(ctx context.Context, action string, data map[string]any) ([]map[string]any, error) {
-	return s.peerRows(ctx, "catalog", platform.Command{Action: action, Role: "system", Data: data})
+	return s.peerRows(ctx, constants.ServiceCatalog, platform.Command{Action: action, Role: constants.RoleSystem, Data: data})
 }
 
 func (s *Service) readSignals(ctx context.Context, c platform.Command) (signalRows, bool) {
@@ -349,17 +350,17 @@ func (s *Service) readSignals(ctx context.Context, c platform.Command) (signalRo
 	var degraded bool
 	var mu sync.Mutex
 	var wg sync.WaitGroup
-	for _, kind := range []string{"favorite", "history", "compare", "search", "orders"} {
+	for _, kind := range []string{constants.RecommendationSignalFavorite, constants.RecommendationSignalHistory, constants.RecommendationSignalCompare, constants.RecommendationSignalSearch, constants.RecommendationSignalOrders} {
 		kind := kind
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			target, data := "engagement", map[string]any{"kind": kind, "limit": 100}
-			if kind == "orders" {
+			if kind == constants.RecommendationSignalOrders {
 				target = "order"
 				data = map[string]any{"limit": 100}
 			}
-			rows, err := s.peerRows(ctx, target, platform.Command{Action: "list", UserID: c.UserID, Role: "user", Data: data})
+			rows, err := s.peerRows(ctx, target, platform.Command{Action: constants.ActionList, UserID: c.UserID, Role: constants.RoleUser, Data: data})
 			mu.Lock()
 			defer mu.Unlock()
 			if err != nil {
@@ -367,15 +368,15 @@ func (s *Service) readSignals(ctx context.Context, c platform.Command) (signalRo
 				return
 			}
 			switch kind {
-			case "favorite":
+			case constants.RecommendationSignalFavorite:
 				out.Favorite = rows
-			case "history":
+			case constants.RecommendationSignalHistory:
 				out.History = rows
-			case "compare":
+			case constants.RecommendationSignalCompare:
 				out.Compare = rows
-			case "search":
+			case constants.RecommendationSignalSearch:
 				out.Search = rows
-			case "orders":
+			case constants.RecommendationSignalOrders:
 				out.Orders = rows
 			}
 		}()
@@ -451,7 +452,7 @@ func excludedProduct(p product, excluded map[string]bool) bool {
 }
 
 func (s *Service) seed(ctx context.Context) error {
-	r := record("recommendation-policy", "", "policy", "ACTIVE", map[string]any{"strategy": strategy, "personalized_model": false})
+	r := record("recommendation-policy", "", constants.RecommendationKindPolicy, constants.RecommendationStatusActive, map[string]any{"strategy": strategy, "personalized_model": false})
 	_, err := s.repo.InsertOnce(ctx, &r, nil)
 	return err
 }

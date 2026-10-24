@@ -58,7 +58,8 @@ function createHarness(directory, baseURL, options = {}) {
   context.window = context;
   const ctx = vm.createContext(context);
   const evaluate = source => vm.runInContext(source, ctx);
-  const load = file => { vm.runInContext(fs.readFileSync(path.join(directory, file), 'utf8'), ctx, { filename: file }); };
+  let constantsLoaded = false;
+  const load = file => { if (file !== 'constants.js' && !constantsLoaded) load('constants.js'); if (file === 'constants.js') { if (constantsLoaded) return; constantsLoaded = true; } vm.runInContext(fs.readFileSync(path.join(directory, file), 'utf8'), ctx, { filename: file }); };
   const html = fs.readFileSync(path.join(directory, options.html || 'index.html'), 'utf8');
   for (const row of html.matchAll(/\bid="([^"]+)"/g)) if (!ids.has(row[1])) ids.set(row[1], new Element(row[1]));
   const scripts = [...html.matchAll(/<script[^>]*\bsrc="([^"]+)"[^>]*>/g)].map(row => row[1]);

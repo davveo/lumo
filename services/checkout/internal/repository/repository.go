@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/checkout/internal/domain"
 	"gorm.io/gorm"
@@ -60,6 +61,6 @@ func (r *Repository) Pending(ctx context.Context) ([]domain.Saga, error) {
 	ctx, s := platform.Start(ctx, "checkout.repository.Pending")
 	defer s.End()
 	var rows []domain.Saga
-	err := r.db.WithContext(ctx).Where("state IN ?", []string{"CREATING", "CANCELLING", "PAID_CONFIRMING", "PAID_WAIT_GROUP"}).Order("updated_at").Limit(30).Find(&rows).Error
+	err := r.db.WithContext(ctx).Where("state IN ?", []string{constants.CheckoutStateCreating, constants.CheckoutStateCancelling, constants.CheckoutStatePaidConfirming, constants.CheckoutStatePaidWaitGroup}).Order("updated_at").Limit(30).Find(&rows).Error
 	return rows, err
 }

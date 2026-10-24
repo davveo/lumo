@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/davveo/lumo/internal/bootstrap"
+	"github.com/davveo/lumo/internal/democatalog"
 	"github.com/davveo/lumo/internal/httpgateway"
 	"github.com/davveo/lumo/internal/platform"
 )
@@ -103,8 +104,8 @@ func TestHTTPStorefrontEndToEnd(t *testing.T) {
 	h.call(user, "address", "list", "", "", nil)
 	// Catalog prices and real SKU variants are server-owned; no browser price is accepted.
 	catalogue := h.call("", "catalog", "list", "", "", map[string]any{"limit": 100})
-	if len(mapItems(catalogue)) != 12 {
-		t.Fatalf("expected12 storefront products, got%d", len(mapItems(catalogue)))
+	if len(mapItems(catalogue)) != 100 || platform.Int(catalogue, "total") != int64(len(democatalog.Products())+len(democatalog.ExpandedProducts())) {
+		t.Fatalf("expanded storefront must return one bounded page and the actual total: returned=%d total=%v", len(mapItems(catalogue)), catalogue["total"])
 	}
 	h.call("", "catalog", "get", "iphone", "", nil)
 	h.call("", "inventory", "get", "iphone", "", nil)

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/invoice/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -48,14 +49,14 @@ func (r *Repository) ApplyRefund(ctx context.Context, orderID, refundID, userID 
 			return nil
 		}
 		row.RefundedCents += amount
-		adjustment := domain.Reversal{ID: row.ID + ":" + refundID, InvoiceID: row.ID, RefundID: refundID, OriginalNumber: row.Number, AmountCents: amount, Status: "CANCELLED_UNISSUED"}
+		adjustment := domain.Reversal{ID: row.ID + ":" + refundID, InvoiceID: row.ID, RefundID: refundID, OriginalNumber: row.Number, AmountCents: amount, Status: constants.InvoiceReversalStatusCancelledUnissued}
 		if row.Number != "" {
-			row.Status = "REVERSAL_PENDING"
-			adjustment.Status = "PENDING_EXTERNAL_ADJUSTMENT"
+			row.Status = constants.InvoiceStatusReversalPending
+			adjustment.Status = constants.InvoiceReversalStatusPendingExternalAdjustment
 		} else if row.RefundedCents >= row.AmountCents {
-			row.Status = "CANCELLED"
+			row.Status = constants.InvoiceStatusCancelled
 		} else {
-			row.Status = "ADJUSTED_REQUEST"
+			row.Status = constants.InvoiceStatusAdjustedRequest
 		}
 		row.Version++
 		if err = tx.WithContext(ctx).Save(&row).Error; err != nil {
@@ -73,25 +74,25 @@ func (r *Repository) IssueDemo(ctx context.Context, id, number string) (*domain.
 		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&row, "id = ?", id).Error; err != nil {
 			return err
 		}
-		if row.Status == "ISSUED" {
+		if row.Status == constants.InvoiceStatusIssued {
 			return nil
 		}
-		if row.Status != "REQUESTED" && row.Status != "ADJUSTED_REQUEST" {
+		if row.Status != constants.InvoiceStatusRequested && row.Status != constants.InvoiceStatusAdjustedRequest {
 			return status.Error(codes.FailedPrecondition, "invoice no longer eligible for issue")
 		}
 		net := row.AmountCents - row.RefundedCents
 		if net <= 0 {
 			return status.Error(codes.FailedPrecondition, "no invoiceable amount")
 		}
-		row.Status = "ISSUED"
+		row.Status = constants.InvoiceStatusIssued
 		row.Number = number
 		row.IssuedCents = net
-		row.Provider = "local-demo-only"
+		row.Provider = constants.InvoiceProviderLocalDemoOnly
 		row.Version++
 		if err := tx.WithContext(ctx).Save(&row).Error; err != nil {
 			return err
 		}
-		event := platform.Event{ID: row.ID + ":issued", Type: "InvoiceIssued", AggregateID: row.ID, UserID: row.UserID, Data: map[string]any{"order_id": row.OrderID, "invoice_id": row.ID, "number": number, "amount_cents": net, "provider": "local-demo-only"}}
+		event := platform.Event{ID: row.ID + ":issued", Type: constants.EventInvoiceIssued, AggregateID: row.ID, UserID: row.UserID, Data: map[string]any{"order_id": row.OrderID, "invoice_id": row.ID, "number": number, "amount_cents": net, "provider": constants.InvoiceProviderLocalDemoOnly}}
 		return platform.Enqueue(ctx, tx, event)
 	})
 	return &row, err
@@ -111,16 +112,16 @@ func (r *Repository) CompleteDemoAdjustments(ctx context.Context, id string) (*d
 		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&row, "id = ?", id).Error; err != nil {
 			return err
 		}
-		if row.Status == "ADJUSTED" {
+		if row.Status == constants.InvoiceStatusAdjusted {
 			return nil
 		}
-		if row.Status != "REVERSAL_PENDING" {
+		if row.Status != constants.InvoiceStatusReversalPending {
 			return status.Error(codes.FailedPrecondition, "no pending invoice adjustment")
 		}
-		if err := tx.WithContext(ctx).Model(&domain.Reversal{}).Where("invoice_id = ? AND status = ?", id, "PENDING_EXTERNAL_ADJUSTMENT").Update("status", "DEMO_ADJUSTED").Error; err != nil {
+		if err := tx.WithContext(ctx).Model(&domain.Reversal{}).Where("invoice_id = ? AND status = ?", id, constants.InvoiceReversalStatusPendingExternalAdjustment).Update("status", constants.InvoiceReversalStatusDemoAdjusted).Error; err != nil {
 			return err
 		}
-		row.Status = "ADJUSTED"
+		row.Status = constants.InvoiceStatusAdjusted
 		row.Version++
 		return tx.WithContext(ctx).Save(&row).Error
 	})

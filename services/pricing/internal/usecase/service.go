@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/pricing/internal/domain"
 	"github.com/davveo/lumo/services/pricing/internal/repository"
@@ -32,9 +33,9 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 		return nil, err
 	}
 	switch c.Action {
-	case "quote":
+	case constants.ActionQuote:
 		return s.quote(ctx, c)
-	case "get":
+	case constants.ActionGet:
 		q, err := s.r.Get(ctx, c.ID)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "quote not found")
@@ -42,7 +43,7 @@ func (s *Service) Handle(ctx context.Context, c platform.Command) (traceResult p
 		if err != nil {
 			return nil, err
 		}
-		if q.UserID != c.UserID && c.Role != "system" && c.Role != "admin" {
+		if q.UserID != c.UserID && c.Role != constants.RoleSystem && c.Role != constants.RoleAdmin {
 			return nil, status.Error(codes.PermissionDenied, "quote belongs to another member")
 		}
 		var out platform.Result
@@ -81,11 +82,11 @@ func (s *Service) quote(ctx context.Context, c platform.Command) (platform.Resul
 		if len(in.Items) != 1 || in.Items[0].Quantity != 1 {
 			return nil, status.Error(codes.InvalidArgument, "group order requires one unit of its SKU")
 		}
-		team, e := s.rpc.Call(ctx, "group", platform.Command{Action: "get", ID: in.Group, UserID: c.UserID, Role: c.Role})
+		team, e := s.rpc.Call(ctx, constants.ServiceGroup, platform.Command{Action: constants.ActionGet, ID: in.Group, UserID: c.UserID, Role: c.Role})
 		if e != nil {
 			return nil, e
 		}
-		if platform.Text(team, "sku_id") != in.Items[0].SKUID || platform.Text(team, "status") != "OPEN" {
+		if platform.Text(team, "sku_id") != in.Items[0].SKUID || platform.Text(team, "status") != constants.GroupStatusOpen {
 			return nil, status.Error(codes.FailedPrecondition, "group SKU or state does not match")
 		}
 		if in.Activity == "" {
@@ -107,7 +108,7 @@ func (s *Service) quote(ctx context.Context, c platform.Command) (platform.Resul
 		}
 	}
 	sort.Strings(ids)
-	catalog, err := s.rpc.Call(ctx, "catalog", platform.Command{Action: "batch_get", UserID: c.UserID, Role: c.Role, Data: map[string]any{"ids": ids}})
+	catalog, err := s.rpc.Call(ctx, constants.ServiceCatalog, platform.Command{Action: constants.ActionBatchGet, UserID: c.UserID, Role: c.Role, Data: map[string]any{"ids": ids}})
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +149,7 @@ func (s *Service) quote(ctx context.Context, c platform.Command) (platform.Resul
 		}
 		items = append(items, line)
 	}
-	camp, err := s.rpc.Call(ctx, "campaign", platform.Command{Action: "evaluate", UserID: c.UserID, Role: c.Role, Data: map[string]any{"subtotal_cents": subtotal - addonAmount, "quantity": quantity, "addon_sku_id": in.Addon, "activity_id": in.Activity}})
+	camp, err := s.rpc.Call(ctx, constants.ServiceCampaign, platform.Command{Action: constants.ActionEvaluate, UserID: c.UserID, Role: c.Role, Data: map[string]any{"subtotal_cents": subtotal - addonAmount, "quantity": quantity, "addon_sku_id": in.Addon, "activity_id": in.Activity}})
 	if err != nil {
 		return nil, err
 	}
@@ -159,10 +160,10 @@ func (s *Service) quote(ctx context.Context, c platform.Command) (platform.Resul
 		}
 	}
 	kind := platform.Text(camp, "kind")
-	if (in.Group != "" && kind != "group") || (kind == "group" && in.Group == "") {
+	if (in.Group != "" && kind != constants.CampaignKindGroup) || (kind == constants.CampaignKindGroup && in.Group == "") {
 		return nil, status.Error(codes.FailedPrecondition, "group must use its group campaign")
 	}
-	if kind == "addon" && in.Addon == "" {
+	if kind == constants.CampaignKindAddon && in.Addon == "" {
 		return nil, status.Error(codes.FailedPrecondition, "add-on campaign requires its add-on SKU")
 	}
 	resolvedActivity := platform.Text(camp, "activity_id")
@@ -172,7 +173,7 @@ func (s *Service) quote(ctx context.Context, c platform.Command) (platform.Resul
 	campaignDiscount := discount
 	var couponDiscount int64
 	if in.CouponID != "" {
-		coupons, e := s.rpc.Call(ctx, "coupon", platform.Command{Action: "list", UserID: c.UserID, Role: c.Role})
+		coupons, e := s.rpc.Call(ctx, constants.ServiceCoupon, platform.Command{Action: constants.ActionList, UserID: c.UserID, Role: c.Role})
 		if e != nil {
 			return nil, e
 		}
@@ -183,7 +184,7 @@ func (s *Service) quote(ctx context.Context, c platform.Command) (platform.Resul
 		for _, row := range rows {
 			if platform.Text(row, "id") == in.CouponID {
 				st := platform.Text(row, "status")
-				if st != "AVAILABLE" && st != "available" {
+				if st != constants.CouponStatusAvailable && st != constants.CouponStatusAvailableLegacy {
 					return nil, status.Error(codes.FailedPrecondition, "coupon not available")
 				}
 				min := platform.Int(row, "min_cents")
@@ -211,7 +212,7 @@ func (s *Service) quote(ctx context.Context, c platform.Command) (platform.Resul
 		}
 	}
 	if in.Points > 0 {
-		pts, e := s.rpc.Call(ctx, "points", platform.Command{Action: "get", UserID: c.UserID, Role: c.Role})
+		pts, e := s.rpc.Call(ctx, constants.ServicePoints, platform.Command{Action: constants.ActionGet, UserID: c.UserID, Role: c.Role})
 		if e != nil {
 			return nil, e
 		}
@@ -224,7 +225,7 @@ func (s *Service) quote(ctx context.Context, c platform.Command) (platform.Resul
 	}
 	id := platform.ID("quote")
 	expires := time.Now().UTC().Add(10 * time.Minute)
-	out := platform.Result{"quote_id": id, "user_id": c.UserID, "subtotal_cents": subtotal, "main_subtotal_cents": subtotal - addonAmount, "discount_cents": discount, "coupon_discount_cents": couponDiscount, "campaign_discount_cents": campaignDiscount, "campaign_policy_version": camp["policy_version"], "points": in.Points, "payable_cents": subtotal - discount - in.Points, "items": items, "coupon_id": in.CouponID, "activity_id": in.Activity, "group_id": in.Group, "addon_sku_id": in.Addon, "expires_at": expires.Format(time.RFC3339Nano), "shipping_cents": int64(0), "policy_version": "demo-v1-proportional-points-full-coupon"}
+	out := platform.Result{"quote_id": id, "user_id": c.UserID, "subtotal_cents": subtotal, "main_subtotal_cents": subtotal - addonAmount, "discount_cents": discount, "coupon_discount_cents": couponDiscount, "campaign_discount_cents": campaignDiscount, "campaign_policy_version": camp["policy_version"], "points": in.Points, "payable_cents": subtotal - discount - in.Points, "items": items, "coupon_id": in.CouponID, "activity_id": in.Activity, "group_id": in.Group, "addon_sku_id": in.Addon, "expires_at": expires.Format(time.RFC3339Nano), "shipping_cents": int64(0), "policy_version": constants.PricingPolicyVersionDemo}
 	out["activity_kind"], out["activity_name"] = kind, platform.Text(camp, "name")
 	out["pay_rate_bps"], out["min_quantity"] = platform.Int(camp, "pay_rate_bps"), platform.Int(camp, "min_quantity")
 	b, err := json.Marshal(out)

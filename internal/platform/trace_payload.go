@@ -211,6 +211,11 @@ func sensitiveTraceKey(key string) bool {
 		}
 	}
 	switch key {
+	// Marketing delivery tokens identify browser views and recipient lists
+	// contain private principals. Redact these exact keys at every JSON/RPC
+	// boundary while keeping campaign IDs and targeting metadata useful.
+	case "visitorid", "deliveryid", "viewid", "includeuserids", "excludeuserids":
+		return true
 	case "pwd", "auth", "session", "policy", "uploadfields", "downloadurl", "uploadurl", "presignedurl", "signedurl", "userid", "uid", "username", "ownerid", "memberid", "customerid", "accountid", "realname", "fullname", "displayname", "nickname", "contact", "province", "city", "district", "street", "postcode", "zipcode", "taxid", "taxnumber", "ip", "ipaddress", "filename", "body", "message", "content", "comment", "note", "reason", "question", "answer", "feedback", "reply":
 		return true
 	}

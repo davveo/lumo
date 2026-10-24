@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"github.com/davveo/lumo/internal/constants"
 	"time"
 
 	"github.com/davveo/lumo/internal/platform"
@@ -40,23 +41,23 @@ func (s *Service) AcceptPayment(ctx context.Context, request AcceptPaymentReques
 		emit := ""
 		if order.PaymentID == request.PaymentID {
 			accepted = true
-		} else if order.PaymentID == "" && (order.Status == "PENDING_PAYMENT" || order.Status == "CLOSING") {
+		} else if order.PaymentID == "" && (order.Status == constants.OrderStatusPendingPayment || order.Status == constants.OrderStatusClosing) {
 			paidAt := request.PaidAt
 			if paidAt.IsZero() {
 				paidAt = time.Now().UTC()
 			}
 			if !paidAt.After(order.ExpiresAt) {
 				order.PaymentID = request.PaymentID
-				order.Status = "PAID_CONFIRMING"
+				order.Status = constants.OrderStatusPaidConfirming
 				accepted = true
-				emit = "OrderPaymentAccepted"
+				emit = constants.EventOrderPaymentAccepted
 			}
 		}
 		if !accepted {
-			emit = "PaymentRejected"
-			if order.PaymentID == "" && (order.Status == "PENDING_PAYMENT" || order.Status == "CLOSING") {
-				order.Status = "CLOSED"
-				if err = tx.Emit(platform.Event{ID: "OrderClosed-" + order.ID, Type: "OrderClosed", AggregateID: order.ID, UserID: order.UserID, Data: map[string]any{"order_id": order.ID, "reason": "payment_after_deadline"}}); err != nil {
+			emit = constants.EventPaymentRejected
+			if order.PaymentID == "" && (order.Status == constants.OrderStatusPendingPayment || order.Status == constants.OrderStatusClosing) {
+				order.Status = constants.OrderStatusClosed
+				if err = tx.Emit(platform.Event{ID: "OrderClosed-" + order.ID, Type: constants.EventOrderClosed, AggregateID: order.ID, UserID: order.UserID, Data: map[string]any{"order_id": order.ID, "reason": "payment_after_deadline"}}); err != nil {
 					return err
 				}
 			}

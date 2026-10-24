@@ -1,6 +1,8 @@
 package platform
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"context"
 	"fmt"
 	"log/slog"
@@ -53,7 +55,7 @@ func telemetryInstanceID(service string) string {
 	if listener == "" {
 		listener = ":9000"
 	}
-	if service == "gateway" {
+	if service == constants.ServiceGateway {
 		listener = os.Getenv("HTTP_ADDR")
 		if listener == "" {
 			listener = ":8080"

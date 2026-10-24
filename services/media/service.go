@@ -1,6 +1,8 @@
 package media
 
 import (
+	"github.com/davveo/lumo/internal/constants"
+
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/media/internal/domain"
 	"github.com/davveo/lumo/services/media/internal/repository"
@@ -22,5 +24,5 @@ func compose(d platform.Dependencies, store domain.ObjectStore, err error) platf
 	s := usecase.New(repository.New(d.DB), d.RPC)
 	s.ConfigureStore(store, err)
 	t := transport.New(s)
-	return platform.Module{Name: "media", Migrate: s.Migrate, Seed: s.Seed, Handle: t.Handle}
+	return platform.Module{Name: constants.ServiceMedia, Migrate: s.Migrate, Seed: s.Seed, Handle: t.Handle}
 }

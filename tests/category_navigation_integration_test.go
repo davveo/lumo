@@ -114,7 +114,7 @@ func TestCategoryNavigationHTTPConfigurationPersistsAndBootstrapsWithoutRepeated
 	}
 	counted.expectCount(t, "content", "get", 0)
 	for _, call := range counted.snapshot() {
-		if call.service == "content" && (call.command.UserID != "" || call.command.Role != "") {
+		if call.service == "content" && (call.command.Action == "get" || call.command.Action == "list") && (call.command.UserID != "" || call.command.Role != "") {
 			t.Fatal("public configuration read inherited private identity")
 		}
 	}

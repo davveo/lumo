@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/interaction/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -180,6 +181,6 @@ func (r *Repository) HasLike(ctx context.Context, parent, owner string) (bool, e
 	ctx, sp := platform.Start(ctx, "interaction.repository.HasLike")
 	defer sp.End()
 	var n int64
-	err := r.db.WithContext(ctx).Model(&domain.Record{}).Where("parent_id = ? AND kind = ? AND user_id = ?", parent, "like", owner).Count(&n).Error
+	err := r.db.WithContext(ctx).Model(&domain.Record{}).Where("parent_id = ? AND kind = ? AND user_id = ?", parent, constants.InteractionKindLike, owner).Count(&n).Error
 	return n > 0, err
 }

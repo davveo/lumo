@@ -1,63 +1,79 @@
 (function () {
   'use strict';
+  const C = window.LumoConstants;
   const PAGE_SIZE = 6;
   const MAX_COMPARE = 3;
   let catalogPage = 1;
   let catalogSignature = '';
   let lastTotal = 0;
   let activeSuggestion = -1;
-  let comparison = [], history = [], remoteIds = new Set(), querySignature = '', queryLoading = false, queryError = '', queryRevision = 0, suggestionTimer, suggestionRevision = 0, discoveryOwner = '', discoveryOffset = 0;
+  let comparison = [], history = [], remoteIds = new Set(), querySignature = '', queryLoading = false, queryError = '', resolvedSearch = '', resolvedOwner = '', queryOwner = '', queryFlight = null, queryRevision = 0, suggestionTimer, suggestionRevision = 0, discoveryOwner = '', discoveryOffset = 0;
   const api = (service, action, command, options) => window.LumoAPI.call(service, action, command, options);
   const principal = () => window.LumoAuth?.isLoggedIn() === true;
   const currentOwner = () => {const user=window.LumoAuth?.user?.();return JSON.stringify([user?.id || user?.user_id || '',window.LumoAPI.getBase?.() || location.origin,window.LumoAPI.getToken?.() || '']);};
   const searchSignature = () => JSON.stringify([ui.query,ui.category,data().filters,ui.sort]);
-  async function refreshSearch() {
-    const signature = searchSignature(), owner = currentOwner(), revision = ++queryRevision;
-    querySignature = signature; queryLoading = true; queryError = '';
-    const selected = () => querySignature === signature && owner === currentOwner() && revision === queryRevision;
-    if (!String(ui.query || '').trim() && ui.category === '全部好物') {
-      window.LumoRecommendations?.restoreItems?.('search',[]);
-      remoteIds = new Set(products.filter(p => p.visible !== false).map(p => p.id));
-      queryLoading = false;
-      return;
+  function refreshSearch(force = false) {
+    const signature=searchSignature(),owner=currentOwner();
+    if(!force&&queryFlight?.signature===signature&&queryFlight.owner===owner)return queryFlight.promise;
+    const revision=++queryRevision;
+    querySignature=signature;queryOwner=owner;queryLoading=true;queryError='';
+    const selected=()=>querySignature===signature&&owner===currentOwner()&&revision===queryRevision;
+    if(!String(ui.query||'').trim()&&ui.category==='全部好物'){
+      queryFlight=null;window.LumoRecommendations?.restoreItems?.(C.ProductPool.Search,[]);
+      remoteIds=new Set(products.filter(p=>p.visible!==false).map(p=>p.id));
+      queryLoading=false;resolvedSearch=signature;resolvedOwner=owner;
+      return Promise.resolve();
     }
-    const ticket = window.LumoInventory?.hydrationTicket?.();
-    try {
-      const result = await api('search','query',{data:{query:ui.query || '', category:ui.category === '全部好物' ? '' : ui.category,
-        brand:data().filters.brand === 'all' ? '' : data().filters.brand, in_stock:data().filters.inStock,
-        sort:({价格低:'price_asc',价格高:'price_desc',销量:'sales',新品:'newest'})[ui.sort] || '', limit:100}}, {auth:false});
-      if (selected()) {
-        remoteIds = new Set((result.items || []).map(p => p.product_id || p.id));
-        if (window.LumoRecommendations?.mapItems) window.LumoRecommendations.mapItems(result,'search',[],ticket);
-        else {
-          for (const raw of (result.items || []).slice(0,100)) {
-            const product = window.LumoCommerce?.normalizeProduct?.(raw);
-            if(product && !products.some(p=>p.id===product.id))products.push(product);
+    const ticket=window.LumoInventory?.hydrationTicket?.(),flight={signature,owner,promise:null};queryFlight=flight;
+    flight.promise=(async()=>{
+      try {
+        const result=await api(C.Service.Search,C.Action.Query,{data:{query:ui.query||'',category:ui.category==='全部好物'?'':ui.category,
+          brand:data().filters.brand==='all'?'':data().filters.brand,in_stock:data().filters.inStock,
+          sort:({价格低:C.CatalogSort.PriceAsc,价格高:C.CatalogSort.PriceDesc,销量:C.CatalogSort.Sales,新品:C.CatalogSort.Newest})[ui.sort]||C.CatalogSort.Default,limit:100}},{auth:false});
+        if(selected()){
+          resolvedSearch=signature;resolvedOwner=owner;
+          remoteIds=new Set((result.items||[]).map(p=>p.product_id||p.id));
+          if(window.LumoRecommendations?.mapItems)window.LumoRecommendations.mapItems(result,C.ProductPool.Search,[],ticket);
+          else{
+            for(const raw of (result.items||[]).slice(0,100)){
+              const product=window.LumoCommerce?.normalizeProduct?.(raw);
+              if(product&&!products.some(p=>p.id===product.id))products.push(product);
+            }
+            window.LumoInventory?.prime?.(result.inventory_items||[],ticket);
           }
-          window.LumoInventory?.prime?.(result.inventory_items || [],ticket);
         }
-      }
-    } catch(error) { if(selected()) { remoteIds = new Set(); queryError = error.message; } throw error; }
-    finally { if(selected()) queryLoading = false; }
+      }catch(error){if(selected()){remoteIds=new Set();queryError=error.message;}throw error;}
+      finally{if(selected())queryLoading=false;if(queryFlight===flight)queryFlight=null;}
+    })();
+    return flight.promise;
   }
   function selectCategory(category, query = '', label = '', brand = '') {
     if(!categories.includes(category))return;
     data().filters = {brand:brand || 'all',inStock:false};
     ui.category=category;ui.query=typeof query==='string'?[...query.trim()].slice(0,120).join(''):'';ui.categoryLabel=cleanText(label);ui.onlyFavorites=false;
     catalogPage=1;catalogSignature='';closeSearch();
-    const request=refreshSearch();go('');
+    const request=refreshSearch(true);go('');
     return request.then(()=>renderKeepScroll()).catch(error=>{toast(error.message);renderKeepScroll();});
   }
   async function refresh() {
     const owner=currentOwner();
-    if(principal()) {
-      const [compares,searches] = await Promise.all(['compare','search'].map(kind => api('engagement','list',{data:{kind,limit:100}})));
-      if(owner!==currentOwner()) return;
-      discoveryOwner=owner;
-      comparison = (compares.items || []).map(row => row.sku_id);
-      history = (searches.items || []).map(row => row.query).filter(Boolean).slice(0,8);
-    } else { comparison=[];history=[];discoveryOwner=owner; }
-    return refreshSearch();
+    // Public browsing does not depend on the private comparison/history reads.
+    // Start both together so an account-specific failure cannot strand the grid.
+    const search=refreshSearch();
+    const personal=principal()?Promise.allSettled([C.EngagementKind.Compare,C.EngagementKind.Search].map(kind=>api(C.Service.Engagement,C.Action.List,{data:{kind,limit:100}}))):Promise.resolve([]);
+    const [searchResult,personalResult]=await Promise.allSettled([search,personal]);
+    if(owner!==currentOwner())return;
+    discoveryOwner=owner;
+    let personalFailure=null;
+    if(principal()){
+      const [compares,searches]=personalResult.status==='fulfilled'?personalResult.value:[];
+      if(compares?.status==='fulfilled')comparison=(compares.value.items||[]).map(row=>row.sku_id);
+      if(searches?.status==='fulfilled')history=(searches.value.items||[]).map(row=>row.query).filter(Boolean).slice(0,8);
+      personalFailure=personalResult.status==='rejected'?personalResult.reason:[compares,searches].find(result=>result?.status==='rejected')?.reason;
+    }else{comparison=[];history=[];}
+    if(searchResult.status==='rejected')throw searchResult.reason;
+    if(personalFailure)throw personalFailure;
+    return searchResult.value;
   }
   const cleanText = value => typeof value === 'string' ? value.trim().slice(0, 80) : '';
   const productFor = id => products.find(p => p.id === id && p.visible !== false);
@@ -81,7 +97,7 @@
     catalogPage = 1;
     if (principal()) {
       const owner=currentOwner();
-      await api('engagement','put',{data:{kind:'search',query:value}});
+      await api(C.Service.Engagement,C.Action.Put,{data:{kind:C.EngagementKind.Search,query:value}});
       if(owner!==currentOwner())return;
       history = [value,...history.filter(row => row.toLocaleLowerCase() !== value.toLocaleLowerCase())].slice(0,8);
     }
@@ -91,7 +107,7 @@
     const clean = query.replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g,'').replace(/\d{7,}/g,'').trim();
     if (!clean) return;
     const key='search-'+(crypto.randomUUID?.() || Date.now().toString(36));
-    api('analytics','record',{idempotency_key:key,data:{type:'search',query:clean}}).catch(()=>{});
+    api(C.Service.Analytics,C.Action.Record,{idempotency_key:key,data:{type:C.AnalyticsBehavior.Search,query:clean}}).catch(()=>{});
   }
   function commitSearch(query) {
     const value = cleanText(query);
@@ -101,7 +117,7 @@
     const current = data();
     current.filters = { brand: 'all', inStock: false };
     ui.query = value; ui.category = '全部好物'; ui.categoryLabel = ''; ui.onlyFavorites = false; ui.min = ''; ui.max = '';
-    closeSearch(); go(''); refreshSearch().then(() => renderKeepScroll()).catch(error => {toast(error.message);renderKeepScroll();});
+    closeSearch(); const request=refreshSearch();go('');request.then(() => renderKeepScroll()).catch(error => {toast(error.message);renderKeepScroll();});
   }
   function filter(list) {
     const filters = data().filters;
@@ -114,7 +130,7 @@
   function controls() {
     const current = data(), brands = [...new Set(products.filter(p => p.visible !== false).map(brandFor))].sort();
     const active = current.filters.brand !== 'all' || current.filters.inStock;
-    return `${queryLoading ? '<p class="disc-search-label" role="status">正在查询商城商品…</p>' : queryError ? `<p class="disc-search-label" role="alert">${esc(queryError)}</p>` : ''}<div class="disc-controls"><label class="disc-brand-filter"><span>品牌</span><select data-discovery-filter="brand" aria-label="按品牌筛选商品"><option value="all">全部品牌</option>${brands.map(brand => `<option value="${esc(brand)}" ${current.filters.brand === brand ? 'selected' : ''}>${esc(brand)}</option>`).join('')}</select></label><label class="disc-stock-filter"><input type="checkbox" data-discovery-filter="stock" ${current.filters.inStock ? 'checked' : ''}>仅看有货</label>${active ? '<button class="disc-clear-filters" data-discovery-action="reset-filters">清除筛选</button>' : ''}<a class="disc-compare-entry" href="#/compare">${icon('layers')}商品对比${current.compareIds.length ? `<span>${current.compareIds.length}</span>` : ''}</a></div>`;
+    return `${queryError ? `<p class="disc-search-label" role="alert">${esc(queryError)}</p>` : ''}<div class="disc-controls"><label class="disc-brand-filter"><span>品牌</span><select data-discovery-filter="brand" aria-label="按品牌筛选商品"><option value="all">全部品牌</option>${brands.map(brand => `<option value="${esc(brand)}" ${current.filters.brand === brand ? 'selected' : ''}>${esc(brand)}</option>`).join('')}</select></label><label class="disc-stock-filter"><input type="checkbox" data-discovery-filter="stock" ${current.filters.inStock ? 'checked' : ''}>仅看有货</label>${active ? '<button class="disc-clear-filters" data-discovery-action="reset-filters">清除筛选</button>' : ''}<a class="disc-compare-entry" href="#/compare">${icon('layers')}商品对比${current.compareIds.length ? `<span>${current.compareIds.length}</span>` : ''}</a></div>`;
   }
   function paginate(list) {
     const current = data();
@@ -217,7 +233,7 @@
     const revision = suggestionRevision, owner = currentOwner();
     suggestionTimer = setTimeout(async () => {
       try {
-        const result = await api('search','query',{data:{query,limit:5}}, {auth:false});
+        const result = await api(C.Service.Search,C.Action.Query,{data:{query,limit:5}}, {auth:false});
         if (revision !== suggestionRevision || owner !== currentOwner() || !input.isConnected || document.activeElement !== input || cleanText(input.value) !== query) return;
         const matches = (result.items || []).map(raw => products.find(p => p.id === (raw.product_id || raw.id))).filter(p => p && p.visible !== false);
         showSearch(input, panel, matches);
@@ -225,7 +241,7 @@
     },250);
   }
   function afterRender() {
-    if ((!window.LumoConnection || window.LumoConnection.ready) && querySignature !== searchSignature()) refreshSearch().then(() => renderKeepScroll()).catch(error => { toast(error.message); renderKeepScroll(); });
+    if ((!window.LumoConnection || window.LumoConnection.ready) && (querySignature !== searchSignature() || queryOwner !== currentOwner())) refreshSearch().then(() => renderKeepScroll()).catch(error => { toast(error.message); renderKeepScroll(); });
     document.body?.classList.toggle('has-disc-compare', !!document.querySelector('.disc-compare-bar'));
     const form = document.querySelector('#search-form'), input = document.querySelector('#search-input');
     if (!form || !input) return;
@@ -287,7 +303,7 @@
     }
     if (action === 'clear-search') {
       const owner = currentOwner(); button.disabled = true;
-      try { if(principal()) await api('engagement','clear',{data:{kind:'search'}}); if(owner!==currentOwner()) return; history=[]; }
+      try { if(principal()) await api(C.Service.Engagement,C.Action.Clear,{data:{kind:C.EngagementKind.Search}}); if(owner!==currentOwner()) return; history=[]; }
       catch(error){if(owner===currentOwner()) {toast(error.message);button.disabled=false;}return;}
       const input = document.querySelector('#search-input'), panel = searchPanel();
       if (input && panel && !panel.hidden && owner===currentOwner()) showSearch(input, panel);
@@ -302,8 +318,8 @@
       const owner=currentOwner();
       try {
         const selected = comparison.includes(id);
-        await api('engagement',selected ? 'delete':'put',{data:{kind:'compare',sku_id:id}});
-        const result = await api('engagement','list',{data:{kind:'compare',limit:100}});
+        await api(C.Service.Engagement,selected ? C.Action.Delete:C.Action.Put,{data:{kind:C.EngagementKind.Compare,sku_id:id}});
+        const result = await api(C.Service.Engagement,C.Action.List,{data:{kind:C.EngagementKind.Compare,limit:100}});
         if(owner!==currentOwner())return;
         comparison = (result.items || []).map(row => row.sku_id);renderKeepScroll();
       } catch(error) {toast(error.message);button.disabled=false;}
@@ -311,9 +327,9 @@
     }
     if (action === 'clear-compare') {
       if (!window.LumoAuth?.requireLogin(location.hash)) return;
-      try {await api('engagement','clear',{data:{kind:'compare'}});comparison=[];renderKeepScroll();}catch(error){toast(error.message);}
+      try {await api(C.Service.Engagement,C.Action.Clear,{data:{kind:C.EngagementKind.Compare}});comparison=[];renderKeepScroll();}catch(error){toast(error.message);}
     }
   });
   for (const event of ['lumo:login','lumo:logout','lumo:session-expired']) window.addEventListener?.(event, () => { comparison=[];history=[];discoveryOffset=0;discoveryOwner='';closeSearch(); });
-  window.LumoDiscovery = { selectCategory, afterRender, recordSearch, commitSearch, filter, controls, paginate, pagination, compareButton, compareBar, page, resetFilters, brandFor, refresh, refreshSearch };
+  window.LumoDiscovery = {readState:()=>({loading:queryLoading&&queryOwner===currentOwner(),loaded:resolvedSearch===searchSignature()&&resolvedOwner===currentOwner(),error:querySignature===searchSignature()&&queryOwner===currentOwner()?queryError:''}), selectCategory, afterRender, recordSearch, commitSearch, filter, controls, paginate, pagination, compareButton, compareBar, page, resetFilters, brandFor, refresh, refreshSearch };
 })();
