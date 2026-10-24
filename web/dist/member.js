@@ -54,7 +54,9 @@
     };
   }
   let memory = emptyMemory();
-  let lastTracked = null, tracking = null, historyRevision = 0;
+  let lastTracked = null,
+    tracking = null,
+    historyRevision = 0;
   let refreshVersion = 0;
   let inFlight = null,
     dialogVersion = 0;
@@ -180,6 +182,7 @@
     const version = refreshVersion,
       owner = memberScope(),
       historyReadRevision = historyRevision,
+      previousHistoryRead = { ...readStates.history },
       pending = {};
     inFlight = pending;
     resourceNames.forEach((key) => {
@@ -283,13 +286,16 @@
       }
       if (history) {
         try {
-          await hydrateHistory(history.items || [], () => version === refreshVersion && owner === memberScope() && loggedIn());
+          await hydrateHistory(
+            history.items || [],
+            () => version === refreshVersion && owner === memberScope() && loggedIn(),
+          );
           if (version !== refreshVersion || owner !== memberScope() || !loggedIn()) return model();
           const rows = (history.items || []).map(historyRow);
           memory.history = historyReadRevision === historyRevision ? rows : mergeHistory(memory.history, rows);
         } catch (error) {
           if (version !== refreshVersion || owner !== memberScope() || !loggedIn()) return model();
-          readStates.history = { ...readStates.history, error: error.message || '浏览足迹商品加载失败' };
+          readStates.history = { ...readStates.history, loaded: previousHistoryRead.loaded || memory.history.length > 0, error: error.message || '浏览足迹商品加载失败' };
         }
       }
       if (reviews)
@@ -703,25 +709,36 @@
     return rows;
   }
   const historyRow = (row) => ({
-    id: viewId(row.sku_id), sku_id: row.sku_id, recordId: row.id, at: timestamp(row.updated_at || row.created_at),
+    id: viewId(row.sku_id),
+    sku_id: row.sku_id,
+    recordId: row.id,
+    at: timestamp(row.updated_at || row.created_at),
   });
   function mergeHistory(...sources) {
     const rows = new Map();
-    for (const source of sources) for (const row of source) {
-      const key = row.recordId || row.sku_id;
-      if (!rows.has(key) || row.at > rows.get(key).at) rows.set(key, row);
-    }
-    return [...rows.values()].sort((a,b) => b.at - a.at).slice(0,100);
+    for (const source of sources)
+      for (const row of source) {
+        const key = row.recordId || row.sku_id;
+        if (!rows.has(key) || row.at > rows.get(key).at) rows.set(key, row);
+      }
+    return [...rows.values()].sort((a, b) => b.at - a.at).slice(0, 100);
   }
   async function hydrateHistory(rows, active) {
     if (!window.LumoCommerce?.normalizeProduct) return;
-    const missing = [...new Set(rows.map((row) => row.sku_id).filter((id) => id && !findProduct(id)))].slice(0,100);
+    const missing = [...new Set(rows.map((row) => row.sku_id).filter((id) => id && !findProduct(id)))].slice(0, 100);
     if (!missing.length) return;
-    const batch = (ids) => window.LumoAPI.call(C.Service.Catalog,C.Action.BatchGet,{data:{ids}}, {auth:false});
+    const batch = (ids) =>
+      window.LumoAPI.call(C.Service.Catalog, C.Action.BatchGet, { data: { ids } }, { auth: false });
     const result = await batch(missing);
     if (!active()) return;
     const raw = [...(result.items || [])];
-    const parents = [...new Set(raw.map((row) => row.product_id || row.parent_id).filter((id) => id && !findProduct(id) && !raw.some((row) => row.id === id)))];
+    const parents = [
+      ...new Set(
+        raw
+          .map((row) => row.product_id || row.parent_id)
+          .filter((id) => id && !findProduct(id) && !raw.some((row) => row.id === id)),
+      ),
+    ];
     if (parents.length) {
       const parentResult = await batch(parents);
       if (!active()) return;
@@ -729,7 +746,7 @@
     }
     for (const row of raw) {
       if (!active()) return;
-      if (row.product_id && row.product_id !== row.id || row.parent_id && row.parent_id !== row.id) continue;
+      if ((row.product_id && row.product_id !== row.id) || (row.parent_id && row.parent_id !== row.id)) continue;
       const product = window.LumoCommerce.normalizeProduct(row);
       if (product?.id && !findProduct(product.id)) products.push(product);
     }
@@ -737,38 +754,47 @@
   function track(productId) {
     if (memoryScope !== memberScope()) reset();
     if (!loggedIn() || !findProduct(productId)) return Promise.resolve(false);
-    const owner = memberScope(), version = refreshVersion, key = owner + '|' + productId;
+    const owner = memberScope(),
+      version = refreshVersion,
+      key = owner + '|' + productId;
     if (tracking?.key === key) return tracking.promise;
-    const entry = {key,promise:null};
+    const entry = { key, promise: null };
     tracking = entry;
     const active = () => version === refreshVersion && owner === memberScope() && loggedIn();
     entry.promise = (async () => {
-      const result = await call(C.Service.Engagement,C.Action.Put,{
-        data:{kind:C.EngagementKind.History,sku_id:skuFor({id:productId})},
+      const result = await call(C.Service.Engagement, C.Action.Put, {
+        data: { kind: C.EngagementKind.History, sku_id: skuFor({ id: productId }) },
       });
       if (!active()) return false;
-      if (!result.id || !result.sku_id || result.user_id && result.user_id !== principal()) throw Error('浏览足迹未保存，请重试');
+      if (!result.id || !result.sku_id || (result.user_id && result.user_id !== principal()))
+        throw Error('浏览足迹未保存，请重试');
       historyRevision++;
-      memory.history = mergeHistory([historyRow(result)],memory.history);
-      if (location.hash === "#/product/" + productId) lastTracked = key;
-      readStates.history = {loading:false,loaded:true,error:''};
+      memory.history = mergeHistory([historyRow(result)], memory.history);
+      if (location.hash === '#/product/' + productId) lastTracked = key;
+      readStates.history = { loading: false, loaded: true, error: '' };
       await window.LumoSidebars?.refresh?.(true);
       return active();
-    })().finally(() => {if (tracking === entry) tracking = null;});
+    })().finally(() => {
+      if (tracking === entry) tracking = null;
+    });
     return entry.promise;
   }
   function afterRender() {
     if (window.LumoConnection?.ready === false || window.LumoAPI?.isBootstrapActive?.()) return;
     if (memoryScope !== memberScope()) reset();
-    const route = (location.hash || '#/').slice(2).split('/'), id = route[0] === 'product' ? route[1] : null;
-    if (!id) {lastTracked = null; return;}
+    const route = (location.hash || '#/').slice(2).split('/'),
+      id = route[0] === 'product' ? route[1] : null;
+    if (!id) {
+      lastTracked = null;
+      return;
+    }
     // A direct URL may still be loading a product outside the bootstrap page.
     // Do not mark it visited before the real detail data is ready and persisted.
     if (!loggedIn() || !findProduct(id) || lastTracked === memberScope() + '|' + id) return;
     const owner = memberScope();
     void track(id).catch((error) => {
       if (owner !== memberScope() || !loggedIn()) return;
-      readStates.history = {...readStates.history,loading:false,error:error.message || '浏览足迹保存失败'};
+      readStates.history = { ...readStates.history, loading: false, error: error.message || '浏览足迹保存失败' };
       showError(error);
     });
   }

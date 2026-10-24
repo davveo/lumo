@@ -481,7 +481,12 @@ test('detail footprints wait for hydrated products and persist once before refre
   const f = fixture();
   t.after(() => f.dispose());
   let recentReads = 0;
-  f.app.ctx.LumoSidebars = { async refresh(force) { assert.equal(force, true); recentReads++; } };
+  f.app.ctx.LumoSidebars = {
+    async refresh(force) {
+      assert.equal(force, true);
+      recentReads++;
+    },
+  };
   f.app.ctx.location.hash = '#/product/outside-bootstrap';
   f.member.afterRender();
   assert.equal(f.calls.length, 0, 'unloaded detail must not be marked as already tracked');
@@ -512,7 +517,11 @@ test('late footprint writes never populate or block a different account', async 
   const write = deferred();
   let recentReads = 0;
   f.app.ctx.products.push({ id: 'outside', skuId: 'outside', name: '真实商品' });
-  f.app.ctx.LumoSidebars = { async refresh() { recentReads++; } };
+  f.app.ctx.LumoSidebars = {
+    async refresh() {
+      recentReads++;
+    },
+  };
   f.setHandler(async () => write.promise);
   const old = f.member.track('outside');
   f.setSession('second', 'token-second');
@@ -529,7 +538,9 @@ test('failed footprint writes remain errors and can be retried after the product
   t.after(() => f.dispose());
   f.app.ctx.products.push({ id: 'outside', name: '真实商品' });
   f.app.ctx.location.hash = '#/product/outside';
-  f.setHandler(async () => { throw Error('保存失败'); });
+  f.setHandler(async () => {
+    throw Error('保存失败');
+  });
   f.member.afterRender();
   await tick();
   assert.equal(f.member.model().history.length, 0);
@@ -549,9 +560,14 @@ test('historical products beyond the bootstrap window hydrate with bounded SKU a
     if (service === 'catalog') {
       assert.equal(action, 'batch_get');
       if (command.data.ids[0] === 'old-sku') return { items: [{ id: 'old-sku', product_id: 'old-parent' }] };
-      return { items: [{ id: 'old-parent', name: '目录百条之外的真实商品', price_cents: 9900, variants: [{ sku_id: 'old-sku' }] }] };
+      return {
+        items: [
+          { id: 'old-parent', name: '目录百条之外的真实商品', price_cents: 9900, variants: [{ sku_id: 'old-sku' }] },
+        ],
+      };
     }
-    if (service === 'engagement' && command.data.kind === 'history') return { items: [{ id: 'old-record', user_id: 'buyer', sku_id: 'old-sku', created_at: '2026-10-24T10:00:00Z' }] };
+    if (service === 'engagement' && command.data.kind === 'history')
+      return { items: [{ id: 'old-record', user_id: 'buyer', sku_id: 'old-sku', created_at: '2026-10-24T10:00:00Z' }] };
     return { items: [] };
   });
   await f.member.refresh();
@@ -568,7 +584,8 @@ test('a history list started before a successful detail write cannot erase the n
   const listing = deferred();
   f.app.ctx.products.push({ id: 'new-product', name: '真实商品' });
   f.setHandler(async (service, action, command) => {
-    if (service === 'engagement' && action === 'put') return { id: 'new-history', user_id: 'buyer', sku_id: 'new-product', updated_at: '2026-10-24T10:00:00Z' };
+    if (service === 'engagement' && action === 'put')
+      return { id: 'new-history', user_id: 'buyer', sku_id: 'new-product', updated_at: '2026-10-24T10:00:00Z' };
     if (service === 'engagement' && command.data.kind === 'history') return listing.promise;
     return { items: [] };
   });

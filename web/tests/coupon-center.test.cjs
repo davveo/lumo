@@ -162,6 +162,8 @@ function setup() {
   await guest.center.refresh();
   assert.equal(guest.calls[0].options.auth, false, 'guest browsing must not require authentication');
   const firstGuestPage = guest.center.page();
+  assert.equal((firstGuestPage.match(/class="cc-pagination is-bottom"/g) || []).length, 1);
+  assert(!firstGuestPage.includes('cc-pagination is-top'));
   await guest.click({ ccAction: 'page', value: '2' });
   const html = firstGuestPage + guest.center.page();
   assert(html.includes('登录领取'));
@@ -183,6 +185,7 @@ function setup() {
   assert(guest.center.page().includes('当前分类 2 种'));
   assert(guest.center.home().includes('#/coupons'));
   assert.equal((guest.center.home().match(/class="cc-home-ticket"/g) || []).length, 3);
+  assert.equal((guest.center.home({ limit: 2 }).match(/class="cc-home-ticket"/g) || []).length, 2);
 
   const pages = setup();
   pages.login();

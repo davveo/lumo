@@ -212,7 +212,11 @@ services['gateway'] = {
 }
 services['web'] = {
     'image': 'lumo-mall-web:dev',
-    'build': {'context': './web', 'dockerfile': 'Dockerfile'},
+    'build': {
+        'context': './web',
+        'dockerfile': 'Dockerfile',
+        'args': {'NGINX_IMAGE': '${WEB_NGINX_IMAGE:-nginx:1.30.6-alpine}'},
+    },
     'environment': {'GATEWAY_UPSTREAM': '${WEB_GATEWAY_UPSTREAM:-gateway:8080}'},
     'ports': ['127.0.0.1:${WEB_PORT:-8080}:8080'],
     'depends_on': {'gateway': {'condition': 'service_healthy'}},

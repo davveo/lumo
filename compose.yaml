@@ -1429,6 +1429,8 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
+      args:
+        NGINX_IMAGE: ${WEB_NGINX_IMAGE:-nginx:1.30.6-alpine}
     environment:
       GATEWAY_UPSTREAM: ${WEB_GATEWAY_UPSTREAM:-gateway:8080}
     ports:

@@ -74,6 +74,7 @@ for required in \
   web/dist/index.html \
   web/dist/admin.html \
   web/Dockerfile \
+  web/entrypoint.sh \
   web/nginx/default.conf.template \
   scripts/source-fingerprint.sh \
   scripts/start-incremental.sh; do
@@ -118,12 +119,22 @@ if [ -z "${WEB_PORT:-}" ] && ! grep -Eq '^[[:space:]]*(export[[:space:]]+)?WEB_P
       mkdir -p "$PROJECT_DIR/.local/env-backups"
     ) || fail '无法创建.env备份目录'
     ENV_BACKUP=$(mktemp "$PROJECT_DIR/.local/env-backups/before-web-split.XXXXXX") || fail '无法备份旧.env'
-    ENV_MIGRATION=$(mktemp "$PROJECT_DIR/.env.web-split.XXXXXX") || fail '无法创建.env迁移文件'
+    ENV_MIGRATION=$(mktemp "$PROJECT_DIR/.local/env-backups/migration.XXXXXX") || fail '无法创建.env迁移文件'
     cat .env >"$ENV_BACKUP" || fail '无法备份旧.env'
     awk -v api_port="$LEGACY_API_PORT" -v web_port="$LEGACY_WEB_PORT" '
-      /^[[:space:]]*(export[[:space:]]+)?GATEWAY_PORT[[:space:]]*=/ { print "GATEWAY_PORT=" api_port; next }
+      /^[[:space:]]*(export[[:space:]]+)?GATEWAY_PORT[[:space:]]*=/ {
+        if (!inserted) {
+          print "# Frontend container: retain the original storefront port.\nWEB_PORT=" web_port
+          inserted=1
+        }
+        print "GATEWAY_PORT=" api_port
+        next
+      }
+      /^[[:space:]]*(export[[:space:]]+)?MINIO_CORS_ORIGINS[[:space:]]*=/ {
+        gsub(/\$\{GATEWAY_PORT/, "${WEB_PORT")
+        gsub(/\$GATEWAY_PORT/, "$WEB_PORT")
+      }
       { print }
-      END { print "\n# Frontend container: retain the original storefront port.\nWEB_PORT=" web_port }
     ' .env >"$ENV_MIGRATION" || fail '无法迁移前端端口配置'
     mv "$ENV_MIGRATION" .env || fail '无法保存前端端口配置'
     printf '已拆分前端端口：商城%s，API%s；原.env备份：%s\n' "$LEGACY_WEB_PORT" "$LEGACY_API_PORT" "$ENV_BACKUP"

@@ -429,6 +429,48 @@ function footer() {
 function productCard(p) {
   return `<article class="product-card"><a class="product-image ${['iphone', 'macbook'].includes(p.id) ? 'official-image' : ''}" href="#/product/${esc(p.id)}" aria-label="查看${esc(p.name)}"><img src="${esc(asset(p.image))}" alt="${esc(p.name)}" loading="lazy">${p.label ? `<span class="product-label">${esc(p.label)}</span>` : ''}</a>${window.LumoDiscovery?.compareButton(p) || ''}<button class="favorite-button ${state.favorites.includes(p.id) ? 'saved' : ''}" data-action="favorite" data-id="${esc(p.id)}" aria-label="${state.favorites.includes(p.id) ? '取消收藏' : '收藏'}${esc(p.name)}" aria-pressed="${state.favorites.includes(p.id)}">${icon('heart')}</button><div class="product-info"><a class="product-title" href="#/product/${esc(p.id)}">${esc(p.name)}</a><p class="product-sub">${esc(p.sub)}</p><div class="price-line">${price(p.price)}<span class="old-price">¥${money(p.old)}</span><button class="card-cart" data-action="quick-add" data-id="${esc(p.id)}" aria-label="将${esc(p.name)}加入购物车" ${p.visible === false || (window.LumoInventory && window.LumoInventory.stockFor(p) <= 0) ? 'disabled' : ''}>${icon('cart')}</button></div></div></article>`;
 }
+function homeMemberBenefits() {
+  const loggedIn = !!window.LumoAuth?.isLoggedIn(), member = window.LumoMember?.model();
+  const profileReady = window.LumoMember?.readState?.('profile').loaded;
+  const name = loggedIn && profileReady ? member?.profile?.nickname : '';
+  const metric = (resource, value) => loggedIn && window.LumoMember?.readState?.(resource).loaded ? value : '—';
+  const availableCoupons = member?.coupons?.filter((row) => row.status === CommerceEnums.CouponViewStatus.Available).length || 0;
+  return `<section class="home-member-card" aria-label="会员权益"><div class="home-member-greeting"><span class="home-member-avatar">${icon('user')}</span><div><strong>${loggedIn ? esc(name || '欢迎回来') : 'Hi，欢迎来到 LUMO'}</strong><p>${loggedIn ? '你的品质生活，从这里继续' : '登录发现属于你的好物与福利'}</p></div></div><div class="home-member-actions">${loggedIn ? '<a href="#/member">会员中心</a><a href="#/member/orders">我的订单</a>' : '<a href="#/login">立即登录</a><a href="#/register">新用户注册</a>'}</div><div class="home-member-metrics"><a href="#/member/coupons"><strong>${metric('coupons', availableCoupons)}</strong><span>可用优惠券</span></a><a href="#/member/points"><strong>${metric('points', member?.points || 0)}</strong><span>我的积分</span></a><a href="#/member/favorites"><strong>${loggedIn ? state.favorites.length : '—'}</strong><span>我的收藏</span></a></div></section>`;
+}
+function homeActivityCards() {
+  const promotions = window.LumoPromotions, status = promotions?.status();
+  const flash = promotions?.flashOffers().find((row) => row.status === CommerceEnums.PromotionOfferStatus.Active);
+  const group = promotions?.groupOffers().find((row) => row.status === CommerceEnums.PromotionOfferStatus.Active);
+  const exchange = promotions?.exchangeOffers([]).find((row) => row.status === CommerceEnums.PromotionOfferStatus.Active);
+  const campaign = promotions?.campaigns()[0];
+  const cards = [
+    { title: '限时秒杀', label: '限时好价', route: 'flash', ready: 'flash', offer: flash, tone: 'red' },
+    { title: '一起拼好物', label: '拼团享优惠', route: 'group', ready: 'group', offer: group, tone: 'violet' },
+    { title: '活动精选', label: campaign ? promotions.campaignRule(campaign) : '发现购物好福利', route: campaign?.kind || 'reduction', ready: 'campaign', campaign, tone: 'amber' },
+    { title: '超值换购', label: '好物加价购', route: 'exchange', ready: 'exchange', offer: exchange, tone: 'blue' },
+  ];
+  return `<div class="home-activity-grid" aria-label="活动福利">${cards.map((card) => {
+    const pending = !(status?.ready?.[card.ready] ?? status?.loaded) && !status?.error;
+    const body = card.offer
+      ? `<span class="home-activity-product">${esc(card.offer.product.name)}</span><strong class="home-activity-price">¥${money(card.offer.price)}</strong><img src="${esc(asset(card.offer.product.image))}" alt="" loading="lazy">`
+      : card.campaign
+        ? `<span class="home-activity-product">${esc(card.campaign.name || '商城优惠活动')}</span><strong class="home-activity-rule">${esc(promotions.campaignRule(card.campaign))}</strong>`
+        : pending ? commerceSkeleton('summary', { count: 1, label: '正在加载活动' })
+          : `<span class="home-activity-empty">${status?.error ? '活动暂未加载，进入重试' : '更多活动准备中'}</span>`;
+    return `<a class="home-activity-card is-${card.tone}" href="#/promotions/${esc(card.route)}"><h2>${card.title}${icon('chevron')}</h2><p>${esc(card.label)}</p>${body}</a>`;
+  }).join('')}</div>`;
+}
+function homeLanding(list, busy, error, recommendation) {
+  const featured = list.slice(0, 4);
+  const navigationCategories = (window.LumoCategories?.categories || []).filter((category) => category !== '全部好物');
+  const keywords = navigationCategories.slice(0, 6);
+  const directory = window.LumoCategories?.directory() || `<aside class="category-directory" aria-label="正在加载商品分类"><div class="category-directory-head">${icon('layers')}全部商品分类</div>${commerceSkeleton('navigation', { count: 12, label: '正在加载分类' })}</aside>`;
+  const picks = busy && !featured.length
+    ? commerceSkeleton('products', { count: 4, label: '正在加载精选好物' })
+    : featured.length ? `<div class="home-picks-grid">${featured.map((product) => `<a class="home-pick" href="#/product/${esc(product.id)}"><img src="${esc(asset(product.image))}" alt="${esc(product.name)}" loading="lazy"><strong>${esc(product.name)}</strong><span>¥${money(product.price)}</span></a>`).join('')}</div>`
+      : `<div class="home-picks-empty"><span>${error ? '精选商品暂未加载' : '新好物正在上架'}</span><button data-action="${error ? 'commerce-refresh' : 'explore'}">${error ? '重新加载' : '探索全部好物'} ${icon('arrow')}</button></div>`;
+  return `<div class="home-discovery-bar"><div class="home-keywords"><span>发现好物</span>${keywords.map((keyword) => `<button type="button" data-action="category" data-value="${esc(keyword)}">${esc(keyword)}</button>`).join('')}</div><div class="home-entry-links"><a href="#/promotions/flash">${icon('clock')}限时秒杀</a><a href="#/promotions/group">${icon('users')}一起拼团</a><a href="#/coupons">${icon('ticket')}领券中心</a><a href="#/member">${icon('user')}会员权益</a></div></div><section class="home-category-layout" aria-label="商城精选与分类">${directory}<div class="home-feature-area"><div class="home-feature-top"><section class="hero" aria-label="智享生活精选"><div class="hero-copy"><span class="eyebrow">${esc(shop().heroEyebrow)}</span><h1>${esc(shop().heroTitle).replace(/\n/g, '<br>')}</h1><p>${esc(shop().heroSubtitle)}</p><button class="primary" data-action="explore">立即探索 ${icon('arrow')}</button></div><img class="hero-image" src="${esc(asset(shop().heroImage))}" alt="品质生活精选"><span class="home-hero-label">LUMO · 每日灵感</span></section><section class="home-picks" aria-label="精选好物"><div class="home-card-heading"><h2>${recommendation.personalized ? '为你精选' : '发现好物'}</h2><button data-action="explore">去逛逛 ${icon('chevron')}</button></div>${picks}</section></div>${homeActivityCards()}</div><aside class="home-benefits" aria-label="会员与领券">${homeMemberBenefits()}${window.LumoCouponCenter?.home({ limit: 2 }) || `<section class="home-coupons-pending"><h2>${icon('ticket')}领券中心</h2>${commerceSkeleton('coupons', { count: 2, label: '正在加载好券', className: 'sk-coupons-compact' })}</section>`}</aside></section>${primaryNavigation().replace('container nav', 'nav home-category-nav')}`;
+}
 function catalog() {
   let list = products.filter(
     (p) =>
@@ -471,8 +513,9 @@ function catalog() {
   const catalogError =
     searchRead?.error || commerceState.catalogError || (ui.onlyFavorites && commerceReadState('favorites').error);
   const catalogCount = catalogBusy ? '加载中' : list.length + ' 件好物';
-  return `${header(true)}<main id="main" class="container">${!filtered ? `<section class="home-category-layout">${window.LumoCategories?.directory() || ''}<section class="hero" aria-label="智享生活精选"><div class="hero-copy"><span class="eyebrow">${esc(shop().heroEyebrow)}</span><h1>${esc(shop().heroTitle).replace(/\n/g, '<br>')}</h1><p>${esc(shop().heroSubtitle)}</p><button class="primary" data-action="explore">立即探索 ${icon('arrow')}</button></div><img class="hero-image" src="${esc(asset(shop().heroImage))}" alt="笔记本、耳机与智能设备组成的品质生活桌面"><div class="hero-index"><i></i><i></i><i></i></div><span class="hero-stamp">THE EVERYDAY COLLECTION / 2026</span></section></section>` : ''}${!filtered ? (window.LumoCouponCenter?.home() || '') + (window.LumoPromoView?.home() || '') : ''}<section class="catalog" id="catalog"><div class="section-head" ${filtered ? 'style="margin-top:30px"' : ''}><div><h2>${ui.onlyFavorites ? '我的收藏' : ui.categoryLabel ? esc(ui.categoryLabel) : ui.query ? '搜索结果' : ui.category === '全部好物' ? (recommendationMode ? (shop().sectionTitle !== defaultShopSettings.sectionTitle ? esc(shop().sectionTitle) : homeRecommendation.personalized ? '为你推荐' : '精选推荐') : esc(shop().sectionTitle)) : esc(ui.category)}</h2><p>${ui.onlyFavorites ? '每一次心动，都值得收藏' : recommendationMode ? (homeRecommendation.personalized ? '根据你的浏览、收藏、搜索和购买偏好挑选' : '精选当前可售好物，发现新的心动') : esc(shop().sectionSubtitle)}</p></div><span class="subtle">好设计，让日常多一点美好 ${icon('sparkles')}</span></div>${filtered ? `<div class="result-summary">${ui.query ? `“${esc(ui.query)}” · ` : ''}${catalogBusy ? '正在加载商品' : (ui.category !== '全部好物' ? '当前展示' : '共找到') + ' ' + list.length + ' 件好物'}<button data-action="reset-filters">查看全部好物</button></div>` : ''}${window.LumoDiscovery?.controls() || ''}<div class="filter-bar">${['综合', '销量', '价格', '新品'].map((s) => `<button data-action="sort" data-value="${s}" class="filter-tab ${ui.sort.startsWith(s) ? 'active' : ''}">${s}${s === '价格' ? icon(ui.sort === '价格高' ? 'sort' : 'chevron') : ''}</button>`).join('')}<div class="filter-end"><span>${catalogCount}</span><button class="filter-btn" data-action="filters" aria-expanded="${ui.filters}">筛选 ${icon('filter')}</button></div></div><form class="filter-panel" id="price-form" ${ui.filters ? '' : 'hidden'}><span>价格区间</span><input type="number" min="0" name="min" aria-label="最低价格" placeholder="最低价" value="${esc(ui.min)}"><span>—</span><input type="number" min="0" name="max" aria-label="最高价格" placeholder="最高价" value="${esc(ui.max)}"><button class="primary">确定</button><button class="outline" type="button" data-action="reset-price">重置</button></form>${catalogBusy ? commerceSkeleton('products', { count: 6, label: '正在加载商品' }) : list.length ? `<div class="product-grid">${pageList.map((p) => (recommendationMode ? window.LumoRecommendations.homeCard(p) : productCard(p))).join('')}</div>${window.LumoDiscovery?.pagination(list.length) || ''}` : empty(catalogError ? '商品加载失败' : '没有找到合适的好物', esc(catalogError || '') || '试试其他关键词，或看看全部商品。', catalogError ? (searchRead?.error ? 'commerce-search-retry' : 'commerce-refresh') : 'reset-filters', catalogError ? '重新加载' : '浏览全部好物', 'search')}</section>${!filtered ? `<section class="about-strip"><div><h2>生活的美好，藏在用心的选择里。</h2><p>数码灵感、日常所需与心动好物，都在这里。</p></div><a class="outline" href="#/coupons">去领好券 ${icon('arrow')}</a></section>` : ''}</main>${footer()}`;
+  return `${header(!!filtered)}<main id="main" class="container${!filtered ? ' home-page' : ''}">${!filtered ? homeLanding(list, catalogBusy, catalogError, homeRecommendation) : ''}<section class="catalog" id="catalog"><div class="section-head" ${filtered ? 'style="margin-top:30px"' : ''}><div><h2>${ui.onlyFavorites ? '我的收藏' : ui.categoryLabel ? esc(ui.categoryLabel) : ui.query ? '搜索结果' : ui.category === '全部好物' ? (recommendationMode ? (shop().sectionTitle !== defaultShopSettings.sectionTitle ? esc(shop().sectionTitle) : homeRecommendation.personalized ? '为你推荐' : '精选推荐') : esc(shop().sectionTitle)) : esc(ui.category)}</h2><p>${ui.onlyFavorites ? '每一次心动，都值得收藏' : recommendationMode ? (homeRecommendation.personalized ? '根据你的浏览、收藏、搜索和购买偏好挑选' : '精选当前可售好物，发现新的心动') : esc(shop().sectionSubtitle)}</p></div><span class="subtle">好设计，让日常多一点美好 ${icon('sparkles')}</span></div>${filtered ? `<div class="result-summary">${ui.query ? `“${esc(ui.query)}” · ` : ''}${catalogBusy ? '正在加载商品' : (ui.category !== '全部好物' ? '当前展示' : '共找到') + ' ' + list.length + ' 件好物'}<button data-action="reset-filters">查看全部好物</button></div>` : ''}${window.LumoDiscovery?.controls() || ''}<div class="filter-bar">${['综合', '销量', '价格', '新品'].map((s) => `<button data-action="sort" data-value="${s}" class="filter-tab ${ui.sort.startsWith(s) ? 'active' : ''}">${s}${s === '价格' ? icon(ui.sort === '价格高' ? 'sort' : 'chevron') : ''}</button>`).join('')}<div class="filter-end"><span>${catalogCount}</span><button class="filter-btn" data-action="filters" aria-expanded="${ui.filters}">筛选 ${icon('filter')}</button></div></div><form class="filter-panel" id="price-form" ${ui.filters ? '' : 'hidden'}><span>价格区间</span><input type="number" min="0" name="min" aria-label="最低价格" placeholder="最低价" value="${esc(ui.min)}"><span>—</span><input type="number" min="0" name="max" aria-label="最高价格" placeholder="最高价" value="${esc(ui.max)}"><button class="primary">确定</button><button class="outline" type="button" data-action="reset-price">重置</button></form>${catalogBusy ? commerceSkeleton('products', { count: 6, label: '正在加载商品' }) : list.length ? `<div class="product-grid">${pageList.map((p) => (recommendationMode ? window.LumoRecommendations.homeCard(p) : productCard(p))).join('')}</div>${window.LumoDiscovery?.pagination(list.length) || ''}` : empty(catalogError ? '商品加载失败' : '没有找到合适的好物', esc(catalogError || '') || '试试其他关键词，或看看全部商品。', catalogError ? (searchRead?.error ? 'commerce-search-retry' : 'commerce-refresh') : 'reset-filters', catalogError ? '重新加载' : '浏览全部好物', 'search')}</section>${!filtered ? `<section class="about-strip"><div><h2>生活的美好，藏在用心的选择里。</h2><p>数码灵感、日常所需与心动好物，都在这里。</p></div><a class="outline" href="#/coupons">去领好券 ${icon('arrow')}</a></section>` : ''}</main>${footer()}`;
 }
+let detailPageProduct = "";
 function detailMedia(product, selectedImage) {
   const images = [selectedImage, ...(Array.isArray(product.images) ? product.images : []), ...(Array.isArray(product.gallery) ? product.gallery : []), ...(product.variants || []).map((variant) => variant.image), product.image]
     .map((image) => typeof image === 'string' ? image : image?.url || image?.src)
@@ -489,6 +532,7 @@ function detailPage(id) {
     return `${header()}<main id="main" class="container pdp-page">${error ? empty('商品暂不可用', esc(error), 'commerce-product-retry', '重新加载', 'bag') : commerceSkeleton('detail', { label: '正在加载商品详情' })}</main>${footer()}`;
   }
   const p = byId(id), variants = p.variants || [];
+  if (detailPageProduct !== p.id) { detailPageProduct = p.id; ui.detailTab = 2; }
   if (detail.id !== p.id || !p.colors.includes(detail.color) || !p.options.includes(detail.option) || variants.length && !variants.some((variant) => variant.color === detail.color && variant.option === detail.option)) {
     const initial = variants.find((variant) => variant.sku_id === p.skuId) || variants.find((variant) => variant.color === p.colors[0] && variant.option === p.defaultOption) || variants[0];
     detail = {id:p.id,color:initial?.color || p.colors[0],option:initial?.option || p.defaultOption,qty:1,thumb:0};
@@ -509,8 +553,9 @@ function detailPage(id) {
     : ui.detailTab === 5 ? window.LumoProductExtras?.related(p) || '<div class="pdp-tab-empty">暂无推荐商品</div>'
     : ui.detailTab === 1 ? specTable
     : `<section class="pdp-description"><h2>${esc(p.name)}</h2>${p.sub ? `<p>${esc(p.sub)}</p>` : ''}${p.highlights?.length ? `<div class="highlights">${p.highlights.map((highlight,index) => `<div class="highlight">${icon(['chip','camera','layers','sparkles'][index % 4])}<strong>${esc(highlight)}</strong>${p.highSubs?.[index] ? `<p>${esc(p.highSubs[index])}</p>` : ''}</div>`).join('')}</div>` : ''}<img src="${esc(asset(p.image))}" alt="${esc(p.name)}商品展示" loading="lazy">${specTable}</section>`;
-  const address = window.LumoMember?.selectedAddress?.();
-  return `${header()}<main class="container pdp-page" id="main"><div class="breadcrumb"><a href="#/">首页</a>${icon('chevron')}<button data-action="category" data-value="${esc(p.category)}">${esc(p.category)}</button>${icon('chevron')}<span>${esc(p.name)}</span></div><div class="pdp-layout"><div class="pdp-main"><section class="pdp-gallery" aria-label="商品图片与视频"><div class="pdp-thumbnails" aria-label="选择商品媒体">${media.map((item,index) => `<button type="button" class="pdp-thumbnail ${detail.thumb === index ? 'active' : ''}" data-action="thumb" data-value="${index}" aria-label="${item.type === 'video' ? '播放商品视频' : '查看商品图片 ' + (index + 1)}" aria-pressed="${detail.thumb === index}"><img src="${esc(asset(item.type === 'video' ? currentImage : item.src))}" alt="">${item.type === 'video' ? '<span class="pdp-video-mark" aria-hidden="true">▶</span>' : ''}</button>`).join('')}</div><div class="pdp-media">${selected?.type === 'video' ? `<video src="${esc(selected.src)}" poster="${esc(asset(currentImage))}" controls playsinline preload="metadata" aria-label="${esc(p.name)}商品视频"></video>` : `<img src="${esc(asset(selected?.src || currentImage))}" alt="${esc(p.name)} · ${esc(detail.color)}" fetchpriority="high">`}<span class="pdp-media-index">${detail.thumb + 1} / ${media.length}</span></div></section><section class="details-bottom pdp-details"><nav class="detail-tabs pdp-tabs" aria-label="商品详情内容">${tabs.map(([value,label]) => `<button class="${ui.detailTab === value ? 'active' : ''}" data-action="detail-tab" data-value="${value}" aria-pressed="${ui.detailTab === value}">${label}${value === 2 || value === 3 ? `<span>${read && !read.loaded && !read.error ? '加载中' : value === 2 ? reviews : questions}</span>` : ''}</button>`).join('')}</nav><div class="pdp-tab-content">${tabContent}</div></section></div><aside class="pdp-purchase" aria-label="商品选购"><div class="pdp-purchase-heading"><span>${esc(p.brand || p.category)}</span><a href="#/member/support">${icon('support')}在线客服</a></div><div class="pdp-product-heading"><h1>${p.label ? `<span class="pdp-product-label">${esc(p.label)}</span>` : ''}${esc(p.name)}</h1>${p.sub ? `<p>${esc(p.sub)}</p>` : ''}</div><section class="pdp-price" aria-label="商品价格"><div><span class="pdp-price-caption">商品价格</span><div>${price(currentPrice)}${Number(p.old) > currentPrice ? `<span class="old-price">¥${money(p.old)}</span>` : ''}</div></div><div class="pdp-price-meta">${p.sales > 0 ? `<span>已售 ${money(p.sales)} 件</span>` : ''}<button type="button" data-action="detail-tab" data-value="2">${reviews} 条评价 ${icon('chevron')}</button></div></section>${window.LumoPromoView?.detail(p,detail) || ''}<div class="pdp-benefit-row"><span>优惠</span><button type="button" data-action="coupons">${icon('ticket')}查看可用优惠券 ${icon('chevron')}</button></div><div class="pdp-delivery"><span>配送</span><div><button type="button" data-action="address">${icon('pin')}${address ? esc([address.region,address.detail].filter(Boolean).join(' ')) : '选择收货地址'}${icon('chevron')}</button><small>运费与配送范围将在结算时确认</small></div></div><div class="pdp-selections"><div class="pdp-option-row"><h2>颜色</h2><div class="pdp-options">${p.colors.map((color) => `<button type="button" class="pdp-option ${color === detail.color ? 'active' : ''}" data-action="color" data-value="${esc(color)}" aria-pressed="${color === detail.color}">${esc(color)}</button>`).join('')}</div></div><div class="pdp-option-row"><h2>规格</h2><div class="pdp-options">${p.options.map((option) => `<button type="button" class="pdp-option ${option === detail.option ? 'active' : ''}" data-action="option" data-value="${esc(option)}" aria-pressed="${option === detail.option}" ${variants.length && !variants.some((variant) => variant.color === detail.color && variant.option === option) ? 'disabled' : ''}>${esc(option)}</button>`).join('')}</div></div><div class="pdp-selected"><span>已选</span><p>${esc(detail.color)} · ${esc(detail.option)}<small>商品编号：${esc(selectedVariant?.sku_id || p.skuId || p.id)}</small></p></div><div class="pdp-stock">${window.LumoInventory?.badge(detail) || '<span>库存信息将在选择规格后确认</span>'}</div></div><div class="pdp-buybar"><div class="pdp-quantity"><span>数量</span>${quantity(detail.qty,'detail')}</div><div class="detail-ctas pdp-ctas"><button type="button" class="secondary" data-action="detail-add" ${disabled ? 'disabled' : ''}>${icon('cart')}加入购物车</button><button type="button" class="primary" data-action="buy-now" ${disabled ? 'disabled' : ''}>立即购买</button></div></div>${window.LumoProductExtras?.detailActions(p) || ''}<div class="pdp-safe-note">${icon('shield')}价格及库存由服务端确认</div></aside></div></main>${footer()}`;
+  const address = window.LumoMember?.selectedAddress?.(), promotions = window.LumoPromoView?.detail(p,detail) || '';
+  const activityPanel = promotions ? `<details class="pdp-promotions"><summary><span>商品活动</span><small>查看当前规格可参与的优惠</small>${icon('chevron')}</summary><div>${promotions}</div></details>` : '';
+  return `${header()}<main class="container pdp-page" id="main"><div class="breadcrumb"><a href="#/">首页</a>${icon('chevron')}<button data-action="category" data-value="${esc(p.category)}">${esc(p.category)}</button>${icon('chevron')}<span>${esc(p.name)}</span></div><div class="pdp-layout"><div class="pdp-main"><section class="pdp-gallery" aria-label="商品图片与视频"><div class="pdp-thumbnails" aria-label="选择商品媒体">${media.map((item,index) => `<button type="button" class="pdp-thumbnail ${detail.thumb === index ? 'active' : ''}" data-action="thumb" data-value="${index}" aria-label="${item.type === 'video' ? '播放商品视频' : '查看商品图片 ' + (index + 1)}" aria-pressed="${detail.thumb === index}"><img src="${esc(asset(item.type === 'video' ? currentImage : item.src))}" alt="">${item.type === 'video' ? '<span class="pdp-video-mark" aria-hidden="true">▶</span>' : ''}</button>`).join('')}</div><div class="pdp-media">${selected?.type === 'video' ? `<video src="${esc(selected.src)}" poster="${esc(asset(currentImage))}" controls playsinline preload="metadata" aria-label="${esc(p.name)}商品视频"></video>` : `<img src="${esc(asset(selected?.src || currentImage))}" alt="${esc(p.name)} · ${esc(detail.color)}" fetchpriority="high">`}<span class="pdp-media-index">${detail.thumb + 1} / ${media.length}</span></div></section><section class="details-bottom pdp-details"><nav class="detail-tabs pdp-tabs" aria-label="商品详情内容">${tabs.map(([value,label]) => `<button class="${ui.detailTab === value ? 'active' : ''}" data-action="detail-tab" data-value="${value}" aria-pressed="${ui.detailTab === value}">${label}${value === 2 || value === 3 ? `<span>${read && !read.loaded && !read.error ? '加载中' : value === 2 ? reviews : questions}</span>` : ''}</button>`).join('')}</nav><div class="pdp-tab-content">${tabContent}</div></section></div><aside class="pdp-purchase" aria-label="商品选购"><div class="pdp-purchase-heading"><span>${esc(p.brand || p.category)}</span><a href="#/member/support">${icon('support')}在线客服</a></div><div class="pdp-product-heading"><h1>${p.label ? `<span class="pdp-product-label">${esc(p.label)}</span>` : ''}${esc(p.name)}</h1>${p.sub ? `<p>${esc(p.sub)}</p>` : ''}</div><section class="pdp-price" aria-label="商品价格"><div><span class="pdp-price-caption">商品价格</span><div>${price(currentPrice)}${Number(p.old) > currentPrice ? `<span class="old-price">¥${money(p.old)}</span>` : ''}</div></div><div class="pdp-price-meta">${p.sales > 0 ? `<span>已售 ${money(p.sales)} 件</span>` : ''}<button type="button" data-action="detail-tab" data-value="2">${reviews} 条评价 ${icon('chevron')}</button></div></section>${activityPanel}<div class="pdp-benefit-row"><span>优惠</span><button type="button" data-action="coupons">${icon('ticket')}查看可用优惠券 ${icon('chevron')}</button></div><div class="pdp-delivery"><span>配送</span><div><button type="button" data-action="address">${icon('pin')}${address ? esc([address.region,address.detail].filter(Boolean).join(' ')) : '选择收货地址'}${icon('chevron')}</button><small>运费与配送范围将在结算时确认</small></div></div><div class="pdp-selections"><div class="pdp-option-row"><h2>颜色</h2><div class="pdp-options">${p.colors.map((color) => `<button type="button" class="pdp-option ${color === detail.color ? 'active' : ''}" data-action="color" data-value="${esc(color)}" aria-pressed="${color === detail.color}">${esc(color)}</button>`).join('')}</div></div><div class="pdp-option-row"><h2>规格</h2><div class="pdp-options">${p.options.map((option) => `<button type="button" class="pdp-option ${option === detail.option ? 'active' : ''}" data-action="option" data-value="${esc(option)}" aria-pressed="${option === detail.option}" ${variants.length && !variants.some((variant) => variant.color === detail.color && variant.option === option) ? 'disabled' : ''}>${esc(option)}</button>`).join('')}</div></div><div class="pdp-selected"><span>已选</span><p>${esc(detail.color)} · ${esc(detail.option)}<small>商品编号：${esc(selectedVariant?.sku_id || p.skuId || p.id)}</small></p></div><div class="pdp-stock">${window.LumoInventory?.badge(detail) || '<span>库存信息将在选择规格后确认</span>'}</div></div><div class="pdp-buybar"><div class="pdp-quantity"><span>数量</span>${quantity(detail.qty,'detail')}</div><div class="detail-ctas pdp-ctas"><button type="button" class="secondary" data-action="detail-add" ${disabled ? 'disabled' : ''}>${icon('cart')}加入购物车</button><button type="button" class="primary" data-action="buy-now" ${disabled ? 'disabled' : ''}>立即购买</button></div></div>${window.LumoProductExtras?.detailActions(p) || ''}<div class="pdp-safe-note">${icon('shield')}价格及库存由服务端确认</div></aside></div></main>${footer()}`;
 }
 function quantity(q, scope, index = '') {
   const item = scope === 'detail' ? detail : state.cart[Number(index)],
@@ -520,32 +565,54 @@ function quantity(q, scope, index = '') {
 function empty(title, desc, action, label, i = 'cart') {
   return `<div class="empty-state">${icon(i)}<h2>${title}</h2><p>${desc}</p><button class="primary" data-action="${action}">${label}</button></div>`;
 }
+function cartBrand(item) {
+  const product = actualProduct(item.id);
+  return product?.brand || item.brand || product?.category || item.category || 'LUMO 精选';
+}
 function cartPage() {
   const read = commerceReadState('cart');
-  if (!state.cart.length && (!read.loaded || read.error))
-    return `${header()}<main id="main" class="container"><div class="page-title"><h1>购物车</h1></div>${read.error ? empty('购物车加载失败', esc(read.error), 'commerce-refresh', '重新加载') : commerceSkeleton('rows', { count: 3, label: '正在加载购物车' })}</main>${footer()}`;
-  let checked = state.cart.filter((x) => x.selected),
-    totalItems = window.LumoPromotions?.augmentItems(checked) || checked,
-    total = subtotal(totalItems),
-    count = totalItems.reduce((s, x) => s + x.qty, 0),
-    all = state.cart.length > 0 && checked.length === state.cart.length;
-  return `${header()}<main id="main" class="container"><div class="page-title"><h1>购物车 <span>(${cartCount()})</span></h1><button class="text-button" data-action="manage">${ui.manage ? '完成' : '管理'}</button></div>${
-    state.cart.length
-      ? `<div class="cart-banner"><span>${icon('ticket')}好物随心选，看看本单可用优惠券</span><button data-action="coupons">查看优惠券</button></div><div class="cart-head"><label class="check"><input type="checkbox" data-action="select-all" ${all ? 'checked' : ''} aria-label="全选商品"></label><span>商品信息</span><span>单价</span><span>数量</span><span>小计</span><span></span></div><div class="cart-items">${state.cart
-          .map((item, i) => {
-            let p = byId(item.id);
-            return `<article class="cart-item"><label class="check"><input type="checkbox" data-action="select" data-index="${i}" ${item.selected ? 'checked' : ''} aria-label="选择${esc(p.name)}"></label><a class="cart-product" href="#/product/${esc(p.id)}"><div class="cart-product-image ${['iphone', 'macbook'].includes(p.id) ? 'official-image' : ''}"><img src="${esc(asset(imageFor(item)))}" alt="${esc(p.name)}"></div><div><h3>${esc(p.name)}</h3><p>${esc(itemText(item))}</p>${price(itemPrice(item), 'mobile-cart-price')}</div></a><span class="cart-price">¥${money(itemPrice(item))}</span>${quantity(item.qty, 'cart', i)}${price(itemPrice(item) * item.qty)}<button class="delete-button" data-action="delete" data-index="${i}" aria-label="删除${esc(p.name)}">${icon('trash')}</button></article>`;
-          })
-          .join(
-            '',
-          )}</div><div class="cart-bottom"><label class="check"><input type="checkbox" data-action="select-all" ${all ? 'checked' : ''} aria-label="全选商品">全选</label><button class="text-button" data-action="delete-selected">删除所选</button><div class="cart-summary"><span class="cart-summary-label">合计：</span>${price(total)}<small>已选 ${count} 件商品${totalItems.some((x) => x.promotion?.type === CommerceEnums.PromotionType.Exchange) ? '（含换购）' : ''}</small></div><button class="primary" data-action="checkout" ${count ? '' : 'disabled'}>去结算 (${count})</button></div>`
-      : empty('购物车还是空的', '把喜欢的好物带回家吧。', 'home', '去逛逛')
-  }${state.cart.length ? (window.LumoPromoView?.campaigns(checked, 'cart') || '') + (window.LumoPromoView?.exchange(checked, 'cart') || '') : ''}<section class="cart-recs"><div class="section-head"><div><h2>你可能还喜欢</h2><p>发现更多日常好物</p></div><button class="text-button" data-action="home">更多好物 ${icon('chevron')}</button></div><div class="product-grid">${products
-    .filter((p) => p.visible !== false)
-    .filter((p) => !state.cart.some((x) => x.id === p.id))
-    .slice(0, 4)
-    .map(productCard)
-    .join('')}</div></section></main>${footer()}`;
+  const heading = `<div class="cart-page-heading"><div><span class="cart-kicker">SHOPPING BAG</span><h1>购物车 <span>(${cartCount()})</span></h1></div><button class="cart-destination" data-action="choose-address">${icon('pin')}<span>配送至 ${esc(state.address?.region || '选择收货地址')}</span>${icon('chevron')}</button></div>`;
+  if (!state.cart.length && (!read.loaded || read.error)) {
+    return `${header()}<main id="main" class="container cart-page">${heading}${read.error ? empty('购物车加载失败', esc(read.error), 'commerce-refresh', '重新加载') : commerceSkeleton('rows', { count: 3, label: '正在加载购物车' })}</main>${footer()}`;
+  }
+  const checked = state.cart.filter((item) => item.selected);
+  const totalItems = window.LumoPromotions?.augmentItems(checked) || checked;
+  const total = subtotal(totalItems);
+  const count = totalItems.reduce((sum, item) => sum + item.qty, 0);
+  const all = state.cart.length > 0 && checked.length === state.cart.length;
+  const brands = new Map();
+  state.cart.forEach((item, index) => {
+    const brand = cartBrand(item);
+    if (!brands.has(brand)) brands.set(brand, []);
+    brands.get(brand).push({ item, index });
+  });
+  const groups = [...brands].map(([brand, rows]) => `
+    <section class="cart-brand-group" aria-label="${esc(brand)}商品">
+      <div class="cart-brand-heading"><label class="check"><input type="checkbox" data-action="cart-select-brand" data-brand="${esc(brand)}" ${rows.every(({item}) => item.selected) ? 'checked' : ''} aria-label="选择${esc(brand)}全部商品"><span class="cart-brand-mark">品牌</span><strong>${esc(brand)}</strong></label><span>${rows.length} 款商品</span></div>
+      ${rows.map(({item, index}) => {
+        const product = byId(item.id);
+        const name = item.name || product.name;
+        return `<article class="cart-item cart-table-row">
+          <label class="check cart-row-check"><input type="checkbox" data-action="select" data-index="${index}" ${item.selected ? 'checked' : ''} aria-label="选择${esc(name)}"></label>
+          <a class="cart-product" href="#/product/${esc(product.id)}"><div class="cart-product-image ${['iphone', 'macbook'].includes(product.id) ? 'official-image' : ''}"><img src="${esc(asset(imageFor(item)))}" alt="${esc(name)}" loading="lazy"></div><div><h3>${esc(name)}</h3><p class="cart-product-category">${esc(product.category || item.category || '')}</p>${window.LumoPromoView?.itemBadge(item) || ''}</div></a>
+          <div class="cart-variant"><span>${esc(item.color || '默认颜色')}</span><span>${esc(item.option || product.defaultOption || '标准规格')}</span><small>商品规格</small></div>
+          <div class="cart-unit-price">${price(itemPrice(item))}<small>小计 ¥${money(itemPrice(item) * item.qty)}</small></div>
+          ${quantity(item.qty, 'cart', index)}
+          <div class="cart-row-actions"><button data-action="cart-move-favorite" data-index="${index}">移入收藏</button><button data-action="delete" data-index="${index}" aria-label="删除${esc(name)}">删除</button></div>
+        </article>`;
+      }).join('')}
+    </section>`).join('');
+  const available = products.filter((product) => product.visible !== false && !state.cart.some((item) => item.id === product.id));
+  const recommendations = (window.LumoRecommendations?.orderHome?.(available) || available).slice(0, 12);
+  const selectedPreview = checked.slice(0, 4).map((item) => `<img src="${esc(asset(imageFor(item)))}" alt="${esc(item.name || byId(item.id).name)}">`).join('');
+  return `${header()}<main id="main" class="container cart-page">${heading}
+    <div class="cart-benefits-strip"><span>${icon('ticket')}好券搭配好物，结算时核验可用优惠</span><a href="#/coupons">去领券 ${icon('chevron')}</a></div>
+    ${state.cart.length ? `<div class="cart-toolbar"><div><label class="check"><input type="checkbox" data-action="select-all" ${all ? 'checked' : ''} aria-label="全选商品">全选</label><button data-action="delete-selected" ${checked.length ? '' : 'disabled'}>删除</button><button data-action="cart-move-selected" ${checked.length ? '' : 'disabled'}>移入收藏</button><button data-action="cart-clear">清空购物车</button></div><nav aria-label="购物记录"><a href="#/member/history">${icon('clock')}刚看过</a><a href="#/member/favorites">${icon('heart')}我的收藏</a><a href="#/orders">${icon('bag')}我的订单</a></nav></div>
+    <div class="cart-table-heading" aria-hidden="true"><span></span><span>商品信息</span><span>商品规格</span><span>单价 / 小计</span><span>数量</span><span>操作</span></div><div class="cart-items">${groups}</div>
+    ${window.LumoPromoView?.campaigns(checked, 'cart') || ''}${window.LumoPromoView?.exchange(checked, 'cart') || ''}` : empty('购物车还是空的', '把喜欢的好物带回家吧。', 'home', '去逛逛')}
+    <section class="cart-recs"><div class="section-head"><div><h2>猜你喜欢</h2><p>为你的购物清单，再添一点灵感</p></div><a class="text-button" href="#/">浏览全部好物 ${icon('chevron')}</a></div><div class="product-grid">${recommendations.map(productCard).join('')}</div></section>
+    ${state.cart.length ? `<div class="cart-bottom-wrap"><div class="cart-bottom"><label class="check"><input type="checkbox" data-action="select-all" ${all ? 'checked' : ''} aria-label="全选商品">全选</label><div class="cart-selection-preview"><span>已选 ${count} 件</span>${selectedPreview}</div><div class="cart-summary"><div><span class="cart-summary-label">商品合计</span>${price(total)}<small>优惠和运费将在结算时由服务端确认${totalItems.some((item) => item.promotion?.type === CommerceEnums.PromotionType.Exchange) ? ' · 含换购商品' : ''}</small></div></div><button class="primary" data-action="checkout" ${count ? '' : 'disabled'}>去结算 <span>(${count})</span></button></div></div>` : ''}
+  </main>${footer()}`;
 }
 function steps(active) {
   return `<div class="checkout-steps">${['确认订单', '支付订单', '完成'].map((s, i) => `${i ? '<span class="step-line"></span>' : ''}<div class="step ${i === active ? 'active' : i < active ? 'done' : ''}"><i>${i < active ? '✓' : i + 1}</i>${s}</div>`).join('')}</div>`;
@@ -947,6 +1014,27 @@ document.addEventListener('click', (e) => {
       save();
       renderKeepScroll();
       break;
+    case 'cart-select-brand':
+      state.cart.filter((item) => cartBrand(item) === b.dataset.brand).forEach((item) => (item.selected = b.checked));
+      save();
+      renderKeepScroll();
+      break;
+    case 'cart-move-favorite':
+      void moveCartToFavorites([state.cart[i]]);
+      break;
+    case 'cart-move-selected':
+      void moveCartToFavorites(state.cart.filter((item) => item.selected));
+      break;
+    case 'cart-clear':
+      if (state.cart.length) modal(
+        '清空购物车？',
+        `<p class="modal-desc">将移除购物车中的全部 ${state.cart.length} 款商品。</p><div class="modal-actions"><button class="outline" data-action="close-modal">再想想</button><button class="primary" data-action="cart-confirm-clear" data-owner="${esc(commerceOwner())}">确认清空</button></div>`,
+      );
+      break;
+    case 'cart-confirm-clear':
+      if (b.dataset.owner === commerceOwner()) void removeCartItems([...state.cart]);
+      else closeModal();
+      break;
     case 'delete':
       modal(
         '移除这件好物？',
@@ -1163,7 +1251,8 @@ const commerceOwner = () =>
   '#' +
   commerceEpoch;
 const commerceAdding = new Set(),
-  commerceCartMutating = new Set();
+  commerceCartMutating = new Set(),
+  commerceCartMoving = new Set();
 const legacyProductIds = {
   'sku-phone': 'iphone',
   'sku-headphones': 'headphones',
@@ -1528,6 +1617,7 @@ async function setCartQuantity(item, quantity) {
   }
 }
 async function removeCartItems(items) {
+  const owner = commerceOwner();
   try {
     const rows = items.filter(Boolean);
     if (
@@ -1537,17 +1627,46 @@ async function removeCartItems(items) {
     )
       await commerceCall(CommerceEnums.Service.Cart, CommerceEnums.Action.Clear);
     else
-      for (const item of rows)
+      for (const item of rows) {
+        if (owner !== commerceOwner()) return;
         await commerceCall(CommerceEnums.Service.Cart, CommerceEnums.Action.Remove, {
           id: item.rowId || skuForItem(item),
         });
+      }
+    if (owner !== commerceOwner()) return;
     await refreshCart();
+    if (owner !== commerceOwner()) return;
     invalidateCommerceQuote();
     closeModal();
     renderKeepScroll();
     toast('已从购物车移除');
   } catch (error) {
-    commerceError(error);
+    if (owner === commerceOwner()) commerceError(error);
+  }
+}
+async function moveCartToFavorites(items) {
+  if (!window.LumoAuth?.requireLogin(location.hash)) return;
+  const owner = commerceOwner();
+  const rows = items.filter(Boolean);
+  if (!rows.length || commerceCartMoving.has(owner)) return;
+  commerceCartMoving.add(owner);
+  try {
+    for (const item of rows) {
+      if (owner !== commerceOwner()) return;
+      if (!state.favorites.includes(item.id)) {
+        await commerceCall(CommerceEnums.Service.Engagement, CommerceEnums.Action.Put, {
+          data: { kind: CommerceEnums.EngagementKind.Favorite, sku_id: skuForItem(item) },
+        });
+      }
+    }
+    if (owner !== commerceOwner()) return;
+    await refreshFavorites();
+    if (owner !== commerceOwner()) return;
+    await removeCartItems(rows);
+  } catch (error) {
+    if (owner === commerceOwner()) commerceError(error);
+  } finally {
+    commerceCartMoving.delete(owner);
   }
 }
 async function toggleFavorite(id) {

@@ -13,6 +13,11 @@ map $uri $lumo_cache_control {
   ~*\.(?:js|css|png|jpe?g|gif|svg|webp|avif|ico|woff2?)$ $versioned_asset_cache;
 }
 
+map $status $lumo_response_cache_control {
+  default $lumo_cache_control;
+  ~^[45] "no-store";
+}
+
 server {
   listen 8080;
   server_name _;
@@ -24,7 +29,7 @@ server {
   client_max_body_size 16m;
 
   add_header X-Content-Type-Options nosniff always;
-  add_header Cache-Control $lumo_cache_control always;
+  add_header Cache-Control $lumo_response_cache_control always;
 
   # Resolve again after gateway recreation instead of retaining its old IP.
   resolver 127.0.0.11 ipv6=off valid=5s;

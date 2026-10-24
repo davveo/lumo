@@ -377,7 +377,7 @@ test('my groups use the same bounded pager without truncating invitation panels'
   try {
     let html = f.app.navigate('promotions/mygroups');
     assert.equal((html.match(/class="promo-order-panel /g) || []).length, 6);
-    assert.equal(pagers(html).length, 2);
+    assert.equal(pagers(html).length, 1);
     await f.app.click({ promoPage: '3' });
     html = f.html();
     assert.equal((html.match(/class="promo-order-panel /g) || []).length, 2);

@@ -122,9 +122,7 @@ def go_source(services):
             ]
         )
     lines.extend(["}}", ""])
-    result = subprocess.run(
-        ["gofmt"], input="\n".join(lines), capture_output=True, text=True, check=True
-    )
+    result = subprocess.run(["gofmt"], input="\n".join(lines), capture_output=True, text=True, check=True)
     return result.stdout
 
 
@@ -167,8 +165,10 @@ def main():
             path.write_text(content)
     if stale:
         raise SystemExit("Generated RPC files are stale; run `make proto`:\n" + "\n".join(stale))
-    print(f"{'Checked' if options.check else 'Generated'} {len(services)} services and "
-          f"{sum(len(service['methods']) for service in services)} named methods.")
+    print(
+        f"{'Checked' if options.check else 'Generated'} {len(services)} services and "
+        f"{sum(len(service['methods']) for service in services)} named methods."
+    )
 
 
 if __name__ == "__main__":

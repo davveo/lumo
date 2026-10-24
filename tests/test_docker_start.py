@@ -99,7 +99,9 @@ elif command=='config':
     elif '--format' in tail:print(json.dumps({'name':state.get('project_name','lumo-mall'),'services':{n:{'image':images[n]} for n in services}}))
     elif '--quiet' not in tail and '-q' not in tail:
         print('name: '+state.get('project_name','lumo-mall')+'\nservices:')
-        for n in services:print('  '+n+':\n    image: '+images[n])
+        for n in services:
+            print('  '+n+':\n    image: '+images[n])
+            if n=='web':print('    build:\n      args:\n        NGINX_IMAGE: '+state.get('web_base_image','nginx:1.30.6-alpine'))
 elif command=='up' and '--help' in tail:
     print('Usage: docker compose up [OPTIONS] [SERVICE...]\n--no-deps --no-recreate --force-recreate --wait')
     if failure!='wait_support':print('--wait-timeout int')
@@ -178,6 +180,7 @@ class DockerStartupTests(unittest.TestCase):
             "Dockerfile",
             ".dockerignore",
             "web/Dockerfile",
+            "web/entrypoint.sh",
             "web/.dockerignore",
             "web/nginx/default.conf.template",
             "web/nginx/nginx.conf",
@@ -481,14 +484,30 @@ class DockerStartupTests(unittest.TestCase):
         self.assertEqual([self.selected(c) for c in self.builds()], [{"web"}])
         self.assertEqual(self.read_runtime()["images"][APP_IMAGE], before["images"][APP_IMAGE])
 
+    def test_changing_the_frontend_base_image_rebuilds_only_web(self):
+        self.establish_baseline()
+        state = self.read_runtime()
+        original_backend = state["images"][APP_IMAGE]
+        state["web_base_image"] = "local-nginx:1.26.3"
+        self.write_runtime(state)
+        self.assert_success(self.run_start())
+        self.assertEqual(self.app_targets(), {"web"})
+        self.assertEqual([self.selected(c) for c in self.builds()], [{"web"}])
+        self.assertEqual(self.read_runtime()["images"][APP_IMAGE], original_backend)
+
     def test_legacy_gateway_port_moves_to_web_with_an_exact_private_backup(self):
-        legacy = "GATEWAY_PORT='19080' # original storefront\nCUSTOM_KEEP=literal $(do-not-execute)\n"
+        legacy = (
+            "GATEWAY_PORT='19080' # original storefront\nCUSTOM_KEEP=literal $(do-not-execute)\n"
+            "MINIO_CORS_ORIGINS=http://localhost:${GATEWAY_PORT:-8080},http://127.0.0.1:$GATEWAY_PORT\n"
+        )
         (self.project / ".env").write_text(legacy)
         self.assert_success(self.run_start("order"))
         migrated = (self.project / ".env").read_text()
         self.assertIn("WEB_PORT=19080\n", migrated)
         self.assertIn("GATEWAY_PORT=18080\n", migrated)
         self.assertIn("CUSTOM_KEEP=literal $(do-not-execute)", migrated)
+        self.assertIn("MINIO_CORS_ORIGINS=http://localhost:${WEB_PORT:-8080},http://127.0.0.1:$WEB_PORT", migrated)
+        self.assertLess(migrated.index("WEB_PORT="), migrated.index("MINIO_CORS_ORIGINS="))
         backups = list((self.project / ".local" / "env-backups").glob("before-web-split.*"))
         self.assertEqual(len(backups), 1)
         self.assertEqual(backups[0].read_text(), legacy)

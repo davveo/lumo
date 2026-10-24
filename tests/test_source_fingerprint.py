@@ -37,6 +37,7 @@ class SourceFingerprintTests(unittest.TestCase):
             "cmd/gateway/main.go",
             "web/dist/index.html",
             "web/Dockerfile",
+            "web/entrypoint.sh",
             "web/.dockerignore",
             "web/nginx/default.conf.template",
             "web/nginx/proxy.conf",
@@ -88,7 +89,7 @@ class SourceFingerprintTests(unittest.TestCase):
         )
 
     def test_frontend_recipe_and_proxy_configuration_have_only_one_owner(self) -> None:
-        for path in ("web/Dockerfile", "web/.dockerignore", "web/nginx/default.conf.template", "web/nginx/proxy.conf"):
+        for path in ("web/Dockerfile", "web/entrypoint.sh", "web/.dockerignore", "web/nginx/default.conf.template", "web/nginx/proxy.conf"):
             with self.subTest(path=path):
                 self.assertEqual(self.changed_by(path, "updated frontend serving configuration\n"), {"web"})
 

@@ -2,7 +2,7 @@
 
 `dist/` 是原 LUMO 商城的完整可编辑前端源代码，使用原生 HTML、CSS、JavaScript，无打包依赖；图片位于 `dist/assets/`。页面风格和现有电商功能保留，业务数据改由后端服务保存。
 
-Docker 网关直接提供这些文件和 `/api/v1/`，因此本地访问 `http://localhost:8080` 即可体验完整商城。管理端为 `/admin.html`，原接口联调台移至 `/debug`。
+Docker 中由独立 `web` 容器提供 HTML、JavaScript、CSS 和图片；同源代理 `/api/`、`/healthz`、`/readyz` 到 Go 网关。商城仍访问 `http://localhost:8080`，管理端为 `/admin.html`；网关 API 与 `/debug` 联调台默认在 `http://localhost:18080`。前端静态请求不会进入后端 Trace。
 
 ## 数据约定
 
@@ -47,6 +47,24 @@ Docker 网关直接提供这些文件和 `/api/v1/`，因此本地访问 `http:/
 
 ## 单独部署
 
+`web/Dockerfile` 只使用本目录作为构建上下文，独立生成 `lumo-mall-web:dev`，不需要 Go 或 Node 构建。
+根目录后端镜像不再包含 `dist/`。运行 `sh start.sh web` 只构建/更新前端；默认增量检测也将页面资源、
+Nginx 配置及入口脚本归属到 `web`，后端代码变化不会构建前端镜像。`WEB_PORT` 默认8080，
+`GATEWAY_PORT` 默认18080，`WEB_GATEWAY_UPSTREAM` 默认 `gateway:8080`。
+
+Nginx 通过 Docker DNS 定期重新解析网关，网关容器替换后无需重建前端。API请求保留方法、路径、查询、
+请求体、Bearer、Cookie 与 Set-Cookie，浏览器继续使用第一方会话。前端自身的容器健康检查读取静态首页，
+公开 `/healthz` 与 `/readyz` 仍检查真实网关。前端不注册业务RPC到Consul。
+
+HTML及未版本化的静态文件使用 `no-cache` 重新验证。带 `?v=版本` 的资源可缓存1小时；文件名包含内容哈希
+的静态资源可长期缓存。错误响应使用 `no-store`，缺失资源和未知API不会回退为首页；应用路由使用 `#`。
+
+默认基础镜像为官方固定标签 `nginx:1.30.6-alpine`。Docker Hub不可达时，可设置
+`WEB_NGINX_IMAGE=public.ecr.aws/docker/library/nginx:1.30.6-alpine` 使用同版本官方ECR镜像。
+也可显式选择本机兼容的Nginx镜像并保留实际版本记录；修改此构建参数只重建前端。
+`entrypoint.sh` 仅替换通过校验的网关 `hostname:port`，保留 Nginx 自身变量；只读容器仅将临时数据和生成配置
+写入 tmpfs。默认镜像拉取仍需宿主机正常访问镜像仓库。
+
 优先将本目录与 Go 网关同源部署。若单独发布前端，页面连接失败时可在“接口设置”填写 HTTPS 网关地址；网关需配置该前端来源的 `CORS_ALLOWED_ORIGINS`，对象上传则需配置 `MINIO_CORS_ORIGINS` 和实际可达的 `MINIO_PUBLIC_ENDPOINT`。更换接口地址会清除旧认证状态并要求重新登录。静态 Site 本身不运行 Go、MySQL 或消息队列。
 
 营销弹窗需要稳定的第一方访客/会话Cookie。独立前端应将 `/api` 同源反向代理到网关；跨域API仍可使用Bearer，但不发送跨域Cookie，不能确认访客曝光时不会弹窗。Cookie只用于投放归属与频控，领取及管理操作仍需要服务端验证会话。
@@ -61,3 +79,12 @@ GOWORK=off go test ./tests -run TestHTTPStorefrontEndToEnd -count=1 -v
 前一个命令在项目根目录执行，要求 Go、C 编译器、Node.js 22+ 和 curl。测试会创建临时数据库，启动真正的 TCP gRPC 服务及 HTTP 网关，按独立测试进程清理数据。它使用本地持久化事件派发器；完整 Docker 环境仍使用 RabbitMQ、MySQL、Redis、MinIO、Collector 和 Jaeger。
 
 接口对应关系见 `../docs/frontend-api-coverage.md`，验收范围和基础设施限制见 `../docs/verification.md`。
+
+独立前端代理回归使用已构建镜像和临时网络，验证会话、请求体、静态缓存、404和网关地址变化，完成后自动清理：
+
+```sh
+docker build -t lumo-web-proxy-test web
+LUMO_TEST_WEB_IMAGE=lumo-web-proxy-test python3 tests/test_web_proxy.py
+```
+
+这项开发测试还需要Go编译一个临时HTTP测试服务；不修改运行中的Compose环境或真实`.env`。

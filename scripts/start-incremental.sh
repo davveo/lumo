@@ -28,7 +28,9 @@ compose() {
     --env-file "$PROJECT_DIR/.env" \
     -f "$PROJECT_DIR/compose.yaml" "$@"
 }
-fingerprint() { sh "$PROJECT_DIR/scripts/source-fingerprint.sh" "$1"; }
+fingerprint() {
+  LUMO_WEB_BASE_IMAGE="$WEB_BASE_IMAGE" sh "$PROJECT_DIR/scripts/source-fingerprint.sh" "$1"
+}
 cleanup() {
   result=$?
   trap - 0 HUP INT TERM
@@ -69,11 +71,16 @@ compose config | awk '
   active && /^[^ ]/ { active=0 }
   active && /^  [A-Za-z0-9_-]+:$/ { name=$1; sub(/:$/, "", name) }
   active && /^    image:/ { image=$2; gsub(/"/, "", image); print name, image }
+  active && name=="web" && /^        NGINX_IMAGE:/ {
+    base=$2; gsub(/"/, "", base); print "@web-base", base
+  }
 ' >"$RUN_DIR/images"
 APP_IMAGE=$(awk '$1=="gateway"{print $2;exit}' "$RUN_DIR/images")
 WEB_IMAGE=$(awk '$1=="web"{print $2;exit}' "$RUN_DIR/images")
+WEB_BASE_IMAGE=$(awk '$1=="@web-base"{print $2;exit}' "$RUN_DIR/images")
 MINIO_IMAGE=$(awk '$1=="minio"{print $2;exit}' "$RUN_DIR/images")
 [ -n "$APP_IMAGE" ] && [ -n "$WEB_IMAGE" ] && [ -n "$MINIO_IMAGE" ] || fail '无法读取Compose后端/前端/MinIO镜像名'
+[ -n "$WEB_BASE_IMAGE" ] || fail '无法读取Compose前端Nginx基础镜像'
 config_hash() { awk -v name="$1" '$1==name{print $2;exit}' "$RUN_DIR/config.hashes"; }
 container() {
   SERVICE_ID=$(compose ps --all -q "$1") || fail "无法读取$1容器"

@@ -152,6 +152,7 @@ case "$SCOPE" in
   web)
     [ -f web/Dockerfile ] && [ -f web/nginx/default.conf.template ] || fail '缺少前端Dockerfile或Nginx配置'
     add_file web/Dockerfile
+    add_file web/entrypoint.sh
     add_file web/.dockerignore
     add_tree web/nginx
     add_web
@@ -166,6 +167,9 @@ esac
 sort -u "$WORK_DIR/paths" >"$WORK_DIR/sorted"
 {
   printf 'lumo-runtime-source-fingerprint-v1\nscope:%s\n' "$SCOPE"
+  if [ "$SCOPE" = web ]; then
+    printf 'nginx-base:%s\n' "${LUMO_WEB_BASE_IMAGE:-nginx:1.30.6-alpine}"
+  fi
   while IFS= read -r source_path; do
     # A newline in a path cannot be represented in this line-based manifest;
     # fail rather than silently hash a partial filename.
