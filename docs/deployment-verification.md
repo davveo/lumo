@@ -2,6 +2,14 @@
 
 最近补充：2026-10-24。此记录区分静态配置、镜像元数据核对与真实容器运行。
 
+## 2026-10-24 全局长行与缩进整理
+
+- 检查356个普通Go文件，239个文件拆分了长结构体、调用参数、条件、链式调用或测试数据；以120列为目标，超长行从1680条降到34条，剩余为保留原文的SQL、JSON、正则、HTML字符串及生成指令。同步整理72个前端源文件、5个既有Python脚本及Shell脚本，protobuf契约也统一缩进。生成的pb.go、前端常量和演示资产保持原样。
+- 以本轮修改前工作区快照核对全部Go语法树、字面量原始内容、注释及规范化token，全部一致；52个JS/CJS语法树等价，2745段模板原文保留。CSS规则、选择器和声明值等价，HTML所有文本节点与属性值相同；Python完整AST、Shell完整AST及heredoc内容均核对通过。两项依赖原排版的前端测试改为容忍换行和空白，不改变业务断言。
+- 新增固定版本的 `make format-tools`、`make format` 和 `make format-check`；后者只检查源码，不自动安装依赖。开发依赖保存在node_modules及.local，排除应用镜像。实际安装与命令验证通过；格式化二次执行445个目标文件零变化，故意传入未排版的配置能返回非零，且检查不会写回源码。
+- 全量Go33个有测试包、前端239项Node检查、107项真实HTTP检查、47项会员检查及23个脚本语法检查通过；最终启动脚本43项、源码指纹16项回归通过，业务写入测试使用隔离临时数据库。`make format-check`、常量生成同步检查及 `git diff --check` 通过。本轮未部署或修改运行商城数据。
+- 日志：`/private/tmp/lumo-format-go.log`、`/private/tmp/lumo-format-go-semantics.log`、`/private/tmp/lumo-format-frontend-final.log`、`/private/tmp/lumo-format-frontend/report.json`、`/private/tmp/lumo-format-driver-verification.json`、`/private/tmp/lumo-format-check.log`、`/private/tmp/lumo-python-format-final-docker-test.log`、`/private/tmp/lumo-python-format-final-fingerprint-test.log`。
+
 ## 2026-10-24 全局业务枚举集中维护
 
 - 新增 `internal/constants/`，按30个服务、公共角色/服务名/RPC动作/事件、消息投递与前端投影分文件维护117组、521个无类型字符串常量。生产服务、仓储查询和恢复任务、Saga步骤、事件订阅/发布、RPC适配、网关白名单与前端状态映射都改用语义明确的引用；数据库、JSON、RPC及事件原值保持不变，不需要迁移已有状态记录。不同状态机的同值常量仍分组，旧协议兼容值显式保留。

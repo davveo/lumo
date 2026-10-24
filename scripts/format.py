@@ -131,19 +131,19 @@ def format_source(check):
         print(pending)
     if not check:
         # Nested long expressions may need more than one shortening pass.
-        for _ in range(5):
+        for attempt in range(5):
             remaining = run(
                 [golines, *GOLINES_FLAGS, "--list-files", *go_files], capture_output=True, text=True
             ).stdout.strip()
             if not remaining:
                 break
+            if attempt == 4:
+                raise RuntimeError("Go formatter did not converge after five passes.")
             run([golines, *GOLINES_FLAGS, "--write-output", *go_files])
-        else:
-            raise RuntimeError("Go formatter did not converge after five passes.")
     result = 1 if check and pending else 0
     commands = [
         [prettier, "--check" if check else "--write", *web_files],
-        [black, *(["--check", "--diff"] if check else []), *python_files],
+        [black, "--workers", "1", *(["--check"] if check else []), *python_files],
         [shfmt, "-ln", "posix", "-i", "2", "-ci", "-d" if check else "-w", *shell_files],
     ]
     for command in commands:
