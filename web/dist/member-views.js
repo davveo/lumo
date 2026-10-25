@@ -301,7 +301,7 @@
   }
   function productForMember(p) {
     if (p.visible !== false) return productCard(p);
-    return `<article class="product-card mem-unavailable-product"><div class="product-image"><img src="${esc(asset(p.image))}" alt="${esc(p.name)}" loading="lazy"><span class="product-label">暂时下架</span></div><div class="product-info"><strong class="product-title">${esc(p.name)}</strong><p class="product-sub">商品恢复上架后即可选购</p><div class="price-line">${price(p.price)}<span class="mem-chip">暂不可购买</span></div></div></article>`;
+    return `<article class="product-card mem-unavailable-product"><div class="product-image"><img src="${esc(asset(p.image))}" alt="${esc(p.name)}" loading="lazy"><span class="product-label">${p.metadataUnavailable ? '商品已不可用' : '暂时下架'}</span></div><div class="product-info"><strong class="product-title">${esc(p.name)}</strong><p class="product-sub">${p.metadataUnavailable ? '商品不存在或已下架，可移除此记录' : '商品恢复上架后即可选购'}</p><div class="price-line">${p.metadataUnavailable ? '' : price(p.price)}<span class="mem-chip">暂不可购买</span></div></div></article>`;
   }
   function productsView(tab, data) {
     const isHistory = tab === 'history';

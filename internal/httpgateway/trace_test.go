@@ -104,6 +104,13 @@ func TestHTTPTraceRecordsTargetWithoutChangingGatewayIdentity(t *testing.T) {
 			if w.Header().Get("X-Trace-ID") != incomingTrace {
 				t.Fatal("response trace header does not match incoming context")
 			}
+			var response map[string]any
+			if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+				t.Fatal(err)
+			}
+			if _, exists := response["trace_id"]; exists {
+				t.Fatal("HTTP JSON must not duplicate the trace response header")
+			}
 			spans := exporter.GetSpans()
 			if len(spans) < 2 {
 				t.Fatalf("missing HTTP or dispatch spans: %v", spans)

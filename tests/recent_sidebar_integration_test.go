@@ -109,9 +109,18 @@ func TestHTTPRecentSidebarFillsSixDistinctProductsFromOwnedBehavior(t *testing.T
 	if !seen["coffee"] || !seen["iphone"] || len(seen) != 6 {
 		t.Fatal("duplicate variants displaced a different favorite", items)
 	}
-	// The initial page embeds the same aggregate, without another HTTP request.
-	bootstrap := aggregateRows(t, h.call(buyer, "storefront", "bootstrap", "", "", nil))
-	assertSix(aggregateFragment(t, bootstrap, "storefront", "recent"))
+	// The public shell does not hide the personalized sidebar dependency.
+	counted.reset()
+	shell := aggregateRows(t, h.call(buyer, "storefront", "shell", "", "", nil))
+	for _, row := range shell {
+		if row["service"] != "content" {
+			t.Fatal("shell embedded sidebar or account data", row)
+		}
+	}
+	counted.expectCount(t, "engagement", "list", 0)
+	counted.expectCount(t, "order", "list", 0)
+	counted.expectCount(t, "recommendation", "rank_bootstrap", 0)
+	assertSix(read(buyer))
 	h.call(admin, "engagement", "put", "", "", map[string]any{"kind": "history", "sku_id": "perfume"})
 	adminItems := assertSix(read(admin))
 	if platform.Text(adminItems[0], "id") != "perfume" || platform.Text(adminItems[0], "recent_source") != "history" {

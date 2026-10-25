@@ -652,3 +652,72 @@ test('a late earlier detail visit cannot make the current successfully tracked p
   await tick();
   assert.equal(f.calls.length, 2, 'late earlier visit must not overwrite the current visit marker');
 });
+
+test('inbox unread totals include older pages and survive a failed background refresh without leaking scopes', async (t) => {
+  const f = fixture();
+  t.after(() => f.dispose());
+  let summary = { loaded: true, unread_count: 125 },
+    fail = false;
+  f.app.ctx.LumoAccountSummary = { model: () => ({ ...summary }) };
+  f.setHandler(async (service) => {
+    if (service !== 'notification') throw Error('unrelated service should not load');
+    if (fail) throw Error('inbox offline');
+    return {
+      items: Array.from({ length: 100 }, (_, index) => ({ id: 'read-' + index, status: 'READ' })),
+      total: 300,
+      unread_total: 125,
+    };
+  });
+  assert.equal(f.services.unreadCount(), 125, 'summary covers the header before the inbox loads');
+  await f.services.refresh(false, ['messages']);
+  assert.equal(f.services.model().messages.length, 100);
+  assert.equal(f.services.unreadCount(), 125, 'an entirely read newest page cannot erase older unread rows');
+  fail = true;
+  await assert.rejects(f.services.refresh(true, ['messages']), /offline/);
+  assert.equal(f.services.unreadCount(), 125);
+  summary = { loaded: false, unread_count: null };
+  f.setSession('other-buyer', 'new-token');
+  assert.equal(f.services.unreadCount(), 0);
+  assert.equal(f.services.model().unreadTotal, null);
+  assert.equal(f.services.readState('messages').loaded, false);
+});
+
+test('read and read-all update precise unread totals and only revalidate messages', async (t) => {
+  const f = fixture();
+  t.after(() => f.dispose());
+  let unread = 125,
+    newestRead = false,
+    fail = false;
+  f.setHandler(async (service, action) => {
+    assert.equal(service, 'notification');
+    if (action === 'read') {
+      newestRead = true;
+      unread--;
+      return { id: 'newest', status: 'READ' };
+    }
+    if (action === 'read_all') {
+      newestRead = true;
+      unread = 0;
+      fail = true; // Successful mutation remains reflected if its revalidation fails.
+      return { marked_read: 124 };
+    }
+    if (fail) throw Error('notification refresh unavailable');
+    return {
+      items: [{ id: 'newest', status: newestRead ? 'READ' : 'UNREAD' }],
+      total: 300,
+      unread_total: unread,
+    };
+  });
+  await f.services.refresh(false, ['messages']);
+  assert.equal(f.services.unreadCount(), 125);
+  await f.app.click({ serviceAction: 'read-message', id: 'newest' });
+  assert.equal(f.services.unreadCount(), 124);
+  assert.equal(f.services.model().messages[0].read, true);
+  await f.app.click({ serviceAction: 'read-all' });
+  assert.equal(f.services.unreadCount(), 0);
+  assert.equal(f.services.model().messages[0].read, true);
+  assert.equal(f.calls.filter((call) => call.service !== 'notification').length, 0);
+  fail = false;
+  await f.services.refresh(true, ['messages']);
+  assert.equal(f.services.unreadCount(), 0);
+});

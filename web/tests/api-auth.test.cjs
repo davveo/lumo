@@ -84,7 +84,7 @@ async function main() {
   ctx.LumoAPI.setToken(tokenA);
   ctx.fetch = async (url, options) => {
     received = { url, options };
-    return response(200, { data: { id: 'sku-coffee' }, trace_id: 'c'.repeat(32) });
+    return response(200, { data: { id: 'sku-coffee' } });
   };
   assert.equal(
     (
@@ -116,7 +116,6 @@ async function main() {
   ctx.fetch = async () =>
     response(401, {
       error: { code: 'Unauthenticated', message: 'session revoked or expired' },
-      trace_id: 'c'.repeat(32),
     });
   await assert.rejects(
     ctx.LumoAPI.call('reconciliation', 'list', {}, { token: tokenB }),
@@ -158,6 +157,23 @@ async function main() {
   await assert.rejects(oldRequest, (error) => error.code === 'SessionChanged');
   assertions++;
   assert.equal(ctx.LumoAPI.getToken(), tokenB);
+  assertions++;
+
+  const headerTrace = 'd'.repeat(32);
+  ctx.fetch = async () => response(200, { data: { id: 'sku-coffee' }, trace_id: 'legacy-body-field' }, headerTrace);
+  await ctx.LumoAPI.call('catalog', 'get', { id: 'sku-coffee' }, { auth: false });
+  assert.equal(
+    ctx.LumoAPI.requests()[0].traceId,
+    headerTrace,
+    'a body field cannot override the trace response header',
+  );
+  assertions++;
+  ctx.fetch = async () =>
+    response(503, { error: { code: 'Unavailable', message: 'retry later' }, trace_id: 'legacy-body-field' }, '');
+  await assert.rejects(
+    ctx.LumoAPI.call('catalog', 'get', { id: 'sku-coffee' }, { auth: false }),
+    (error) => error.traceId === '',
+  );
   assertions++;
 
   const auth = environment();

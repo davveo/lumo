@@ -37,7 +37,9 @@ var publicActions = actionSet(map[string][]string{
 	constants.ServiceCoupon:         {constants.ActionTemplates, constants.ActionTemplatesSnapshot},
 	constants.ServiceStorefront: {
 		constants.ActionBootstrap,
-		constants.ActionBatch,
+		constants.ActionShell,
+		constants.ActionProducts,
+		constants.ActionActivities,
 		constants.ActionRecent,
 		constants.ActionPopup,
 		constants.ActionPopupEvent,
@@ -113,7 +115,7 @@ var userActions = actionSet(map[string][]string{
 		constants.ActionReply,
 		constants.ActionClose,
 	},
-	constants.ServiceStorefront: {constants.ActionPopupClaim},
+	constants.ServiceStorefront: {constants.ActionPopupClaim, constants.ActionAccountSummary},
 })
 var adminActions = actionSet(map[string][]string{
 	constants.ServiceCatalog: {constants.ActionUpsert},
@@ -464,7 +466,6 @@ func writeJSON(w http.ResponseWriter, ctx context.Context, code int, payload map
 }
 
 func writeJSONResponse(w http.ResponseWriter, ctx context.Context, code int, payload map[string]any, err error) {
-	payload["trace_id"] = trace.SpanContextFromContext(ctx).TraceID().String()
 	if err == nil {
 		traceHTTPResponse(ctx, payload, nil)
 	} else {

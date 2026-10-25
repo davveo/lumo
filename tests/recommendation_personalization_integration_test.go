@@ -118,25 +118,13 @@ func TestHTTPRecommendationsUseOwnedPreferencesAndActualSimilarProducts(t *testi
 			t.Fatal("out-of-stock recommendation survived a fresh query")
 		}
 	}
-	boot := h.call(buyer, "storefront", "bootstrap", "", "", nil)
-	var rows []map[string]any
-	b, _ := json.Marshal(boot["results"])
-	_ = json.Unmarshal(b, &rows)
-	found := false
-	for _, row := range rows {
-		if row["service"] != "recommendation" {
-			continue
-		}
-		found = true
-		data := platform.Map(row["data"])
-		if row["auth"] != true || data["personalized"] != true || platform.Text(first(data), "brand") != "Orion" ||
-			data["stock_snapshot"] != nil {
-			t.Fatal("bootstrap ranking did not reuse the current buyer's actual signals", row)
-		}
+	// Ranking is requested by its own page section, not hidden in the public shell.
+	ranked := rank(buyer, map[string]any{"scene": "home", "limit": 20})
+	if ranked["personalized"] != true || platform.Text(first(ranked), "brand") != "Orion" ||
+		ranked["stock_snapshot"] != nil {
+		t.Fatal("explicit homepage feed lost verified buyer preferences", ranked)
 	}
-	if !found {
-		t.Fatal("homepage bootstrap did not contain a ranked recommendation feed")
-	}
+	b, _ := json.Marshal(ranked)
 	h.expect(403, admin, "recommendation", "rank_bootstrap", "", "", nil)
 	h.expect(403, admin, "catalog", "recommendation_candidates", "", "", nil)
 	// No raw profile, token, or source-user identity is sent back with reasons.

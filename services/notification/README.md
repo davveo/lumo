@@ -2,6 +2,8 @@
 
 支持操作：`list, read, read_all`。
 
+`List` 返回当前用户站内信的精确 `total` 和 `unread_total`，不受分页的 `limit` / `offset` 影响；`items` 保持最多 100 条，`limit` 表示本页实际返回条数。总量与未读量通过同一个数据库聚合查询计算，读取单条或全部消息后会反映最新状态。
+
 入口 `service.go` 只组装依赖；各层依次为：
 
 1. `internal/transport`：RPC命令入口和请求追踪。

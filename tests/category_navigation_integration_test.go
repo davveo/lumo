@@ -86,12 +86,12 @@ func TestCategoryNavigationHTTPConfigurationPersistsAndBootstrapsWithoutRepeated
 		t.Fatalf("initial backend taxonomy incomplete: %#v", config)
 	}
 	counted.reset()
-	boot := aggregateRows(t, h.call("", "storefront", "bootstrap", "", "", nil))
+	boot := aggregateRows(t, h.call("", "storefront", "shell", "", "", nil))
 	if got := navigationFragment(t, boot); platform.Text(got, "body") != platform.Text(document, "body") {
 		t.Fatal("bootstrap changed persisted navigation")
 	}
-	counted.expectCount(t, "content", "list", 2) // storefront + FAQ are existing reads.
-	counted.expectCount(t, "content", "get", 0)
+	counted.expectCount(t, "content", "list", 0) // Shell fetches only its two configured documents.
+	counted.expectCount(t, "content", "get", 2)
 
 	admin := platform.Text(
 		h.call("", "iam", "login", "", "", map[string]any{"username": "admin", "password": "Admin@2026"}),
@@ -117,7 +117,7 @@ func TestCategoryNavigationHTTPConfigurationPersistsAndBootstrapsWithoutRepeated
 	)
 
 	counted.reset()
-	boot = aggregateRows(t, h.call("", "storefront", "bootstrap", "", "", nil))
+	boot = aggregateRows(t, h.call("", "storefront", "shell", "", "", nil))
 	updated := decodedNavigation(t, navigationFragment(t, boot))
 	groups := updated["groups"].([]any)
 	if len(groups) != 3 || platform.Text(platform.Map(groups[0]), "id") != "second" ||
@@ -136,7 +136,7 @@ func TestCategoryNavigationHTTPConfigurationPersistsAndBootstrapsWithoutRepeated
 	if platform.Text(platform.Map(items[0]), "query") != "实际搜索词" || platform.Map(items[0])["featured"] != true {
 		t.Fatal("backend recommended term/target was lost")
 	}
-	counted.expectCount(t, "content", "get", 0)
+	counted.expectCount(t, "content", "get", 2)
 	for _, call := range counted.snapshot() {
 		if call.service == "content" && (call.command.Action == "get" || call.command.Action == "list") &&
 			(call.command.UserID != "" || call.command.Role != "") {
@@ -187,12 +187,12 @@ func TestCategoryNavigationBootstrapFindsDocumentBeyondBoundedContentPage(t *tes
 		)
 	}
 	counted.reset()
-	boot := aggregateRows(t, h.call("", "storefront", "bootstrap", "", "", nil))
+	boot := aggregateRows(t, h.call("", "storefront", "shell", "", "", nil))
 	document := navigationFragment(t, boot)
 	if platform.Text(document, "id") != categoryNavigationID ||
 		len(decodedNavigation(t, document)["groups"].([]any)) != 20 {
 		t.Fatal("bounded content list hid the category configuration")
 	}
-	counted.expectCount(t, "content", "list", 2)
-	counted.expectCount(t, "content", "get", 1)
+	counted.expectCount(t, "content", "list", 0)
+	counted.expectCount(t, "content", "get", 2)
 }

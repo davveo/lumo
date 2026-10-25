@@ -344,6 +344,14 @@ const itemPrice = (item) => {
   return Number(v?.price_cents ?? p.price_cents ?? Math.round(p.price * 100)) / 100;
 };
 const cartCount = () => state.cart.reduce((a, b) => a + b.qty, 0);
+function displayCartCount() {
+  if (!window.LumoAuth?.isLoggedIn()) return window.LumoAuth?.model?.().checking ? null : 0;
+  if (commerceReadState('cart').loaded) return cartCount();
+  const summary = window.LumoAccountSummary?.model?.();
+  return summary?.loaded && summary.cart_count != null && Number.isFinite(Number(summary.cart_count))
+    ? Math.max(0, Number(summary.cart_count))
+    : null;
+}
 const selectedItems = () => {
   let base =
     checkoutMode === CommerceEnums.OrderSource.Direct && directItem
@@ -411,8 +419,12 @@ function positionPrimaryNavigation() {
   if (item.left < bounds.left) nav.scrollLeft -= bounds.left - item.left;
   else if (item.right > bounds.right) nav.scrollLeft += item.right - bounds.right;
 }
+function canManageStore() {
+  return window.LumoAuth?.isLoggedIn() === true && window.LumoAuth.user()?.role === CommerceEnums.Role.Admin;
+}
 function header(showNav = false) {
-  return `<div class="utility"><div class="container"><span>品质生活，好物相伴</span><div class="utility-links"><a href="#/coupons">领券中心</a>${window.LumoAuthView?.headerUtility() || `<span>欢迎来到 ${esc(shop().brand)} ${esc(shop().brandSuffix)}</span><a href="#/member">个人中心</a>`}<button data-action="orders">我的订单</button><button data-action="help">帮助中心</button></div></div></div><header class="header"><div class="container header-main"><a class="brand" href="#/" aria-label="LUMO Mall 首页"><b>${esc(shop().brand)}</b><span>${esc(shop().brandSuffix)}</span><small>CURATED FOR EVERYDAY</small></a><form class="search" id="search-form" role="search"><span class="disc-search-kind">商品</span><input id="search-input" name="query" aria-label="搜索商品" placeholder="搜索商品，发现好物" value="${esc(ui.query)}" autocomplete="off"><button class="disc-search-submit" type="submit" aria-label="搜索">搜索</button></form><div class="header-actions">${window.LumoAuth?.user()?.role === CommerceEnums.Role.Admin ? '<a class="text-button" href="admin.html">运营台</a>' : ''}<a class="edit-store-button" href="#/editor" aria-label="编辑商城">${icon('edit')}<span>编辑商城</span></a><a class="icon-button mall-messages-action" href="#/member/messages" aria-label="消息中心">${icon('bell')}${window.LumoAuth?.isLoggedIn() && window.LumoServices?.unreadCount() ? `<span class="badge">${window.LumoServices.unreadCount()}</span>` : ''}</a><button class="icon-button favorites-action" data-action="favorites" aria-label="我的收藏">${icon('heart')}${state.favorites.length ? `<span class="badge">${state.favorites.length}</span>` : ''}</button><a class="icon-button cart-action" href="#/cart" aria-label="购物车 ${cartCount()} 件商品">${icon('cart')}${cartCount() ? `<span class="badge">${cartCount()}</span>` : ''}<span class="header-label">购物车</span></a>${window.LumoAuthView?.headerAccount() || `<a class="icon-button member-action" href="#/member" aria-label="个人中心">${icon('user')}<span class="header-label">我的</span></a>`}</div></div>${showNav ? primaryNavigation() : ''}</header>`;
+  const cartDisplay = displayCartCount();
+  return `<div class="utility"><div class="container"><span>品质生活，好物相伴</span><div class="utility-links"><a href="#/coupons">领券中心</a>${window.LumoAuthView?.headerUtility() || `<span>欢迎来到 ${esc(shop().brand)} ${esc(shop().brandSuffix)}</span><a href="#/member">个人中心</a>`}<button data-action="orders">我的订单</button><button data-action="help">帮助中心</button></div></div></div><header class="header"><div class="container header-main"><a class="brand" href="#/" aria-label="LUMO Mall 首页"><b>${esc(shop().brand)}</b><span>${esc(shop().brandSuffix)}</span><small>CURATED FOR EVERYDAY</small></a><form class="search" id="search-form" role="search"><span class="disc-search-kind">商品</span><input id="search-input" name="query" aria-label="搜索商品" placeholder="搜索商品，发现好物" value="${esc(ui.query)}" autocomplete="off"><button class="disc-search-submit" type="submit" aria-label="搜索">搜索</button></form><div class="header-actions">${canManageStore() ? `<a class="text-button" href="admin.html">运营台</a><a class="edit-store-button" href="#/editor" aria-label="编辑商城">${icon('edit')}<span>编辑商城</span></a>` : ''}<a class="icon-button mall-messages-action" href="#/member/messages" aria-label="消息中心">${icon('bell')}${window.LumoAuth?.isLoggedIn() && window.LumoServices?.unreadCount() ? `<span class="badge">${window.LumoServices.unreadCount()}</span>` : ''}</a><button class="icon-button favorites-action" data-action="favorites" aria-label="我的收藏">${icon('heart')}${state.favorites.length ? `<span class="badge">${state.favorites.length}</span>` : ''}</button><a class="icon-button cart-action" href="#/cart" aria-label="${cartDisplay == null ? '购物车' : `购物车 ${cartDisplay} 件商品`}">${icon('cart')}${cartDisplay > 0 ? `<span class="badge">${cartDisplay}</span>` : ''}<span class="header-label">购物车</span></a>${window.LumoAuthView?.headerAccount() || `<a class="icon-button member-action" href="#/member" aria-label="个人中心">${icon('user')}<span class="header-label">我的</span></a>`}</div></div>${showNav ? primaryNavigation() : ''}</header>`;
 }
 function footer() {
   return `<section class="service-strip"><div class="container services">${[
@@ -424,20 +436,19 @@ function footer() {
     .map(([i, t]) => `<div class="service">${icon(i)}<span>${t}</span></div>`)
     .join(
       '',
-    )}</div></section><footer class="container footer"><a class="brand" href="#/"><b>${esc(shop().brand)}</b><span>${esc(shop().brandSuffix)}</span></a><span>© 2026 LUMO Mall · 订单与资产由服务端保存 · 演示支付渠道</span><div class="footer-links"><a href="admin.html">商城管理</a><a href="#/member/support">客服中心</a><button data-action="help">购物帮助</button><button data-action="about">关于我们</button><button data-action="privacy">隐私说明</button></div></footer>`;
+    )}</div></section><footer class="container footer"><a class="brand" href="#/"><b>${esc(shop().brand)}</b><span>${esc(shop().brandSuffix)}</span></a><span>© 2026 LUMO Mall · 订单与资产由服务端保存 · 演示支付渠道</span><div class="footer-links">${canManageStore() ? '<a href="admin.html">商城管理</a>' : ''}<a href="#/member/support">客服中心</a><button data-action="help">购物帮助</button><button data-action="about">关于我们</button><button data-action="privacy">隐私说明</button></div></footer>`;
 }
 function productCard(p) {
   return `<article class="product-card"><a class="product-image ${['iphone', 'macbook'].includes(p.id) ? 'official-image' : ''}" href="#/product/${esc(p.id)}" aria-label="查看${esc(p.name)}"><img src="${esc(asset(p.image))}" alt="${esc(p.name)}" loading="lazy">${p.label ? `<span class="product-label">${esc(p.label)}</span>` : ''}</a>${window.LumoDiscovery?.compareButton(p) || ''}<button class="favorite-button ${state.favorites.includes(p.id) ? 'saved' : ''}" data-action="favorite" data-id="${esc(p.id)}" aria-label="${state.favorites.includes(p.id) ? '取消收藏' : '收藏'}${esc(p.name)}" aria-pressed="${state.favorites.includes(p.id)}">${icon('heart')}</button><div class="product-info"><a class="product-title" href="#/product/${esc(p.id)}">${esc(p.name)}</a><p class="product-sub">${esc(p.sub)}</p><div class="price-line">${price(p.price)}<span class="old-price">¥${money(p.old)}</span><button class="card-cart" data-action="quick-add" data-id="${esc(p.id)}" aria-label="将${esc(p.name)}加入购物车" ${p.visible === false || (window.LumoInventory && window.LumoInventory.stockFor(p) <= 0) ? 'disabled' : ''}>${icon('cart')}</button></div></div></article>`;
 }
 function homeMemberBenefits() {
   const loggedIn = !!window.LumoAuth?.isLoggedIn(),
-    member = window.LumoMember?.model();
-  const profileReady = window.LumoMember?.readState?.('profile').loaded;
-  const name = loggedIn && profileReady ? member?.profile?.nickname : '';
-  const metric = (resource, value) => (loggedIn && window.LumoMember?.readState?.(resource).loaded ? value : '—');
-  const availableCoupons =
-    member?.coupons?.filter((row) => row.status === CommerceEnums.CouponViewStatus.Available).length || 0;
-  return `<section class="home-member-card" aria-label="会员权益"><div class="home-member-greeting"><span class="home-member-avatar">${icon('user')}</span><div><strong>${loggedIn ? esc(name || '欢迎回来') : 'Hi，欢迎来到 LUMO'}</strong><p>${loggedIn ? '你的品质生活，从这里继续' : '登录发现属于你的好物与福利'}</p></div></div><div class="home-member-actions">${loggedIn ? '<a href="#/member">会员中心</a><a href="#/member/orders">我的订单</a>' : '<a href="#/login">立即登录</a><a href="#/coupons">去领好券</a>'}</div><div class="home-member-metrics"><a href="#/member/coupons"><strong>${metric('coupons', availableCoupons)}</strong><span>可用优惠券</span></a><a href="#/member/points"><strong>${metric('points', member?.points || 0)}</strong><span>我的积分</span></a><a href="#/member/favorites"><strong>${loggedIn && commerceReadState('favorites').loaded ? state.favorites.length : '—'}</strong><span>我的收藏</span></a></div></section>`;
+    summary = window.LumoAccountSummary?.model?.(),
+    ready = loggedIn && summary?.loaded;
+  const name = ready ? summary.profile?.display_name : '';
+  const metric = (field) =>
+    ready && summary[field] != null && Number.isFinite(Number(summary[field])) ? Number(summary[field]) : '—';
+  return `<section class="home-member-card" aria-label="会员权益"><div class="home-member-greeting"><span class="home-member-avatar">${icon('user')}</span><div><strong>${loggedIn ? esc(name || '欢迎回来') : 'Hi，欢迎来到 LUMO'}</strong><p>${loggedIn ? '你的品质生活，从这里继续' : '登录发现属于你的好物与福利'}</p></div></div><div class="home-member-actions">${loggedIn ? '<a href="#/member">会员中心</a><a href="#/member/orders">我的订单</a>' : '<a href="#/login">立即登录</a><a href="#/coupons">去领好券</a>'}</div><div class="home-member-metrics"><a href="#/member/coupons"><strong>${metric('coupon_count')}</strong><span>可用优惠券</span></a><a href="#/member/points"><strong>${metric('points')}</strong><span>我的积分</span></a><a href="#/member/favorites"><strong>${metric('favorite_count')}</strong><span>我的收藏</span></a></div></section>`;
 }
 function homeActivityCards() {
   const promotions = window.LumoPromotions,
@@ -463,7 +474,9 @@ function homeActivityCards() {
   ];
   return `<div class="home-activity-grid" aria-label="活动福利">${cards
     .map((card) => {
-      const pending = (!!status?.loading || !(status?.ready?.[card.ready] ?? status?.loaded)) && !status?.error;
+      const catalogPending = !products.length && !commerceState.catalogLoaded && !commerceState.catalogError;
+      const pending =
+        (!!status?.loading || !(status?.ready?.[card.ready] ?? status?.loaded) || catalogPending) && !status?.error;
       const body = card.offer
         ? `<span class="home-activity-product">${esc(card.offer.product.name)}</span><strong class="home-activity-price">¥${money(card.offer.price)}</strong><img src="${esc(asset(card.offer.product.image))}" alt="" loading="lazy">`
         : card.campaign
@@ -477,8 +490,6 @@ function homeActivityCards() {
 }
 function homeLanding(list, busy, error, recommendation) {
   const featured = list.slice(0, 4);
-  const navigationCategories = (window.LumoCategories?.categories || []).filter((category) => category !== '全部好物');
-  const keywords = navigationCategories.slice(0, 6);
   const directory =
     window.LumoCategories?.directory() ||
     `<aside class="category-directory" aria-label="正在加载商品分类"><div class="category-directory-head">${icon('layers')}全部商品分类</div>${commerceSkeleton('navigation', { count: 12, label: '正在加载分类' })}</aside>`;
@@ -488,7 +499,10 @@ function homeLanding(list, busy, error, recommendation) {
       : featured.length
         ? `<div class="home-picks-grid">${featured.map((product) => `<a class="home-pick" href="#/product/${esc(product.id)}"><img src="${esc(asset(product.image))}" alt="${esc(product.name)}" loading="lazy"><strong>${esc(product.name)}</strong><span>¥${money(product.price)}</span></a>`).join('')}</div>`
         : `<div class="home-picks-empty"><span>${error ? '精选商品暂未加载' : '新好物正在上架'}</span><button data-action="${error ? 'commerce-refresh' : 'explore'}">${error ? '重新加载' : '探索全部好物'} ${icon('arrow')}</button></div>`;
-  return `<div class="home-discovery-bar"><div class="home-keywords"><span>发现好物</span>${keywords.map((keyword) => `<button type="button" data-action="category" data-value="${esc(keyword)}">${esc(keyword)}</button>`).join('')}</div><div class="home-entry-links"><a href="#/promotions/flash">${icon('clock')}限时秒杀</a><a href="#/promotions/group">${icon('user')}一起拼团</a><a href="#/coupons">${icon('ticket')}领券中心</a><a href="#/member">${icon('user')}会员权益</a></div></div><section class="home-category-layout" aria-label="商城精选与分类">${directory}<div class="home-feature-area"><div class="home-feature-top"><section class="hero" aria-label="智享生活精选"><div class="hero-copy"><span class="eyebrow">${esc(shop().heroEyebrow)}</span><h1>${esc(shop().heroTitle).replace(/\n/g, '<br>')}</h1><p>${esc(shop().heroSubtitle)}</p><button class="primary" data-action="explore">立即探索 ${icon('arrow')}</button></div><img class="hero-image" src="${esc(asset(shop().heroImage))}" alt="品质生活精选"><span class="home-hero-label">LUMO · 每日灵感</span></section><section class="home-picks" aria-label="精选好物"><div class="home-card-heading"><h2>${recommendation.personalized ? '为你精选' : '发现好物'}</h2><button data-action="explore">去逛逛 ${icon('chevron')}</button></div>${picks}</section></div>${homeActivityCards()}</div><aside class="home-benefits" aria-label="会员与领券">${homeMemberBenefits()}${window.LumoCouponCenter?.home({ limit: 2 }) || `<section class="home-coupons-pending"><h2>${icon('ticket')}领券中心</h2>${commerceSkeleton('coupons', { count: 2, label: '正在加载好券', className: 'sk-coupons-compact' })}</section>`}</aside></section>${primaryNavigation().replace('container nav', 'nav home-category-nav')}`;
+  return `<section class="home-category-layout" aria-label="商城精选与分类">${directory}<div class="home-feature-area"><div class="home-feature-top"><section class="hero" aria-label="智享生活精选"><div class="hero-copy"><span class="eyebrow">${esc(shop().heroEyebrow)}</span><h1>${esc(shop().heroTitle).replace(/\n/g, '<br>')}</h1><p>${esc(shop().heroSubtitle)}</p><button class="primary" data-action="explore">立即探索 ${icon('arrow')}</button></div><img class="hero-image" src="${esc(asset(shop().heroImage))}" alt="品质生活精选"><span class="home-hero-label">LUMO · 每日灵感</span></section><section class="home-picks" aria-label="精选好物"><div class="home-card-heading"><h2>${recommendation.personalized ? '为你精选' : '发现好物'}</h2><button data-action="explore">去逛逛 ${icon('chevron')}</button></div>${picks}</section></div>${homeActivityCards()}</div><aside class="home-benefits" aria-label="会员与领券">${homeMemberBenefits()}${window.LumoCouponCenter?.home({ limit: 2 }) || `<section class="home-coupons-pending"><h2>${icon('ticket')}领券中心</h2>${commerceSkeleton('coupons', { count: 2, label: '正在加载好券', className: 'sk-coupons-compact' })}</section>`}</aside></section>`;
+}
+function homeDiscoveryBar() {
+  return `<div class="home-discovery-bar">${primaryNavigation().replace('container nav', 'nav home-category-nav')}<div class="home-entry-links"><a href="#/member">${icon('user')}会员权益</a></div></div>`;
 }
 function catalog() {
   let list = products.filter(
@@ -532,7 +546,7 @@ function catalog() {
   const catalogError =
     searchRead?.error || commerceState.catalogError || (ui.onlyFavorites && commerceReadState('favorites').error);
   const catalogCount = catalogBusy ? '加载中' : list.length + ' 件好物';
-  return `${header(!!filtered)}<main id="main" class="container${!filtered ? ' home-page' : ''}">${!filtered ? homeLanding(list, catalogBusy, catalogError, homeRecommendation) : ''}<section class="catalog" id="catalog"><div class="section-head" ${filtered ? 'style="margin-top:30px"' : ''}><div><h2>${ui.onlyFavorites ? '我的收藏' : ui.categoryLabel ? esc(ui.categoryLabel) : ui.query ? '搜索结果' : ui.category === '全部好物' ? (recommendationMode ? (shop().sectionTitle !== defaultShopSettings.sectionTitle ? esc(shop().sectionTitle) : homeRecommendation.personalized ? '为你推荐' : '精选推荐') : esc(shop().sectionTitle)) : esc(ui.category)}</h2><p>${ui.onlyFavorites ? '每一次心动，都值得收藏' : recommendationMode ? (homeRecommendation.personalized ? '根据你的浏览、收藏、搜索和购买偏好挑选' : '精选当前可售好物，发现新的心动') : esc(shop().sectionSubtitle)}</p></div><span class="subtle">好设计，让日常多一点美好 ${icon('sparkles')}</span></div>${filtered ? `<div class="result-summary">${ui.query ? `“${esc(ui.query)}” · ` : ''}${catalogBusy ? '正在加载商品' : (ui.category !== '全部好物' ? '当前展示' : '共找到') + ' ' + list.length + ' 件好物'}<button data-action="reset-filters">查看全部好物</button></div>` : ''}${window.LumoDiscovery?.controls() || ''}<div class="filter-bar">${['综合', '销量', '价格', '新品'].map((s) => `<button data-action="sort" data-value="${s}" class="filter-tab ${ui.sort.startsWith(s) ? 'active' : ''}">${s}${s === '价格' ? icon(ui.sort === '价格高' ? 'sort' : 'chevron') : ''}</button>`).join('')}<div class="filter-end"><span>${catalogCount}</span><button class="filter-btn" data-action="filters" aria-expanded="${ui.filters}">筛选 ${icon('filter')}</button></div></div><form class="filter-panel" id="price-form" ${ui.filters ? '' : 'hidden'}><span>价格区间</span><input type="number" min="0" name="min" aria-label="最低价格" placeholder="最低价" value="${esc(ui.min)}"><span>—</span><input type="number" min="0" name="max" aria-label="最高价格" placeholder="最高价" value="${esc(ui.max)}"><button class="primary">确定</button><button class="outline" type="button" data-action="reset-price">重置</button></form>${catalogBusy ? commerceSkeleton('products', { count: 6, label: '正在加载商品' }) : list.length ? `<div class="product-grid">${pageList.map((p) => (recommendationMode ? window.LumoRecommendations.homeCard(p) : productCard(p))).join('')}</div>${window.LumoDiscovery?.pagination(list.length) || ''}` : empty(catalogError ? '商品加载失败' : '没有找到合适的好物', esc(catalogError || '') || '试试其他关键词，或看看全部商品。', catalogError ? (searchRead?.error ? 'commerce-search-retry' : 'commerce-refresh') : 'reset-filters', catalogError ? '重新加载' : '浏览全部好物', 'search')}</section>${!filtered ? `<section class="about-strip"><div><h2>生活的美好，藏在用心的选择里。</h2><p>数码灵感、日常所需与心动好物，都在这里。</p></div><a class="outline" href="#/coupons">去领好券 ${icon('arrow')}</a></section>` : ''}</main>${footer()}`;
+  return `${header()}<main id="main" class="container catalog-page${!filtered ? ' home-page' : ''}">${homeDiscoveryBar()}${!filtered ? homeLanding(list, catalogBusy, catalogError, homeRecommendation) : ''}<section class="catalog" id="catalog"><div class="section-head"><div><h2>${ui.onlyFavorites ? '我的收藏' : ui.categoryLabel ? esc(ui.categoryLabel) : ui.query ? '搜索结果' : ui.category === '全部好物' ? (recommendationMode ? (shop().sectionTitle !== defaultShopSettings.sectionTitle ? esc(shop().sectionTitle) : homeRecommendation.personalized ? '为你推荐' : '精选推荐') : esc(shop().sectionTitle)) : esc(ui.category)}</h2><p>${ui.onlyFavorites ? '每一次心动，都值得收藏' : recommendationMode ? (homeRecommendation.personalized ? '根据你的浏览、收藏、搜索和购买偏好挑选' : '精选当前可售好物，发现新的心动') : esc(shop().sectionSubtitle)}</p></div><span class="subtle">好设计，让日常多一点美好 ${icon('sparkles')}</span></div>${filtered ? `<div class="result-summary">${ui.query ? `“${esc(ui.query)}” · ` : ''}${catalogBusy ? '正在加载商品' : (ui.category !== '全部好物' ? '当前展示' : '共找到') + ' ' + list.length + ' 件好物'}<button data-action="reset-filters">查看全部好物</button></div>` : ''}${window.LumoDiscovery?.controls() || ''}<div class="filter-bar">${['综合', '销量', '价格', '新品'].map((s) => `<button data-action="sort" data-value="${s}" class="filter-tab ${ui.sort.startsWith(s) ? 'active' : ''}">${s}${s === '价格' ? icon(ui.sort === '价格高' ? 'sort' : 'chevron') : ''}</button>`).join('')}<div class="filter-end"><span>${catalogCount}</span><button class="filter-btn" data-action="filters" aria-expanded="${ui.filters}">筛选 ${icon('filter')}</button></div></div><form class="filter-panel" id="price-form" ${ui.filters ? '' : 'hidden'}><span>价格区间</span><input type="number" min="0" name="min" aria-label="最低价格" placeholder="最低价" value="${esc(ui.min)}"><span>—</span><input type="number" min="0" name="max" aria-label="最高价格" placeholder="最高价" value="${esc(ui.max)}"><button class="primary">确定</button><button class="outline" type="button" data-action="reset-price">重置</button></form>${catalogBusy ? commerceSkeleton('products', { count: 6, label: '正在加载商品' }) : list.length ? `<div class="product-grid">${pageList.map((p) => (recommendationMode ? window.LumoRecommendations.homeCard(p) : productCard(p))).join('')}</div>${window.LumoDiscovery?.pagination(list.length) || ''}` : empty(catalogError ? '商品加载失败' : '没有找到合适的好物', esc(catalogError || '') || '试试其他关键词，或看看全部商品。', catalogError ? (searchRead?.error ? 'commerce-search-retry' : 'commerce-refresh') : 'reset-filters', catalogError ? '重新加载' : '浏览全部好物', 'search')}</section>${!filtered ? `<section class="about-strip"><div><h2>生活的美好，藏在用心的选择里。</h2><p>数码灵感、日常所需与心动好物，都在这里。</p></div><a class="outline" href="#/coupons">去领好券 ${icon('arrow')}</a></section>` : ''}</main>${footer()}`;
 }
 let detailPageProduct = '';
 function detailMedia(product, selectedImage) {
@@ -637,7 +651,7 @@ function detailPage(id) {
 function quantity(q, scope, index = '') {
   const item = scope === 'detail' ? detail : state.cart[Number(index)],
     max = window.LumoInventory && item ? Math.max(1, window.LumoInventory.limit(item, 10)) : 10;
-  return `<div class="quantity"><button data-action="quantity" data-scope="${scope}" data-index="${index}" data-value="-1" aria-label="减少数量" ${q <= 1 ? 'disabled' : ''}>−</button><output aria-label="数量">${q}</output><button data-action="quantity" data-scope="${scope}" data-index="${index}" data-value="1" aria-label="增加数量" ${q >= max ? 'disabled' : ''}>＋</button></div>`;
+  return `<div class="quantity"><button data-action="quantity" data-scope="${scope}" data-index="${index}" data-value="-1" aria-label="减少数量" ${q <= 1 || item?.unavailable ? 'disabled' : ''}>−</button><output aria-label="数量">${q}</output><button data-action="quantity" data-scope="${scope}" data-index="${index}" data-value="1" aria-label="增加数量" ${q >= max || item?.unavailable ? 'disabled' : ''}>＋</button></div>`;
 }
 function empty(title, desc, action, label, i = 'cart') {
   return `<div class="empty-state">${icon(i)}<h2>${title}</h2><p>${desc}</p><button class="primary" data-action="${action}">${label}</button></div>`;
@@ -673,10 +687,10 @@ function cartPage() {
           const product = byId(item.id);
           const name = item.name || product.name;
           return `<article class="cart-item cart-table-row">
-          <label class="check cart-row-check"><input type="checkbox" data-action="select" data-index="${index}" ${item.selected ? 'checked' : ''} aria-label="选择${esc(name)}"></label>
+          <label class="check cart-row-check"><input type="checkbox" data-action="select" data-index="${index}" ${item.selected ? 'checked' : ''} ${item.unavailable ? 'disabled' : ''} aria-label="选择${esc(name)}"></label>
           <a class="cart-product" href="#/product/${esc(product.id)}"><div class="cart-product-image ${['iphone', 'macbook'].includes(product.id) ? 'official-image' : ''}"><img src="${esc(asset(imageFor(item)))}" alt="${esc(name)}" loading="lazy"></div><div><h3>${esc(name)}</h3><p class="cart-product-category">${esc(product.category || item.category || '')}</p>${window.LumoPromoView?.itemBadge(item) || ''}</div></a>
           <div class="cart-variant"><span>${esc(item.color || '默认颜色')}</span><span>${esc(item.option || product.defaultOption || '标准规格')}</span><small>商品规格</small></div>
-          <div class="cart-unit-price">${price(itemPrice(item))}<small>小计 ¥${money(itemPrice(item) * item.qty)}</small></div>
+          <div class="cart-unit-price">${item.unavailable ? '<strong>商品已不可用</strong><small>请移除后重新选购</small>' : `${price(itemPrice(item))}<small>小计 ¥${money(itemPrice(item) * item.qty)}</small>`}</div>
           ${quantity(item.qty, 'cart', index)}
           <div class="cart-row-actions"><button data-action="cart-move-favorite" data-index="${index}">移入收藏</button><button data-action="delete" data-index="${index}" aria-label="删除${esc(name)}">删除</button></div>
         </article>`;
@@ -1102,17 +1116,19 @@ document.addEventListener('click', (e) => {
       go('checkout');
       break;
     case 'select':
-      state.cart[i].selected = b.checked;
+      state.cart[i].selected = !state.cart[i].unavailable && b.checked;
       save();
       renderKeepScroll();
       break;
     case 'select-all':
-      state.cart.forEach((x) => (x.selected = b.checked));
+      state.cart.forEach((x) => (x.selected = !x.unavailable && b.checked));
       save();
       renderKeepScroll();
       break;
     case 'cart-select-brand':
-      state.cart.filter((item) => cartBrand(item) === b.dataset.brand).forEach((item) => (item.selected = b.checked));
+      state.cart
+        .filter((item) => cartBrand(item) === b.dataset.brand)
+        .forEach((item) => (item.selected = !item.unavailable && b.checked));
       save();
       renderKeepScroll();
       break;
@@ -1334,7 +1350,10 @@ let commerceOrders = [],
   commerceDetailSKU = '',
   commerceEpoch = 0;
 const commerceReads = new Map(),
-  commerceProductReads = new Map();
+  commerceProductReads = new Map(),
+  commerceMetadataReads = new Map(),
+  commerceInventoryReads = new Map(),
+  commerceHydratedProducts = new Map();
 const commerceReadState = (resource) => {
   const row = commerceReads.get(resource);
   return { loading: row?.loading === true, loaded: row?.loaded === true, error: row?.error || '' };
@@ -1346,6 +1365,8 @@ const commerceOwner = () =>
   String(window.LumoAuth?.user()?.id || window.LumoAuth?.user()?.user_id || '') +
   '@' +
   String(window.LumoAPI?.getBase?.() || '') +
+  ':' +
+  String(window.LumoAPI?.getToken?.() || '') +
   '#' +
   commerceEpoch;
 const commerceAdding = new Set(),
@@ -1391,6 +1412,118 @@ function normalizeProduct(raw) {
     highlights: Array.isArray(v.highlights) ? v.highlights : presentation.highlights,
     highSubs: Array.isArray(v.highSubs) ? v.highSubs : presentation.highSubs,
   };
+}
+async function readProductMetadata(ids, owner) {
+  const unique = [...new Set(ids.filter(Boolean).map(String))],
+    fresh = unique.filter((id) => !commerceMetadataReads.has(owner + '|' + id));
+  for (let offset = 0; offset < fresh.length; offset += 500) {
+    const batch = fresh.slice(offset, offset + 500),
+      request = commerceCall(
+        CommerceEnums.Service.Catalog,
+        CommerceEnums.Action.BatchGet,
+        { data: { ids: batch } },
+        { auth: false },
+      ).then((result) => new Map((result.items || []).map((row) => [String(row.id), row])));
+    for (const id of batch) {
+      const key = owner + '|' + id,
+        read = request.then((rows) => rows.get(id) || null);
+      commerceMetadataReads.set(key, read);
+      const release = () => {
+        if (commerceMetadataReads.get(key) === read) commerceMetadataReads.delete(key);
+      };
+      void read.then(release, release);
+    }
+  }
+  return Promise.all(unique.map((id) => commerceMetadataReads.get(owner + '|' + id)));
+}
+async function hydrateProducts(ids, options = {}) {
+  const owner = commerceOwner(),
+    active = () => owner === commerceOwner() && (options.active?.() ?? true),
+    unique = [...new Set(ids.filter(Boolean).map(String))],
+    missing = unique.filter((id) => !actualProduct(id) || actualProduct(id).metadataUnavailable);
+  const raw = (await readProductMetadata(missing, owner)).filter(Boolean);
+  if (!active()) return [];
+  const value = (row) => ({ ...(row.attributes || row.presentation || {}), ...row }),
+    parentIds = [...new Set(raw.map((row) => value(row).product_id || row.parent_id).filter(Boolean))].filter(
+      (id) => !actualProduct(id) && !raw.some((row) => row.id === id),
+    );
+  raw.push(...(await readProductMetadata(parentIds, owner)).filter(Boolean));
+  if (!active()) return [];
+  // A cart or engagement row is a SKU reference. Resolve its parent and retain
+  // the selected variant instead of depending on the bounded home catalogue.
+  const hydrated = new Map();
+  for (const row of [...raw].sort(
+    (a, b) => Number(normalizeProduct(a).id !== a.id) - Number(normalizeProduct(b).id !== b.id),
+  )) {
+    const product = normalizeProduct(row),
+      existing = actualProduct(product.id),
+      base = hydrated.get(product.id) || (existing?.metadataUnavailable ? null : existing);
+    if (!base) hydrated.set(product.id, product);
+    else if (String(row.id) === product.id) hydrated.set(product.id, product);
+    else hydrated.set(product.id, { ...base, variants: [...(base.variants || [])] });
+    const resolved = hydrated.get(product.id),
+      fields = value(row);
+    if (row.id !== product.id && !resolved.variants.some((variant) => variant.sku_id === row.id))
+      resolved.variants.push({
+        sku_id: String(row.id),
+        color: String(fields.color || resolved.colors[0]),
+        option: String(fields.option || resolved.defaultOption),
+        price_cents: Number(fields.price_cents),
+      });
+  }
+  const resolvedIds = new Set(raw.flatMap((row) => [String(row.id), normalizeProduct(row).id]));
+  for (let index = products.length - 1; index >= 0; index--)
+    if (products[index].metadataUnavailable && resolvedIds.has(products[index].id)) {
+      commerceHydratedProducts.delete(products[index].id);
+      products.splice(index, 1);
+    }
+  for (const product of hydrated.values()) {
+    const index = products.findIndex((row) => row.id === product.id),
+      prior = index < 0 ? null : products[index];
+    if (index < 0) products.push(product);
+    else products[index] = product;
+    if (!prior || commerceHydratedProducts.get(product.id) === prior) commerceHydratedProducts.set(product.id, product);
+  }
+  for (const id of missing.filter((id) => !actualProduct(id))) {
+    const product = {
+      ...fallbackProduct,
+      id,
+      skuId: id,
+      name: '商品已不可用',
+      visible: false,
+      metadataUnavailable: true,
+      price_cents: null,
+      price: null,
+      old: null,
+      colors: ['—'],
+      options: ['—'],
+      defaultOption: '—',
+      variants: [],
+    };
+    products.push(product);
+    commerceHydratedProducts.set(id, product);
+  }
+  const inventory = window.LumoInventory,
+    stockIds = unique.filter((id) => {
+      const product = actualProduct(id);
+      return product && product.visible !== false && !inventory?.snapshot?.(id);
+    });
+  if (active() && stockIds.length && inventory?.refresh) {
+    const fresh = stockIds.filter((id) => !commerceInventoryReads.has(owner + '|' + id));
+    if (fresh.length) {
+      const read = inventory.refresh(fresh);
+      for (const id of fresh) {
+        const key = owner + '|' + id;
+        commerceInventoryReads.set(key, read);
+        const release = () => {
+          if (commerceInventoryReads.get(key) === read) commerceInventoryReads.delete(key);
+        };
+        void read.then(release, release);
+      }
+    }
+    await Promise.all(stockIds.map((id) => commerceInventoryReads.get(owner + '|' + id)));
+  }
+  return active() ? unique.map(actualProduct) : [];
 }
 function skuForItem(item) {
   if (typeof item === 'string') return byId(item).skuId || item;
@@ -1542,8 +1675,10 @@ function refreshCatalog() {
         { auth: false },
       );
       if (!active()) return [];
-      const list = (result.items || []).map(normalizeProduct);
-      products.splice(0, products.length, ...list);
+      const list = (result.items || []).map(normalizeProduct),
+        publicIds = new Set(list.map((product) => product.id));
+      for (const id of publicIds) commerceHydratedProducts.delete(id);
+      products.splice(0, products.length, ...list, ...commerceHydratedProducts.values());
       commerceState.catalogLoaded = true;
       commerceState.catalogError = '';
       window.LumoRecommendations?.catalogChanged?.();
@@ -1563,12 +1698,41 @@ function refreshCart() {
       state.cart = [];
       return [];
     }
-    const result = await commerceCall(CommerceEnums.Service.Cart, CommerceEnums.Action.List);
+    const rows = [],
+      seen = new Set();
+    let offset = 0;
+    while (active()) {
+      const result = await commerceCall(CommerceEnums.Service.Cart, CommerceEnums.Action.List, {
+          data: { limit: 100, offset },
+        }),
+        page = result.items || [],
+        total = Number.isFinite(Number(result.total)) && result.total != null ? Number(result.total) : null;
+      if (!active()) return [];
+      const fresh = [];
+      for (const row of page) {
+        const key = String(row.id || row.sku_id);
+        if (!seen.has(key)) {
+          seen.add(key);
+          fresh.push(row);
+        }
+      }
+      if (page.length && !fresh.length) throw Error('购物车分页数据重复，请重新加载');
+      rows.push(...fresh);
+      offset += page.length;
+      if (total == null ? page.length < 100 : offset >= total) break;
+      if (!page.length) throw Error('购物车数据不完整，请重新加载');
+    }
+    await hydrateProducts(
+      rows.map((row) => row.sku_id || row.skuId || row.id),
+      { active },
+    );
     if (!active() || !window.LumoAuth?.isLoggedIn()) return [];
     const selected = new Map(state.cart.map((x) => [x.sku_id || skuForItem(x), x.selected]));
-    state.cart = (result.items || []).map((row) => {
-      const item = normalizeItem(row);
-      item.selected = selected.has(item.sku_id) ? selected.get(item.sku_id) : true;
+    state.cart = rows.map((row) => {
+      const sku = String(row.sku_id || row.skuId || row.id || ''),
+        item = normalizeItem({ ...row, product_id: actualProduct(sku)?.id || row.product_id });
+      item.unavailable = actualProduct(item.sku_id)?.visible === false;
+      item.selected = !item.unavailable && (selected.has(item.sku_id) ? selected.get(item.sku_id) : true);
       return item;
     });
     return state.cart;
@@ -1584,6 +1748,11 @@ function refreshFavorites() {
     const result = await commerceCall(CommerceEnums.Service.Engagement, CommerceEnums.Action.List, {
       data: { kind: CommerceEnums.EngagementKind.Favorite, limit: 100 },
     });
+    if (!active()) return [];
+    await hydrateProducts(
+      (result.items || []).map((row) => row.sku_id),
+      { active },
+    );
     if (!active() || !window.LumoAuth?.isLoggedIn()) return [];
     state.favoriteSKUs = (result.items || []).map((x) => x.sku_id);
     state.favorites = (result.items || []).map((x) => byId(x.sku_id).id || legacyProductIds[x.sku_id] || x.sku_id);
@@ -2158,9 +2327,7 @@ async function refreshCommercePayment(showError = true) {
       commerceState.successOrderId = id;
       await Promise.all([refreshOrders(), refreshCart()]);
       if (owner !== commerceOwner() || !window.LumoAuth?.isLoggedIn()) return;
-      window.LumoMember?.refresh?.().catch(commerceError);
-      window.LumoServices?.refresh?.().catch(commerceError);
-      window.LumoInventory?.refresh?.().catch(commerceError);
+      void refreshOrderResources([result], false).catch(commerceError);
       go('success');
       return result;
     }
@@ -2182,28 +2349,42 @@ async function refreshCommercePayment(showError = true) {
   }
 }
 async function cancelCommerceOrder(id) {
+  const owner = commerceOwner(),
+    previous = commerceOrders.find((order) => order.id === id) || (state.pending?.id === id ? state.pending : null);
   try {
     await commerceCall(CommerceEnums.Service.Checkout, CommerceEnums.Action.Cancel, { id });
+    if (owner !== commerceOwner() || !window.LumoAuth?.isLoggedIn()) return;
     await refreshOrders();
+    if (owner !== commerceOwner() || !window.LumoAuth?.isLoggedIn()) return;
     commerceState.payment = null;
-    window.LumoMember?.refresh?.().catch(commerceError);
-    window.LumoInventory?.refresh?.().catch(commerceError);
+    const order = commerceOrders.find((row) => row.id === id) || previous;
+    void refreshOrderResources(order ? [order] : [], false).catch(commerceError);
     go('member/orders');
     toast('订单已取消，服务端正在释放预占资源');
   } catch (error) {
-    commerceError(error);
+    if (owner === commerceOwner()) commerceError(error);
   }
+}
+async function refreshOrderResources(orders, includeCart = true) {
+  const ids = [...new Set(orders.flatMap((order) => (order.items || []).map((item) => item.sku_id).filter(Boolean)))];
+  await Promise.all([
+    includeCart ? refreshCart() : null,
+    window.LumoMember?.refresh?.(false, ['coupons', 'points']),
+    ids.length ? window.LumoInventory?.refresh?.(ids) : null,
+  ]);
 }
 async function refreshPostPaymentState() {
   if (!window.LumoAuth?.isLoggedIn() || location.hash !== '#/success') return;
   try {
-    await Promise.all([refreshOrders(), refreshCart()]);
-    await Promise.all([
-      window.LumoMember?.refresh?.(),
-      window.LumoServices?.refresh?.(),
-      window.LumoInventory?.refresh?.(),
-      window.LumoPromotions?.refresh?.(),
-    ]);
+    await readCommerce('post-payment', async (active) => {
+      const signature = (order) =>
+        JSON.stringify([order.backendStatus, order.payment_id, Number(order.refunded_total_cents || 0)]);
+      const previous = new Map(commerceOrders.map((order) => [order.id, signature(order)]));
+      await refreshOrders();
+      if (!active() || location.hash !== '#/success') return;
+      const changed = commerceOrders.filter((order) => order.paidAt && previous.get(order.id) !== signature(order));
+      if (changed.length) await refreshOrderResources(changed);
+    });
     if (location.hash === '#/success') renderKeepScroll();
   } catch (error) {
     commerceError(error);
@@ -2250,6 +2431,7 @@ window.LumoCommerce = {
   refreshCart,
   refreshOrders,
   refreshFavorites,
+  hydrateProducts,
   normalizeProduct,
   normalizeItem,
   normalizeOrder,
@@ -2276,6 +2458,11 @@ window.LumoCommerce = {
     commerceEpoch++;
     for (const resource of ['cart', 'orders', 'favorites']) commerceReads.delete(resource);
     commerceProductReads.clear();
+    commerceMetadataReads.clear();
+    commerceInventoryReads.clear();
+    for (let index = products.length - 1; index >= 0; index--)
+      if (commerceHydratedProducts.get(products[index].id) === products[index]) products.splice(index, 1);
+    commerceHydratedProducts.clear();
     clearTimeout(commercePollTimer);
     commerceOrders = [];
     state.cart = [];

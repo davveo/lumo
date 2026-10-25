@@ -45,11 +45,23 @@ async function main() {
     );
     check(!boot.failures.length, 'Bootstrap lifecycle must not throw');
     const reads = boot.ctx.LumoAPI.requests();
-    equal(reads.length, 1, 'Guest homepage uses one physical HTTP request');
-    equal(
-      reads[0].service + '/' + reads[0].action,
-      'storefront/bootstrap',
-      'Homepage data is read through the top-level bootstrap',
+    for (const action of ['shell', 'products', 'activities', 'recent'])
+      equal(
+        reads.filter((row) => row.service === 'storefront' && row.action === action).length,
+        1,
+        'Guest homepage requests each visible section once: ' + action,
+      );
+    check(
+      !reads.some((row) => row.service === 'storefront' && ['bootstrap', 'batch'].includes(row.action)),
+      'Homepage must not use universal bootstrap or arbitrary read batches',
+    );
+    check(
+      !reads.some((row) => ['catalog', 'inventory'].includes(row.service) && row.action === 'get'),
+      'Visible product views must hydrate stock without per-product requests',
+    );
+    check(
+      !reads.some((row) => ['order', 'address', 'aftersale', 'invoice', 'helpdesk'].includes(row.service)),
+      'Guest home does not preload detail resources from other pages',
     );
     check(
       boot.ids.get('app').innerHTML.includes('精选推荐') &&
@@ -142,11 +154,30 @@ async function main() {
         'Member bootstrap completes without hidden read errors',
       );
       const reads = memberBoot.ctx.LumoAPI.requests();
-      equal(reads.length, 2, 'Member homepage uses one identity check and one bootstrap request');
-      equal(
-        reads.filter((r) => r.service === 'storefront' && r.action === 'bootstrap').length,
-        1,
-        'Member homepage data is aggregated once',
+      for (const action of ['shell', 'products', 'activities', 'recent', 'account_summary'])
+        equal(
+          reads.filter((row) => row.service === 'storefront' && row.action === action).length,
+          1,
+          'Member homepage requests each visible section once: ' + action,
+        );
+      check(
+        !reads.some((row) => row.service === 'storefront' && ['bootstrap', 'batch'].includes(row.action)),
+        'Member home must not reintroduce a universal batch',
+      );
+      check(memberBoot.ctx.LumoAccountSummary.model().loaded, 'Header uses its independently loaded account summary');
+      check(
+        !memberBoot.ctx.LumoCommerce.readState('cart').loaded &&
+          !memberBoot.ctx.LumoCommerce.readState('orders').loaded,
+        'Account summary must not claim complete cart or order collections were loaded',
+      );
+      for (const resource of ['addresses', 'coupons', 'points'])
+        check(
+          !memberBoot.ctx.LumoMember.readState(resource).loaded,
+          'Account summary leaves detailed member resource unread: ' + resource,
+        );
+      check(
+        !reads.some((row) => ['order', 'address', 'aftersale', 'invoice', 'helpdesk'].includes(row.service)),
+        'Member home requests detail collections only when entering their page',
       );
       equal(
         reads.filter((r) => r.service === 'iam' && r.action === 'current').length,
@@ -270,6 +301,41 @@ async function main() {
     const order = await api('order', 'get', { id: orderID });
     equal(order.payable_cents, quote.payable_cents, 'Order must preserve the quoted payable amount');
     equal(order.quote.activity_kind, 'direct', 'Order must retain the campaign type from its quote snapshot');
+    const coldPayment = createHarness(directory, baseURL);
+    try {
+      coldPayment.ctx.location.hash = '#/payment';
+      coldPayment.ctx.sessionStorage.setItem(
+        'lumo-api-session-v2',
+        app.ctx.sessionStorage.getItem('lumo-api-session-v2'),
+      );
+      await coldPayment.loadAll();
+      const startup = await coldPayment.ctx.LumoAppReady;
+      check(
+        startup.ready && startup.errors.length === 0,
+        'Direct payment refresh loads its actual order without a prior homepage',
+      );
+      equal(coldPayment.json('state.pending').id, orderID, 'Cold payment restores the current pending order');
+      check(coldPayment.ids.get('app').innerHTML.includes(orderID), 'Cold payment displays its restored order');
+      const reads = coldPayment.ctx.LumoAPI.requests();
+      equal(
+        reads.filter((row) => row.service === 'order' && row.action === 'list').length,
+        1,
+        'Payment route requests its order collection once',
+      );
+      check(
+        !reads.some((row) => ['address', 'invoice', 'helpdesk', 'notification', 'aftersale'].includes(row.service)),
+        'Cold payment does not load unrelated member details',
+      );
+      check(
+        !reads.some(
+          (row) => row.service === 'storefront' && ['bootstrap', 'batch', 'account_summary'].includes(row.action),
+        ),
+        'Payment bypasses homepage aggregation and header-account summary',
+      );
+      check(!coldPayment.failures.length, 'Cold payment has no deferred lifecycle errors');
+    } finally {
+      coldPayment.dispose();
+    }
     const unpaidView = app.navigate('payment');
     check(unpaidView.includes(orderID), 'Payment page must render the actual order number');
     check(unpaidView.includes('模拟支付'), 'Payment page must expose the buyer demo payment flow');

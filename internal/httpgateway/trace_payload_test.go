@@ -185,18 +185,27 @@ func TestHTTPTraceIncludesGETArgumentsAndStorefrontAggregateResult(t *testing.T)
 		{
 			"aggregate",
 			http.MethodPost,
-			"/api/v1/storefront/batch",
-			`{"data":{"requests":[{"key":"product","service":"catalog","action":"get","command":{"id":"sku-public","data":{"query":"coffee","password":"private-input-password"}}}]}}`,
+			"/api/v1/storefront/products",
+			`{"data":{}}`,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			exporter := httpPayloadExporter(t)
 			caller := traceTestCaller(
 				func(_ context.Context, service string, cmd platform.Command) (platform.Result, error) {
-					if service != "catalog" || cmd.Action != "get" {
+					if service == "inventory" && cmd.Action == "batch_get" {
+						return platform.Result{
+							"items": []platform.Result{{"sku_id": "sku-public", "available": 5}},
+						}, nil
+					}
+					if service != "catalog" || (cmd.Action != "get" && cmd.Action != "list") {
 						t.Fatalf("unexpected aggregate request: %s/%s", service, cmd.Action)
 					}
-					return platform.Result{"id": "sku-public", "price_cents": 1599}, nil
+					product := platform.Result{"id": "sku-public", "price_cents": 1599}
+					if cmd.Action == "list" {
+						return platform.Result{"items": []platform.Result{product}}, nil
+					}
+					return product, nil
 				},
 			)
 			req := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
@@ -207,7 +216,11 @@ func TestHTTPTraceIncludesGETArgumentsAndStorefrontAggregateResult(t *testing.T)
 			}
 			for _, span := range exporter.GetSpans() {
 				attrs := payloadSpanAttributes(span)
-				if !strings.Contains(attrs["lumo.request"], "coffee") ||
+				argument := "coffee"
+				if test.name == "aggregate" {
+					argument = "products"
+				}
+				if !strings.Contains(attrs["lumo.request"], argument) ||
 					!strings.Contains(attrs["lumo.response"], "1599") {
 					t.Errorf("%s missing GET/aggregate payload: %v", span.Name, attrs)
 				}

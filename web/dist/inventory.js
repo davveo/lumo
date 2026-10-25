@@ -6,7 +6,28 @@
   // A late response from an older read must not replace newer stock or errors.
   const readVersions = new Map();
   let readClock = 0;
+  let minimumTicket = 0;
   let refreshPromise;
+  const scope = () =>
+    JSON.stringify([
+      window.LumoAPI?.getBase?.() || window.location?.origin || '',
+      window.LumoAPI?.getToken?.() || '',
+      window.LumoAuth?.user?.()?.id || window.LumoAuth?.user?.()?.user_id || '',
+    ]);
+  let snapshotScope = scope();
+  function resetScope() {
+    snapshotScope = scope();
+    snapshots.clear();
+    errors.clear();
+    readVersions.clear();
+    refreshPromise = null;
+    minimumTicket = ++readClock;
+  }
+  function syncScope() {
+    if (snapshotScope !== scope()) resetScope();
+  }
+  for (const event of ['lumo:login', 'lumo:logout', 'lumo:api-scope-changed'])
+    window.addEventListener?.(event, resetScope);
   const LIMIT = 10,
     BATCH_SIZE = 500;
   const find = (value) => {
@@ -28,13 +49,18 @@
     return p?.skuId || p?.sku_id || p?.id || (typeof value === 'string' ? value : '');
   };
   const beginRead = (key) => {
+    syncScope();
     const version = ++readClock;
     readVersions.set(key, version);
     return version;
   };
-  const latestRead = (key, version) => readVersions.get(key) === version;
+  const latestRead = (key, version) => {
+    syncScope();
+    return readVersions.get(key) === version;
+  };
   function prime(rows, ticket) {
-    if (!Number.isSafeInteger(ticket) || ticket < 0 || ticket > readClock || !Array.isArray(rows)) return 0;
+    syncScope();
+    if (!Number.isSafeInteger(ticket) || ticket < minimumTicket || ticket > readClock || !Array.isArray(rows)) return 0;
     let loaded = 0;
     for (const row of rows.slice(0, BATCH_SIZE)) {
       const key = typeof row?.sku_id === 'string' ? row.sku_id : '';
@@ -121,6 +147,7 @@
     return { loaded, failed, error };
   }
   async function refresh(ids) {
+    syncScope();
     const keys = Array.from(new Set((Array.isArray(ids) ? ids : products).map(sku).filter(Boolean)));
     if (!ids && refreshPromise) return refreshPromise;
     const batches = [];
@@ -133,12 +160,14 @@
       return { loaded, failed };
     });
     if (ids) return work;
-    refreshPromise = work.finally(() => {
-      refreshPromise = null;
+    const pending = work.finally(() => {
+      if (refreshPromise === pending) refreshPromise = null;
     });
-    return refreshPromise;
+    refreshPromise = pending;
+    return pending;
   }
   function snapshot(value) {
+    syncScope();
     return snapshots.get(sku(value));
   }
   function stockFor(value) {
@@ -208,7 +237,10 @@
     refresh,
     refreshOne,
     snapshot,
-    hydrationTicket: () => readClock,
+    hydrationTicket: () => {
+      syncScope();
+      return readClock;
+    },
     prime,
   };
 })();

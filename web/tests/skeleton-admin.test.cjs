@@ -155,7 +155,10 @@ function studioFixture() {
         getToken: () => token,
         async call(service, action, command) {
           calls.push([service, action]);
-          return handlers.get(service + '/' + action)?.(command) || { items: [] };
+          return (
+            handlers.get(service + '/' + action)?.(command) ||
+            (service === 'content' && action === 'get' ? { id: 'storefront-main', body: '{}' } : { items: [] })
+          );
         },
       },
     },
@@ -183,11 +186,11 @@ test('studio waits for its administrative catalog before rendering statistics or
   assert.doesNotMatch(f.studio.renderEditor(), /没有符合条件的商品/);
   const content = deferred(),
     catalog = deferred();
-  f.handlers.set('content/list', () => content.promise);
+  f.handlers.set('content/get', () => content.promise);
   f.handlers.set('catalog/list', () => catalog.promise);
   const loading = f.studio.refresh();
   assert.match(f.studio.renderEditor(), /sk-loading/);
-  content.resolve({ items: [] });
+  content.resolve({ id: 'storefront-main', body: '{}' });
   await tick();
   assert.match(f.studio.renderEditor(), /sk-loading-table/);
   catalog.resolve({ items: [] });
@@ -195,7 +198,7 @@ test('studio waits for its administrative catalog before rendering statistics or
   assert.doesNotMatch(f.studio.renderEditor(), /sk-loading/);
   assert.match(f.studio.renderEditor(), /没有符合条件的商品/);
   assert.deepEqual(f.calls, [
-    ['content', 'list'],
+    ['content', 'get'],
     ['catalog', 'list'],
   ]);
 });
@@ -220,7 +223,7 @@ test('studio keeps completed product data on failure and clears readiness on acc
   await f.studio.refresh();
   assert.match(f.studio.renderEditor(), /已加载的商品/);
   const pending = deferred();
-  f.handlers.set('content/list', () => pending.promise);
+  f.handlers.set('content/get', () => pending.promise);
   const loading = f.studio.refresh();
   assert.match(f.studio.renderEditor(), /已加载的商品/);
   assert.doesNotMatch(f.studio.renderEditor(), /sk-loading/);
@@ -237,15 +240,15 @@ test('late studio content cannot overwrite a different account and failed first 
   const f = studioFixture();
   t.after(() => f.app.dispose());
   const pending = deferred();
-  f.handlers.set('content/list', () => pending.promise);
+  f.handlers.set('content/get', () => pending.promise);
   const loading = f.studio.refresh();
   f.changeUser({ id: 'admin-b', role: 'admin' }, 'b');
-  pending.resolve({ items: [{ id: 'storefront-main', body: JSON.stringify({ brand: '旧账号品牌' }) }] });
+  pending.resolve({ id: 'storefront-main', body: JSON.stringify({ brand: '旧账号品牌' }) });
   await loading;
   assert.equal(f.studio.readState().settingsLoaded, false);
   assert.doesNotMatch(f.studio.renderEditor(), /旧账号品牌/);
   assert.equal(f.calls.filter(([service]) => service === 'catalog').length, 0);
-  f.handlers.set('content/list', () => {
+  f.handlers.set('content/get', () => {
     throw Error('无法读取商城配置');
   });
   await assert.rejects(f.studio.refresh());

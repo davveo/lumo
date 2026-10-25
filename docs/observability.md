@@ -53,13 +53,13 @@ Jaeger沿用 `jaeger-data` 中已有Badger数据，升级不会删除卷。首�
 ## 实际查一条链路
 
 1. 运行 `sh scripts/smoke.sh` 或在联调台发送下单请求。
-2. 复制响应 JSON 的 `trace_id` 或响应头 `X-Trace-ID`。
+2. 复制响应头 `x-trace-id`；成功与失败的JSON返回体都不包含附加链路字段。
 3. 打开 `http://localhost:16686/trace/<trace_id>`。
 4. 展开 Gateway、checkout、pricing、catalog、inventory、coupon 等服务的子树，查看 transport/usecase/repository/SQL 层。
 5. 点开 SQL span，核对模板、耗时和错误，不应看到实参值。
 6. 使用管理员演示支付后，异步链路会通过 PaymentSucceeded → OrderPaymentAccepted → OrderReadyToFulfill 延续到后续消费；等批量导出间隔1秒后刷新。
 
-HTTP 返回 trace_id 不等于 trace 已成功持久化。Collector 或 Jaeger 短暂不可用时，业务不应因为追踪导出失败而扣款失败；应从 SDK/Collector 日志检查丢弃或重试，并按生产观测要求配置可靠队列和监控。
+HTTP 响应头返回 `x-trace-id` 不等于 trace 已成功持久化。Collector 或 Jaeger 短暂不可用时，业务不应因为追踪导出失败而扣款失败；应从 SDK/Collector 日志检查丢弃或重试，并按生产观测要求配置可靠队列和监控。
 
 ## 默认开发配置
 

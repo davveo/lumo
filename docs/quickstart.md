@@ -4,7 +4,7 @@
 2. 启动 Docker Desktop，执行 `cd ~/Desktop/lumo-mall-0.2.2/lumo-backend && sh start.sh`。
    macOS 也可双击项目根目录的 `start.command`；旧命令 `sh scripts/up.sh` 和 `make up` 继续可用。
 3. 访问 http://localhost:8080 使用商城；管理端为 `/admin.html`，接口联调台为 http://localhost:18080/debug，Consul 注册中心位于 http://localhost:8500/ui/，Jaeger 位于 http://localhost:16686。
-4. 执行 `sh scripts/smoke.sh` 检查登录、商品读取、报价、下单和 trace_id。
+4. 执行 `sh scripts/smoke.sh` 检查登录、商品读取、报价、下单和 `x-trace-id` 响应头。
 
 启动无需在电脑上安装 Go、protoc、MySQL、Redis 、RabbitMQ 或 MinIO；这些由镜像构建和 Compose 提供。`smoke.sh` 额外需要 curl 和 Python 3，只用于解析和打印冒烟请求，不是服务运行依赖。
 

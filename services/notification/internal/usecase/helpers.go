@@ -69,7 +69,11 @@ func (s *Service) list(ctx context.Context, c platform.Request, owner, kind, st 
 	for _, v := range vs {
 		items = append(items, view(v))
 	}
-	return platform.Result{"items": items, "limit": len(items)}, nil
+	total, unread, err := s.repo.Counts(ctx, owner, kind, st)
+	if err != nil {
+		return nil, err
+	}
+	return platform.Result{"items": items, "limit": len(items), "total": total, "unread_total": unread}, nil
 }
 
 func demo() bool {

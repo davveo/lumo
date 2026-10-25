@@ -32,7 +32,7 @@ macOS 也可以直接双击项目根目录的 `start.command`。命令行可在�
 | 商城 | http://localhost:8080 | 商品、营销、购物车、下单、支付结果及个人中心 |
 | 管理端 | http://localhost:8080/admin.html | 演示收款、发货、售后、退款、发票、审核和对账 |
 | API 网关 | http://localhost:18080/api/v1 | 直接访问业务API，商城也通过8080同源代理访问 |
-| API 联调台 | http://localhost:18080/debug | 按权限发送业务请求并查看 trace_id |
+| API 联调台 | http://localhost:18080/debug | 按权限发送业务请求并查看 x-trace-id 响应头 |
 | Consul 注册中心 | http://localhost:8500/ui/ | 查看30个领域服务、网关及其实例健康状态 |
 | Jaeger | http://localhost:16686 | 按服务、操作或 trace_id 查询完整链路 |
 | RabbitMQ 管理 | http://localhost:15672 | 领域队列、消费、重试与死信 |
@@ -89,7 +89,7 @@ Compose 默认启用 Consul。业务服务与网关启动时注册实例，Consu
 
 ## 查看每层调用与 SQL
 
-执行 `sh scripts/smoke.sh`，会创建一笔待支付演示订单并输出 trace_id。也可在 http://localhost:18080/debug 的联调台登录后发送请求；页面 API 错误和管理操作结果会显示链路编号。Jaeger 中的典型层级为：
+执行 `sh scripts/smoke.sh`，会创建一笔待支付演示订单并输出 `x-trace-id` 响应头中的链路编号。也可在 http://localhost:18080/debug 的联调台登录后发送请求；页面 API 错误和管理操作结果会显示链路编号。Jaeger 中的典型层级为：
 
 ```text
 HTTP POST /api/v1/checkout/submit

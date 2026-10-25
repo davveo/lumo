@@ -55,8 +55,11 @@ func (h *httpShop) expect(want int, token, service, action, id, key string, data
 	if resp.StatusCode != want {
 		h.t.Fatalf("%s.%s got%d want%d: %s", service, action, resp.StatusCode, want, raw)
 	}
-	h.lastTrace = platform.Text(envelope, "trace_id")
-	if len(h.lastTrace) != 32 || resp.Header.Get("X-Trace-ID") != h.lastTrace {
+	h.lastTrace = resp.Header.Get("x-trace-id")
+	if _, exists := envelope["trace_id"]; exists {
+		h.t.Fatalf("trace ID must be in the response header only: %s", raw)
+	}
+	if len(h.lastTrace) != 32 {
 		h.t.Fatalf("missing correlated trace header: %s", raw)
 	}
 	if want < 300 {

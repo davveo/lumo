@@ -130,10 +130,8 @@
     })();
     return entry.promise;
   }
-  function interest() {
+  function interestView() {
     const title = loaded ? (personalized ? '最近感兴趣' : '精选好物') : loggedIn() ? '最近感兴趣' : '精选好物';
-    if (preferences.interestCollapsed)
-      return `<button type="button" class="interest-rail-reopen" data-sidebar-action="toggle-interest" aria-label="展开感兴趣商品">${icon('heart')}<span>${title}</span>${icon('chevron')}</button>`;
     const busy = !rows.length && !loaded && !error,
       warning = error
         ? `<div class="interest-empty" role="alert"><p>${esc(error)}</p><button type="button" data-sidebar-action="retry-interest">重试</button></div>`
@@ -150,13 +148,33 @@
         : error
           ? ''
           : `<div class="interest-empty"><span>${icon('heart')}</span><p>暂时没有可推荐的在售好物</p><button type="button" data-sidebar-action="retry-interest">重新加载</button></div>`;
-    return `<aside class="interest-rail" aria-label="${title}"><div class="interest-rail-head"><h2>${title}</h2></div><div class="interest-rail-list"${loading ? ' aria-busy="true"' : ''}>${warning}${content}</div><button type="button" class="interest-rail-toggle" data-sidebar-action="toggle-interest" aria-label="收起感兴趣商品">${icon('back')}</button></aside>`;
+    return { title, content: warning + content };
+  }
+  function interest() {
+    const view = interestView(),
+      collapsed = preferences.interestCollapsed;
+    return `<div class="interest-dock${collapsed ? ' is-collapsed' : ''}"><aside id="interest-rail" class="interest-rail" aria-label="${view.title}" aria-hidden="${collapsed}"${collapsed ? ' inert' : ''}><div class="interest-rail-head"><h2>${view.title}</h2></div><div class="interest-rail-list"${loading ? ' aria-busy="true"' : ''}>${view.content}</div></aside><button type="button" class="interest-rail-toggle${collapsed ? ' interest-rail-reopen' : ''}" data-sidebar-action="toggle-interest" aria-controls="interest-rail" aria-expanded="${!collapsed}" aria-label="${collapsed ? '展开' : '收起'}感兴趣商品"><span class="interest-rail-toggle-label" aria-hidden="true">${icon('heart')}<span>${view.title}</span></span>${icon('back', 'interest-rail-direction')}</button></div>`;
+  }
+  function syncInterest() {
+    const dock = document.querySelector('#lumo-sidebars')?.querySelector('.interest-dock');
+    if (!dock) return;
+    const collapsed = preferences.interestCollapsed,
+      panel = dock.querySelector('.interest-rail'),
+      toggle = dock.querySelector('.interest-rail-toggle');
+    dock.classList.toggle('is-collapsed', collapsed);
+    panel.setAttribute('aria-hidden', String(collapsed));
+    if (collapsed) panel.setAttribute('inert', '');
+    else panel.removeAttribute('inert');
+    toggle.classList.toggle('interest-rail-reopen', collapsed);
+    toggle.setAttribute('aria-expanded', String(!collapsed));
+    toggle.setAttribute('aria-label', (collapsed ? '展开' : '收起') + '感兴趣商品');
   }
   function quick() {
     if (preferences.quickCollapsed)
       return `<button type="button" class="quick-rail-reopen" data-sidebar-action="toggle-quick" aria-label="展开快捷工具">${icon('layers')}<span>工具</span>${icon('back')}</button>`;
     const current = route(),
-      count = typeof cartCount === 'function' ? cartCount() : 0;
+      count =
+        typeof displayCartCount === 'function' ? displayCartCount() : typeof cartCount === 'function' ? cartCount() : 0;
     const item = (label, glyph, href, active = false, optional = false, badge = '') =>
       `<a class="quick-rail-item${active ? ' active' : ''}${optional ? ' quick-rail-optional' : ''}" href="${href}" aria-label="${label}"${active ? ' aria-current="page"' : ''}>${icon(glyph)}<span>${label}</span>${badge ? `<i class="quick-rail-badge">${badge}</i>` : ''}</a>`;
     return `<nav class="quick-rail" aria-label="商城快捷工具"><button type="button" class="quick-rail-item quick-rail-optional${current === '' ? ' active' : ''}" data-sidebar-action="home" aria-label="返回商城首页">${icon('home')}<span>首页</span></button>${item('购物车', 'cart', '#/cart', current === 'cart', false, count > 0 ? (count > 99 ? '99+' : String(count)) : '')}${item('我的', 'user', '#/member', current === 'member' && !/^#\/member\/(?:support|history)(?:\/|$)/.test(location.hash), true)}${item('客服', 'support', '#/member/support', location.hash.startsWith('#/member/support'))}${item('领券', 'ticket', '#/coupons', current === 'coupons', true)}${item('足迹', 'clock', '#/member/history', location.hash === '#/member/history', true)}<button type="button" class="quick-rail-item quick-rail-optional" data-sidebar-action="feedback" aria-label="意见反馈">${icon('edit')}<span>反馈</span></button><button type="button" class="quick-rail-item" data-sidebar-action="top" aria-label="回到顶部">${icon('arrow', 'quick-rail-up')}<span>回顶部</span></button><button type="button" class="quick-rail-item quick-rail-collapse" data-sidebar-action="toggle-quick" aria-label="收起快捷工具">${icon('chevron')}<span>收起</span></button></nav>`;
@@ -170,10 +188,28 @@
     document.body?.classList.toggle('has-lumo-sidebars', active);
     document.body?.classList.toggle('has-interest-rail', active && !preferences.interestCollapsed);
     document.body?.classList.toggle('quick-rail-collapsed', active && preferences.quickCollapsed);
+    syncInterest();
   }
   function update() {
     const root = document.querySelector('#lumo-sidebars');
-    if (root) root.innerHTML = allowed() ? interest() + quick() : '';
+    if (root) {
+      if (!allowed()) root.innerHTML = '';
+      else if (!root.querySelector('.interest-dock')) root.innerHTML = interest() + quick();
+      else {
+        // Data refreshes keep the sliding shell, focused handle and list position.
+        const view = interestView(),
+          panel = root.querySelector('.interest-rail'),
+          list = root.querySelector('.interest-rail-list');
+        panel.setAttribute('aria-label', view.title);
+        root.querySelector('.interest-rail-head h2').textContent = view.title;
+        root.querySelector('.interest-rail-toggle-label span').textContent = view.title;
+        if (list.innerHTML !== view.content) list.innerHTML = view.content;
+        if (loading) list.setAttribute('aria-busy', 'true');
+        else list.removeAttribute('aria-busy');
+        const tools = root.querySelector('.quick-rail, .quick-rail-reopen');
+        if (tools) tools.outerHTML = quick();
+      }
+    }
     afterRender();
   }
   document.addEventListener('click', (event) => {
@@ -186,7 +222,8 @@
       try {
         localStorage.setItem(PREF_KEY, JSON.stringify(preferences));
       } catch (_) {}
-      update();
+      if (action === 'toggle-interest') afterRender();
+      else update();
       return;
     }
     if (action === 'retry-interest') {

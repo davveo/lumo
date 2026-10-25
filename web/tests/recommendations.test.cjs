@@ -265,53 +265,66 @@ test('recommendation outage does not erase successful product reviews', async ()
   }
 });
 
-test('home hydration consumes the bootstrap fragment without an extra HTTP request', async () => {
+test('public products prime catalogue and stock while personalized recommendations retain their own request', async () => {
   const network = [];
   const row = product('home-choice');
+  const stock = { sku_id: row.id, available: 7, on_hand: 9, reserved: 2, allocated: 0 };
   const app = createHarness(directory, 'http://shop.test', {
     globals: {
       LumoAuth: { user: () => ({ id: 'buyer' }), isLoggedIn: () => true, gate: () => true, afterRender() {} },
       async fetch(input, options) {
-        network.push(input);
-        assert.ok(input.endsWith('/storefront/bootstrap'));
-        return {
-          status: 200,
-          ok: true,
-          headers: { get: () => '' },
-          json: async () => ({
-            data: {
-              results: [
-                {
-                  service: 'catalog',
-                  action: 'list',
-                  command: { data: { limit: 100 } },
-                  auth: false,
-                  data: { items: [row] },
-                },
-                {
-                  service: 'recommendation',
-                  action: 'list',
-                  command: { data: { scene: 'home', limit: 20 } },
-                  auth: true,
-                  data: { items: [row], personalized: true },
-                },
-              ],
-            },
-          }),
-        };
+        const body = JSON.parse(options.body);
+        network.push({ url: input, options, body });
+        let data;
+        if (input.endsWith('/storefront/products')) {
+          assert.equal(options.headers.Authorization, undefined, 'the public product section carries no member token');
+          assert.deepEqual(body, { data: {} });
+          data = {
+            results: [
+              {
+                service: 'catalog',
+                action: 'list',
+                command: { data: { limit: 100 } },
+                auth: false,
+                data: { items: [row] },
+              },
+              {
+                service: 'inventory',
+                action: 'batch_get',
+                command: { data: { ids: [row.id] } },
+                auth: false,
+                data: { items: [stock], missing_ids: [] },
+              },
+            ],
+          };
+        } else {
+          assert.ok(input.endsWith('/recommendation/list'), 'unexpected extra request ' + input);
+          assert.equal(options.headers.Authorization, 'Bearer ' + 'a'.repeat(64));
+          assert.deepEqual(body, { data: { scene: 'home', limit: 20 } });
+          data = { items: [row], personalized: true, inventory_items: [stock] };
+        }
+        return { status: 200, ok: true, headers: { get: () => '' }, json: async () => ({ data }) };
       },
     },
   });
   try {
-    app.load('api-client.js');
-    app.load('app.js');
-    app.load('recommendations.js');
+    for (const script of ['api-client.js', 'app.js', 'inventory.js', 'recommendations.js']) app.load(script);
     app.ctx.LumoAPI.setToken('a'.repeat(64));
-    await app.ctx.LumoAPI.prefetchBootstrap();
+    app.ctx.LumoAPI.beginSections();
+    await app.ctx.LumoAPI.prefetchSection('products');
     await app.ctx.LumoCommerce.refreshCatalog();
+    await app.ctx.LumoInventory.refresh();
+    assert.equal(network.length, 1, 'catalogue and stock consumers reuse the explicit product section');
+    assert.equal(app.ctx.LumoInventory.stockFor(row.id), 7);
     await app.ctx.LumoRecommendations.refreshHome();
-    assert.equal(network.length, 1);
+    assert.deepEqual(
+      network.map(({ url }) => url.split('/api/v1/')[1]),
+      ['storefront/products', 'recommendation/list'],
+    );
     assert.equal(app.ctx.LumoRecommendations.homeModel().count, 1);
+    assert.equal(app.ctx.LumoRecommendations.homeModel().personalized, true);
+    assert.deepEqual(titles(app.navigate('')), [row.name]);
+    assert.equal(network.length, 2, 'ordinary rendering does not fetch recommendations or stock again');
   } finally {
     app.ctx.LumoAPI.endBootstrap();
     app.dispose();

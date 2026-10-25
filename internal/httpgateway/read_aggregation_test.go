@@ -71,6 +71,29 @@ func batchHTTP(t *testing.T, caller platform.Caller, action, token string, reque
 	}
 	return w.Code, out
 }
+
+// internalBatch exercises the guarded, server-owned composition helper. The
+// generic service/action batch is intentionally not an exposed HTTP endpoint.
+func internalBatch(t *testing.T, caller platform.Caller, token string, requests any) (int, platform.Result) {
+	t.Helper()
+	principal := platform.Command{Action: "batch", Data: map[string]any{"requests": requests}}
+	if token != "" {
+		principal.UserID, principal.Role = "buyer", "user"
+		if token == "admin" {
+			principal.Role = "admin"
+		}
+	}
+	data, err := (&gateway{rpc: caller}).storefront(context.Background(), principal)
+	if err != nil {
+		return aggregateHTTPStatus(
+			status.Code(err),
+		), platform.Result{
+			"error": platform.Result{"code": status.Code(err).String()},
+		}
+	}
+	return 200, platform.Result{"data": data}
+}
+
 func readItem(key, service, action, id string) map[string]any {
 	return map[string]any{
 		"key":     key,
@@ -146,7 +169,7 @@ func TestReadBatchPreflightsAllCommandsBeforeAnyDomainCall(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			caller := &aggregationCaller{}
-			code, body := batchHTTP(t, caller, "batch", tc.token, tc.items)
+			code, body := internalBatch(t, caller, tc.token, tc.items)
 			if code != tc.want {
 				t.Fatalf("got %d want %d: %v", code, tc.want, body)
 			}
@@ -162,7 +185,7 @@ func TestReadBatchPreflightsAllCommandsBeforeAnyDomainCall(t *testing.T) {
 		item := readItem(string(rune('a'+i)), "catalog", "list", "")
 		tooMany = append(tooMany, item)
 	}
-	if code, _ := batchHTTP(t, &aggregationCaller{}, "batch", "", tooMany); code != 400 {
+	if code, _ := internalBatch(t, &aggregationCaller{}, "", tooMany); code != 400 {
 		t.Fatalf("oversized batch status %d", code)
 	}
 }
@@ -206,7 +229,7 @@ func TestReadBatchUsesOneBulkRPCAndKeepsPartialErrorsAndPrincipal(t *testing.T) 
 		readItem("m2", "member", "get", ""),
 		readItem("error", "content", "list", ""),
 	}
-	code, body := batchHTTP(t, caller, "batch", "buyer", items)
+	code, body := internalBatch(t, caller, "buyer", items)
 	if code != 200 {
 		t.Fatalf("%d: %v", code, body)
 	}
@@ -231,7 +254,7 @@ func TestReadBatchUsesOneBulkRPCAndKeepsPartialErrorsAndPrincipal(t *testing.T) 
 	}
 }
 
-func TestBootstrapIncludesPublicAndPersonalizedDataAndBulkSKUPrimer(t *testing.T) {
+func TestStorefrontSectionsKeepIndependentPublicBulkSKUPrimers(t *testing.T) {
 	caller := &aggregationCaller{
 		handle: func(_ context.Context, service string, c platform.Command) (platform.Result, error) {
 			if service == "catalog" && c.Action == "list" {
@@ -252,9 +275,6 @@ func TestBootstrapIncludesPublicAndPersonalizedDataAndBulkSKUPrimer(t *testing.T
 					"items": []platform.Result{{"sku_id": "flash-sku"}, {"sku_id": "flash-sku"}},
 				}, nil
 			}
-			if service == "cart" {
-				return platform.Result{"items": []platform.Result{{"sku_id": "cart-outside-catalog"}}}, nil
-			}
 			if c.Action == "batch_get" {
 				if c.UserID != "" || c.Role != "" {
 					t.Error("public SKU primer inherited principal")
@@ -273,57 +293,81 @@ func TestBootstrapIncludesPublicAndPersonalizedDataAndBulkSKUPrimer(t *testing.T
 				}
 				return platform.Result{"items": items}, nil
 			}
-			if service == "member" && c.UserID != "buyer" {
-				t.Error("member read lost principal")
-			}
 			return platform.Result{"items": []any{}}, nil
 		},
 	}
-	code, body := batchHTTP(t, caller, "bootstrap", "buyer", nil)
-	if code != 200 {
-		t.Fatalf("%d: %v", code, body)
-	}
-	results := resultRows(platform.Result{"items": platform.Map(body["data"])["results"]})
-	stocks := map[string]bool{}
-	private := false
-	for _, row := range results {
-		if row["service"] == "inventory" && row["action"] == "get" {
-			command := platform.Map(row["command"])
-			stocks[platform.Text(command, "id")] = true
+	stocks := func(body platform.Result) map[string]bool {
+		t.Helper()
+		found := map[string]bool{}
+		for _, row := range resultRows(platform.Result{"items": platform.Map(body["data"])["results"]}) {
+			if row["service"] != "inventory" {
+				continue
+			}
 			if row["auth"] != false {
-				t.Error("public stock cache key is private")
+				t.Error("public stock cache scope changed")
+			}
+			for _, stock := range resultRows(platform.Map(row["data"])) {
+				found[platform.Text(stock, "sku_id")] = true
 			}
 		}
-		if row["service"] == "member" {
-			private = row["auth"] == true
-		}
+		return found
 	}
-	if !private || len(stocks) != 5 || !stocks["variant-b"] || !stocks["flash-sku"] || !stocks["cart-outside-catalog"] {
-		t.Fatalf("missing account/variant primer: %+v", results)
-	}
-	if caller.count("inventory", "batch_get") != 1 || caller.count("catalog", "batch_get") != 1 ||
-		caller.count("inventory", "get") != 0 ||
-		caller.count("catalog", "get") != 0 ||
-		caller.count("coupon", "templates") != 1 {
-		t.Fatalf("bootstrap duplicated SKU/template reads: %+v", caller.calls)
-	}
-	guest := &aggregationCaller{}
-	code, body = batchHTTP(t, guest, "bootstrap", "", nil)
+	code, body := batchHTTP(t, caller, "products", "buyer", nil)
 	if code != 200 {
-		t.Fatal(body)
+		t.Fatal(code, body)
 	}
-	for _, call := range guest.calls {
-		if call.service == "recommendation" && call.command.Action == "rank_bootstrap" &&
-			call.command.Role == "system" &&
-			call.command.UserID == "" {
-			continue
+	ids := stocks(body)
+	if len(ids) != 3 || !ids["product"] || !ids["variant-a"] || !ids["variant-b"] {
+		t.Fatal("product section lost variant stocks", body)
+	}
+	if caller.count("inventory", "batch_get") != 1 || caller.count("catalog", "get") != 0 ||
+		caller.count("inventory", "get") != 0 ||
+		caller.count("cart", "list") != 0 ||
+		caller.count("member", "get") != 0 ||
+		caller.count("coupon", "templates") != 0 ||
+		caller.count("flash", "list") != 0 {
+		t.Fatal("product section read unrelated page data", caller.calls)
+	}
+	caller.calls = nil
+	code, body = batchHTTP(t, caller, "activities", "buyer", nil)
+	if code != 200 {
+		t.Fatal(code, body)
+	}
+	ids = stocks(body)
+	if len(ids) != 1 || !ids["flash-sku"] {
+		t.Fatal("activity section did not batch unique offer stock", body)
+	}
+	if caller.count("catalog", "batch_get") != 1 || caller.count("inventory", "batch_get") != 1 ||
+		caller.count("catalog", "list") != 0 ||
+		caller.count("cart", "list") != 0 ||
+		caller.count("member", "get") != 0 ||
+		caller.count("coupon", "templates") != 1 {
+		t.Fatal("activity section repeated unrelated reads", caller.calls)
+	}
+	for _, action := range []string{"shell", "bootstrap"} {
+		guest := &aggregationCaller{}
+		code, body = batchHTTP(t, guest, action, "", nil)
+		if code != 200 {
+			t.Fatal(action, code, body)
 		}
-		if call.service == "content" && call.command.Action == "popup_decide" && call.command.Role == "system" &&
-			call.command.UserID == "" {
-			continue // delivery decision is internal, but contains no private account reads
+		rows := resultRows(platform.Result{"items": platform.Map(body["data"])["results"]})
+		if len(rows) != 2 || guest.count("content", "get") != 2 || len(guest.calls) != 2 {
+			t.Fatal("shell contains unrelated/private reads", body, guest.calls)
 		}
-		if !publicActions[call.service+"/"+call.command.Action] {
-			t.Fatalf("guest bootstrap performed private read: %+v", call)
+		for _, row := range rows {
+			if row["service"] != "content" || row["auth"] != false {
+				t.Fatal("shell acquired private context", row)
+			}
+		}
+	}
+}
+
+func TestHTTPGenericReadBatchIsNotExposed(t *testing.T) {
+	for _, token := range []string{"", "buyer", "admin"} {
+		caller := &aggregationCaller{}
+		code, _ := batchHTTP(t, caller, "batch", token, []any{readItem("stock", "inventory", "get", "sku")})
+		if code != 403 || len(caller.calls) != 0 {
+			t.Fatal("generic HTTP action list reached domain services", token, code, caller.calls)
 		}
 	}
 }

@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sort"
 	"strings"
 	"sync"
 
@@ -51,8 +50,11 @@ func (g *gateway) storefront(ctx context.Context, c platform.Command) (platform.
 		c.Action == constants.ActionPopupClaim {
 		return g.storefrontPopup(ctx, c)
 	}
-	if c.Action == constants.ActionBootstrap {
-		return g.bootstrapReads(ctx, c)
+	if c.Action == constants.ActionBootstrap || c.Action == constants.ActionShell ||
+		c.Action == constants.ActionProducts ||
+		c.Action == constants.ActionActivities ||
+		c.Action == constants.ActionAccountSummary {
+		return g.storefrontSection(ctx, c)
 	}
 	var input struct {
 		Requests []readRequest `json:"requests"`
@@ -277,159 +279,4 @@ func resultRows(result platform.Result) []platform.Result {
 	decoder.UseNumber()
 	_ = decoder.Decode(&rows)
 	return rows
-}
-
-func (g *gateway) bootstrapReads(ctx context.Context, principal platform.Command) (platform.Result, error) {
-	plan := []readRequest{}
-	add := func(service, action string, data map[string]any, auth bool) {
-		if data == nil {
-			data = map[string]any{}
-		}
-		plan = append(
-			plan,
-			readRequest{
-				Key:     fmt.Sprintf("bootstrap-%d", len(plan)),
-				Service: service,
-				Action:  action,
-				Command: readCommand{Data: data},
-				auth:    auth,
-			},
-		)
-	}
-	add(constants.ServiceCatalog, constants.ActionList, map[string]any{"limit": 100}, false)
-	add(
-		constants.ServiceContent,
-		constants.ActionList,
-		map[string]any{"kind": constants.ContentKindStorefront, "limit": 100},
-		false,
-	)
-	add(
-		constants.ServiceContent,
-		constants.ActionList,
-		map[string]any{"kind": constants.ContentKindFaq, "limit": 100},
-		false,
-	)
-	add(constants.ServiceCampaign, constants.ActionList, nil, false)
-	add(constants.ServiceFlash, constants.ActionList, nil, false)
-	add(constants.ServiceGroup, constants.ActionList, nil, false)
-	add(
-		constants.ServiceCoupon,
-		constants.ActionTemplates,
-		map[string]any{"page": 1, "page_size": 100},
-		principal.UserID != "",
-	)
-	if principal.UserID != "" {
-		for _, entry := range []struct {
-			service, action string
-			data            map[string]any
-		}{
-			{constants.ServiceMember, constants.ActionGet, nil},
-			{constants.ServiceAddress, constants.ActionList, map[string]any{"limit": 100}},
-			{constants.ServiceCoupon, constants.ActionList, nil},
-			{constants.ServiceCoupon, constants.ActionTemplates, nil},
-			{constants.ServicePoints, constants.ActionGet, nil},
-			{constants.ServiceCart, constants.ActionList, nil},
-			{constants.ServiceOrder, constants.ActionList, nil},
-			{
-				constants.ServiceEngagement,
-				constants.ActionList,
-				map[string]any{"kind": constants.EngagementKindFavorite, "limit": 100},
-			},
-			{
-				constants.ServiceEngagement,
-				constants.ActionList,
-				map[string]any{"kind": constants.EngagementKindHistory, "limit": 100},
-			},
-			{
-				constants.ServiceEngagement,
-				constants.ActionList,
-				map[string]any{"kind": constants.EngagementKindCompare, "limit": 100},
-			},
-			{
-				constants.ServiceEngagement,
-				constants.ActionList,
-				map[string]any{"kind": constants.EngagementKindSearch, "limit": 100},
-			},
-			{
-				constants.ServiceInteraction,
-				constants.ActionList,
-				map[string]any{"kind": constants.InteractionKindReview, "mine": true, "limit": 100},
-			},
-			{constants.ServiceAftersale, constants.ActionList, nil},
-			{constants.ServiceNotification, constants.ActionList, map[string]any{"limit": 100}},
-			{constants.ServiceInvoice, constants.ActionList, nil},
-			{constants.ServiceHelpdesk, constants.ActionList, map[string]any{"limit": 100}},
-		} {
-			add(entry.service, entry.action, entry.data, true)
-		}
-	}
-	results := g.runReads(ctx, plan, principal)
-	results = g.bootstrapCategoryNavigation(ctx, results, principal)
-	stockIDs, flashIDs := map[string]bool{}, map[string]bool{}
-	for _, result := range results {
-		data, ok := result["data"].(platform.Result)
-		if !ok {
-			continue
-		}
-		if result["service"] == constants.ServiceCatalog {
-			for _, row := range resultRows(data) {
-				if id := platform.Text(row, "id"); id != "" {
-					stockIDs[id] = true
-				}
-				attributes := platform.Map(row["attributes"])
-				for _, candidate := range []any{row["variants"], attributes["variants"]} {
-					for _, variant := range resultRows(platform.Result{"items": candidate}) {
-						id := platform.Text(variant, "sku_id")
-						if id == "" {
-							id = platform.Text(variant, "id")
-						}
-						if id != "" {
-							stockIDs[id] = true
-						}
-					}
-				}
-			}
-		}
-		if result["service"] == constants.ServiceFlash {
-			for _, row := range resultRows(data) {
-				if id := platform.Text(row, "sku_id"); id != "" {
-					stockIDs[id], flashIDs[id] = true, true
-				}
-			}
-		}
-		if result["service"] == constants.ServiceCart {
-			for _, row := range resultRows(data) {
-				if id := platform.Text(row, "sku_id"); id != "" {
-					stockIDs[id] = true
-				}
-			}
-		}
-	}
-	bulk := []readRequest{}
-	for _, service := range []string{constants.ServiceInventory, constants.ServiceCatalog} {
-		ids := stockIDs
-		if service == constants.ServiceCatalog {
-			ids = flashIDs
-		}
-		ordered := make([]string, 0, len(ids))
-		for id := range ids {
-			ordered = append(ordered, id)
-		}
-		sort.Strings(ordered)
-		for _, id := range ordered {
-			bulk = append(
-				bulk,
-				readRequest{
-					Key:     fmt.Sprintf("bootstrap-sku-%d", len(bulk)),
-					Service: service,
-					Action:  constants.ActionGet,
-					Command: readCommand{ID: id, Data: map[string]any{}},
-				},
-			)
-		}
-	}
-	results = append(results, g.runReads(ctx, bulk, principal)...)
-	results = g.bootstrapRecommendations(ctx, results, principal)
-	results = g.bootstrapRecent(ctx, results, principal)
-	return platform.Result{"results": results, "popup": g.bootstrapPopup(ctx, principal, results)}, nil
 }

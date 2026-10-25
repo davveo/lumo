@@ -23,6 +23,7 @@ function setup() {
     loginRoutes: [],
     renders: 0,
     walletRefreshes: 0,
+    walletReads: [],
     timers: new Map(),
     countdowns: [],
   };
@@ -91,8 +92,9 @@ function setup() {
       },
     },
     LumoMember: {
-      refresh: async () => {
+      refresh: async (force, resources) => {
         env.walletRefreshes++;
+        env.walletReads.push({ force, resources: resources ? [...resources] : null });
       },
     },
   };
@@ -369,7 +371,8 @@ function setup() {
   await preview.center.refresh();
   assert.equal(preview.calls.length, 1, 'home previews never drain every coupon metadata page');
   assert.equal(preview.calls[0].action, 'templates');
-  assert.equal(preview.center.model().items.length, 100);
+  assert.equal(preview.calls[0].command.data.page_size, 2, 'home requests only the two visible preview tickets');
+  assert.equal(preview.center.model().items.length, 2);
   assert.equal(preview.center.model().complete, false);
   preview.context.location.hash = '#/coupons';
   await preview.center.refresh();
@@ -434,6 +437,11 @@ function setup() {
   await pending;
   assert.equal(buyer.walletRefreshes, 1);
   assert(buyer.center.model().items.find((row) => row.id === 'daily').claimed);
+  assert.deepEqual(
+    buyer.walletReads,
+    [{ force: true, resources: ['coupons'] }],
+    'claim refreshes only the owned wallet, not all member collections',
+  );
   await buyer.center.claim('daily');
   assert.equal(buyer.context.location.hash, '#/member/coupons');
   assert.equal(

@@ -672,7 +672,7 @@ Cancel(reservation_id, order_id, reason, fencing_version)
 | 售后退款 | POST /v1/orders/{id}/aftersales  /  GET /v1/aftersales/{id} | aftersale；退款写接口仅内网 |
 | 发票客服 | POST /v1/invoices  /  /v1/tickets；GET /v1/me/messages | invoice / helpdesk / notification |
 
-接口约定：`Idempotency-Key` 用于具有副作用的创建请求；响应返回业务单号、状态、版本、服务端时间和 `trace_id`。异步受理返回 `202 + request_id`，客户端查询原请求结果。资源不足返回可解释业务码；不能将所有失败压成 HTTP 500。
+接口约定：`Idempotency-Key` 用于具有副作用的创建请求；响应体返回业务单号、状态、版本和服务端时间，链路编号仅通过 `x-trace-id` 响应头提供。异步受理返回 `202 + request_id`，客户端查询原请求结果。资源不足返回可解释业务码；不能将所有失败压成 HTTP 500。
 
 后台改价/上下架 → catalog；库存调整 → inventory；活动配置 → campaign/group/flash；售后审核 → aftersale；工单回复 → helpdesk；开票调整 → invoice。Admin BFF 统一页面接入，IAM 校验角色与数据范围，领域服务仍要校验业务权限及操作前态。
 

@@ -126,8 +126,14 @@ window.LumoAPI = {
       };
     if (service === 'inventory' && action === 'get')
       return { sku_id: command.id, available: command.id === 'sku-headphones' ? 7 : 50 };
-    if (service === 'catalog')
-      return { id: 'sku-headphones', product_id: 'headphones', price_cents: 129900, active: true };
+    if (service === 'catalog') {
+      assert.equal(action, 'batch_get', 'offer details use one homogeneous SKU batch');
+      assert.deepEqual(Array.from(command.data.ids), ['sku-headphones']);
+      return {
+        items: [{ id: 'sku-headphones', product_id: 'headphones', price_cents: 129900, active: true }],
+        missing_ids: [],
+      };
+    }
     if (service === 'campaign' && action === 'evaluate')
       return evaluateOverride ? evaluateOverride(command) : { eligible: true, discount_cents: 6000 };
     if (service === 'campaign')
@@ -234,29 +240,42 @@ async function checkReadAggregation() {
       addEventListener() {},
       document: { addEventListener() {}, querySelector: () => null, querySelectorAll: () => [] },
       async fetch(url, options) {
-        assert.ok(url.endsWith('/storefront/batch'), 'all promotion reads must use the gateway read batch');
-        const requests = JSON.parse(options.body).data.requests;
-        network.push(requests);
-        const results = requests.map((read) => {
-          if (read.service === failedService)
-            return { ...read, error: { code: 'Unavailable', message: 'read unavailable', status: 503 } };
-          const data =
-            read.service === 'campaign'
-              ? {
-                  items: [
-                    { id: 'flash-demo', kind: 'flash', quota: 20, held: 2, used: 1, active: true, discount_cents: 0 },
-                  ],
-                }
-              : read.service === 'flash'
-                ? { items: [{ id: 'flash-demo', sku_id: 'sku-headphones', activity_id: 'flash-demo', active: true }] }
-                : read.service === 'group'
-                  ? { items: [] }
-                  : read.service === 'catalog'
-                    ? { id: 'sku-headphones', product_id: 'headphones', price_cents: 129900, active: true }
-                    : { sku_id: 'sku-headphones', available: 7 };
-          return { ...read, auth: false, data };
-        });
-        return { status: 200, ok: true, headers: { get: () => '' }, json: async () => ({ data: { results } }) };
+        const body = JSON.parse(options.body);
+        const [service, action] = new URL(url, 'http://shop.test').pathname.split('/').slice(-2);
+        network.push({ service, action, body, url });
+        assert.ok(['campaign', 'flash', 'group', 'catalog', 'inventory'].includes(service), 'unexpected read ' + url);
+        if (service === 'catalog' || service === 'inventory') {
+          assert.equal(action, 'batch_get', 'offer catalogue and stock use homogeneous batches');
+          assert.deepEqual(body, { data: { ids: ['sku-headphones'] } });
+        } else {
+          assert.equal(action, 'list');
+          assert.deepEqual(body, { data: {} });
+        }
+        if (service === failedService)
+          return {
+            status: 503,
+            ok: false,
+            headers: { get: () => '' },
+            json: async () => ({ error: { code: 'Unavailable', message: 'read unavailable' } }),
+          };
+        const data =
+          service === 'campaign'
+            ? {
+                items: [
+                  { id: 'flash-demo', kind: 'flash', quota: 20, held: 2, used: 1, active: true, discount_cents: 0 },
+                ],
+              }
+            : service === 'flash'
+              ? { items: [{ id: 'flash-demo', sku_id: 'sku-headphones', activity_id: 'flash-demo', active: true }] }
+              : service === 'group'
+                ? { items: [] }
+                : service === 'catalog'
+                  ? {
+                      items: [{ id: 'sku-headphones', product_id: 'headphones', price_cents: 129900, active: true }],
+                      missing_ids: [],
+                    }
+                  : { items: [{ sku_id: 'sku-headphones', available: 7 }], missing_ids: [] };
+        return { status: 200, ok: true, headers: { get: () => '' }, json: async () => ({ data }) };
       },
     };
     fixture.window = fixture;
@@ -267,15 +286,20 @@ async function checkReadAggregation() {
     fixture.LumoAPI.enableReadBatching();
     if (failedService) await assert.rejects(fixture.LumoPromotions.refresh(), (error) => error.code === 'Unavailable');
     else await fixture.LumoPromotions.refresh();
-    assert.equal(network.length, 2, 'promotion lists and the dependent SKU wave each need one HTTP');
-    assert.deepEqual(network[0].map((read) => read.service + '/' + read.action).sort(), [
-      'campaign/list',
-      'flash/list',
-      'group/list',
-    ]);
+    assert.equal(network.length, 5, 'direct domain reads retain semantic URLs instead of a generic HTTP command batch');
     assert.deepEqual(
-      network[1].map((read) => read.service + '/' + read.action).sort(),
-      ['catalog/get', 'inventory/get'],
+      network
+        .slice(0, 3)
+        .map((read) => read.service + '/' + read.action)
+        .sort(),
+      ['campaign/list', 'flash/list', 'group/list'],
+    );
+    assert.deepEqual(
+      network
+        .slice(3)
+        .map((read) => read.service + '/' + read.action)
+        .sort(),
+      ['catalog/batch_get', 'inventory/batch_get'],
       'catalog and stock must start in the same wave even when either fails',
     );
     assert.equal(fixture.LumoPromotions.status().loaded, !failedService);
@@ -394,6 +418,8 @@ async function checkReadAggregation() {
   assert.deepEqual({ ...P.quoteData(context.state.cart) }, {});
   evaluateOverride = undefined;
   currentUser = 'demo';
+  assert.equal(window.LumoInventory.snapshot('headphones'), undefined, 'scope changes discard prior stock');
+  await window.LumoInventory.refresh();
   assert.equal(await P.selectCampaign('direct-demo', context.state.cart), true);
   click({ promoAction: 'select-exchange', offer: addon.id });
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -443,7 +469,7 @@ async function checkReadAggregation() {
   assert.deepEqual({ ...P.quoteData([checkout.item]) }, { activity_id: 'reduction-demo' });
   await checkReadAggregation();
   console.log(
-    'PASS promotions API mapping, campaign eligibility, variant pricing, selection isolation, bulk inventory, and parallel catalog/stock HTTP batches including partial failures.',
+    'PASS promotions API mapping, campaign eligibility, variant pricing, selection isolation, bulk inventory, and parallel homogeneous catalog/stock methods including partial failures.',
   );
 })().catch((e) => {
   console.error(e);

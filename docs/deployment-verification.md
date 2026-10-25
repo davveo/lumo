@@ -1,5 +1,16 @@
 # 部署配置核对
 
+## 本轮：按展示场景拆分读取、统一页面与响应Trace头
+
+- 原首页大包与通用批量入口已退出正常链路。`storefront/shell` 只返回装修和分类配置；`products` 返回有界商品与同类批量库存；`activities` 返回活动、2张券预览及相关商品/库存；`account_summary` 只返回本人资料投影与页头计数。推荐、兴趣栏、弹窗独立读取；订单、地址、售后、发票、客服与完整券包进入对应页面时再加载。`bootstrap` 仅兼容小型shell，`batch` 对游客、普通用户和管理员均403，单元测试确认零子RPC。
+- 相同接口与参数的在途读取共享Promise；跨业务不再提交任意服务/动作列表。同类SKU保留每批最多500个的商品/库存批量查询。购物车按每页100行读取完整列表；目录外购物车、收藏及对比商品按引用补齐父商品、规格与库存，缺失商品明确不可用。库存和元数据按账号、令牌、接口地址隔离，旧请求不能覆盖新状态。
+- 购物车件数、收藏数与通知未读数使用独立SQL聚合，分页列表仍保持有界，覆盖超过100条记录及其他用户隔离。首次支付只刷新受影响资源；成功页稳定轮询只读订单，状态变化再更新券、积分、购物车及订单SKU库存。领券后只刷新券包，取消订单只更新其受影响资源。
+- HTTP成功、错误、健康检查等响应均不再添加顶层 `trace_id`，仅通过 `x-trace-id` 提供链路ID；控制台、前端错误信息与smoke脚本同步读取响应头。页头管理入口只对管理员展示；首页、分类、搜索共享页头、导航、宽度与商品列布局。左侧栏保留同一个面板和按钮平滑过渡，收起不改变主区域坐标，支持减少动态效果偏好。
+- 全量Go、gateway及cart/engagement/notification专项race通过；300项前端Node测试、73条认证断言、129项隔离真实HTTP链路与47项会员检查通过，另有优惠券/发现/活动独立套件。生成器同步、全局格式和差异空白检查通过。业务写入回归仅使用独立临时数据库。日志：`/private/tmp/lumo-scoped-all-go-final.log`、`/private/tmp/lumo-scoped-race-final.log`、`/private/tmp/lumo-cart-count-race.log`、`/private/tmp/lumo-scoped-frontend-final.log`、`/private/tmp/lumo-scoped-format-check-final.log`。
+- 已执行 `sh start.sh gateway web cart engagement notification`，仅5个目标服务容器变更，其余34个现存容器ID不变。39个运行容器健康，卷初始化任务已成功退出；Consul全部32项健康检查passing。149项运行验收通过，包括89个静态文件与源码hash一致、8080/18080接口边界、精确计数及Trace响应头。运行证据：`/private/tmp/lumo-scoped-runtime-audit.json`、`/private/tmp/lumo-scoped-container-diff.json`；部署日志含访问凭据，保存在受限文件 `/private/tmp/lumo-scoped-deploy-final.log`，不公开附件。
+- 实际商城首页游客6次业务HTTP（289ms），会员8次（649ms），每个分区仅调用一次；没有万能bootstrap/batch或逐商品get，无加载错误。会员比游客增加会话恢复与账户摘要。下方旧记录的1次/2次大聚合数据属于此前实现，不代表当前读取边界。证据：`/private/tmp/lumo-scoped-live-requests-final.json`。验收只创建/退出自己的探针会话，既有会员Get可能更新本人资料时间或懒初始化账户；未改商品、订单、库存、券或积分余额。
+- 浏览器验证首页与家用电器的页头/导航坐标、内容宽度与6列商品相同；390px下为2列且无横向溢出。普通会员没有编辑/运营管理入口，侧栏快速反向切换保持焦点和主区位置。预览：`/private/tmp/lumo-unified-home-final.png`、`/private/tmp/lumo-unified-catalog-final.png`、`/private/tmp/lumo-unified-catalog-mobile.png`。临时浏览器标签与开发栈均已清理。
+
 ## 2026-10-24 独立前端与30服务RPC：源码及隔离验证
 
 - 当前30个领域服务均有明确RPC方法，共162项；29个服务使用无Action的 `platform.Request` 与专属方法注册，订单保留15个强类型方法。业务跨服务调用使用 `platform.NewClients`；HTTP动作及旧Execute只在边界兼容。方法和生成约定见 [独立RPC方法说明](rpc-methods.md)。
@@ -290,7 +301,7 @@ Collector的DockerHub对应旧tag未能获取，已改用验证可取的官方GH
 
 该阶段交付环境没有可使用的Docker daemon，未执行完整 `docker compose up`。该阶段记录不能证明所有容器真实启动、镜像构建、MySQL初始化、RabbitMQ路由、MinIO运行和Jaeger写入。后续实际运行验收见上方增补记录。Go单元/真实RPC集成测试的结果见 verification.md；这些不能替代容器启动验收。
 
-首次在有Docker的开发机上运行 `sh start.sh` 后，应检查 `docker compose ps`、运行 `sh scripts/smoke.sh`，并在Jaeger按响应trace_id查看到数据库SQL子span。文件服务还应完成一次真实预签名上传、complete校验和download下载。
+首次在有Docker的开发机上运行 `sh start.sh` 后，应检查 `docker compose ps`、运行 `sh scripts/smoke.sh`，并在Jaeger按 `x-trace-id` 响应头查看到数据库SQL子span。文件服务还应完成一次真实预签名上传、complete校验和download下载。
 
 ## 本次一键脚本更新
 

@@ -77,11 +77,24 @@ func TestBootstrapRanksVerifiedSignalsOnceAndPrimesNewRecommendedStock(t *testin
 			return platform.Result{"items": []any{}}, nil
 		},
 	}
-	code, body := batchHTTP(t, caller, "bootstrap", "admin", nil)
-	if code != 200 {
-		t.Fatal(code, body)
+	principal := platform.Command{UserID: "buyer", Role: "admin"}
+	plan := []readRequest{
+		sectionRead("catalog", "catalog", "list", "", map[string]any{"limit": 100}, false),
+		sectionRead("stock", "inventory", "get", "base", nil, false),
+		sectionRead("orders", "order", "list", "", nil, true),
 	}
-	fragments := resultRows(platform.Result{"items": platform.Map(body["data"])["results"]})
+	for _, kind := range []string{"favorite", "history", "compare", "search"} {
+		plan = append(
+			plan,
+			sectionRead(kind, "engagement", "list", "", map[string]any{"kind": kind, "limit": 100}, true),
+		)
+	}
+	g := &gateway{rpc: caller}
+	fragments := g.bootstrapRecommendations(
+		context.Background(),
+		g.runReads(context.Background(), plan, principal),
+		principal,
+	)
 	stockIDs, found := map[string]bool{}, false
 	for _, fragment := range fragments {
 		if fragment["service"] == "recommendation" {

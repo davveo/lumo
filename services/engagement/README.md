@@ -2,6 +2,8 @@
 
 支持操作：`list, put, delete, clear`。
 
+`List` 返回当前用户、指定行为类型的精确 `total`，不受分页的 `limit` / `offset` 影响；`items` 保持最多 100 条，`limit` 表示本页实际返回条数。总量由数据库计数查询提供，不为统计加载全部行为记录。
+
 入口 `service.go` 只组装依赖；各层依次为：
 
 1. `internal/transport`：注册独立 RPC 业务方法并记录请求追踪，不包含业务分发。

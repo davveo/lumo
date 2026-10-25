@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
-const { createHarness } = require('./dom-harness.cjs');
+const { createHarness, Element } = require('./dom-harness.cjs');
 
 const directory = process.env.FRONTEND_DIR || path.join(__dirname, '../dist');
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -149,6 +149,11 @@ async function accountRail(historyIDs, favoriteIDs) {
       if (kind === 'history') history = history.filter(keep);
       else favorites = favorites.filter(keep);
       return {};
+    }
+    if (service === 'catalog') {
+      assert.equal(action, 'batch_get', 'full favorite hydration uses one homogeneous metadata read');
+      assert.deepEqual(clone(command.data.ids), ['outside-page']);
+      return { items: command.data.ids.map(product), missing_ids: [] };
     }
     assert.ok(!['catalog', 'inventory'].includes(service), 'sidebar must never fan out product or stock reads');
     return { items: [] };
@@ -363,13 +368,135 @@ test('rail collapse saves only interface preferences and never refreshes backend
   assert.equal(f.calls.length, reads);
 });
 
-test('quick tools expose real destinations, cart quantity and feedback without submitting a ticket', async (t) => {
+function mountedInterestRail(f) {
+  const html = f.sidebar.render();
+  const root = new Element('lumo-sidebars');
+  const dock = new Element('interest-dock');
+  const panel = new Element('interest-rail');
+  const toggle = new Element('interest-toggle');
+  const list = new Element('interest-list');
+  const title = new Element('interest-title');
+  const label = new Element('interest-toggle-label');
+  const tools = new Element('quick-rail');
+  const selectors = new Map([
+    ['.interest-dock', dock],
+    ['.interest-rail', panel],
+    ['.interest-rail-toggle', toggle],
+    ['.interest-rail-list', list],
+    ['.interest-rail-head h2', title],
+    ['.interest-rail-toggle-label span', label],
+    ['.quick-rail, .quick-rail-reopen', tools],
+  ]);
+  root.querySelector = (selector) => selectors.get(selector) || null;
+  dock.querySelector = (selector) => selectors.get(selector) || null;
+  for (const element of [dock, toggle, f.app.document.body]) {
+    const classes = new Set();
+    element.classList = {
+      add: (...names) => names.forEach((name) => classes.add(name)),
+      remove: (...names) => names.forEach((name) => classes.delete(name)),
+      contains: (name) => classes.has(name),
+      toggle(name, force) {
+        const present = force === undefined ? !classes.has(name) : !!force;
+        if (present) classes.add(name);
+        else classes.delete(name);
+        return present;
+      },
+    };
+  }
+  let rootContent = html;
+  let rootWrites = 0;
+  let listContent = /class="interest-rail-list"[^>]*>([\s\S]*?)<\/div><\/aside>/.exec(html)?.[1];
+  assert.ok(listContent, 'the fixture mounts the actual rendered interest content');
+  let listWrites = 0;
+  Object.defineProperty(root, 'innerHTML', {
+    get: () => rootContent,
+    set(value) {
+      rootWrites++;
+      rootContent = value;
+    },
+  });
+  Object.defineProperty(list, 'innerHTML', {
+    get: () => listContent,
+    set(value) {
+      listWrites++;
+      listContent = value;
+    },
+  });
+  list.scrollTop = 84;
+  f.app.ids.set('lumo-sidebars', root);
+  f.app.document.activeElement = toggle;
+  f.sidebar.afterRender();
+  return { root, dock, panel, toggle, list, title, label, writes: () => ({ root: rootWrites, list: listWrites }) };
+}
+
+test('left rail reverses in place, retaining its handle, keyboard focus and scroll without additional reads', async (t) => {
+  const f = setup(async () => result(['real']));
+  t.after(() => f.app.dispose());
+  await f.sidebar.refresh();
+  const mounted = mountedInterestRail(f);
+  const reads = f.calls.length;
+  const content = mounted.list.innerHTML;
+  for (const collapsed of [true, false, true, false, true]) {
+    await f.app.click({ sidebarAction: 'toggle-interest' });
+    assert.equal(mounted.dock.classList.contains('is-collapsed'), collapsed);
+    assert.equal(mounted.toggle.classList.contains('interest-rail-reopen'), collapsed);
+    assert.equal(mounted.toggle.getAttribute('aria-expanded'), String(!collapsed));
+    assert.equal(mounted.toggle.getAttribute('aria-label'), (collapsed ? '展开' : '收起') + '感兴趣商品');
+    assert.equal(mounted.panel.getAttribute('aria-hidden'), String(collapsed));
+    assert.equal(mounted.panel.getAttribute('inert'), collapsed ? '' : null);
+    assert.equal(mounted.root.querySelector('.interest-dock'), mounted.dock);
+    assert.equal(mounted.dock.querySelector('.interest-rail'), mounted.panel);
+    assert.equal(mounted.dock.querySelector('.interest-rail-toggle'), mounted.toggle);
+    assert.equal(mounted.root.querySelector('.interest-rail-list'), mounted.list);
+    assert.equal(f.app.document.activeElement, mounted.toggle);
+    assert.equal(mounted.list.scrollTop, 84);
+    assert.equal(mounted.list.innerHTML, content);
+  }
+  assert.deepEqual(mounted.writes(), { root: 0, list: 0 });
+  assert.equal(f.calls.length, reads, 'opening and closing do not request recommendation data');
+  assert.equal(JSON.parse(f.preferences.get('lumo-sidebar-ui-v1')).interestCollapsed, true);
+});
+
+test('a pending recent refresh preserves the sliding shell and collapsed handle while updating only its content', async (t) => {
+  const next = deferred();
+  let reads = 0;
+  const f = setup(async () => (++reads === 1 ? result(['old']) : next.promise));
+  t.after(() => f.app.dispose());
+  await f.sidebar.refresh();
+  const mounted = mountedInterestRail(f);
+  const originalContent = mounted.list.innerHTML;
+  await f.app.click({ sidebarAction: 'toggle-interest' });
+  const refreshing = f.sidebar.refresh();
+  assert.equal(mounted.list.getAttribute('aria-busy'), 'true');
+  assert.equal(mounted.list.innerHTML, originalContent, 'existing goods stay visible during the refresh');
+  assert.deepEqual(mounted.writes(), { root: 0, list: 0 });
+  await f.app.click({ sidebarAction: 'toggle-interest' });
+  await f.app.click({ sidebarAction: 'toggle-interest' });
+  next.resolve(result(['new'], true));
+  await refreshing;
+  assert.equal(mounted.root.querySelector('.interest-dock'), mounted.dock);
+  assert.equal(mounted.root.querySelector('.interest-rail'), mounted.panel);
+  assert.equal(mounted.root.querySelector('.interest-rail-toggle'), mounted.toggle);
+  assert.equal(mounted.root.querySelector('.interest-rail-list'), mounted.list);
+  assert.equal(f.app.document.activeElement, mounted.toggle);
+  assert.equal(mounted.list.scrollTop, 84);
+  assert.equal(mounted.panel.getAttribute('inert'), '');
+  assert.equal(mounted.panel.getAttribute('aria-hidden'), 'true');
+  assert.equal(mounted.toggle.getAttribute('aria-expanded'), 'false');
+  assert.equal(mounted.dock.classList.contains('is-collapsed'), true);
+  assert.equal(mounted.list.getAttribute('aria-busy'), null);
+  assert.deepEqual(recentLinks(mounted.list.innerHTML), links(['new']));
+  assert.equal(mounted.title.textContent, '最近感兴趣');
+  assert.equal(mounted.label.textContent, '最近感兴趣');
+  assert.deepEqual(mounted.writes(), { root: 0, list: 1 });
+  assert.equal(f.calls.length, 2, 'state reversals do not add requests to the one explicit refresh');
+});
+
+test('quick tools use the account-summary cart badge and expose real destinations without full cart reads', async (t) => {
   const f = setup();
   let feedbackOpened = 0;
   t.after(() => f.app.dispose());
-  f.app.evaluate(
-    "state.cart=[{id:'iphone',qty:2},{id:'macbook',qty:3}];ui.category='家用电器';ui.query='冰箱';ui.onlyFavorites=true;ui.min='10';ui.max='1000'",
-  );
+  f.app.evaluate("ui.category='家用电器';ui.query='冰箱';ui.onlyFavorites=true;ui.min='10';ui.max='1000'");
   f.app.ctx.LumoServices = {
     afterRender() {},
     unreadCount: () => 0,
@@ -378,7 +505,12 @@ test('quick tools expose real destinations, cart quantity and feedback without s
       feedbackOpened++;
     },
   };
+  let summary = { loaded: false, cart_count: null };
+  f.app.ctx.LumoAccountSummary = { model: () => summary };
+  assert.doesNotMatch(f.sidebar.render(), /quick-rail-badge/, 'pending counts are not displayed as known quantities');
+  summary = { loaded: true, cart_count: 5 };
   const html = f.sidebar.render();
+  assert.equal(f.app.json('state.cart').length, 0, 'a summary count never invents full cart rows');
   for (const destination of ['#/cart', '#/member', '#/member/support', '#/coupons', '#/member/history'])
     assert.ok(html.includes('href="' + destination + '"'));
   assert.match(html, /quick-rail-badge[^>]*>5</);
@@ -408,6 +540,7 @@ for (const interaction of ['clear', 'remove', 'favorite']) {
       );
       t.after(() => f.app.dispose());
       const before = f.calls.filter((row) => row.service === 'storefront' && row.action === 'recent').length;
+      const metadataReads = f.calls.filter((row) => ['catalog', 'inventory'].includes(row.service)).length;
       if (interaction === 'clear') await f.app.click({ memberAction: 'confirm-clear-history' });
       else if (interaction === 'remove') await f.app.click({ memberAction: 'remove-history', id: 'iphone' });
       else {
@@ -422,7 +555,11 @@ for (const interaction of ['clear', 'remove', 'favorite']) {
       assert.equal(recentLinks(f.sidebar.render()).length, 6);
       assert.ok(recentLinks(f.sidebar.render()).includes('#/product/outside-page'));
       assert.equal(f.calls.filter((row) => row.service === 'storefront' && row.action === 'recent').length, before + 1);
-      assert.equal(f.calls.filter((row) => ['catalog', 'inventory'].includes(row.service)).length, 0);
+      assert.equal(
+        f.calls.filter((row) => ['catalog', 'inventory'].includes(row.service)).length,
+        metadataReads,
+        'the independent recent refresh adds no per-item product or stock requests',
+      );
       const reads = f.calls.length;
       f.sidebar.render();
       f.sidebar.render();
@@ -433,7 +570,7 @@ for (const interaction of ['clear', 'remove', 'favorite']) {
 
 for (const member of [false, true]) {
   test(
-    (member ? 'member' : 'guest') + ' recent consumes the matching bootstrap primer with one physical HTTP request',
+    (member ? 'member' : 'guest') + ' recent stays independent from the public product section without domain fanout',
     async (t) => {
       const network = [],
         ids = ['one', 'two', 'three', 'four', 'five', 'six'];
@@ -446,34 +583,28 @@ for (const member of [false, true]) {
             afterRender() {},
           },
           async fetch(input, options) {
-            network.push({ url: input, options });
-            assert.ok(input.endsWith('/storefront/bootstrap'), 'unexpected extra request ' + input);
-            return {
-              status: 200,
-              ok: true,
-              headers: { get: () => '' },
-              json: async () => ({
-                data: {
-                  results: [
-                    {
-                      service: 'catalog',
-                      action: 'list',
-                      command: { data: { limit: 100 } },
-                      auth: false,
-                      data: { items: [] },
-                    },
-                    {
-                      key: 'bootstrap-recent',
-                      service: 'storefront',
-                      action: 'recent',
-                      command: { data: {} },
-                      auth: member,
-                      data: result(ids, member),
-                    },
-                  ],
-                },
-              }),
-            };
+            const body = JSON.parse(options.body);
+            network.push({ url: input, options, body });
+            assert.deepEqual(body, { data: {} }, 'section and recent requests contain no client-selected domain plan');
+            let data;
+            if (input.endsWith('/storefront/products')) {
+              assert.equal(options.headers.Authorization, undefined);
+              data = {
+                results: [
+                  {
+                    service: 'catalog',
+                    action: 'list',
+                    command: { data: { limit: 100 } },
+                    auth: false,
+                    data: { items: [] },
+                  },
+                ],
+              };
+            } else {
+              assert.ok(input.endsWith('/storefront/recent'), 'unexpected domain fanout ' + input);
+              data = result(ids, member);
+            }
+            return { status: 200, ok: true, headers: { get: () => '' }, json: async () => ({ data }) };
           },
         },
       });
@@ -491,17 +622,26 @@ for (const member of [false, true]) {
       ])
         app.load(script);
       if (member) app.ctx.LumoAPI.setToken('a'.repeat(64));
-      await app.ctx.LumoAPI.prefetchBootstrap();
+      app.ctx.LumoAPI.beginSections();
+      await app.ctx.LumoAPI.prefetchSection('products');
+      await app.ctx.LumoCommerce.refreshCatalog();
       await app.ctx.LumoSidebars.refresh();
-      assert.equal(network.length, 1);
+      assert.deepEqual(
+        network.map(({ url }) => url.split('/api/v1/')[1]),
+        ['storefront/products', 'storefront/recent'],
+      );
       assert.deepEqual(recentLinks(app.ctx.LumoSidebars.render()), links(ids));
       assert.equal(app.ctx.LumoInventory.stockFor('one'), 7);
-      assert.equal(!!network[0].options.headers.Authorization, member);
+      assert.equal(app.ctx.LumoSidebars.model().personalized, member);
+      assert.equal(!!network[1].options.headers.Authorization, member);
+      app.ctx.LumoSidebars.render();
+      app.ctx.LumoSidebars.render();
+      assert.equal(network.length, 2, 'rendering never repeats either independent read');
     },
   );
 }
 
-test('recent is directly deduplicated and stays outside a concurrent read batch', async (t) => {
+test('recent deduplicates identical in-flight work while unrelated reads keep their semantic URLs', async (t) => {
   const gate = deferred(),
     network = [];
   const app = createHarness(directory, 'http://shop.test', {
@@ -510,19 +650,13 @@ test('recent is directly deduplicated and stays outside a concurrent read batch'
         const body = JSON.parse(options.body);
         network.push({ url, options, body });
         if (url.endsWith('/storefront/recent')) {
+          assert.deepEqual(body, { data: {} });
           await gate.promise;
           return { status: 200, ok: true, headers: { get: () => '' }, json: async () => ({ data: result(['one']) }) };
         }
-        assert.ok(url.endsWith('/storefront/batch'));
-        assert.ok(body.data.requests.every((row) => row.service !== 'storefront'));
-        return {
-          status: 200,
-          ok: true,
-          headers: { get: () => '' },
-          json: async () => ({
-            data: { results: body.data.requests.map((row) => ({ ...row, data: product(row.command.id) })) },
-          }),
-        };
+        assert.ok(url.endsWith('/catalog/get'), 'unrelated reads cannot be moved into a generic batch endpoint');
+        assert.deepEqual(body, { id: 'one', data: {} });
+        return { status: 200, ok: true, headers: { get: () => '' }, json: async () => ({ data: product('one') }) };
       },
     },
   });
@@ -534,9 +668,10 @@ test('recent is directly deduplicated and stays outside a concurrent read batch'
   const first = api.call('storefront', 'recent', {}, { auth: true }),
     same = api.call('storefront', 'recent', { data: {} }, { auth: true });
   assert.equal(first, same);
-  await api.call('catalog', 'get', { id: 'one' }, { auth: false });
+  const catalog = await api.call('catalog', 'get', { id: 'one' }, { auth: false });
+  assert.equal(catalog.name, product('one').name);
   gate.resolve();
-  await first;
+  assert.equal((await first).items[0].id, 'one');
   assert.equal(network.length, 2);
   assert.equal(network[0].options.headers.Authorization, 'Bearer ' + 'a'.repeat(64));
   assert.equal(network[1].options.headers.Authorization, undefined);

@@ -29,6 +29,7 @@
   function emptyData() {
     return {
       messages: [],
+      unreadTotal: null,
       invoices: [],
       tickets: [],
       chat: [],
@@ -166,21 +167,24 @@
       ],
     };
   }
-  async function refresh(force = false) {
+  async function refresh(force = false, resources = ['faq', 'messages', 'invoices', 'tickets']) {
     ensureScope();
+    const requested = new Set(resources);
+    if (!requested.size) return model();
     if (inFlight) {
-      if (!force) return inFlight.promise;
+      if (!force && [...requested].every((key) => inFlight.resources.has(key))) return inFlight.promise;
       await inFlight.promise.catch(() => {});
-      if (inFlight) return inFlight.promise;
+      return refresh(force, [...requested]);
     }
     const v = version,
       scope = serviceScope(),
-      pending = {};
+      pending = { resources: requested };
     inFlight = pending;
     const base = window.LumoAPI.getBase?.() || '',
-      needFaq = !faqAt || faqBase !== base || Date.now() - faqAt > 60000,
+      needFaq = requested.has('faq') && (!faqAt || faqBase !== base || Date.now() - faqAt > 60000),
       authenticated = loggedIn();
     for (const key of ['faq', 'messages', 'invoices', 'tickets']) {
+      if (!requested.has(key)) continue;
       const active = key === 'faq' ? needFaq : authenticated;
       readStates[key] = { ...readStates[key], loading: active, error: '', loaded: readStates[key].loaded || !active };
     }
@@ -189,14 +193,19 @@
         needFaq
           ? call(C.Service.Content, C.Action.List, { data: { kind: C.ContentKind.Faq, limit: 100 } }, { auth: false })
           : null,
-        authenticated ? call(C.Service.Notification, C.Action.List, { data: { limit: 100 } }) : null,
-        authenticated ? call(C.Service.Invoice, C.Action.List) : null,
-        authenticated ? call(C.Service.Helpdesk, C.Action.List, { data: { limit: 100 } }) : null,
+        authenticated && requested.has('messages')
+          ? call(C.Service.Notification, C.Action.List, { data: { limit: 100 } })
+          : null,
+        authenticated && requested.has('invoices') ? call(C.Service.Invoice, C.Action.List) : null,
+        authenticated && requested.has('tickets')
+          ? call(C.Service.Helpdesk, C.Action.List, { data: { limit: 100 } })
+          : null,
       ]);
       if (v !== version || scope !== serviceScope()) return model();
       const keys = ['faq', 'messages', 'invoices', 'tickets'],
         values = results.map((result, index) => {
           const key = keys[index];
+          if (!requested.has(key)) return null;
           readStates[key] = {
             loading: false,
             loaded: readStates[key].loaded || result.status === 'fulfilled',
@@ -223,7 +232,14 @@
       if (!authenticated || !loggedIn()) {
         memory = emptyData();
       } else {
-        if (messages) memory.messages = (messages.items || []).map(mapMessage);
+        if (messages) {
+          memory.messages = (messages.items || []).map(mapMessage);
+          const unread = Number(messages.unread_total);
+          memory.unreadTotal =
+            messages.unread_total != null && Number.isFinite(unread) && unread >= 0
+              ? Math.floor(unread)
+              : memory.messages.filter((row) => !row.read).length;
+        }
         if (invoices) memory.invoices = (invoices.items || []).map(mapInvoice);
         if (tickets) memory.tickets = (tickets.items || []).map(mapTicket);
       }
@@ -273,9 +289,20 @@
   function sync() {
     ensureScope();
   }
+  function refreshForView() {
+    const route = (location.hash || '#/').slice(2).split('/');
+    const resources =
+      route[0] === 'member'
+        ? { messages: ['messages'], invoices: ['invoices'], support: ['faq', 'tickets'] }[route[1]] || []
+        : [];
+    return refresh(false, resources);
+  }
   function unreadCount() {
     ensureScope();
-    return loggedIn() ? memory.messages.filter((m) => !m.read).length : 0;
+    if (!loggedIn()) return 0;
+    if (readStates.messages.loaded)
+      return memory.unreadTotal ?? memory.messages.filter((message) => !message.read).length;
+    return window.LumoAccountSummary?.model().unread_count ?? 0;
   }
   function afterRender() {
     document.querySelectorAll('[data-service-unread]').forEach((node) => {
@@ -677,13 +704,19 @@
       }
       if (action === 'read-all') {
         await call(C.Service.Notification, C.Action.ReadAll);
-        await refresh(true);
+        memory.messages.forEach((message) => (message.read = true));
+        memory.unreadTotal = 0;
+        await refresh(true, ['messages']);
         redraw();
       }
       if (action === 'read-message' || action === 'open-message') {
         const row = memory.messages.find((m) => m.id === id);
         await call(C.Service.Notification, C.Action.Read, { id });
-        await refresh(true);
+        if (row && !row.read) {
+          row.read = true;
+          if (memory.unreadTotal != null) memory.unreadTotal = Math.max(0, memory.unreadTotal - 1);
+        }
+        await refresh(true, ['messages']);
         if (action === 'open-message' && row) go(row.target.slice(2));
         else redraw();
       }
@@ -862,6 +895,7 @@
     },
     content,
     refresh,
+    refreshForView,
     reset,
     unreadCount,
     afterRender,

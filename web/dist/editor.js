@@ -233,14 +233,13 @@
     reads.error = '';
     const current = () => ticket === readVersion && origin === readScope();
     try {
-      const result = await api(
-        C.Service.Content,
-        C.Action.List,
-        { data: { kind: C.ContentKind.Storefront, limit: 100 } },
-        { auth: false },
+      const item = await api(C.Service.Content, C.Action.Get, { id: 'storefront-main' }, { auth: false }).catch(
+        (error) => {
+          if (error.status === 404) return null;
+          throw error;
+        },
       );
       if (!current()) return;
-      const item = (result.items || []).find((row) => row.id === 'storefront-main');
       if (item) {
         Object.assign(shop, normalizeSettings(JSON.parse(item.body)));
         studio.savedAt = item.created_at || '';

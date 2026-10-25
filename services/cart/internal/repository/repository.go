@@ -33,9 +33,9 @@ func (r *Repository) Get(ctx context.Context, id string) (domain.Record, error) 
 	}
 	return v, err
 }
-func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, offset int) ([]domain.Record, error) {
-	ctx, s := platform.Start(ctx, "cart.repository.List")
-	defer s.End()
+
+// scope is shared by page reads and aggregate counters so filters cannot drift.
+func (r *Repository) scope(ctx context.Context, owner, kind, st string) *gorm.DB {
 	q := r.db.WithContext(ctx).Model(&domain.Record{})
 	if owner != "" {
 		q = q.Where("user_id = ?", owner)
@@ -46,6 +46,12 @@ func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, of
 	if st != "" {
 		q = q.Where("status = ?", st)
 	}
+	return q
+}
+func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, offset int) ([]domain.Record, error) {
+	ctx, s := platform.Start(ctx, "cart.repository.List")
+	defer s.End()
+	q := r.scope(ctx, owner, kind, st)
 	if limit < 1 || limit > 100 {
 		limit = 20
 	}
@@ -55,6 +61,27 @@ func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, of
 	var vs []domain.Record
 	err := q.Order("created_at DESC, id DESC").Limit(limit).Offset(offset).Find(&vs).Error
 	return vs, err
+}
+func (r *Repository) Counts(ctx context.Context, owner, kind, st string) (int64, int64, error) {
+	ctx, span := platform.Start(ctx, "cart.repository.Counts")
+	defer span.End()
+	// Quantity remains an owned document field. Aggregate it in SQL rather than
+	// materializing an unbounded cart; both supported databases guard malformed
+	// legacy JSON and normalize absent or negative quantities to zero.
+	quantity := "CAST(JSON_UNQUOTE(JSON_EXTRACT(payload, '$.quantity')) AS SIGNED)"
+	if r.db.Dialector.Name() == "sqlite" {
+		quantity = "CAST(JSON_EXTRACT(payload, '$.quantity') AS INTEGER)"
+	}
+	quantitySum := "COALESCE(SUM(CASE WHEN JSON_VALID(payload) THEN CASE WHEN " + quantity +
+		" > 0 THEN " + quantity + " ELSE 0 END ELSE 0 END), 0)"
+	var counts struct {
+		Total         int64
+		QuantityTotal int64
+	}
+	err := r.scope(ctx, owner, kind, st).
+		Select("COUNT(*) AS total, " + quantitySum + " AS quantity_total").
+		Scan(&counts).Error
+	return counts.Total, counts.QuantityTotal, err
 }
 func (r *Repository) Save(ctx context.Context, v *domain.Record, event *platform.Event) error {
 	ctx, s := platform.Start(ctx, "cart.repository.Save")

@@ -42,7 +42,7 @@ func (c *popupTestCaller) Call(ctx context.Context, service string, command plat
 	if service == "points" {
 		return platform.Result{"available": 6500}, nil
 	}
-	if service == "catalog" && command.Action == "list" {
+	if service == "catalog" && (command.Action == "list" || command.Action == "batch_get") {
 		return platform.Result{
 			"items": []platform.Result{
 				{"id": "owned-history", "category": "手机数码"},
@@ -170,13 +170,13 @@ func TestPopupCookiesAreOpaqueStableAndNeverAuthenticate(t *testing.T) {
 		t.Fatal("malformed cookie identity accepted")
 	}
 }
-func TestBootstrapPopupUsesTrustedExistingFragmentsWithoutRepeatingProfileReads(t *testing.T) {
+func TestStandalonePopupUsesTrustedProfileReadsOnce(t *testing.T) {
 	caller := &popupTestCaller{}
 	handler := NewHandler(caller, false, t.TempDir())
-	response := popupRequest(
+	rejected := popupRequest(
 		t,
 		handler,
-		"storefront/bootstrap",
+		"storefront/popup",
 		"buyer",
 		map[string]any{
 			"placement":  "home",
@@ -185,6 +185,10 @@ func TestBootstrapPopupUsesTrustedExistingFragmentsWithoutRepeatingProfileReads(
 		},
 		nil,
 	)
+	if rejected.Code != 400 || len(popupCalls(caller, "member", "get")) != 0 {
+		t.Fatal("forged targeting data reached profile reads", rejected.Body.String())
+	}
+	response := popupRequest(t, handler, "storefront/popup", "buyer", map[string]any{"placement": "home"}, nil)
 	if response.Code != 200 || popupBody(t, response)["popup"] == nil {
 		t.Fatal(response.Body.String())
 	}
@@ -206,14 +210,14 @@ func TestBootstrapPopupUsesTrustedExistingFragmentsWithoutRepeatingProfileReads(
 	}
 	for _, service := range []string{"member", "points"} {
 		if len(popupCalls(caller, service, "get")) != 1 {
-			t.Fatalf("bootstrap repeated %s read", service)
+			t.Fatalf("popup repeated %s read", service)
 		}
 	}
 	if len(popupCalls(caller, "content", "popup_event")) != 0 {
 		t.Fatal("decision counted an impression")
 	}
 	caller.fail = true
-	response = popupRequest(t, handler, "storefront/bootstrap", "buyer", nil, response.Result().Cookies())
+	response = popupRequest(t, handler, "storefront/popup", "buyer", nil, response.Result().Cookies())
 	if response.Code != 200 || popupBody(t, response)["popup"] != nil {
 		t.Fatal("marketing failure broke shopping", response.Body.String())
 	}

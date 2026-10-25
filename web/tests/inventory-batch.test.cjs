@@ -332,7 +332,7 @@ function gatewaySetup(prefetch = false) {
     async fetch(url, options) {
       const body = JSON.parse(options.body);
       calls.push({ url, body });
-      if (url.endsWith('/storefront/bootstrap')) {
+      if (url.endsWith('/storefront/products')) {
         assert.ok(prefetch);
         return response({
           results: [
@@ -343,20 +343,19 @@ function gatewaySetup(prefetch = false) {
               auth: false,
               data: { items, total: items.length },
             },
-            ...items.map((p) => ({
+            {
               service: 'inventory',
-              action: 'get',
-              command: { id: p.skuId, data: {} },
+              action: 'batch_get',
+              command: { data: { ids: items.map((p) => p.skuId) } },
               auth: false,
-              data: { sku_id: p.skuId, available: 8 },
-            })),
+              data: stockRows(items.map((p) => p.skuId)),
+            },
           ],
         });
       }
-      assert.ok(url.endsWith('/storefront/batch'));
-      return response({
-        results: body.data.requests.map((read) => ({ ...read, auth: false, data: stockRows(read.command.data.ids) })),
-      });
+      assert.ok(url.endsWith('/inventory/batch_get'), 'stock reads retain their explicit semantic endpoint');
+      assert.equal(body.data.ids.length, 100);
+      return response(stockRows(body.data.ids));
     },
   };
   context.window = context;
@@ -372,22 +371,21 @@ test('100 SKU refresh crosses the real API client as one HTTP and one domain rea
   const app = gatewaySetup();
   assert.deepEqual(json(await app.inventory.refresh()), { loaded: 100, failed: 0 });
   assert.equal(app.calls.length, 1);
-  const reads = app.calls[0].body.data.requests;
-  assert.equal(reads.length, 1);
-  assert.equal(reads[0].action, 'batch_get');
-  assert.equal(reads[0].command.data.ids.length, 100);
+  assert.ok(app.calls[0].url.endsWith('/inventory/batch_get'));
+  assert.equal(app.calls[0].body.data.ids.length, 100);
   await app.inventory.refresh();
   assert.equal(app.calls.length, 2, 'completed stock reads must be refreshed, without a persistent cache');
 });
 
-test('bootstrap individual stock fragments satisfy the explicit batch with no extra HTTP', async () => {
+test('public product-section stock fragments satisfy the explicit batch with no extra HTTP', async () => {
   const app = gatewaySetup(true);
-  await app.api.prefetchBootstrap();
+  app.api.beginSections();
+  await app.api.prefetchSection('products');
   assert.deepEqual(json(await app.inventory.refresh()), { loaded: 100, failed: 0 });
   assert.equal(app.calls.length, 1);
-  assert.ok(app.calls[0].url.endsWith('/storefront/bootstrap'));
+  assert.ok(app.calls[0].url.endsWith('/storefront/products'));
   assert.equal(app.inventory.stockFor('product-99'), 8);
   app.api.endBootstrap();
   await app.inventory.refresh();
-  assert.equal(app.calls.length, 2, 'stock refresh after bootstrap must fetch current availability');
+  assert.equal(app.calls.length, 2, 'stock refresh after section hydration must fetch current availability');
 });

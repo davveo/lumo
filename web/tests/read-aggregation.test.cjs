@@ -19,7 +19,7 @@ const response = (data, status = 200) => ({
   ok: status < 400,
   headers: { get: () => trace },
   async json() {
-    return status < 400 ? { data, trace_id: trace } : { error: data, trace_id: trace };
+    return status < 400 ? { data } : { error: data };
   },
 });
 const entry = (service, action, command, data, auth = false, key = service + action) => ({
@@ -66,313 +66,236 @@ function setup(handler, enable = true) {
   if (enable) api.enableReadBatching();
   return { api, context, calls, events };
 }
-function batchRows(call, read = (item) => ({ value: item.command.id || item.service })) {
-  assert.ok(call.url.endsWith('/storefront/batch'));
-  return response({
-    results: call.body.data.requests.map((item) => ({
-      ...item,
-      auth: !!call.options.headers.Authorization,
-      data: read(item),
-    })),
-  });
-}
 
-test('parallel independent reads cross the network in one bounded batch and identical readers share it', async () => {
-  const app = setup((call) => batchRows(call));
-  const first = app.api.call('catalog', 'get', { id: 'coffee' });
-  const duplicate = app.api.call('catalog', 'get', { id: 'coffee', data: {} });
+test('identical semantic reads share work while unrelated services keep separate URLs', async () => {
+  const app = setup((call) => response({ value: call.body.id || call.url }));
+  const a = app.api.call('catalog', 'get', { id: 'coffee' }),
+    b = app.api.call('catalog', 'get', { data: {}, id: 'coffee' });
   const stock = app.api.call('inventory', 'get', { id: 'coffee' });
-  assert.equal(first, duplicate, 'identical reads must share the same in-flight promise');
-  const rows = await Promise.all([first, duplicate, stock]);
-  assert.deepEqual(json(rows), [{ value: 'coffee' }, { value: 'coffee' }, { value: 'coffee' }]);
-  assert.equal(app.calls.length, 1);
-  assert.equal(app.calls[0].body.data.requests.length, 2);
-  assert.equal(app.api.requests().length, 1, 'diagnostics count physical HTTP calls');
-  assert.equal(app.api.requests()[0].batchSize, 2);
-  await app.api.call('catalog', 'get', { id: 'coffee' });
-  assert.equal(app.calls.length, 2, 'completed reads are not retained as a stale global cache');
-});
-
-test('batch command keys are canonical despite property order', async () => {
-  const app = setup((call) => batchRows(call));
-  const first = app.api.call('search', 'query', { data: { query: 'coffee', brand: 'LUMO' } });
-  const second = app.api.call('search', 'query', { data: { brand: 'LUMO', query: 'coffee' } });
-  await Promise.all([first, second]);
-  assert.equal(app.calls[0].body.data.requests.length, 1);
-});
-
-test('more than 64 independent reads are split without duplicate work', async () => {
-  const app = setup((call) => batchRows(call));
-  await Promise.all(
-    Array.from({ length: 130 }, (_, id) => app.api.call('inventory', 'get', { id: 'sku-' + id }, { auth: false })),
-  );
-  assert.equal(app.calls.length, 3);
-  assert.deepEqual(
-    app.calls.map((call) => call.body.data.requests.length),
-    [64, 64, 2],
-  );
-  assert.equal(new Set(app.calls.flatMap((call) => call.body.data.requests.map((row) => row.key))).size, 130);
-});
-
-test('successful siblings survive a per-read failure and preserve the shared trace', async () => {
-  const app = setup((call) =>
-    response({
-      results: call.body.data.requests.map((item) =>
-        item.service === 'inventory'
-          ? { ...item, error: { status: 404, code: 'NotFound', message: 'stock not found' } }
-          : { ...item, data: { items: [{ id: 'coffee' }] } },
-      ),
-    }),
-  );
-  const [goods, stock] = await Promise.allSettled([
-    app.api.call('catalog', 'list'),
-    app.api.call('inventory', 'get', { id: 'absent' }),
-  ]);
-  assert.equal(goods.status, 'fulfilled');
-  assert.equal(stock.status, 'rejected');
-  assert.equal(stock.reason.status, 404);
-  assert.equal(stock.reason.service, 'inventory');
-  assert.equal(stock.reason.traceId, trace);
-  assert.equal(app.api.requests().length, 1);
-  assert.equal(app.api.requests()[0].ok, false);
-  assert.equal(app.api.requests()[0].failedReads[0].code, 'NotFound');
-});
-
-test('missing or misidentified batch results fail closed for that reader', async () => {
-  const app = setup((call) =>
-    response({ results: [{ ...call.body.data.requests[0], action: 'adjust', data: { available: 999 } }] }),
-  );
-  await assert.rejects(app.api.call('inventory', 'get', { id: 'coffee' }), (error) => error.status === 502);
-});
-
-test('bootstrap snapshots hydrate public and private readers once without extra HTTP calls', async () => {
-  const app = setup((call) => {
-    assert.ok(call.url.endsWith('/storefront/bootstrap'));
-    return response({
-      results: [
-        catalog(),
-        entry('points', 'get', {}, { available: 5000 }, true),
-        entry('inventory', 'get', { id: 'coffee' }, { sku_id: 'coffee', available: 8 }),
-      ],
-    });
-  });
-  app.api.setToken(tokenA);
-  await app.api.prefetchBootstrap();
-  assert.equal(app.api.isBootstrapActive(), true);
-  const first = await app.api.call('catalog', 'list', { data: { limit: 100 } }, { auth: false });
-  first.items[0].name = 'local view edit';
-  assert.equal(
-    (await app.api.call('catalog', 'list', { data: { limit: 100 } }, { auth: false })).items[0].name,
-    'Coffee',
-  );
-  assert.equal((await app.api.call('points', 'get')).available, 5000);
-  assert.equal((await app.api.call('inventory', 'get', { id: 'coffee' }, { auth: false })).available, 8);
-  assert.equal(app.calls.length, 1);
-  app.api.endBootstrap();
-  assert.equal(app.api.isBootstrapActive(), false);
-});
-
-test('guest default-auth readers share the public bootstrap bucket', async () => {
-  const app = setup(() => response({ results: [catalog()] }));
-  await app.api.prefetchBootstrap();
-  assert.equal((await app.api.call('catalog', 'list', { data: { limit: 100 } })).total, 1);
-  assert.equal(app.calls.length, 1);
-});
-
-test('primed individual stock reads can satisfy one batch_get and vice versa', async () => {
-  const app = setup(() =>
-    response({
-      results: [
-        catalog(),
-        entry('inventory', 'get', { id: 'one' }, { sku_id: 'one', available: 1 }),
-        entry('inventory', 'get', { id: 'two' }, { sku_id: 'two', available: 2 }),
-        entry(
-          'catalog',
-          'batch_get',
-          { data: { ids: ['one', 'two'] } },
-          { items: [{ id: 'one' }, { id: 'two' }], missing_ids: [] },
-        ),
-      ],
-    }),
-  );
-  await app.api.prefetchBootstrap();
-  const result = await app.api.call(
-    'inventory',
-    'batch_get',
-    { data: { ids: ['two', 'one', 'two'] } },
-    { auth: false },
-  );
-  assert.deepEqual(json(result), {
-    items: [
-      { sku_id: 'two', available: 2 },
-      { sku_id: 'one', available: 1 },
-    ],
-    missing_ids: [],
-  });
-  assert.equal((await app.api.call('catalog', 'get', { id: 'two' }, { auth: false })).id, 'two');
-  assert.equal(app.calls.length, 1);
-});
-
-test('a missing critical bootstrap catalog stops hydration and can be retried', async () => {
-  let attempts = 0;
-  const app = setup(() => response({ results: ++attempts === 1 ? [] : [catalog()] }));
-  await assert.rejects(app.api.prefetchBootstrap(), (error) => error.status === 502);
-  assert.equal(app.api.isBootstrapActive(), false);
-  await app.api.prefetchBootstrap();
-  assert.equal((await app.api.call('catalog', 'list', { data: { limit: 100 } }, { auth: false })).total, 1);
+  assert.equal(a, b);
+  await Promise.all([a, b, stock]);
   assert.equal(app.calls.length, 2);
+  assert.ok(app.calls.some((call) => call.url.endsWith('/catalog/get')));
+  assert.ok(app.calls.some((call) => call.url.endsWith('/inventory/get')));
+  assert.ok(app.calls.every((call) => !call.url.endsWith('/storefront/batch')));
+  await app.api.call('catalog', 'get', { id: 'coffee' });
+  assert.equal(app.calls.length, 3, 'completed unrelated reads are not a global cache');
 });
-
-test('failed bootstrap fragments are never cached as successful data', async () => {
+test('canonical command keys coalesce equal filters without a command-list request', async () => {
+  const app = setup(() => response({ items: [] }));
+  await Promise.all([
+    app.api.call('search', 'query', { data: { query: 'coffee', brand: 'LUMO' } }),
+    app.api.call('search', 'query', { data: { brand: 'LUMO', query: 'coffee' } }),
+  ]);
+  assert.equal(app.calls.length, 1);
+  assert.ok(app.calls[0].url.endsWith('/search/query'));
+});
+test('products section primes catalog and stock variants, then releases its bounded snapshot', async () => {
   const app = setup((call) =>
-    call.url.endsWith('/storefront/bootstrap')
+    call.url.endsWith('/storefront/products')
       ? response({
           results: [
             catalog(),
-            {
-              ...entry('points', 'get', {}, null, true),
-              error: { status: 503, code: 'Unavailable', message: 'offline' },
-            },
+            entry(
+              'inventory',
+              'batch_get',
+              { data: { ids: ['coffee', 'variant'] } },
+              {
+                items: [
+                  { sku_id: 'coffee', available: 3 },
+                  { sku_id: 'variant', available: 1 },
+                ],
+              },
+            ),
           ],
         })
-      : batchRows(call, () => ({ available: 50 })),
+      : response({ available: 9 }),
   );
-  app.api.setToken(tokenA);
-  await app.api.prefetchBootstrap();
-  assert.equal((await app.api.call('points', 'get')).available, 50);
+  app.api.beginSections();
+  await app.api.prefetchSection('products');
+  const list = await app.api.call('catalog', 'list', { data: { limit: 100 } }, { auth: false });
+  const stock = await app.api.call('inventory', 'batch_get', { data: { ids: ['variant', 'coffee'] } }, { auth: false });
+  assert.equal(list.items[0].id, 'coffee');
+  assert.equal(stock.items.length, 2);
+  assert.equal(app.calls.length, 1);
+  app.api.endBootstrap();
+  await app.api.call('inventory', 'get', { id: 'coffee' }, { auth: false });
   assert.equal(app.calls.length, 2);
 });
-
-test('writes and volatile quote/payment/order reads remain direct and invalidate bootstrap state', async () => {
-  const app = setup((call) =>
-    call.url.endsWith('/storefront/bootstrap')
-      ? response({ results: [catalog(), entry('points', 'get', {}, { available: 1 }, true)] })
-      : call.url.endsWith('/storefront/batch')
-        ? batchRows(call, () => ({ available: 2 }))
-        : response({ status: 'actual server response' }),
-  );
+test('public shell and products never carry a restored member token', async () => {
+  const app = setup((call) => response({ results: call.url.endsWith('/products') ? [catalog()] : [] }));
   app.api.setToken(tokenA);
-  await app.api.prefetchBootstrap();
-  await app.api.call('points', 'checkin', { idempotency_key: 'check-in' });
-  assert.equal(app.calls[1].url, '/api/v1/points/checkin');
-  assert.equal(app.calls[1].options.headers['Idempotency-Key'], 'check-in');
-  assert.equal((await app.api.call('points', 'get')).available, 2, 'post-write reads cannot use old balances');
-  await Promise.all([
-    app.api.call('checkout', 'quote'),
-    app.api.call('pricing', 'get'),
-    app.api.call('order', 'get'),
-    app.api.call('payment', 'get'),
-    app.api.call('iam', 'current'),
-  ]);
-  assert.deepEqual(
-    app.calls.slice(-5).map((call) => call.url),
-    [
-      '/api/v1/checkout/quote',
-      '/api/v1/pricing/get',
-      '/api/v1/order/get',
-      '/api/v1/payment/get',
-      '/api/v1/iam/current',
-    ],
-  );
+  app.api.beginSections();
+  await Promise.all([app.api.prefetchSection('shell'), app.api.prefetchSection('products')]);
+  assert.ok(app.calls.every((call) => !call.options.headers.Authorization));
+  await assert.rejects(app.api.prefetchSection('anything'), /未知页面分区/);
 });
-
-test('a read initiated before a mutation cannot replace data read after the mutation', async () => {
-  let finish;
+test('optional missing decoration is cached as a known 404 without hiding navigation failures', async () => {
+  const missing = { code: 'NotFound', message: 'content not found', status: 404 };
   const app = setup((call) =>
-    call.url.endsWith('/storefront/batch')
-      ? new Promise((resolve) => {
-          finish = () => resolve(batchRows(call, () => ({ available: 1 })));
+    call.url.endsWith('/shell')
+      ? response({
+          results: [
+            { ...entry('content', 'get', { id: 'storefront-main' }, null), optional: true, error: missing },
+            { ...entry('content', 'get', { id: 'storefront-categories' }, null), error: missing },
+          ],
         })
-      : response({ accepted: true }),
+      : response(missing, 404),
   );
-  const old = app.api.call('points', 'get');
-  const rejection = assert.rejects(old, (error) => error.code === 'SessionChanged');
-  await tick();
-  await app.api.call('points', 'checkin');
-  finish();
-  await rejection;
-});
-
-test('public, buyer and explicitly authenticated admin reads cannot share a batch', async () => {
-  const app = setup((call) => batchRows(call));
-  app.api.setToken(tokenA);
-  await Promise.all([
-    app.api.call('catalog', 'list', {}, { auth: false }),
-    app.api.call('member', 'get'),
-    app.api.call('payment', 'list', {}, { token: tokenB }),
-    app.api.call('member', 'get', {}, { token: tokenA }),
-  ]);
-  assert.equal(app.calls.length, 4);
-  assert.deepEqual(
-    app.calls.map((call) => call.options.headers.Authorization || ''),
-    ['', 'Bearer ' + tokenA, 'Bearer ' + tokenB, 'Bearer ' + tokenA],
+  app.api.beginSections();
+  await app.api.prefetchSection('shell');
+  await assert.rejects(
+    app.api.call('content', 'get', { id: 'storefront-main' }, { auth: false }),
+    (error) => error.status === 404,
   );
-});
-
-test('an independent admin 401 never clears the buyer session', async () => {
-  const app = setup(() => response({ code: 'Unauthenticated', message: 'admin token expired' }, 401));
-  app.api.setToken(tokenA);
-  await assert.rejects(app.api.call('payment', 'list', {}, { token: tokenB }), (error) => error.status === 401);
-  assert.equal(app.api.getToken(), tokenA);
-  assert.equal(
-    app.events.some((event) => event.type === 'lumo:session-expired'),
-    false,
-  );
-  await assert.rejects(app.api.call('member', 'get'), (error) => error.status === 401);
-  assert.equal(app.api.getToken(), '');
-});
-
-test('late buyer and gateway responses cannot cross the current scope', async () => {
-  for (const change of [(api) => api.setToken(tokenB), (api) => api.setBase('https://second.example')]) {
-    let finish;
-    const app = setup(
-      (call) =>
-        new Promise((resolve) => {
-          finish = () => resolve(batchRows(call, () => ({ owner: 'old' })));
-        }),
-    );
-    app.api.setToken(tokenA);
-    const old = app.api.call('member', 'get');
-    const rejected = assert.rejects(old, (error) => error.code === 'SessionChanged');
-    await tick();
-    change(app.api);
-    finish();
-    await rejected;
-  }
-});
-
-test('batch transport aborts at the shared deadline and releases every waiting reader', async () => {
-  let aborted = false;
-  const app = setup(
-    (call) =>
-      new Promise((resolve, reject) =>
-        call.options.signal.addEventListener('abort', () => {
-          aborted = true;
-          const error = new Error('aborted');
-          error.name = 'AbortError';
-          reject(error);
-        }),
-      ),
-  );
-  const result = await Promise.allSettled([
-    app.api.call('inventory', 'get', { id: 'one' }, { timeout: 10 }),
-    app.api.call('inventory', 'get', { id: 'two' }, { timeout: 10 }),
-  ]);
   assert.equal(app.calls.length, 1);
-  assert.equal(aborted, true);
-  assert.equal(result.filter((row) => row.status === 'rejected' && /请求超时/.test(row.reason.message)).length, 2);
+  await assert.rejects(
+    app.api.call('content', 'get', { id: 'storefront-categories' }, { auth: false }),
+    (error) => error.status === 404,
+  );
+  assert.equal(app.calls.length, 2);
 });
-
-test('physical diagnostics redact tokens, credentials and business payloads', async () => {
-  const app = setup((call) =>
-    call.url.endsWith('/storefront/batch') ? batchRows(call) : response({ accepted: true }),
+test('summary is an independent projection with nullable failed fields and a short route reuse window', async () => {
+  const app = setup(() =>
+    response({
+      summary: { profile: { display_name: 'Buyer' }, cart_count: 2, points: null },
+      errors: { points: { code: 'Unavailable' } },
+    }),
   );
   app.api.setToken(tokenA);
-  await app.api.call('member', 'get');
-  await app.api.call('iam', 'login', { data: { username: 'user', password: 'TypedSecret' } }, { auth: false });
-  const diagnostic = JSON.stringify(app.api.requests());
-  assert.ok(!diagnostic.includes(tokenA));
-  assert.ok(!diagnostic.includes('TypedSecret'));
-  assert.ok(!diagnostic.includes('username'));
-  assert.equal(app.api.requests().length, 2);
+  const summary = app.context.LumoAccountSummary;
+  const result = await summary.refresh();
+  assert.equal(result.loaded, true);
+  assert.equal(result.points, null);
+  assert.equal(result.cart_count, 2);
+  await summary.refresh();
+  assert.equal(app.calls.length, 1);
+  assert.ok(app.calls[0].url.endsWith('/account_summary'));
+  app.api.setToken(tokenB);
+  assert.equal(summary.model().loaded, false);
+  assert.equal(summary.model().cart_count, null);
+});
+test('behavior analytics and history do not erase a successful account projection', async () => {
+  const app = setup((call) =>
+    response(
+      call.url.endsWith('/account_summary')
+        ? { summary: { cart_count: 2, points: 500 }, errors: {} }
+        : { accepted: true },
+    ),
+  );
+  app.api.setToken(tokenA);
+  await app.context.LumoAccountSummary.refresh();
+  await app.api.call('analytics', 'record', { data: { kind: 'view' } });
+  await app.api.call('engagement', 'put', { data: { kind: 'history', sku_id: 'coffee' } });
+  assert.equal(app.context.LumoAccountSummary.model().cart_count, 2);
+  assert.equal(app.context.LumoAccountSummary.model().points, 500);
+  await tick();
+  assert.equal(app.calls.length, 3, 'history writes must not re-fetch six summary dependencies');
+});
+test('existing post-mutation domain reads update just the affected summary field without another group read', async () => {
+  const app = setup((call) =>
+    response(
+      call.url.endsWith('/account_summary')
+        ? { summary: { cart_count: 1, points: 500 }, errors: {} }
+        : call.url.endsWith('/cart/list')
+          ? { items: [{ quantity: 4 }] }
+          : { accepted: true },
+    ),
+  );
+  app.api.setToken(tokenA);
+  await app.context.LumoAccountSummary.refresh();
+  await app.api.call('cart', 'add', { data: { sku_id: 'coffee', quantity: 1 } });
+  await app.api.call('cart', 'list');
+  await tick();
+  assert.equal(app.context.LumoAccountSummary.model().cart_count, 4);
+  assert.equal(app.context.LumoAccountSummary.model().points, 500);
+  assert.equal(app.calls.filter((call) => call.url.endsWith('/account_summary')).length, 1);
+  assert.equal(app.calls.filter((call) => call.url.endsWith('/cart/list')).length, 1);
+});
+test('summary count updates use exact totals while favorite identities remain bounded', async () => {
+  const app = setup((call) =>
+    response(
+      call.url.endsWith('/account_summary')
+        ? { summary: { favorite_count: 2, unread_count: 1, cart_count: 1 }, errors: {} }
+        : call.url.endsWith('/engagement/list')
+          ? { items: [{ sku_id: 'first' }, { sku_id: 'second' }], total: 151 }
+          : call.url.endsWith('/cart/list')
+            ? { items: [{ quantity: 2 }], total: 151, quantity_total: 302 }
+            : { items: [{ status: 'READ' }], total: 300, unread_total: 125 },
+    ),
+  );
+  app.api.setToken(tokenA);
+  await app.context.LumoAccountSummary.refresh();
+  await app.api.call('engagement', 'list', { data: { kind: 'favorite', limit: 100 } });
+  await app.api.call('notification', 'list', { data: { limit: 100 } });
+  await app.api.call('cart', 'list', { data: { limit: 100 } });
+  const model = app.context.LumoAccountSummary.model();
+  assert.equal(model.favorite_count, 151);
+  assert.deepEqual(json(model.favorite_ids), ['first', 'second']);
+  assert.equal(model.unread_count, 125, 'read newest page must not erase older unread notifications');
+  assert.equal(model.cart_count, 302, 'bounded cart items must not truncate the whole-account quantity');
+});
+test('filtered domain lists do not replace whole-account summary counts or favorite identities', async () => {
+  const app = setup((call) =>
+    response(
+      call.url.endsWith('/account_summary')
+        ? { summary: { favorite_count: 151, favorite_ids: ['first'], unread_count: 125 }, errors: {} }
+        : { items: [{ sku_id: 'other-page', status: 'READ' }], total: 0, unread_total: 0 },
+    ),
+  );
+  app.api.setToken(tokenA);
+  await app.context.LumoAccountSummary.refresh();
+  await app.api.call('notification', 'list', { data: { kind: 'payment', status: 'READ', limit: 100 } });
+  await app.api.call('engagement', 'list', { data: { kind: 'favorite', status: 'disabled', limit: 100 } });
+  assert.equal(app.context.LumoAccountSummary.model().favorite_count, 151);
+  assert.equal(app.context.LumoAccountSummary.model().unread_count, 125);
+  await app.api.call('engagement', 'list', { data: { kind: 'favorite', offset: 100 } });
+  assert.deepEqual(json(app.context.LumoAccountSummary.model().favorite_ids), ['first']);
+});
+test('late old-account and invalidated read responses cannot populate the current UI', async () => {
+  let finish;
+  const app = setup(
+    () =>
+      new Promise((resolve) => {
+        finish = () => resolve(response({ owner: 'old' }));
+      }),
+  );
+  app.api.setToken(tokenA);
+  const read = app.api.call('cart', 'list');
+  app.api.setToken(tokenB);
+  finish();
+  await assert.rejects(read, (error) => error.code === app.context.LumoConstants.ApiErrorCode.SessionChanged);
+});
+test('explicit authentication contexts cannot share a private read', async () => {
+  const app = setup(() => response({ items: [] }));
+  app.api.setToken(tokenA);
+  await Promise.all([app.api.call('cart', 'list'), app.api.call('cart', 'list', {}, { token: tokenB })]);
+  assert.equal(app.calls.length, 2);
+  assert.equal(new Set(app.calls.map((call) => call.options.headers.Authorization)).size, 2);
+});
+test('Trace diagnostics use the response header, even when an old server body has a different trace_id', async () => {
+  const app = setup(() => ({
+    status: 200,
+    ok: true,
+    headers: { get: () => trace },
+    async json() {
+      return { data: { items: [] }, trace_id: 'wrong-body-id' };
+    },
+  }));
+  await app.api.call('catalog', 'list');
+  assert.equal(app.api.requests()[0].traceId, trace);
+});
+test('read errors preserve their semantic service and header trace while successful peers remain usable', async () => {
+  const app = setup((call) =>
+    call.url.includes('/inventory/')
+      ? response({ code: 'Unavailable', message: 'offline' }, 503)
+      : response({ id: 'coffee' }),
+  );
+  const rows = await Promise.allSettled([
+    app.api.call('catalog', 'get', { id: 'coffee' }),
+    app.api.call('inventory', 'get', { id: 'coffee' }),
+  ]);
+  assert.equal(rows[0].status, 'fulfilled');
+  assert.equal(rows[1].reason.service, 'inventory');
+  assert.equal(rows[1].reason.traceId, trace);
 });

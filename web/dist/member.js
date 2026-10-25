@@ -172,40 +172,28 @@
       refundAmount: Number(a.amount_cents || 0) / 100,
     };
   }
-  async function refresh(force = false) {
+  async function refresh(force = false, resources = resourceNames) {
     if (memoryScope !== memberScope()) reset();
     if (!loggedIn()) {
       reset();
       return model();
     }
+    const requested = new Set(resources.filter((key) => resourceNames.includes(key)));
+    if (!requested.size) return model();
     if (inFlight) {
-      if (!force) return inFlight.promise;
+      if (!force && [...requested].every((key) => inFlight.resources.has(key))) return inFlight.promise;
       await inFlight.promise.catch(() => {});
-      if (inFlight) return inFlight.promise;
+      return refresh(force, [...requested]);
     }
     const version = refreshVersion,
       owner = memberScope(),
       historyReadRevision = historyRevision,
-      pending = {};
+      pending = { resources: requested };
     inFlight = pending;
-    resourceNames.forEach((key) => {
+    [...requested].forEach((key) => {
       readStates[key] = { ...readStates[key], loading: true, error: '' };
     });
     pending.promise = (async () => {
-      const results = await Promise.allSettled([
-        call(C.Service.Member, C.Action.Get),
-        call(C.Service.Address, C.Action.List, { data: { limit: 100 } }),
-        call(C.Service.Coupon, C.Action.List),
-        call(C.Service.Coupon, C.Action.Templates, { data: { page: 1, page_size: 100 } }),
-        call(C.Service.Points, C.Action.Get),
-        call(C.Service.Engagement, C.Action.List, { data: { kind: C.EngagementKind.History, limit: 100 } }),
-        call(C.Service.Interaction, C.Action.List, {
-          data: { kind: C.InteractionKind.Review, mine: true, limit: 100 },
-        }),
-        call(C.Service.Aftersale, C.Action.List),
-        call(C.Service.Engagement, C.Action.List, { data: { kind: C.EngagementKind.Favorite, limit: 100 } }),
-      ]);
-      if (version !== refreshVersion || owner !== memberScope() || !loggedIn()) return model();
       const keys = [
         'profile',
         'addresses',
@@ -217,8 +205,39 @@
         'aftersales',
         'favorites',
       ];
+      const operations = [
+        () => call(C.Service.Member, C.Action.Get),
+        () => call(C.Service.Address, C.Action.List, { data: { limit: 100 } }),
+        () => call(C.Service.Coupon, C.Action.List),
+        () => call(C.Service.Coupon, C.Action.Templates, { data: { page: 1, page_size: 100 } }),
+        () => call(C.Service.Points, C.Action.Get),
+        () => call(C.Service.Engagement, C.Action.List, { data: { kind: C.EngagementKind.History, limit: 100 } }),
+        () =>
+          call(C.Service.Interaction, C.Action.List, {
+            data: { kind: C.InteractionKind.Review, mine: true, limit: 100 },
+          }),
+        () => call(C.Service.Aftersale, C.Action.List),
+        async () => {
+          const favorites = await call(C.Service.Engagement, C.Action.List, {
+            data: { kind: C.EngagementKind.Favorite, limit: 100 },
+          });
+          if (version === refreshVersion && owner === memberScope() && loggedIn())
+            await window.LumoCommerce?.hydrateProducts?.(
+              (favorites.items || []).map((row) => row.sku_id),
+              {
+                active: () => version === refreshVersion && owner === memberScope() && loggedIn(),
+              },
+            );
+          return favorites;
+        },
+      ];
+      const results = await Promise.allSettled(
+        operations.map((execute, index) => (requested.has(keys[index]) ? execute() : null)),
+      );
+      if (version !== refreshVersion || owner !== memberScope() || !loggedIn()) return model();
       const values = results.map((result, index) => {
         const key = keys[index];
+        if (!requested.has(key)) return null;
         readStates[key] = {
           loading: false,
           loaded: readStates[key].loaded || result.status === 'fulfilled',
@@ -315,6 +334,29 @@
       if (inFlight === pending) inFlight = null;
     });
     return pending.promise;
+  }
+  function refreshForView() {
+    const route = (location.hash || '#/').slice(2).split('/');
+    let resources = [];
+    if (route[0] === 'checkout') resources = ['addresses', 'coupons', 'points'];
+    else if (route[0] === 'cart') resources = ['addresses'];
+    else if (route[0] === 'member') {
+      const tab = route[1] || 'overview';
+      resources =
+        {
+          overview: ['profile', 'points', 'coupons', 'favorites', 'history', 'addresses', 'aftersales'],
+          orders: ['reviews', 'aftersales'],
+          addresses: ['addresses'],
+          coupons: ['coupons'],
+          favorites: ['favorites'],
+          history: ['history'],
+          points: ['points'],
+          aftersales: ['aftersales'],
+          settings: ['profile'],
+          reviews: ['reviews'],
+        }[tab] || [];
+    }
+    return refresh(false, resources);
   }
   function mirrorAddress() {
     const a = memory.addresses.find((row) => row.id === memory.selectedAddressId);
@@ -549,7 +591,7 @@
   async function ensureResources(keys) {
     if (keys.every((key) => readState(key).loaded)) return;
     try {
-      await refresh();
+      await refresh(false, keys);
     } catch (error) {
       if (keys.some((key) => !readState(key).loaded)) throw error;
     }
@@ -882,7 +924,17 @@
   }
   async function mutate(service, action, command) {
     await call(service, action, command);
-    await refresh(true);
+    const resources =
+      {
+        [C.Service.Address]: ['addresses'],
+        [C.Service.Coupon]: ['coupons'],
+        [C.Service.Points]: ['points'],
+        [C.Service.Member]: ['profile'],
+        [C.Service.Engagement]: [command?.data?.kind === C.EngagementKind.History ? 'history' : 'favorites'],
+        [C.Service.Interaction]: ['reviews'],
+        [C.Service.Aftersale]: ['aftersales'],
+      }[service] || [];
+    await refresh(true, resources);
     if (service === 'engagement') await window.LumoSidebars?.refresh?.();
     redraw();
   }
@@ -1151,7 +1203,7 @@
           },
         });
         if (form.dataset.checkout === 'true' || !memory.selectedAddressId) memory.selectedAddressId = result.id;
-        await refresh(true);
+        await refresh(true, ['addresses']);
         closeModal();
         redraw();
         toast('收货地址已保存');
@@ -1246,6 +1298,7 @@
     model,
     readState,
     refresh,
+    refreshForView,
     reset,
     addresses,
     selectedAddress,

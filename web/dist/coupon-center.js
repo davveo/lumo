@@ -187,7 +187,7 @@
           const result = await window.LumoAPI.call(
             C.Service.Coupon,
             full ? C.Action.TemplatesSnapshot : C.Action.Templates,
-            { data: { page, page_size: full ? 5000 : 100 } },
+            { data: { page, page_size: full ? 5000 : 2 } },
             loggedIn() ? {} : { auth: false },
           );
           if (current.owner !== scope() || current.revision !== revision) return model();
@@ -221,6 +221,13 @@
       }
     })();
     return current.promise;
+  }
+  function refreshForView(force = false) {
+    ensureScope();
+    const full = observeRoute();
+    if (!force && flight?.full === full) return flight.promise;
+    if (force || entryPending || !loaded || error || (full && !complete)) return refresh(force);
+    return Promise.resolve(model());
   }
   function model() {
     ensureScope();
@@ -312,7 +319,7 @@
       }
       notify(result.already_claimed ? '这张券已领取，可在我的优惠券中查看' : '领取成功，已放入我的优惠券');
       redraw();
-      const results = await Promise.allSettled([refresh(true), window.LumoMember?.refresh(true)]);
+      const results = await Promise.allSettled([refresh(true), window.LumoMember?.refresh(true, ['coupons'])]);
       if (currentOwner === scope() && results.some((result) => result.status === 'rejected'))
         notify('优惠券已领取，部分信息更新失败，可在我的优惠券中刷新查看');
     } catch (failure) {
@@ -391,5 +398,5 @@
   });
   for (const event of ['lumo:login', 'lumo:logout', 'lumo:session-expired']) window.addEventListener(event, reset);
   window.addEventListener('lumo:ready', () => afterRender(true));
-  window.LumoCouponCenter = { refresh, reset, home, page, afterRender, model, claim };
+  window.LumoCouponCenter = { refresh, refreshForView, reset, home, page, afterRender, model, claim };
 })();

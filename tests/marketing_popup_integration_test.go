@@ -185,7 +185,7 @@ func TestHTTPMarketingPopupTargetingAndClaimLifecycle(t *testing.T) {
 	guest.expect(404, "", "content", "get", visitorID, "", nil)
 	first := marketingPopup(
 		t,
-		guest.call("", "storefront", "bootstrap", "", "", map[string]any{"placement": "home"}),
+		guest.call("", "storefront", "popup", "", "", map[string]any{"placement": "home"}),
 		visitorID,
 	)
 	second := marketingPopup(
@@ -213,7 +213,7 @@ func TestHTTPMarketingPopupTargetingAndClaimLifecycle(t *testing.T) {
 	}
 	guest.call("", "storefront", "popup_event", "", "", marketingEvent(first, "dismiss", "guest-view"))
 	guest.call("", "storefront", "popup_event", "", "", marketingEvent(first, "auto_close", "guest-view"))
-	if result := guest.call("", "storefront", "bootstrap", "", "", nil); result["popup"] != nil {
+	if result := guest.call("", "storefront", "popup", "", "", nil); result["popup"] != nil {
 		t.Fatal("shown/closed visitor welcome repeated")
 	}
 	if result := guest.call(
@@ -274,7 +274,7 @@ func TestHTTPMarketingPopupTargetingAndClaimLifecycle(t *testing.T) {
 	if err != nil || created.Before(time.Now().UTC().Add(-time.Hour)) {
 		t.Fatalf("member profile fixture must be newly created: %v %v", member, err)
 	}
-	oldDelivery := marketingPopup(t, userShop.call(user, "storefront", "bootstrap", "", "", nil), oldID)
+	oldDelivery := marketingPopup(t, userShop.call(user, "storefront", "popup", "", "", nil), oldID)
 	// Old pending payload is invalidated when the operator pauses its campaign.
 	oldCampaign["status"] = "PAUSED"
 	adminShop.call(admin, "content", "popup_upsert", oldID, "", oldCampaign)
@@ -297,7 +297,7 @@ func TestHTTPMarketingPopupTargetingAndClaimLifecycle(t *testing.T) {
 	).Error; err != nil {
 		t.Fatal(err)
 	}
-	pending := marketingPopup(t, userShop.call(user, "storefront", "bootstrap", "", "", nil), newID)
+	pending := marketingPopup(t, userShop.call(user, "storefront", "popup", "", "", nil), newID)
 	content := marketingMap(t, newCampaign["content"])
 	content["title"] = "更新后的新会员专属礼"
 	newCampaign["content"] = content
@@ -412,7 +412,7 @@ func TestHTTPMarketingPopupTargetingAndClaimLifecycle(t *testing.T) {
 		platform.Int(quote, "payable_cents") <= 0 {
 		t.Fatalf("issued popup coupon did not enter actual pricing: %v", quote)
 	}
-	if result := userShop.call(user, "storefront", "bootstrap", "", "", nil); result["popup"] != nil {
+	if result := userShop.call(user, "storefront", "popup", "", "", nil); result["popup"] != nil {
 		t.Fatal("claimed campaign repeated")
 	}
 	// Administration reports real impressions and one successful issuance. View

@@ -29,9 +29,9 @@ func (r *Repository) Get(ctx context.Context, id string) (domain.Record, error) 
 	}
 	return v, err
 }
-func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, offset int) ([]domain.Record, error) {
-	ctx, s := platform.Start(ctx, "engagement.repository.List")
-	defer s.End()
+
+// scope is shared by page reads and aggregate counters so filters cannot drift.
+func (r *Repository) scope(ctx context.Context, owner, kind, st string) *gorm.DB {
 	q := r.db.WithContext(ctx).Model(&domain.Record{})
 	if owner != "" {
 		q = q.Where("user_id = ?", owner)
@@ -42,6 +42,12 @@ func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, of
 	if st != "" {
 		q = q.Where("status = ?", st)
 	}
+	return q
+}
+func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, offset int) ([]domain.Record, error) {
+	ctx, s := platform.Start(ctx, "engagement.repository.List")
+	defer s.End()
+	q := r.scope(ctx, owner, kind, st)
 	if limit < 1 || limit > 100 {
 		limit = 20
 	}
@@ -51,6 +57,13 @@ func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, of
 	var vs []domain.Record
 	err := q.Order("updated_at DESC, created_at DESC, id DESC").Limit(limit).Offset(offset).Find(&vs).Error
 	return vs, err
+}
+func (r *Repository) Count(ctx context.Context, owner, kind, st string) (int64, error) {
+	ctx, span := platform.Start(ctx, "engagement.repository.Count")
+	defer span.End()
+	var total int64
+	err := r.scope(ctx, owner, kind, st).Count(&total).Error
+	return total, err
 }
 func (r *Repository) Save(ctx context.Context, v *domain.Record, event *platform.Event) error {
 	ctx, s := platform.Start(ctx, "engagement.repository.Save")

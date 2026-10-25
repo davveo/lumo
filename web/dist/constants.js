@@ -5,6 +5,8 @@
   const values = {
     "Action": {
       "AcceptPayment": "accept_payment",
+      "AccountSummary": "account_summary",
+      "Activities": "activities",
       "Add": "add",
       "Adjust": "adjust",
       "AdjustDemo": "adjust_demo",
@@ -61,6 +63,7 @@
       "PopupImpression": "popup_impression",
       "PopupList": "popup_list",
       "PopupUpsert": "popup_upsert",
+      "Products": "products",
       "Put": "put",
       "Query": "query",
       "Quote": "quote",
@@ -86,6 +89,7 @@
       "Run": "run",
       "SearchProducts": "search_products",
       "Set": "set",
+      "Shell": "shell",
       "Shipped": "shipped",
       "Submit": "submit",
       "SubmitDemo": "submit_demo",

@@ -142,7 +142,12 @@
     let personalFailure = null;
     if (principal()) {
       const [compares, searches] = personalResult.status === 'fulfilled' ? personalResult.value : [];
-      if (compares?.status === 'fulfilled') comparison = (compares.value.items || []).map((row) => row.sku_id);
+      if (compares?.status === 'fulfilled') {
+        const ids = (compares.value.items || []).map((row) => row.sku_id);
+        await window.LumoCommerce?.hydrateProducts?.(ids, { active: () => owner === currentOwner() });
+        if (owner !== currentOwner()) return;
+        comparison = ids;
+      }
       if (searches?.status === 'fulfilled')
         history = (searches.value.items || [])
           .map((row) => row.query)
@@ -161,7 +166,12 @@
     return searchResult.value;
   }
   const cleanText = (value) => (typeof value === 'string' ? value.trim().slice(0, 80) : '');
-  const productFor = (id) => products.find((p) => p.id === id && p.visible !== false);
+  const productFor = (id) =>
+    products.find(
+      (p) =>
+        (p.id === id || p.skuId === id || p.variants?.some((variant) => variant.sku_id === id)) &&
+        (p.visible !== false || p.metadataUnavailable),
+    );
   const brandFor = (p) =>
     cleanText(p.brand) ||
     { iphone: 'Apple', macbook: 'Apple', headphones: 'Sony', sneakers: 'Nike', perfume: 'CHANEL' }[p.id] ||
@@ -181,7 +191,7 @@
     }
     const raw =
       state.discovery && typeof state.discovery === 'object' && !Array.isArray(state.discovery) ? state.discovery : {};
-    const compareIds = [...new Set(comparison.filter((id) => productFor(id)))].slice(0, MAX_COMPARE);
+    const compareIds = [...new Set(comparison.map((id) => productFor(id)?.id).filter(Boolean))].slice(0, MAX_COMPARE);
     const filters = { brand: cleanText(raw.filters?.brand) || 'all', inStock: raw.filters?.inStock === true };
     state.discovery = { history, compareIds, filters };
     return state.discovery;
@@ -309,7 +319,7 @@
   function page() {
     const rows = data().compareIds.map(productFor).filter(Boolean);
     const compareTable = rows.length
-      ? `<section class="disc-compare-table-panel"><div class="disc-compare-table-scroll" tabindex="0" role="region" aria-label="商品参数对比表"><table class="disc-compare-table"><caption>并排查看喜欢的好物，选出更适合自己的那一件</caption><thead><tr><th scope="col">商品信息</th>${rows.map((p) => `<th scope="col"><button class="disc-remove-product" data-discovery-action="toggle-compare" data-id="${esc(p.id)}" aria-label="移出对比${esc(p.name)}">${icon('close')}</button><a class="disc-compare-image ${p.id === 'iphone' ? 'disc-phone-image' : ''}" href="#/product/${esc(p.id)}"><img src="${esc(asset(p.image))}" alt="${esc(p.name)}"></a><a class="disc-compare-product-name" href="#/product/${esc(p.id)}">${esc(p.name)}</a><span>${esc(p.sub)}</span></th>`).join('')}</tr></thead><tbody>${compareRow('当前售价', rows, (p) => price(p.price))}${compareRow('品牌', rows, (p) => esc(brandFor(p)))}${compareRow('商品分类', rows, (p) => esc(p.category))}${compareRow('颜色款式', rows, (p) => (p.colors || []).map((value) => `<span class="disc-spec-tag">${esc(value)}</span>`).join(''))}${compareRow('可选规格', rows, (p) => (p.options || []).map((value) => `<span class="disc-spec-tag">${esc(value)}</span>`).join(''))}${compareRow('产品亮点', rows, (p) => `<ul>${(p.highlights || []).map((value, index) => `<li><strong>${esc(value)}</strong>${p.highSubs?.[index] ? `<small>${esc(p.highSubs[index])}</small>` : ''}</li>`).join('')}</ul>`)}${compareRow('商品状态', rows, (p) => `<span class="disc-availability ${available(p) ? '' : 'is-out'}"><i></i>${available(p) ? '有货' : '暂时缺货'}</span>`)}${compareRow('选购好物', rows, (p) => `<div class="disc-compare-buy"><button class="primary" data-action="quick-add" data-id="${esc(p.id)}" ${available(p) ? '' : 'disabled'}>${icon('cart')}加入购物车</button><a class="outline" href="#/product/${esc(p.id)}">选择规格${icon('chevron')}</a></div>`)}</tbody></table></div></section>`
+      ? `<section class="disc-compare-table-panel"><div class="disc-compare-table-scroll" tabindex="0" role="region" aria-label="商品参数对比表"><table class="disc-compare-table"><caption>并排查看喜欢的好物，选出更适合自己的那一件</caption><thead><tr><th scope="col">商品信息</th>${rows.map((p) => `<th scope="col"><button class="disc-remove-product" data-discovery-action="toggle-compare" data-id="${esc(p.id)}" aria-label="移出对比${esc(p.name)}">${icon('close')}</button><a class="disc-compare-image ${p.id === 'iphone' ? 'disc-phone-image' : ''}" href="#/product/${esc(p.id)}"><img src="${esc(asset(p.image))}" alt="${esc(p.name)}"></a><a class="disc-compare-product-name" href="#/product/${esc(p.id)}">${esc(p.name)}</a><span>${esc(p.sub)}</span></th>`).join('')}</tr></thead><tbody>${compareRow('当前售价', rows, (p) => (p.metadataUnavailable ? '商品已不可用' : price(p.price)))}${compareRow('品牌', rows, (p) => esc(brandFor(p)))}${compareRow('商品分类', rows, (p) => esc(p.category))}${compareRow('颜色款式', rows, (p) => (p.colors || []).map((value) => `<span class="disc-spec-tag">${esc(value)}</span>`).join(''))}${compareRow('可选规格', rows, (p) => (p.options || []).map((value) => `<span class="disc-spec-tag">${esc(value)}</span>`).join(''))}${compareRow('产品亮点', rows, (p) => `<ul>${(p.highlights || []).map((value, index) => `<li><strong>${esc(value)}</strong>${p.highSubs?.[index] ? `<small>${esc(p.highSubs[index])}</small>` : ''}</li>`).join('')}</ul>`)}${compareRow('商品状态', rows, (p) => `<span class="disc-availability ${available(p) ? '' : 'is-out'}"><i></i>${p.metadataUnavailable ? '商品已不可用' : available(p) ? '有货' : '暂时缺货'}</span>`)}${compareRow('选购好物', rows, (p) => `<div class="disc-compare-buy"><button class="primary" data-action="quick-add" data-id="${esc(p.id)}" ${available(p) ? '' : 'disabled'}>${icon('cart')}加入购物车</button><a class="outline" href="#/product/${esc(p.id)}">选择规格${icon('chevron')}</a></div>`)}</tbody></table></div></section>`
       : `<section class="disc-compare-empty"><span>${icon('layers')}</span><h2>把喜欢的好物放在一起看看</h2><p>在商品卡片点击「对比」，最多可选 ${MAX_COMPARE} 件商品。</p><a class="primary" href="#/">去挑选好物${icon('arrow')}</a></section>`;
     return `${header()}<main class="container disc-compare-page" id="main"><div class="breadcrumb"><a href="#/">首页</a>${icon('chevron')}<span>商品对比</span></div><div class="disc-compare-page-head"><div><span class="disc-kicker">FIND YOUR PERFECT MATCH</span><h1>好物对比 <small>${rows.length} / ${MAX_COMPARE}</small></h1></div><div><a class="outline" href="#/">${icon('plus')}继续添加</a>${rows.length ? '<button class="disc-clear-all" data-discovery-action="clear-compare">清空对比</button>' : ''}</div></div>${compareTable}</main>${footer()}`;
   }
@@ -570,20 +580,30 @@
     }
     if (action === 'toggle-compare') {
       if (!window.LumoAuth?.requireLogin(location.hash)) return;
-      if (!productFor(id)) {
+      const selectedSKU = comparison.find((sku) => productFor(sku)?.id === id);
+      if (!productFor(id) || (!selectedSKU && productFor(id).visible === false)) {
         toast('商品已下架，无法加入对比');
         return;
       }
       button.disabled = true;
       const owner = currentOwner();
       try {
-        const selected = comparison.includes(id);
-        await api(C.Service.Engagement, selected ? C.Action.Delete : C.Action.Put, {
-          data: { kind: C.EngagementKind.Compare, sku_id: id },
+        await api(C.Service.Engagement, selectedSKU ? C.Action.Delete : C.Action.Put, {
+          data: {
+            kind: C.EngagementKind.Compare,
+            sku_id: selectedSKU || window.LumoCommerce?.skuForItem?.(id) || id,
+          },
         });
         const result = await api(C.Service.Engagement, C.Action.List, {
           data: { kind: C.EngagementKind.Compare, limit: 100 },
         });
+        if (owner !== currentOwner()) return;
+        await window.LumoCommerce?.hydrateProducts?.(
+          (result.items || []).map((row) => row.sku_id),
+          {
+            active: () => owner === currentOwner(),
+          },
+        );
         if (owner !== currentOwner()) return;
         comparison = (result.items || []).map((row) => row.sku_id);
         renderKeepScroll();

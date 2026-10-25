@@ -25,8 +25,10 @@
 ```
 
 ```json
-{"data":{"业务响应字段":"值"},"trace_id":"32位hex"}
+{"data":{"业务响应字段":"值"}}
 ```
+
+所有响应通过 `x-trace-id` 标头提供32位十六进制链路编号，JSON返回体不重复该字段。浏览器跨域读取时由 `Access-Control-Expose-Headers` 暴露该标头。
 
 普通用户请求携带 `Authorization: Bearer <token>`。不要传入 user_id/role；即使传入，网关也会清除，并用IAM验证结果重建身份。管理员演示操作需要真正的管理员会话，不能在JSON里声称自己是admin。内部资源预占、确认、订单裁决和资金退款创建不向HTTP客户端开放。
 
@@ -34,39 +36,31 @@
 
 ## 页面聚合读取
 
-`POST /api/v1/storefront/bootstrap` 接受 `{"data":{}}`，按固定计划一次返回商城启动所需的商品、页面内容、FAQ、活动、秒杀、拼团和领券预览。登录后还包含本人的资料、地址、券包、积分、购物车、订单、收藏/浏览/对比/搜索记录、评价、售后、通知、发票和工单。商品列表使用 `limit:100`；首页券预览使用 `coupon/templates` 的第1页、每页100条。空搜索直接复用已加载商品，启动计划不重复执行空 `search/query`。
+首页按展示依赖拆成固定的 BFF 接口，均使用 POST 和空命令 `{"data":{}}`，不接受浏览器提交服务、动作或任意读取计划：
 
-网关还收集商品默认及规格 SKU、秒杀 SKU 和本人购物车 SKU，批量读取库存，并补齐秒杀商品信息。推荐服务复用已读取的商品、库存及本人行为、订单快照进行首页排序，仅补查新增候选；结果包含 `recommendation/list` 的 `scene:home,limit:20` 条目和新增推荐商品的库存。页面模块直接消费这些快照，不额外逐商品请求。
+- `/api/v1/storefront/shell`：匿名读取 `content/get` 的 `storefront-main` 装修文档与 `storefront-categories` 分类文档。尚未装修时，主文档的404片段标记 `optional:true`，前端使用默认装修且本轮不重复查询；分类配置读取失败仍显示错误。
+- `/api/v1/storefront/products`：匿名读取前100件公开商品，随后汇总默认和规格SKU，以每组最多500个SKU读取真实库存。商品列表与库存作为同一展示分区返回，避免逐商品读取。
+- `/api/v1/storefront/activities`：读取普通活动、秒杀、拼团及第1页2张券预览，并按每组最多500个SKU补齐秒杀、拼团的商品和库存。可选 Bearer 仅用于本人的券领取资格，公开活动使用匿名上下文。
+- `/api/v1/storefront/account_summary`：要求 Bearer，只返回本人首页与页头需要的资料投影、积分、可用券数、收藏数/收藏SKU标记、购物车数量及通知未读数。响应为 `{summary,errors}`，不包含完整券包、订单、地址、售后、发票或工单；某个依赖失败时，对应字段为 `null` 并单独记录错误，其他字段继续返回。
 
-左侧“最近感兴趣”通过 `POST /api/v1/storefront/recent` 一次读取，请求固定为 `{"data":{}}`，可选 Bearer；不接受商品、用户、画像或数量参数。响应 `data` 为 `{items,inventory_items,personalized,degraded,limit:6,count}`：`items` 是最多6个不同的、可展示且有实际可用库存的父商品，保留完整公开商品字段，并增加 `recent_source=history|favorite|recommendation|featured`；推荐商品可包含推荐理由。`inventory_items` 与商品一一对应，提供其默认SKU真实库存。优先展示本人的浏览和收藏，缺额按包含浏览、收藏、搜索、对比、购买偏好的现有推荐排序补齐；无行为或游客使用真实精选商品。禁用、隐藏、缺失、无名称、无有效价格或无可用库存的商品跳过，多个规格只计一个父商品。首批目录不足时才继续读取目录页；库存依赖故障停止无效扫描，保留已知真实结果并标记 `degraded:true`，不伪造库存或商品补数。仅在真实可展示可售商品不足时正常少于6条；关键目录失败返回错误，不伪装为空列表。
+`POST /api/v1/storefront/bootstrap` 仅保留为 `shell` 的兼容别名，不再返回全部业务数据。`/api/v1/storefront/batch` 已退出HTTP白名单，任何身份请求均返回403且不执行子RPC。商品和库存的同类批量查询继续保留。
 
-`bootstrap.results` 预载同结构条目：`key=bootstrap-recent`、`service=storefront`、`action=recent`、`command={data:{}}`，`auth` 在登录时为 `true`、游客为 `false`。组装复用本轮已读取的行为、订单、目录、推荐和批量库存，不重复读取个人画像。前端首屏消费对应会话快照；浏览/收藏变化后只刷新该聚合接口，无需逐商品调用 `catalog/get` 或 `inventory/get`。此入口仅接受POST，不可嵌套到通用 `batch`；登录时必须携带当前用户 Bearer，不能按匿名模式缓存个性化结果。
-
-其他页面通过 `POST /api/v1/storefront/batch` 合并同一轮并发的只读请求，例如：
-
-```json
-{"data":{"requests":[
-  {"key":"stock","service":"inventory","action":"get","command":{"id":"sku-coffee","data":{}}},
-  {"key":"faq","service":"content","action":"list","command":{"data":{"kind":"faq","limit":100}}}
-]}}
-```
-
-`bootstrap` 和 `batch` 使用相同的结果结构；以下示例包含一个成功子请求和一个不存在的 SKU：
+前三个分区返回固定命令结果，示例：
 
 ```json
 {"data":{"results":[
-  {"key":"stock","service":"inventory","action":"get","command":{"id":"sku-coffee","data":{}},"auth":false,"data":{"sku_id":"sku-coffee","on_hand":50,"reserved":0,"allocated":0,"available":50}},
-  {"key":"missing","service":"catalog","action":"get","command":{"id":"missing","data":{}},"auth":false,"error":{"code":"NotFound","message":"SKU unavailable","status":404}}
-]},"trace_id":"32位hex"}
+  {"key":"products","service":"catalog","action":"list","command":{"data":{"limit":100}},"auth":false,"data":{"items":[]}},
+  {"key":"product-stock-0","service":"inventory","action":"batch_get","command":{"data":{"ids":["sku-coffee"]}},"auth":false,"data":{"items":[{"sku_id":"sku-coffee","available":50}],"missing_ids":[]}}
+]}}
 ```
 
-`batch` 每次接受1至64个子请求，`key` 必须非空且唯一；`command` 仅允许 `id` 和 `data`。网关在执行任何子请求前完成全部参数、动作及权限预检：只允许已公开的只读白名单，拒绝嵌套聚合、IAM、身份/角色/幂等字段及所有写动作。`pricing/quote` 和 `checkout/quote` 会保存报价，因此也不能放入只读批次。匿名读取私有资源或普通用户读取管理资源，会使整个批次在执行前失败。
+每个片段包含 `data` 或 `error:{code,message,status}`。固定计划中的某项读取失败不阻止其他项返回；子调用沿用外层Trace、超时和取消信号。客户端只复用同一轮启动的分区快照，之后恢复对应业务接口的正常读取；相同作用域下完全相同的在途请求共享Promise，无关业务保持各自的接口地址。
 
-有效批次按输入顺序返回结果；某项业务读取失败仅写入该项的 `error`，不阻止其他项返回。相同命令只执行一次，子 RPC 最多8个并发，沿用外层请求的 Trace、超时和取消信号。`inventory/get`、`catalog/get` 按服务及身份合并为 `batch_get`，每组最多500个去重 SKU，通过一次 SQL `IN` 查询读取，超出时分组；缺失 SKU 分别返回404，不把逐个查询转移到网关。
+公共装修和商品分区与会话恢复并行加载，不等待会员摘要。推荐通过 `recommendation/list` 独立加载；商品详情、会员各标签、购物车、结算及支付只读取当前视图需要的资源。购物车件数、收藏数与通知未读数使用列表接口的独立 `quantity_total`/`total`/`unread_total` 精确计数，SKU标记和通知明细仍保持有界；翻页或筛选结果不会覆盖全账户计数。完整私有列表不能因收到摘要就标为已加载。摘要在当前账号和接口作用域内短时复用，相关业务写入后更新对应计数字段；浏览、分析记录不会重新拉取全部账户数据。
 
-两个聚合入口均支持可选 Bearer；网关只从已验证的外层会话重建子请求身份。`auth` 标记该条结果是否使用登录身份：启动计划的公开数据使用匿名上下文，个人数据和登录后的券领取状态使用本人上下文。前端按接口地址、认证模式及具体会话隔离进行中的请求和启动快照，切换账号或接口地址会失效；快照只用于本轮启动。写操作、报价、支付及订单实时状态查询保持独立请求，写入后重新读取状态。
+左侧“最近感兴趣”通过 `POST /api/v1/storefront/recent` 独立读取，请求固定为 `{"data":{}}`，可选 Bearer；不接受商品、用户、画像或数量参数。响应 `data` 为 `{items,inventory_items,personalized,degraded,limit:6,count}`：`items` 是最多6个不同的、可展示且有实际可用库存的父商品，保留完整公开商品字段，并增加 `recent_source=history|favorite|recommendation|featured`；推荐商品可包含推荐理由。`inventory_items` 与商品一一对应，提供其默认SKU真实库存。优先展示本人的浏览和收藏，缺额按包含浏览、收藏、搜索、对比、购买偏好的推荐排序补齐；无行为或游客使用真实精选商品。禁用、隐藏、缺失、无名称、无有效价格或无可用库存的商品跳过，多个规格只计一个父商品。首批目录不足时才继续读取目录页；库存依赖故障停止无效扫描，保留已知真实结果并标记 `degraded:true`，不伪造库存或商品补数。仅在真实可展示可售商品不足时正常少于6条；关键目录失败返回错误，不伪装为空列表。浏览或收藏变化后只刷新此接口，收起、展开及普通渲染不读取接口。
 
-也可直接调用 `/api/v1/catalog/batch_get` 或 `/api/v1/inventory/batch_get`，请求为 `{"data":{"ids":["sku-coffee","sku-watch"]}}`，一次接受1至500个 SKU，响应为 `{"items":[...],"missing_ids":[...]}`。返回顺序保留首次出现的 SKU 顺序；普通目录读取将停用商品视为缺失，管理员沿用单项读取权限。
+可直接调用 `/api/v1/catalog/batch_get` 或 `/api/v1/inventory/batch_get`，请求为 `{"data":{"ids":["sku-coffee","sku-watch"]}}`，一次接受1至500个 SKU，响应为 `{"items":[...],"missing_ids":[...]}`。返回顺序保留首次出现的 SKU 顺序；普通目录读取将停用商品视为缺失，管理员沿用单项读取权限。写操作、保存报价、支付及订单实时状态查询均使用独立业务接口；批量读取不替代提交时的权威校验。
 
 ## 登录与退出
 
@@ -84,7 +78,7 @@ curl -s http://localhost:8080/api/v1/iam/logout \
 
 ## 首页分类导航配置
 
-匿名调用 `POST /api/v1/content/get`，请求 `{"id":"storefront-categories"}`，返回的 `data.body` 为版本1的分类配置JSON。首页通过已有 `storefront/bootstrap` 聚合缓存读取该文档，不增加浏览器启动请求；展开面板不读取接口。
+匿名调用 `POST /api/v1/content/get`，请求 `{"id":"storefront-categories"}`，返回的 `data.body` 为版本1的分类配置JSON。首页通过 `storefront/shell` 读取并复用该文档；展开面板不读取接口。
 
 管理员调用 `POST /api/v1/content/upsert`，固定 `id=storefront-categories`、`data.kind=storefront`，提交标题和JSON正文。配置包含大类 `id/category/label/title/icon/enabled`，快捷入口 `shortcuts[{label,query}]`、分组 `rows[{title,query,items:[{label,query,featured}]}]`、品牌 `brands[{label,brand}]`；数组顺序即展示顺序。完整结构及边界见 [内容服务说明](../services/content/README.md)。管理端“分类导航”提供可视化编辑。首次迁移初始化，重复启动不会覆盖已保存配置。
 
@@ -92,7 +86,7 @@ curl -s http://localhost:8080/api/v1/iam/logout \
 
 营销弹窗由内容服务独立保存配置及展示记录。管理员使用 `content/popup_list` 读取活动及全局设置，`content/popup_upsert` 保存活动（更新必须携带当前 `version`，并发编辑冲突返回409），`content/popup_configure` 保存全局 `enabled/max_per_session/min_gap_seconds`。管理页面为 `/admin.html` 的“营销弹窗”。完整规则字段及持久化语义见 [内容服务说明](../services/content/README.md)。
 
-`storefront/bootstrap` 可在 `data.placement` 传入 `home/category/product/coupons/none`，默认 `home`；响应在原有 `results` 之外附带顶层 `popup`，不匹配时为 `null`。用户身份、人群画像及注册时间来自会话与已有后端快照，不接收浏览器提供的画像。后续页面进入使用 `POST storefront/popup`、`{"data":{"placement":"product"}}` 重新匹配；登录、结算、支付和管理页使用 `none`，不展示营销内容。可选营销服务异常不会阻断商城启动。
+首页公共内容就绪后，独立调用 `POST /api/v1/storefront/popup`，例如 `{"data":{"placement":"home"}}`。进入后续页面按 `home/category/product/coupons/none` 重新匹配；不匹配时返回 `popup:null`。用户身份、人群画像及注册时间来自服务端验证的会话与业务数据，不接收浏览器提供的画像。登录、结算、支付和管理页使用 `none`，不展示营销内容；可选营销服务异常不会阻断公共商城内容渲染。弹窗不再附带在任何首页分区响应中。
 
 返回的弹窗包含 `delivery_id/campaign_id/content/coupon/expires_at`；内容不含用户名单或完整人群规则。前端在页面可见、其他对话框关闭、配置延迟结束后，以 `storefront/popup_event` 提交 `delivery_id/view_id/event=impression`，仅在 `allowed:true` 后显示；`click/dismiss/auto_close` 沿用同一凭证且统计幂等。匹配本身不扣减展示次数，不会领取优惠券。
 
@@ -104,7 +98,7 @@ curl -s http://localhost:8080/api/v1/iam/logout \
 
 | 服务 | 用户/公开动作 | 管理员动作 |
 | --- | --- | --- |
-| storefront | bootstrap/batch（仅聚合已授权只读动作）；recent（可选登录，最多6个真实不同父商品）；popup/popup_event；popup_claim（登录） | 子请求沿用管理员权限校验 |
+| storefront | shell/products/activities；bootstrap（shell兼容别名）；account_summary（登录）；recent（可选登录，最多6个真实不同父商品）；popup/popup_event；popup_claim（登录） | 无通用batch入口 |
 | catalog | list/get/batch_get | upsert |
 | search/recommendation/content | query/list/list | content.upsert/popup_list/popup_upsert/popup_configure |
 | member/address | get/update；list/create/update/delete/default | 按服务业务权限 |
@@ -197,11 +191,11 @@ MySQL关键词搜索使用随商品行自动更新的只读覆盖索引，先筛
 
 ## 错误
 
-HTTP 400 参数错误，401 未登录/会话失效，403 权限或未公开动作，404 对象不存在，409 状态或幂等冲突，429 资源/准入限制，503 依赖不可用，504 RPC超时。响应 `error.code` 为gRPC状态码，`trace_id` 用于定位调用树。
+HTTP 400 参数错误，401 未登录/会话失效，403 权限或未公开动作，404 对象不存在，409 状态或幂等冲突，429 资源/准入限制，503 依赖不可用，504 RPC超时。响应 `error.code` 为gRPC状态码，响应头 `x-trace-id` 用于定位调用树；成功和失败的JSON返回体都不附加 `trace_id`。
 
 ## 领券与文件上传
 
-首页提供领券预览和 `#/coupons` 领券中心入口。`/api/v1/coupon/templates` 支持匿名浏览；携带登录会话时返回本人的领取状态。请求 `data.page`、`data.page_size` 分页（每页最多100张），响应包含 `items`、`total`、`page`、`page_size`、`has_more` 和 `server_time`。首页只读取第1页100条预览，不遍历整个领取池。
+首页提供领券预览和 `#/coupons` 领券中心入口。`/api/v1/coupon/templates` 支持匿名浏览；携带登录会话时返回本人的领取状态。请求 `data.page`、`data.page_size` 分页（每页最多100张），响应包含 `items`、`total`、`page`、`page_size`、`has_more` 和 `server_time`。首页只读取第1页2张预览，不遍历整个领取池。
 
 完整领券中心使用只读 `/api/v1/coupon/templates_snapshot`，同样传入 `data.page/page_size`，每页最多5000条，响应字段和资格状态与 `templates` 一致；超过5000条时按 `has_more` 继续取下一页。该接口一次计算当前用户的资格上下文，供页面全局筛选所有已启用的券，包括未开始、已结束、领完和条件未满足的券；普通 `templates` 的100条上限保持不变。快照不预占名额，实际领取仍由服务端重新裁决。
 

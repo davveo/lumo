@@ -265,3 +265,140 @@ test('resuming another order never submits a payment retained from the previous 
   );
   assert.equal(app.ctx.location.hash, '#/success');
 });
+
+test('first accepted payment refreshes only its wallet and SKU resources besides orders and cart', async (t) => {
+  const { app, calls } = setup(t);
+  const memberReads = [],
+    stockReads = [];
+  app.ctx.LumoMember = {
+    refresh: async (force, resources) => memberReads.push({ force, resources: [...resources] }),
+    orderLabel: () => '已支付',
+    afterRender() {},
+  };
+  app.ctx.LumoInventory = { refresh: async (ids) => stockReads.push([...ids]) };
+  app.ctx.LumoServices = {
+    unreadCount: () => 0,
+    supportLauncher: () => '',
+    afterRender() {},
+    refresh() {
+      throw Error('payment must not load service collections');
+    },
+  };
+  await app.ctx.LumoCommerce.submitDemoPayment();
+  await tick();
+  assert.equal(app.ctx.location.hash, '#/success');
+  assert.deepEqual(memberReads, [{ force: false, resources: ['coupons', 'points'] }]);
+  assert.deepEqual(stockReads, [['sku-test']]);
+  assert.equal(calls.filter((call) => call.route === 'cart/list').length, 1);
+  assert.equal(app.failures.length, 0);
+});
+
+test('stable success-page polls read only orders and refresh affected resources once on refund changes', async (t) => {
+  const { app, server, calls } = setup(t);
+  server.order = { ...server.order, status: 'READY_TO_FULFILL', payment_id: 'paid-a', refunded_total_cents: 0 };
+  await app.ctx.LumoCommerce.refreshOrders();
+  app.navigate('success');
+  const memberReads = [],
+    stockReads = [];
+  app.ctx.LumoMember = {
+    refresh: async (force, resources) => memberReads.push({ force, resources: [...resources] }),
+    orderLabel: () => '已支付',
+    afterRender() {},
+  };
+  app.ctx.LumoInventory = { refresh: async (ids) => stockReads.push([...ids]) };
+  app.ctx.LumoServices = {
+    unreadCount: () => 0,
+    supportLauncher: () => '',
+    afterRender() {},
+    refresh() {
+      throw Error('success poll must not load service collections');
+    },
+  };
+  app.ctx.LumoPromotions = {
+    afterRender() {},
+    refresh() {
+      throw Error('success poll must not reload every activity');
+    },
+  };
+  calls.splice(0);
+  await app.evaluate('refreshPostPaymentState()');
+  await app.evaluate('refreshPostPaymentState()');
+  assert.deepEqual(
+    calls.map((call) => call.route),
+    ['order/list', 'order/list'],
+  );
+  assert.equal(memberReads.length, 0);
+  assert.equal(stockReads.length, 0);
+  server.order = { ...server.order, status: 'REFUNDED', refunded_total_cents: 1200 };
+  calls.splice(0);
+  await app.evaluate('refreshPostPaymentState()');
+  assert.deepEqual(calls.map((call) => call.route).sort(), ['cart/list', 'order/list']);
+  assert.deepEqual(memberReads, [{ force: false, resources: ['coupons', 'points'] }]);
+  assert.deepEqual(stockReads, [['sku-test']]);
+  assert.match(app.navigate('success'), /退款已完成/);
+  calls.splice(0);
+  await app.evaluate('refreshPostPaymentState()');
+  assert.deepEqual(
+    calls.map((call) => call.route),
+    ['order/list'],
+  );
+  assert.equal(memberReads.length, 1);
+  assert.equal(stockReads.length, 1);
+  assert.equal(app.failures.length, 0);
+});
+
+test('a success poll completing after an account change cannot refresh the next account wallet', async (t) => {
+  const fixture = setup(t),
+    { app, server } = fixture;
+  server.order = { ...server.order, status: 'READY_TO_FULFILL', payment_id: 'paid-a' };
+  await app.ctx.LumoCommerce.refreshOrders();
+  app.navigate('success');
+  const delayed = deferred(),
+    sideEffects = [];
+  app.ctx.LumoMember = {
+    refresh: async () => sideEffects.push('member'),
+    orderLabel: () => '已支付',
+    afterRender() {},
+  };
+  app.ctx.LumoInventory = { refresh: async () => sideEffects.push('stock') };
+  fixture.handle((service, action, command) =>
+    service === 'order' && action === 'list' ? delayed.promise : fixture.respond(service, action, command),
+  );
+  const old = app.evaluate('refreshPostPaymentState()');
+  fixture.switchSession('buyer-b');
+  delayed.resolve({ items: [{ ...server.order, status: 'REFUNDED', refunded_total_cents: 1200 }] });
+  await old;
+  assert.deepEqual(sideEffects, []);
+  assert.equal(app.ctx.LumoCommerce.allOrders().length, 0);
+});
+
+test('canceling an order refreshes its status, coupon and point balances, and only its SKU inventory', async (t) => {
+  const fixture = setup(t),
+    { app, server, calls } = fixture;
+  const memberReads = [],
+    stockReads = [];
+  app.ctx.LumoMember = {
+    refresh: async (force, resources) => memberReads.push({ force, resources: [...resources] }),
+    orderLabel: () => '已取消',
+    afterRender() {},
+  };
+  app.ctx.LumoInventory = { refresh: async (ids) => stockReads.push([...ids]) };
+  fixture.handle((service, action, command) => {
+    if (service === 'checkout' && action === 'cancel') {
+      server.order = { ...server.order, status: 'CLOSED' };
+      return { id: command.id, status: 'CLOSED' };
+    }
+    return fixture.respond(service, action, command);
+  });
+  await app.ctx.LumoCommerce.cancelOrder(server.order.id);
+  await tick();
+  assert.deepEqual(
+    calls.map((call) => call.route),
+    ['checkout/cancel', 'order/list'],
+  );
+  assert.deepEqual(memberReads, [{ force: false, resources: ['coupons', 'points'] }]);
+  assert.deepEqual(stockReads, [['sku-test']]);
+  assert.equal(app.ctx.LumoCommerce.state.payment, null);
+  assert.equal(app.ctx.location.hash, '#/member/orders');
+  assert.equal(app.failures.length, 0);
+});

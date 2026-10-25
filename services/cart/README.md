@@ -2,6 +2,8 @@
 
 支持操作：`list, add, remove, clear, merge`。
 
+`List` 返回本人 `cart_item` 的精确 `total`（商品行数）和 `quantity_total`（商品件数），不受 `limit` / `offset` 分页影响；付款消费回执不计入。`items` 仍最多 100 行，`limit` 表示本页实际返回行数。统计与列表共用用户、类型及可选状态过滤条件，通过兼容 MySQL / SQLite 的 SQL 聚合完成，不为计数加载全部记录；无效 JSON、缺失数量或负数数量按 0 件计。
+
 入口 `service.go` 只组装依赖；各层依次为：
 
 1. `internal/transport`：RPC命令入口和请求追踪。

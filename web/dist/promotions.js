@@ -102,16 +102,26 @@
         } else failure = result.reason;
       });
       if (results[1].status === 'fulfilled') {
-        const detailResults = await Promise.allSettled(
-          sessions.map(async (session) => {
-            await Promise.all([
-              api(C.Service.Catalog, C.Action.Get, { id: session.sku_id }, { auth: false }).then((detail) => {
-                if (active()) sessionProducts.set(session.sku_id, detail);
+        const ids = [...new Set(sessions.map((session) => session.sku_id).filter(Boolean))];
+        const detailResults = ids.length
+          ? await Promise.allSettled([
+              Promise.all(
+                Array.from({ length: Math.ceil(ids.length / 500) }, (_, index) =>
+                  api(
+                    C.Service.Catalog,
+                    C.Action.BatchGet,
+                    { data: { ids: ids.slice(index * 500, (index + 1) * 500) } },
+                    { auth: false },
+                  ),
+                ),
+              ).then((results) => {
+                if (active())
+                  for (const result of results)
+                    for (const detail of result.items || []) sessionProducts.set(detail.id, detail);
               }),
-              window.LumoInventory?.refreshOne?.(session.sku_id),
-            ]);
-          }),
-        );
+              window.LumoInventory?.refresh?.(ids),
+            ])
+          : [];
         if (!active()) return;
         for (const detailResult of detailResults) if (detailResult.status === 'rejected') failure = detailResult.reason;
       }

@@ -51,7 +51,8 @@ function setup({ missing = [], failure = null, incomplete = false } = {}) {
           }
           if (service === 'catalog' && action === 'upsert') return { id: 'phone', variants: product.variants };
           if (service === 'catalog' && action === 'list') return { items: [product] };
-          if (service === 'content' && action === 'list') return { items: [] };
+          if (service === 'content' && action === 'get' && command.id === 'storefront-main')
+            return { id: 'storefront-main', body: '{}' };
           if (service === 'inventory' && action === 'get')
             throw new Error('per-variant inventory requests are forbidden');
           return {};
@@ -164,7 +165,7 @@ test('admin homepage applies public theme without loading disabled catalog; edit
     await fixture.app.ctx.LumoStudio.refresh();
     assert.deepEqual(
       fixture.calls.map((c) => c.service + '/' + c.action),
-      ['content/list'],
+      ['content/get'],
     );
     fixture.app.navigate('editor');
     await fixture.app.ctx.LumoStudio.refresh();

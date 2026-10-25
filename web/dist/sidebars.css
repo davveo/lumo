@@ -28,14 +28,38 @@ body:has(.home-page) .container {
   border: 1px solid #eceef2;
   box-shadow: 0 5px 20px #2833460b;
 }
-.interest-rail {
+.interest-dock {
+  --interest-rail-width: 112px;
+  --interest-rail-duration: 360ms;
+  --interest-rail-easing: cubic-bezier(0.22, 1, 0.36, 1);
+  position: fixed;
   top: 190px;
   left: 0;
-  width: 112px;
+  width: var(--interest-rail-width);
+  pointer-events: none;
+}
+.interest-rail {
+  position: relative;
+  width: 100%;
+  transform: translate3d(0, 0, 0);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    transform var(--interest-rail-duration) var(--interest-rail-easing),
+    opacity 240ms ease,
+    visibility 0s;
   max-height: calc(100dvh - 214px);
   border-left: 0;
   border-radius: 0 10px 10px 0;
   overflow: visible;
+}
+.interest-dock.is-collapsed .interest-rail {
+  transform: translate3d(calc(-100% - 12px), 0, 0);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition-delay: 0s, 0s, var(--interest-rail-duration);
 }
 .interest-rail-head {
   display: flex;
@@ -141,52 +165,82 @@ body:has(.home-page) .container {
 .interest-rail-toggle {
   position: absolute;
   top: 50%;
-  right: -15px;
-  display: grid;
-  place-items: center;
+  left: calc(100% - 1px);
   width: 16px;
   height: 39px;
   padding: 0;
-  transform: translateY(-50%);
+  transform: translate3d(0, -50%, 0);
   border: 1px solid #eceef2;
   border-left: 0;
   border-radius: 0 8px 8px 0;
   background: #fff;
   color: #a5adb8;
   box-shadow: 5px 2px 9px #28334605;
+  pointer-events: auto;
+  transition:
+    transform var(--interest-rail-duration) var(--interest-rail-easing),
+    width var(--interest-rail-duration) var(--interest-rail-easing),
+    height var(--interest-rail-duration) var(--interest-rail-easing),
+    color 160ms ease,
+    background-color 160ms ease;
 }
-.interest-rail-toggle > svg {
+.interest-rail-direction {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 13px;
   height: 13px;
+  transform: translate(-50%, -50%);
+  transition:
+    transform var(--interest-rail-duration) var(--interest-rail-easing),
+    top var(--interest-rail-duration) var(--interest-rail-easing);
 }
-.interest-rail-toggle:hover {
-  color: var(--red);
-}
-.interest-rail-reopen {
-  top: 235px;
-  left: 0;
+.interest-rail-toggle-label {
+  position: absolute;
+  inset: 10px 4px 28px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  width: 30px;
-  min-height: 122px;
-  padding: 11px 6px;
-  border-left: 0;
-  border-radius: 0 8px 8px 0;
-  color: #737e8c;
-  font-size: 11px;
-  line-height: 1.5;
-  writing-mode: vertical-rl;
-  letter-spacing: 1px;
+  gap: 7px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 160ms ease,
+    visibility 0s linear 160ms;
 }
-.interest-rail-reopen > svg {
+.interest-rail-toggle-label > svg {
   width: 14px;
   height: 14px;
 }
-.interest-rail-reopen:hover {
+.interest-rail-toggle-label > span {
+  writing-mode: vertical-rl;
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: 1px;
+}
+.interest-dock.is-collapsed .interest-rail-toggle {
+  width: 30px;
+  height: 122px;
+  transform: translate3d(calc(1px - var(--interest-rail-width)), -50%, 0);
+  color: #737e8c;
+}
+.interest-dock.is-collapsed .interest-rail-direction {
+  top: calc(100% - 14px);
+  transform: translate(-50%, -50%) rotate(180deg);
+}
+.interest-dock.is-collapsed .interest-rail-toggle-label {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 100ms, 0s;
+}
+.interest-rail-toggle:hover {
   color: var(--red);
   background: #fff9f7;
+}
+.interest-rail-toggle:focus-visible {
+  outline-offset: 2px;
 }
 .quick-rail {
   top: max(184px, calc(50dvh - 225px));
@@ -311,8 +365,7 @@ body.has-lumo-sidebars .svc-support-launcher {
     --shopping-left-space: 24px;
     --shopping-right-space: 64px;
   }
-  .interest-rail,
-  .interest-rail-reopen {
+  .interest-dock {
     display: none;
   }
   .quick-rail {
@@ -401,8 +454,10 @@ body.has-lumo-sidebars .svc-support-launcher {
   }
 }
 @media (max-height: 540px) and (min-width: 1101px) {
-  .interest-rail {
+  .interest-dock {
     top: 158px;
+  }
+  .interest-rail {
     max-height: calc(100dvh - 176px);
   }
   .interest-rail-list {
@@ -432,4 +487,13 @@ body.has-lumo-sidebars .svc-support-launcher {
   background: #fff2ef;
   color: var(--red);
   font-size: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interest-rail,
+  .interest-rail-toggle,
+  .interest-rail-toggle-label,
+  .interest-rail-direction {
+    transition: none;
+  }
 }

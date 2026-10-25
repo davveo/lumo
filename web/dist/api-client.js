@@ -4,16 +4,30 @@
 
   let bearer = '',
     base = '',
-    batching = false,
-    readEpoch = 0,
-    flushTimer = null,
-    sequence = 0;
+    readEpoch = 0;
   let bootstrapActive = false,
     bootstrapRevision = 0;
   const requests = [],
     pending = new Map(),
-    queued = [],
-    snapshots = new Map();
+    sectionFlights = new Map(),
+    snapshots = new Map(),
+    snapshotFailures = new Map();
+  const emptySummary = () => ({
+    loading: false,
+    loaded: false,
+    error: '',
+    profile: null,
+    coupon_count: null,
+    points: null,
+    favorite_count: null,
+    cart_count: null,
+    unread_count: null,
+  });
+  let accountSummary = emptySummary(),
+    accountFlight = null,
+    summaryRevision = 0,
+    summaryAt = 0;
+  const summaryRefreshes = new Map();
   const emit = (name, detail) => window.dispatchEvent(new CustomEvent(name, { detail }));
   const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
   const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -57,7 +71,13 @@
     return message || code || '请求失败';
   };
   const readActions = {
-    [C.Service.Storefront]: [C.Action.Recent],
+    [C.Service.Storefront]: [
+      C.Action.Recent,
+      C.Action.Shell,
+      C.Action.Products,
+      C.Action.Activities,
+      C.Action.AccountSummary,
+    ],
     [C.Service.Catalog]: [C.Action.List, C.Action.Get, C.Action.BatchGet],
     [C.Service.Inventory]: [C.Action.Get, C.Action.BatchGet],
     [C.Service.Search]: [C.Action.Query],
@@ -115,15 +135,24 @@
       service,
       action,
     });
-  function invalidate() {
+  function invalidate(resetAccount = false) {
     readEpoch++;
     snapshots.clear();
+    snapshotFailures.clear();
     pending.clear();
+    sectionFlights.clear();
+    if (resetAccount) {
+      summaryRevision++;
+      accountSummary = emptySummary();
+      summaryAt = 0;
+      accountFlight = null;
+      summaryRefreshes.clear();
+    }
   }
   function expire(context, traceId) {
     if (context.mode === 'session' && context.token && context.token === bearer) {
       bearer = '';
-      invalidate();
+      invalidate(true);
       emit('lumo:session-expired', { traceId });
     }
   }
@@ -148,7 +177,8 @@
   }
   async function transport(service, action, payload, options, context) {
     const controller = new AbortController(),
-      started = Date.now();
+      started = Date.now(),
+      epoch = readEpoch;
     const abort = () => controller.abort();
     if (options.signal?.aborted) abort();
     else options.signal?.addEventListener('abort', abort, { once: true });
@@ -183,7 +213,6 @@
           action,
         });
       }
-      traceId = body.trace_id || traceId;
       if (!response.ok || body.error) {
         const error = body.error || {};
         if (httpStatus === 401) expire(context, traceId);
@@ -198,6 +227,11 @@
       if (!current(context)) throw changed(service, action);
       if (!body || typeof body.data !== 'object' || body.data === null)
         throw new APIError('后端响应缺少数据字段', { status: httpStatus, traceId, service, action });
+      // Domain reads must not update header projections before their caller
+      // rejects data invalidated by a newer mutation or session scope.
+      if (epoch === readEpoch) primeSummaryRead(service, action, payload, body.data, context);
+      if (!isRead(service, action) && !directReads.has(service + '/' + action))
+        refreshSummaryAfterWrite(service, payload, context);
       const entry = record({
         service,
         action,
@@ -206,7 +240,6 @@
         duration: Date.now() - started,
         at: started,
         ok: true,
-        ...(action === C.Action.Batch ? { batchSize: payload.data.requests.length } : {}),
       });
       return { data: body.data, traceId, status: httpStatus, entry };
     } catch (error) {
@@ -235,9 +268,98 @@
       options.signal?.removeEventListener('abort', abort);
     }
   }
+  function projectedCount(value, fallback) {
+    return value != null && Number.isFinite(Number(value)) && Number(value) >= 0 ? Math.floor(Number(value)) : fallback;
+  }
+  function primeSummaryRead(service, action, command, data, context) {
+    if (context.mode !== 'session' || !context.token || !current(context)) return;
+    let fields = null;
+    if (service === C.Service.Member && action === C.Action.Get)
+      fields = { profile: { display_name: data.display_name, level: data.level, avatar: data.avatar } };
+    if (service === C.Service.Points && action === C.Action.Get) fields = { points: data.available ?? null };
+    if (service === C.Service.Coupon && action === C.Action.List)
+      fields = {
+        coupon_count: (data.items || []).filter(
+          (row) => row.status === C.CouponStatus.Available && Date.parse(row.expires_at) > Date.now(),
+        ).length,
+      };
+    if (
+      service === C.Service.Cart &&
+      action === C.Action.List &&
+      !command.data.kind &&
+      !command.data.status &&
+      (data.quantity_total != null || !Number(command.data.offset))
+    )
+      fields = {
+        cart_count: projectedCount(
+          data.quantity_total,
+          (data.items || []).reduce((sum, row) => sum + Math.max(0, Number(row.quantity) || 0), 0),
+        ),
+      };
+    if (service === C.Service.Notification && action === C.Action.List && !command.data.kind && !command.data.status)
+      fields = {
+        unread_count: projectedCount(
+          data.unread_total,
+          (data.items || []).filter((row) => row.status !== C.NotificationStatus.Read).length,
+        ),
+      };
+    if (
+      service === C.Service.Engagement &&
+      action === C.Action.List &&
+      command.data.kind === C.EngagementKind.Favorite &&
+      !command.data.status
+    ) {
+      const ids = (data.items || []).map((row) => row.sku_id).filter(Boolean);
+      fields = { favorite_count: projectedCount(data.total, ids.length) };
+      if (!Number(command.data.offset)) fields.favorite_ids = ids;
+    }
+    if (fields) {
+      accountSummary = { ...accountSummary, ...fields, loading: false, loaded: true };
+      const key = requestKey(service, action, command, context),
+        timer = summaryRefreshes.get(key);
+      if (timer !== undefined) {
+        clearTimeout(timer);
+        summaryRefreshes.delete(key);
+      }
+    }
+  }
+  function refreshSummaryAfterWrite(service, command, context) {
+    if (context.mode !== 'session' || !context.token || !current(context)) return;
+    const target = {
+      [C.Service.Member]: [C.Action.Get, {}],
+      [C.Service.Points]: [C.Action.Get, {}],
+      [C.Service.Coupon]: [C.Action.List, {}],
+      [C.Service.Cart]: [C.Action.List, {}],
+      [C.Service.Notification]: [C.Action.List, { data: { limit: 100 } }],
+      [C.Service.Engagement]:
+        !command.data.kind || command.data.kind === C.EngagementKind.Favorite
+          ? [C.Action.List, { data: { kind: C.EngagementKind.Favorite, limit: 100 } }]
+          : null,
+    }[service];
+    if (!target) return; // Analytics/history/search writes do not change header metrics.
+    const key = requestKey(service, target[0], commandFor(target[1]), context);
+    if (summaryRefreshes.has(key)) return;
+    summaryRevision++;
+    const timer = setTimeout(() => {
+      summaryRefreshes.delete(key);
+      if (!current(context)) return;
+      void call(service, target[0], target[1]).catch(() => {});
+    }, 0);
+    summaryRefreshes.set(key, timer);
+  }
   function getSnapshot(service, action, command, context) {
     if (!bootstrapActive) return null;
     const key = requestKey(service, action, command, context);
+    if (snapshotFailures.has(key)) {
+      const failure = snapshotFailures.get(key);
+      throw new APIError(translated(failure.code, failure.message, failure.status), {
+        status: failure.status,
+        code: failure.code,
+        traceId: failure.traceId,
+        service,
+        action,
+      });
+    }
     if (snapshots.has(key)) return clone(snapshots.get(key));
     if (
       action === C.Action.BatchGet &&
@@ -278,100 +400,15 @@
     emit('lumo:api-error', { service: row.service, action: row.action, error });
     return error;
   }
-  async function dispatch(entries) {
-    const context = entries[0].context,
-      epoch = entries[0].epoch;
-    try {
-      if (!current(context) || epoch !== readEpoch) throw changed(C.Service.Storefront, C.Action.Batch);
-      const response = await transport(
-        C.Service.Storefront,
-        C.Action.Batch,
-        {
-          data: {
-            requests: entries.map((entry) => ({
-              key: entry.key,
-              service: entry.service,
-              action: entry.action,
-              command: entry.command,
-            })),
-          },
-        },
-        { timeout: entries[0].timeout },
-        context,
-      );
-      if (epoch !== readEpoch) throw changed(C.Service.Storefront, C.Action.Batch);
-      if (!Array.isArray(response.data.results))
-        throw new APIError('聚合读取响应缺少结果，请刷新重试', { status: 502, traceId: response.traceId });
-      const results = new Map(response.data.results.map((row) => [row.key, row]));
-      const failedReads = [];
-      for (const entry of entries) {
-        const row = results.get(entry.key);
-        if (!row || row.service !== entry.service || row.action !== entry.action)
-          entry.reject(
-            new APIError('聚合读取结果不完整，请刷新重试', {
-              status: 502,
-              traceId: response.traceId,
-              service: entry.service,
-              action: entry.action,
-            }),
-          );
-        else if (row.error) {
-          failedReads.push({ service: entry.service, action: entry.action, code: row.error.code });
-          entry.reject(childError(row, response, context));
-        } else if (!row.data || typeof row.data !== 'object')
-          entry.reject(
-            new APIError('后端响应缺少数据字段', {
-              status: 502,
-              traceId: response.traceId,
-              service: entry.service,
-              action: entry.action,
-            }),
-          );
-        else entry.resolve(clone(row.data));
-      }
-      if (failedReads.length) {
-        response.entry.ok = false;
-        response.entry.failedReads = failedReads;
-      }
-    } catch (error) {
-      for (const entry of entries) entry.reject(error);
-    }
-  }
-  function flush() {
-    flushTimer = null;
-    const entries = queued.splice(0),
-      groups = new Map();
-    for (const entry of entries) {
-      const key = stable([entry.context, entry.timeout, entry.epoch]);
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(entry);
-    }
-    for (const group of groups.values())
-      for (let index = 0; index < group.length; index += 64) void dispatch(group.slice(index, index + 64));
-  }
-  function read(service, action, command, options, context) {
-    const snapshot = getSnapshot(service, action, command, context);
-    if (snapshot) return Promise.resolve(snapshot);
-    const timeout = Math.max(1, Number(options.timeout) || 30000),
-      dedupKey = requestKey(service, action, command, context) + ':' + timeout + ':' + readEpoch;
-    if (pending.has(dedupKey)) return pending.get(dedupKey);
-    const entry = { key: 'read-' + ++sequence, service, action, command, context, timeout, epoch: readEpoch };
-    const promise = new Promise((resolve, reject) => {
-      entry.resolve = resolve;
-      entry.reject = reject;
-    });
-    const tracked = promise.finally(() => {
-      if (pending.get(dedupKey) === tracked) pending.delete(dedupKey);
-    });
-    pending.set(dedupKey, tracked);
-    queued.push(entry);
-    if (flushTimer === null) flushTimer = setTimeout(flush, 0);
-    return tracked;
-  }
   // A storefront read is already a BFF aggregate. Reuse its bootstrap
   // snapshot and in-flight work, but never nest it inside storefront/batch.
   function aggregateRead(service, action, command, options, context) {
-    const snapshot = getSnapshot(service, action, command, context);
+    let snapshot;
+    try {
+      snapshot = getSnapshot(service, action, command, context);
+    } catch (error) {
+      return Promise.reject(error);
+    }
     if (snapshot) return Promise.resolve(snapshot);
     const epoch = readEpoch,
       timeout = Math.max(1, Number(options.timeout) || 30000),
@@ -398,50 +435,111 @@
     }
     const context = contextFor(options),
       safeRead = isRead(service, action) && !payload.idempotency_key;
-    if (service === C.Service.Storefront && action === C.Action.Recent && safeRead)
-      return aggregateRead(service, action, payload, options, context);
-    if (batching && safeRead) return read(service, action, payload, options, context);
+    // Coalesce identical work only. Unrelated reads retain their semantic URL;
+    // no client-generated service/action list crosses an HTTP boundary.
+    if (safeRead) return aggregateRead(service, action, payload, options, context);
     if (!safeRead && !directReads.has(service + '/' + action) && service !== C.Service.Storefront) invalidate();
     return transport(service, action, payload, options, context).then((result) => result.data);
   }
-  async function prefetchBootstrap(command = {}) {
-    batching = true;
+  function beginSections() {
     snapshots.clear();
+    snapshotFailures.clear();
+    sectionFlights.clear();
     bootstrapActive = true;
-    const revision = ++bootstrapRevision,
+    bootstrapRevision++;
+  }
+  function prefetchSection(section, command = {}) {
+    if (![C.Action.Shell, C.Action.Products, C.Action.Activities].includes(section))
+      return Promise.reject(new APIError('未知页面分区'));
+    const revision = bootstrapRevision,
       epoch = readEpoch,
-      context = contextFor({});
-    try {
-      const response = await transport(C.Service.Storefront, C.Action.Bootstrap, commandFor(command), {}, context);
-      if (revision !== bootstrapRevision || epoch !== readEpoch || !current(context))
-        throw changed(C.Service.Storefront, C.Action.Bootstrap);
+      context = contextFor(section === C.Action.Activities ? {} : { auth: false });
+    const sectionKey = requestKey(C.Service.Storefront, section, commandFor(command), context);
+    if (sectionFlights.has(sectionKey)) return sectionFlights.get(sectionKey);
+    const promise = transport(C.Service.Storefront, section, commandFor(command), {}, context).then((response) => {
+      if (revision !== bootstrapRevision || (context.mode !== 'public' && epoch !== readEpoch) || !current(context))
+        throw changed(C.Service.Storefront, section);
       if (!Array.isArray(response.data.results))
-        throw new APIError('商城聚合数据不完整，请刷新重试', { status: 502, traceId: response.traceId });
-      const catalog = response.data.results.find(
-        (row) => row.service === C.Service.Catalog && row.action === C.Action.List,
-      );
-      if (!catalog || (!catalog.error && (!catalog.data || typeof catalog.data !== 'object')))
-        throw new APIError('商城聚合数据缺少商品目录，请刷新重试', { status: 502, traceId: response.traceId });
-      if (catalog.error) throw childError(catalog, response, context);
+        throw new APIError('页面分区数据不完整，请刷新重试', { status: 502, traceId: response.traceId });
+      if (section === C.Action.Products) {
+        const catalog = response.data.results.find(
+          (row) => row.service === C.Service.Catalog && row.action === C.Action.List,
+        );
+        if (!catalog || (!catalog.error && (!catalog.data || typeof catalog.data !== 'object')))
+          throw new APIError('商品分区缺少目录，请刷新重试', { status: 502, traceId: response.traceId });
+        if (catalog.error) throw childError(catalog, response, context);
+      }
       for (const row of response.data.results) {
+        if (
+          section === C.Action.Shell &&
+          row.optional === true &&
+          row.error?.code === 'NotFound' &&
+          row.service === C.Service.Content &&
+          row.action === C.Action.Get &&
+          row.command?.id === 'storefront-main'
+        ) {
+          const scope = { base: context.base, token: '', mode: 'public' };
+          snapshotFailures.set(requestKey(row.service, row.action, commandFor(row.command), scope), {
+            ...row.error,
+            traceId: response.traceId,
+          });
+        }
         if (row.error || !row.data || typeof row.data !== 'object' || !row.command) continue;
         if (row.auth && !context.token) continue;
         const scope = row.auth ? context : { base: context.base, token: '', mode: 'public' };
         putSnapshot(row.service, row.action, commandFor(row.command), scope, row.data);
       }
       return response.data;
-    } catch (error) {
-      if (revision === bootstrapRevision) {
-        snapshots.clear();
-        bootstrapActive = false;
-      }
-      throw error;
+    });
+    const tracked = promise.finally(() => {
+      if (sectionFlights.get(sectionKey) === tracked) sectionFlights.delete(sectionKey);
+    });
+    sectionFlights.set(sectionKey, tracked);
+    return tracked;
+  }
+  // Compatibility for embedded clients. The old bootstrap URL is no longer
+  // requested; even its server alias now contains the small public shell only.
+  function prefetchBootstrap(command = {}) {
+    beginSections();
+    return prefetchSection(C.Action.Shell, command);
+  }
+  function refreshAccountSummary(force = false) {
+    if (!bearer) {
+      accountSummary = emptySummary();
+      return Promise.resolve(accountSummary);
     }
+    if (accountFlight) return accountFlight;
+    if (!force && summaryAt && Date.now() - summaryAt < 30000) return Promise.resolve(clone(accountSummary));
+    const context = contextFor({}),
+      epoch = summaryRevision;
+    accountSummary = { ...accountSummary, loading: true, error: '' };
+    const promise = transport(C.Service.Storefront, C.Action.AccountSummary, { data: {} }, {}, context)
+      .then(({ data }) => {
+        if (!current(context) || epoch !== summaryRevision)
+          throw changed(C.Service.Storefront, C.Action.AccountSummary);
+        accountSummary = { ...emptySummary(), ...data.summary, loaded: true, errors: data.errors || {} };
+        summaryAt = Date.now();
+        return clone(accountSummary);
+      })
+      .catch((error) => {
+        if (current(context) && epoch === summaryRevision)
+          accountSummary = { ...accountSummary, loading: false, error: error.message };
+        throw error;
+      });
+    const tracked = promise.finally(() => {
+      if (accountFlight === tracked) {
+        accountFlight = null;
+        if (current(context)) accountSummary = { ...accountSummary, loading: false };
+      }
+    });
+    accountFlight = tracked;
+    return tracked;
   }
   function endBootstrap() {
     bootstrapActive = false;
     bootstrapRevision++;
     snapshots.clear();
+    snapshotFailures.clear();
   }
   const key = (prefix) =>
     String(prefix || 'request') +
@@ -449,22 +547,24 @@
     (window.crypto?.randomUUID
       ? window.crypto.randomUUID()
       : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2));
+  window.LumoAccountSummary = { model: () => clone(accountSummary), refresh: refreshAccountSummary };
   window.LumoAPI = {
     call,
     key,
     APIError,
     prefetchBootstrap,
+    prefetchSection,
+    beginSections,
     endBootstrap,
     isBootstrapActive: () => bootstrapActive,
-    enableReadBatching: (enabled = true) => {
-      batching = !!enabled;
-    },
+    // Kept for older modules; read coalescing no longer creates generic batches.
+    enableReadBatching: () => {},
     getToken: () => bearer,
     setToken: (value) => {
       const next = String(value || '');
       if (next !== bearer) {
         bearer = next;
-        invalidate();
+        invalidate(true);
         emit('lumo:api-scope-changed', {});
       }
     },
@@ -475,7 +575,7 @@
       if (next !== base) {
         base = next;
         bearer = '';
-        invalidate();
+        invalidate(true);
         emit('lumo:api-scope-changed', {});
         emit('lumo:session-expired', { reason: '接口地址已更改，请重新登录' });
       }
