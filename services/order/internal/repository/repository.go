@@ -17,6 +17,9 @@ type Tx struct {
 
 func New(db *gorm.DB) *Repository { return &Repository{db} }
 func (r *Repository) Migrate(ctx context.Context) error {
+	if e := platform.MigrateBusinessIDs(ctx, r.db); e != nil {
+		return e
+	}
 	ctx, s := platform.Start(ctx, "order.repository.Migrate")
 	defer s.End()
 	return r.db.WithContext(ctx).AutoMigrate(&domain.Order{}, &domain.RefundReceipt{})

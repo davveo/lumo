@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -118,37 +119,62 @@ var userActions = actionSet(map[string][]string{
 	constants.ServiceStorefront: {constants.ActionPopupClaim, constants.ActionAccountSummary},
 })
 var adminActions = actionSet(map[string][]string{
-	constants.ServiceCatalog: {constants.ActionUpsert},
+	constants.ServiceOrder:      {constants.ActionAdminList, constants.ActionAdminSummary},
+	constants.ServiceManagement: {constants.ActionDashboard},
+	constants.ServiceIAM:        {constants.ActionAdminList, constants.ActionAdminSummary, constants.ActionSetActive},
+	constants.ServiceCoupon:     {constants.ActionTemplatesAdmin, constants.ActionTemplateUpsert},
+	constants.ServiceCampaign:   {constants.ActionAdminList, constants.ActionUpsert},
+	constants.ServiceCatalog:    {constants.ActionUpsert},
 	constants.ServiceContent: {
 		constants.ActionUpsert,
 		constants.ActionPopupList,
 		constants.ActionPopupUpsert,
 		constants.ActionPopupConfigure,
 	},
-	constants.ServiceInventory:   {constants.ActionAdjust},
+	constants.ServiceInventory:   {constants.ActionAdjust, constants.ActionAdjustments},
 	constants.ServiceInteraction: {constants.ActionModerate, constants.ActionAnswer},
-	constants.ServiceFulfillment: {
+	constants.ServiceFulfillment: {constants.ActionAdminList, constants.ActionAdminSummary,
 		constants.ActionList,
 		constants.ActionDispatch,
 		constants.ActionCancel,
 		constants.ActionInspectReturn,
 	},
 	constants.ServiceLogistics: {constants.ActionDeliver},
-	constants.ServiceAftersale: {
+	constants.ServiceAftersale: {constants.ActionAdminList, constants.ActionAdminSummary,
 		constants.ActionApprove,
 		constants.ActionReject,
 		constants.ActionInspect,
 		constants.ActionRefund,
 		constants.ActionExchange,
 	},
-	constants.ServicePayment:        {constants.ActionList, constants.ActionConfirmDemo},
-	constants.ServiceRefund:         {constants.ActionList, constants.ActionConfirmDemo},
-	constants.ServiceInvoice:        {constants.ActionIssueDemo, constants.ActionAdjustDemo},
+	constants.ServicePayment: {
+		constants.ActionAdminList,
+		constants.ActionAdminSummary,
+		constants.ActionList,
+		constants.ActionConfirmDemo,
+	},
+	constants.ServiceRefund: {
+		constants.ActionAdminList,
+		constants.ActionAdminSummary,
+		constants.ActionList,
+		constants.ActionConfirmDemo,
+	},
+	constants.ServiceInvoice: {
+		constants.ActionAdminList,
+		constants.ActionAdminSummary,
+		constants.ActionIssueDemo,
+		constants.ActionAdjustDemo,
+	},
 	constants.ServiceReconciliation: {constants.ActionList, constants.ActionRun},
 	constants.ServiceAnalytics:      {constants.ActionList},
 })
 
 var reads = map[string]bool{
+	constants.ActionAdjustments:       true,
+	constants.ActionAdminSummary:      true,
+	constants.ActionDashboard:         true,
+	constants.ActionTemplatesAdmin:    true,
+	constants.ActionAdminList:         true,
 	constants.ActionList:              true,
 	constants.ActionGet:               true,
 	constants.ActionBatchGet:          true,
@@ -325,7 +351,11 @@ func (g *gateway) ready(w http.ResponseWriter, r *http.Request) {
 }
 
 func (g *gateway) execute(w http.ResponseWriter, r *http.Request) {
-	ctx, sp := platform.Start(r.Context(), "gateway.transport.Dispatch")
+	// Body parsing and session validation share the business request budget.
+	// Resetting it just before forwarding can outlive the server's write timeout.
+	ctx, finish := context.WithTimeout(r.Context(), 25*time.Second)
+	defer finish()
+	ctx, sp := platform.Start(ctx, "gateway.transport.Dispatch")
 	attrs := apiTraceAttributes(r.URL.Path)
 	sp.SetAttributes(attrs...)
 	trackHTTPTrace(ctx)
@@ -380,6 +410,13 @@ func (g *gateway) execute(w http.ResponseWriter, r *http.Request) {
 	}
 	if v := r.Header.Get("Idempotency-Key"); v != "" {
 		cmd.IdempotencyKey = v
+	}
+	if service == constants.ServiceIAM && (action == constants.ActionOtpSend || action == constants.ActionOAuthStart) {
+		host, _, e := net.SplitHostPort(r.RemoteAddr)
+		if e != nil {
+			host = r.RemoteAddr
+		}
+		cmd.Data["_client_ip"] = host
 	}
 	// Only trace parsed values. Browser identity claims have already been
 	// cleared, and the shared recorder redacts secrets without mutating cmd.
@@ -441,14 +478,14 @@ func (g *gateway) execute(w http.ResponseWriter, r *http.Request) {
 	trackHTTPTrace(ctx)
 	platform.TraceRequest(ctx, cmd)
 	defer sp2.End()
-	callCtx, cancel := context.WithTimeout(ctx, 25*time.Second)
-	defer cancel()
 	var result platform.Result
 	var err error
-	if service == constants.ServiceStorefront {
-		result, err = g.storefront(callCtx, cmd)
+	if service == constants.ServiceManagement {
+		result, err = g.managementDashboard(ctx, cmd)
+	} else if service == constants.ServiceStorefront {
+		result, err = g.storefront(ctx, cmd)
 	} else {
-		result, err = g.rpc.Call(callCtx, service, cmd)
+		result, err = g.rpc.Call(ctx, service, cmd)
 	}
 	if err != nil {
 		writeError(w, ctx, err)

@@ -30,6 +30,18 @@ func contentType(v string) (string, error) {
 	}
 	return strings.ToLower(typ), nil
 }
+
+func registeredObjectMatches(data map[string]any, info domain.StoredObject) bool {
+	ct, err := contentType(info.ContentType)
+	if err != nil || ct != platform.Text(data, "content_type") || info.Size != platform.Int(data, "size_bytes") ||
+		info.Size > maxUploadSize {
+		return false
+	}
+	// A still-valid upload policy can overwrite an object with the same MIME
+	// type and length. Completed uploads also bind their verified content tag.
+	etag := platform.Text(data, "etag")
+	return etag == "" || etag == info.ETag
+}
 func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "media.usecase.create")
 	defer span.End()
@@ -55,7 +67,10 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 	if strings.TrimSpace(name) == "" || len(name) > 200 || size < 1 || size > maxUploadSize {
 		return nil, bad("file_name and size 1..10MiB required")
 	}
-	id := platform.ID("file")
+	id, e := s.repo.BusinessID(ctx, "file", "", "")
+	if e != nil {
+		return nil, e
+	}
 	key := "private/" + id // never derive an object key from user-supplied names
 	mode := constants.MediaStorageModeMetadataOnly
 	st := constants.MediaStatusRegistered
@@ -134,9 +149,7 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 			"object not uploaded or storage verification unavailable",
 		)
 	}
-	ct, e := contentType(info.ContentType)
-	if e != nil || ct != platform.Text(data, "content_type") || info.Size != platform.Int(data, "size_bytes") ||
-		info.Size > maxUploadSize {
+	if !registeredObjectMatches(data, info) {
 		if _, saveErr := s.repo.Mutate(
 			ctx,
 			r,
@@ -150,7 +163,7 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 		}
 		return nil, status.Error(
 			codes.FailedPrecondition,
-			"uploaded object size or content type does not match registration",
+			"uploaded object content does not match registration",
 		)
 	}
 
@@ -202,9 +215,7 @@ func (s *Service) Download(ctx context.Context, c platform.Request) (traceResult
 			"object not uploaded or storage verification unavailable",
 		)
 	}
-	ct, e := contentType(info.ContentType)
-	if e != nil || ct != platform.Text(data, "content_type") || info.Size != platform.Int(data, "size_bytes") ||
-		info.Size > maxUploadSize {
+	if !registeredObjectMatches(data, info) {
 		if _, saveErr := s.repo.Mutate(
 			ctx,
 			r,
@@ -218,7 +229,7 @@ func (s *Service) Download(ctx context.Context, c platform.Request) (traceResult
 		}
 		return nil, status.Error(
 			codes.FailedPrecondition,
-			"uploaded object size or content type does not match registration",
+			"uploaded object content does not match registration",
 		)
 	}
 
@@ -267,9 +278,7 @@ func (s *Service) Complete(ctx context.Context, c platform.Request) (traceResult
 			"object not uploaded or storage verification unavailable",
 		)
 	}
-	ct, e := contentType(info.ContentType)
-	if e != nil || ct != platform.Text(data, "content_type") || info.Size != platform.Int(data, "size_bytes") ||
-		info.Size > maxUploadSize {
+	if !registeredObjectMatches(data, info) {
 		if _, saveErr := s.repo.Mutate(
 			ctx,
 			r,
@@ -283,7 +292,7 @@ func (s *Service) Complete(ctx context.Context, c platform.Request) (traceResult
 		}
 		return nil, status.Error(
 			codes.FailedPrecondition,
-			"uploaded object size or content type does not match registration",
+			"uploaded object content does not match registration",
 		)
 	}
 	{
@@ -293,6 +302,9 @@ func (s *Service) Complete(ctx context.Context, c platform.Request) (traceResult
 			}
 			if v.Status == constants.MediaStatusRejected {
 				return nil, nil, status.Error(codes.FailedPrecondition, "upload was rejected")
+			}
+			if !registeredObjectMatches(payload(*v), info) {
+				return nil, nil, status.Error(codes.FailedPrecondition, "completed upload content changed")
 			}
 			v.Status = constants.MediaStatusReady
 			d := payload(*v)

@@ -17,6 +17,9 @@ type Tx struct {
 
 func New(db *gorm.DB) *Repository { return &Repository{db} }
 func (r *Repository) Migrate(ctx context.Context) error {
+	if e := platform.MigrateBusinessIDs(ctx, r.db); e != nil {
+		return e
+	}
 	ctx, s := platform.Start(ctx, "refund.repository.Migrate")
 	defer s.End()
 	return r.db.WithContext(ctx).AutoMigrate(&domain.Cap{}, &domain.Refund{})
@@ -46,6 +49,11 @@ func (t *Tx) Emit(e platform.Event) error   { return platform.Enqueue(t.ctx, t.d
 func (r *Repository) Get(ctx context.Context, id string) (domain.Refund, error) {
 	ctx, s := platform.Start(ctx, "refund.repository.Get")
 	defer s.End()
+	if mapped, e := platform.LookupBusinessID(ctx, r.db, "refund", id); e != nil {
+		return domain.Refund{}, e
+	} else if mapped != "" {
+		id = mapped
+	}
 	var v domain.Refund
 	err := r.db.WithContext(ctx).First(&v, "id = ?", id).Error
 	return v, err

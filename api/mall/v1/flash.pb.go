@@ -26,11 +26,16 @@ var File_api_mall_v1_flash_proto protoreflect.FileDescriptor
 
 const file_api_mall_v1_flash_proto_rawDesc = "" +
 	"\n" +
-	"\x17api/mall/v1/flash.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xc1\x01\n" +
+	"\x17api/mall/v1/flash.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xc3\x03\n" +
 	"\fFlashService\x128\n" +
 	"\x03Get\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x129\n" +
 	"\x04List\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12<\n" +
-	"\aRequest\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
+	"\aRequest\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tAdminList\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
+	"\x06Upsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12?\n" +
+	"\n" +
+	"SessionGet\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12B\n" +
+	"\rRequestsAdmin\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
 
 var file_api_mall_v1_flash_proto_goTypes = []any{
 	(*ServiceRequest)(nil),  // 0: mall.v1.ServiceRequest
@@ -40,11 +45,19 @@ var file_api_mall_v1_flash_proto_depIdxs = []int32{
 	0, // 0: mall.v1.FlashService.Get:input_type -> mall.v1.ServiceRequest
 	0, // 1: mall.v1.FlashService.List:input_type -> mall.v1.ServiceRequest
 	0, // 2: mall.v1.FlashService.Request:input_type -> mall.v1.ServiceRequest
-	1, // 3: mall.v1.FlashService.Get:output_type -> mall.v1.ServiceResponse
-	1, // 4: mall.v1.FlashService.List:output_type -> mall.v1.ServiceResponse
-	1, // 5: mall.v1.FlashService.Request:output_type -> mall.v1.ServiceResponse
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	0, // 3: mall.v1.FlashService.AdminList:input_type -> mall.v1.ServiceRequest
+	0, // 4: mall.v1.FlashService.Upsert:input_type -> mall.v1.ServiceRequest
+	0, // 5: mall.v1.FlashService.SessionGet:input_type -> mall.v1.ServiceRequest
+	0, // 6: mall.v1.FlashService.RequestsAdmin:input_type -> mall.v1.ServiceRequest
+	1, // 7: mall.v1.FlashService.Get:output_type -> mall.v1.ServiceResponse
+	1, // 8: mall.v1.FlashService.List:output_type -> mall.v1.ServiceResponse
+	1, // 9: mall.v1.FlashService.Request:output_type -> mall.v1.ServiceResponse
+	1, // 10: mall.v1.FlashService.AdminList:output_type -> mall.v1.ServiceResponse
+	1, // 11: mall.v1.FlashService.Upsert:output_type -> mall.v1.ServiceResponse
+	1, // 12: mall.v1.FlashService.SessionGet:output_type -> mall.v1.ServiceResponse
+	1, // 13: mall.v1.FlashService.RequestsAdmin:output_type -> mall.v1.ServiceResponse
+	7, // [7:14] is the sub-list for method output_type
+	0, // [0:7] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

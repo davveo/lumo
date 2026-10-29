@@ -72,20 +72,34 @@ func (s *Service) event(ctx context.Context, e platform.Event) (traceErr error) 
 	if e.UserID == "" {
 		return nil
 	}
+	template, version, err := s.repo.Template(ctx, e.Type, defaultTemplate(e.Type))
+	if err != nil {
+		return err
+	}
+	if !template.Enabled {
+		return nil
+	}
+	key := stable(e.ID, e.UserID, constants.NotificationKindInbox)
+	id, idErr := s.repo.BusinessID(ctx, "notification", key, key)
+	if idErr != nil {
+		return idErr
+	}
 	r := record(
-		stable(e.ID, e.UserID, constants.NotificationKindInbox),
+		id,
 		e.UserID,
 		constants.NotificationKindInbox,
 		constants.NotificationStatusUnread,
 		map[string]any{
-			"event_id":          e.ID,
-			"event_type":        e.Type,
-			"business_id":       e.AggregateID,
-			"title":             e.Type,
+			"event_id":    e.ID,
+			"event_type":  e.Type,
+			"sku_id":      platform.Text(e.Data, "sku_id"),
+			"business_id": e.AggregateID,
+			"title":       renderNotification(template.Title, e),
+			"body":        renderNotification(template.Body, e), "template_version": version,
 			"delivery_mode":     constants.NotificationDeliveryModeInboxOnly,
 			"external_delivery": constants.NotificationExternalDeliveryNotConfigured,
 		},
 	)
-	_, err := s.repo.InsertOnce(ctx, &r, nil)
+	_, err = s.repo.InsertOnce(ctx, &r, nil)
 	return err
 }

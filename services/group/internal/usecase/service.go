@@ -20,7 +20,16 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	return s.Repo.List(ctx)
+	result, e := s.Repo.List(ctx)
+	if e != nil {
+		return nil, e
+	}
+	rules, e := s.Repo.PublicRules(ctx)
+	if e != nil {
+		return nil, e
+	}
+	result["rules"] = rules
+	return result, nil
 }
 func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "group.usecase.Get")
@@ -37,6 +46,9 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 	if err := platform.RequireUser(c); err != nil {
 		return nil, err
 	}
+	if prior, found, err := s.Repo.ExistingCreate(ctx, c); err != nil || found {
+		return prior, err
+	}
 	if s.RPC != nil {
 		_, e := platform.NewClients(
 			s.RPC,
@@ -52,7 +64,11 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 			return nil, e
 		}
 	}
-	return s.Repo.Create(ctx, c)
+	request, e := s.applyRule(ctx, c)
+	if e != nil {
+		return nil, e
+	}
+	return s.Repo.Create(ctx, request)
 }
 func (s *Service) Reserve(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "group.usecase.Reserve")

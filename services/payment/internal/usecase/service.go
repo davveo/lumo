@@ -100,6 +100,9 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 		return nil, err
 	}
 
+	if e := s.requireEnabledMethod(ctx, platform.Text(c.Data, "provider")); e != nil {
+		return nil, e
+	}
 	return s.create(ctx, c)
 }
 
@@ -150,6 +153,9 @@ func (s *Service) SubmitDemo(ctx context.Context, c platform.Request) (traceResu
 		return nil, err
 	}
 
+	if e := s.requireEnabledMethod(ctx, constants.PaymentProviderDemo); e != nil {
+		return nil, e
+	}
 	return s.captureDemo(ctx, c, true)
 }
 
@@ -285,8 +291,12 @@ func (s *Service) create(ctx context.Context, c platform.Request) (platform.Resu
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
+		number, err := tx.BusinessID()
+		if err != nil {
+			return err
+		}
 		p = domain.Payment{
-			ID:       platform.ID("pay"),
+			ID:       number,
 			OrderID:  c.ID,
 			UserID:   platform.Text(o, "user_id"),
 			Amount:   platform.Int(o, "payable_cents"),

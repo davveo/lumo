@@ -16,6 +16,9 @@ type Repository struct{ db *gorm.DB }
 
 func New(db *gorm.DB) *Repository { return &Repository{db: db} }
 func (r *Repository) Migrate(ctx context.Context) error {
+	if e := platform.MigrateBusinessIDs(ctx, r.db); e != nil {
+		return e
+	}
 	ctx, s := platform.Start(ctx, "address.repository.Migrate")
 	defer s.End()
 	return r.db.WithContext(ctx).AutoMigrate(&domain.Record{})
@@ -59,11 +62,13 @@ func (r *Repository) Save(ctx context.Context, v *domain.Record, event *platform
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Upsert mutable columns while preserving the original creation time.
 		// A newly assembled aggregate must not write a zero datetime on update.
+		// Only SetDefault may change an existing default marker under its owner
+		// lock. A delayed content edit must not restore a stale IsDefault value.
 		if err := tx.WithContext(ctx).Clauses(
 			clause.OnConflict{
 				Columns: []clause.Column{{Name: "id"}},
 				DoUpdates: clause.AssignmentColumns(
-					[]string{"user_id", "parent_id", "kind", "status", "payload", "updated_at", "is_default"},
+					[]string{"user_id", "parent_id", "kind", "status", "payload", "updated_at"},
 				),
 			},
 		).Create(

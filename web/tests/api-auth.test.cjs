@@ -25,6 +25,12 @@ function environment() {
     Uint8Array,
     setTimeout,
     clearTimeout,
+    setInterval(fn, ms) {
+      const timer = setInterval(fn, ms);
+      timer.unref();
+      return timer;
+    },
+    clearInterval,
     console,
     crypto,
     CustomEvent: class {
@@ -392,7 +398,7 @@ async function main() {
     const submitted = [];
     let accepted = false;
     checkout.ctx.fetch = async (url, init) => {
-      if (url.endsWith('/checkout/quote') || url.endsWith('/pricing/get')) return response(200, { data: quote });
+      if (url.endsWith('/coupon/calculate') || url.endsWith('/pricing/get')) return response(200, { data: quote });
       if (url.endsWith('/logistics/quote')) return response(200, { data: { serviceable: true, shipping_cents: 0 } });
       if (url.endsWith('/checkout/submit')) {
         submitted.push(JSON.parse(init.body));

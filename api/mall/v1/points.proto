@@ -16,4 +16,9 @@ service PointsService {
   rpc Refund(ServiceRequest) returns (ServiceResponse);
   rpc Reserve(ServiceRequest) returns (ServiceResponse);
   rpc Reward(ServiceRequest) returns (ServiceResponse);
+  rpc PolicyGet(ServiceRequest) returns (ServiceResponse);
+  rpc PolicyUpsert(ServiceRequest) returns (ServiceResponse);
+  rpc AdminGet(ServiceRequest) returns (ServiceResponse);
+  rpc Adjust(ServiceRequest) returns (ServiceResponse);
+  rpc Ledger(ServiceRequest) returns (ServiceResponse);
 }

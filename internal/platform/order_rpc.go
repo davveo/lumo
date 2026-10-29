@@ -20,7 +20,51 @@ type orderRPC func(context.Context, mallv1.OrderServiceClient, Command) (Result,
 
 // This is a legacy caller adapter. New clients can use OrderServiceClient
 // directly; usecases never receive an action string or a platform.Command.
+func orderAdminRequest(c Command) (*mallv1.AdminOrdersRequest, error) {
+	for _, key := range []string{"page", "page_size", "days"} {
+		if value := Int(c.Data, key); value < 0 || value > 1000000 {
+			return nil, status.Error(codes.InvalidArgument, "invalid management page")
+		}
+	}
+	return &mallv1.AdminOrdersRequest{
+		Actor:    orderActor(c),
+		Page:     int32(Int(c.Data, "page")),
+		PageSize: int32(Int(c.Data, "page_size")),
+		Keyword:  Text(c.Data, "keyword"),
+		Status:   Text(c.Data, "status"),
+		From:     Text(c.Data, "from"),
+		To:       Text(c.Data, "to"),
+		Days:     int32(Int(c.Data, "days")),
+	}, nil
+}
+
 var orderRPCs = map[string]orderRPC{
+	constants.ActionAdminList: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+		in, err := orderAdminRequest(c)
+		if err != nil {
+			return nil, err
+		}
+		out, err := client.AdminList(ctx, in)
+		if err != nil {
+			return nil, err
+		}
+		return orderwire.AdminListResult(out), nil
+	},
+	constants.ActionAdminSummary: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+		in, err := orderAdminRequest(c)
+		if err != nil {
+			return nil, err
+		}
+		out, err := client.AdminSummary(ctx, in)
+		if err != nil {
+			return nil, err
+		}
+		result := Map(out)
+		result["total"] = out.GetTotal()
+		result["days"] = out.GetDays()
+		result["timezone"] = out.GetTimezone()
+		return result, nil
+	},
 	constants.ActionList: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		response, err := client.ListOrders(ctx, &mallv1.ListOrdersRequest{Actor: orderActor(c)})
 		if err != nil {

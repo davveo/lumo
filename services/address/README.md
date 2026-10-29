@@ -2,6 +2,8 @@
 
 支持操作：`list, get, create, update, delete, default`。
 
+普通地址内容更新保留数据库当前的默认标记，不写回读取时的旧 `is_default`；切换默认地址由 `SetDefault` 在用户锁事务中单独完成，避免并发编辑恢复旧默认地址。
+
 入口 `service.go` 只组装依赖；各层依次为：
 
 1. `internal/transport`：注册独立 RPC 业务方法并记录请求追踪，不包含业务分发。

@@ -8,6 +8,7 @@ import (
 
 func New(s *usecase.Service) *platform.MethodHandler {
 	return platform.NewMethodHandler(constants.ServiceNotification, map[string]platform.Operation{
+		constants.ActionTemplatesAdmin: s.TemplatesAdmin, constants.ActionTemplateUpsert: s.TemplateUpsert,
 		constants.ActionList:    s.List,
 		constants.ActionRead:    s.Read,
 		constants.ActionReadAll: s.ReadAll,

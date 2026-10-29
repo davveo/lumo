@@ -71,6 +71,8 @@ func PaymentResult(response *mallv1.AcceptPaymentResponse) map[string]any {
 
 func Actions() map[string]string {
 	return map[string]string{
+		mallv1.OrderService_AdminList_FullMethodName:        constants.ActionAdminList,
+		mallv1.OrderService_AdminSummary_FullMethodName:     constants.ActionAdminSummary,
 		mallv1.OrderService_ListOrders_FullMethodName:       constants.ActionList,
 		mallv1.OrderService_GetOrder_FullMethodName:         constants.ActionGet,
 		mallv1.OrderService_CreateOrder_FullMethodName:      constants.ActionCreate,
@@ -86,5 +88,19 @@ func Actions() map[string]string {
 		mallv1.OrderService_MarkShipped_FullMethodName:      constants.ActionShipped,
 		mallv1.OrderService_CompleteOrder_FullMethodName:    constants.ActionComplete,
 		mallv1.OrderService_RecordRefund_FullMethodName:     constants.ActionRefunded,
+	}
+}
+
+func AdminListResult(response *mallv1.AdminOrdersResponse) map[string]any {
+	items := []any{}
+	for _, row := range response.GetItems() {
+		items = append(items, Result(row))
+	}
+	return map[string]any{
+		"items":     items,
+		"total":     response.GetTotal(),
+		"page":      response.GetPage(),
+		"page_size": response.GetPageSize(),
+		"has_more":  response.GetHasMore(),
 	}
 }

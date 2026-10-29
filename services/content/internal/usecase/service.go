@@ -29,7 +29,7 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 	if e != nil {
 		return nil, e
 	}
-	if r.Status != constants.ContentStatusPublished && c.Role != constants.RoleAdmin {
+	if !visibleContent(r) && c.Role != constants.RoleAdmin {
 		return nil, status.Error(codes.NotFound, "content not published")
 	}
 	return view(r), nil
@@ -63,6 +63,11 @@ func (s *Service) Upsert(ctx context.Context, c platform.Request) (traceResult p
 			return nil, err
 		}
 	}
+	if c.ID == "storefront-main" {
+		if err := validateStorefrontSettings(body); err != nil {
+			return nil, err
+		}
+	}
 	limit := 20000
 	if kind == constants.ContentKindStorefront {
 		limit = 900000
@@ -71,7 +76,11 @@ func (s *Service) Upsert(ctx context.Context, c platform.Request) (traceResult p
 		return nil, bad("title and body required")
 	}
 	if c.ID == "" {
-		c.ID = platform.ID("content")
+		var err error
+		c.ID, err = s.repo.BusinessID(ctx, "content", "", "")
+		if err != nil {
+			return nil, err
+		}
 	}
 	r := record(
 		c.ID,

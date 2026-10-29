@@ -46,6 +46,8 @@ MySQL环境下，`WithServiceStartupLock` 通过专用数据库连接的命名�
 
 `RunEvents` 内部同时运行 Module.Tick（每秒检查一次，不并发叠加），启动器不应重复调度 Tick。AMQP URL 为空时只运行 Tick，不伪造 MQ 投递；Outbox 仍然保留。数据库/消息中间件故障不丢弃待发送记录，worker 重连并重试。
 
+事件必须是一个完整JSON对象，尾部仅允许空白；ID为1至80字符，Type为1至100字符，两者还需满足AMQP shortstr最多255字节。生产端落库前拒绝无效元数据，消费端对格式或元数据无效的消息直接死信，不创建Inbox或调用业务，避免永久重排毒消息。
+
 ## 已执行的平台验证
 
 `go test -race ./internal/platform` 覆盖真实 TCP gRPC 的认证和健康接口、跨层同 trace、SQL 的直接仓储父 span、SQL 脱敏、Outbox 事务回滚及固定 ID 去重、持久化 carrier 恢复、Inbox 租约与成功后重复投递。RabbitMQ 真实容器投递仍需 Docker 可用环境执行集成验收，不能用 SQLite 的消息重放测试替代。

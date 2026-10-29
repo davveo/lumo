@@ -8,6 +8,11 @@ import (
 
 func New(s *usecase.Service) *platform.MethodHandler {
 	return platform.NewMethodHandler(constants.ServiceGroup, map[string]platform.Operation{
+		constants.ActionAdminList:  s.AdminList,
+		constants.ActionRules:      s.Rules,
+		constants.ActionRulesAdmin: s.RulesAdmin,
+		constants.ActionRuleUpsert: s.RuleUpsert,
+
 		constants.ActionList:    s.List,
 		constants.ActionGet:     s.Get,
 		constants.ActionCreate:  s.Create,

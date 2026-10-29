@@ -15,6 +15,9 @@ import (
 type Repository struct{ DB *gorm.DB }
 
 func (r *Repository) Migrate(ctx context.Context) error {
+	if e := platform.MigrateBusinessIDs(ctx, r.DB); e != nil {
+		return e
+	}
 	ctx, s := platform.Start(ctx, "repository.fulfillment.Migrate")
 	defer s.End()
 	return r.DB.WithContext(ctx).AutoMigrate(&domain.Record{})

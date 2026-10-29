@@ -21,13 +21,17 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	GroupService_Cancel_FullMethodName  = "/mall.v1.GroupService/Cancel"
-	GroupService_Create_FullMethodName  = "/mall.v1.GroupService/Create"
-	GroupService_Expire_FullMethodName  = "/mall.v1.GroupService/Expire"
-	GroupService_Get_FullMethodName     = "/mall.v1.GroupService/Get"
-	GroupService_List_FullMethodName    = "/mall.v1.GroupService/List"
-	GroupService_Paid_FullMethodName    = "/mall.v1.GroupService/Paid"
-	GroupService_Reserve_FullMethodName = "/mall.v1.GroupService/Reserve"
+	GroupService_Cancel_FullMethodName     = "/mall.v1.GroupService/Cancel"
+	GroupService_Create_FullMethodName     = "/mall.v1.GroupService/Create"
+	GroupService_Expire_FullMethodName     = "/mall.v1.GroupService/Expire"
+	GroupService_Get_FullMethodName        = "/mall.v1.GroupService/Get"
+	GroupService_List_FullMethodName       = "/mall.v1.GroupService/List"
+	GroupService_Paid_FullMethodName       = "/mall.v1.GroupService/Paid"
+	GroupService_Reserve_FullMethodName    = "/mall.v1.GroupService/Reserve"
+	GroupService_AdminList_FullMethodName  = "/mall.v1.GroupService/AdminList"
+	GroupService_Rules_FullMethodName      = "/mall.v1.GroupService/Rules"
+	GroupService_RulesAdmin_FullMethodName = "/mall.v1.GroupService/RulesAdmin"
+	GroupService_RuleUpsert_FullMethodName = "/mall.v1.GroupService/RuleUpsert"
 )
 
 // GroupServiceClient is the client API for GroupService service.
@@ -41,6 +45,10 @@ type GroupServiceClient interface {
 	List(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Paid(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Reserve(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Rules(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	RulesAdmin(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	RuleUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type groupServiceClient struct {
@@ -114,6 +122,42 @@ func (c *groupServiceClient) Reserve(ctx context.Context, in *ServiceRequest, op
 	return out, nil
 }
 
+func (c *groupServiceClient) AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, GroupService_AdminList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *groupServiceClient) Rules(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, GroupService_Rules_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *groupServiceClient) RulesAdmin(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, GroupService_RulesAdmin_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *groupServiceClient) RuleUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, GroupService_RuleUpsert_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GroupServiceServer is the server API for GroupService service.
 // All implementations must embed UnimplementedGroupServiceServer
 // for forward compatibility
@@ -125,6 +169,10 @@ type GroupServiceServer interface {
 	List(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Paid(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Reserve(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Rules(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	RulesAdmin(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	RuleUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedGroupServiceServer()
 }
 
@@ -152,6 +200,18 @@ func (UnimplementedGroupServiceServer) Paid(context.Context, *ServiceRequest) (*
 }
 func (UnimplementedGroupServiceServer) Reserve(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Reserve not implemented")
+}
+func (UnimplementedGroupServiceServer) AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminList not implemented")
+}
+func (UnimplementedGroupServiceServer) Rules(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Rules not implemented")
+}
+func (UnimplementedGroupServiceServer) RulesAdmin(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RulesAdmin not implemented")
+}
+func (UnimplementedGroupServiceServer) RuleUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RuleUpsert not implemented")
 }
 func (UnimplementedGroupServiceServer) mustEmbedUnimplementedGroupServiceServer() {}
 
@@ -292,6 +352,78 @@ func _GroupService_Reserve_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GroupService_AdminList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GroupServiceServer).AdminList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GroupService_AdminList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GroupServiceServer).AdminList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GroupService_Rules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GroupServiceServer).Rules(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GroupService_Rules_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GroupServiceServer).Rules(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GroupService_RulesAdmin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GroupServiceServer).RulesAdmin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GroupService_RulesAdmin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GroupServiceServer).RulesAdmin(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GroupService_RuleUpsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GroupServiceServer).RuleUpsert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GroupService_RuleUpsert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GroupServiceServer).RuleUpsert(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GroupService_ServiceDesc is the grpc.ServiceDesc for GroupService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -326,6 +458,22 @@ var GroupService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Reserve",
 			Handler:    _GroupService_Reserve_Handler,
+		},
+		{
+			MethodName: "AdminList",
+			Handler:    _GroupService_AdminList_Handler,
+		},
+		{
+			MethodName: "Rules",
+			Handler:    _GroupService_Rules_Handler,
+		},
+		{
+			MethodName: "RulesAdmin",
+			Handler:    _GroupService_RulesAdmin_Handler,
+		},
+		{
+			MethodName: "RuleUpsert",
+			Handler:    _GroupService_RuleUpsert_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

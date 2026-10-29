@@ -1,0 +1,116 @@
+.access-switches {
+  margin-bottom: 24px;
+}
+.access-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--admin-line);
+  cursor: pointer;
+}
+.access-setting > span {
+  display: grid;
+  gap: 7px;
+}
+.access-setting strong {
+  font-size: 14px;
+}
+.access-setting small {
+  color: var(--admin-muted);
+  line-height: 1.8;
+}
+.access-setting input[role='switch'] {
+  appearance: none;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 26px;
+  border-radius: 24px;
+  background: var(--admin-line);
+  border: 0;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.access-setting input[role='switch']:before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  top: 3px;
+  left: 3px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px #0002;
+  transition: transform 0.15s;
+}
+.access-setting input[role='switch']:checked {
+  background: var(--admin-accent);
+}
+.access-setting input[role='switch']:checked:before {
+  transform: translateX(18px);
+}
+.access-setting input[role='switch']:focus-visible {
+  outline: 3px solid var(--admin-accent);
+  outline-offset: 3px;
+}
+.access-setting input[role='switch']:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+@media (max-width: 600px) {
+  .access-setting {
+    padding: 18px 0;
+    gap: 14px;
+  }
+  .access-setting input[role='switch'] {
+    min-height: 26px;
+  }
+  .access-setting:has(input:focus-visible) {
+    outline: 2px solid var(--admin-accent);
+    outline-offset: 4px;
+  }
+}
+
+.alerts-table {
+  min-width: 800px;
+  table-layout: fixed;
+}
+.alerts-table th:first-child {
+  width: 26%;
+}
+.alerts-table th:nth-child(2) {
+  width: 26%;
+}
+.alerts-table th:nth-child(3) {
+  width: 16%;
+}
+.alerts-table th:nth-child(4) {
+  width: 22%;
+}
+.alerts-table th:last-child {
+  width: 10%;
+}
+.alerts-table td {
+  overflow-wrap: anywhere;
+}
+#admin-product-alerts .op-filters {
+  padding: 0 0 20px;
+}
+#admin-product-alerts details > summary {
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+#admin-product-alerts details[open] > summary {
+  margin-bottom: 12px;
+}
+
+.alerts-table td:last-child {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+.alerts-table button {
+  white-space: nowrap;
+}

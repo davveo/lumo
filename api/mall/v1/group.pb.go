@@ -26,7 +26,7 @@ var File_api_mall_v1_group_proto protoreflect.FileDescriptor
 
 const file_api_mall_v1_group_proto_rawDesc = "" +
 	"\n" +
-	"\x17api/mall/v1/group.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xb3\x03\n" +
+	"\x17api/mall/v1/group.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xb1\x05\n" +
 	"\fGroupService\x12;\n" +
 	"\x06Cancel\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
 	"\x06Create\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
@@ -34,32 +34,46 @@ const file_api_mall_v1_group_proto_rawDesc = "" +
 	"\x03Get\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x129\n" +
 	"\x04List\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x129\n" +
 	"\x04Paid\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12<\n" +
-	"\aReserve\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
+	"\aReserve\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tAdminList\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12:\n" +
+	"\x05Rules\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12?\n" +
+	"\n" +
+	"RulesAdmin\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12?\n" +
+	"\n" +
+	"RuleUpsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
 
 var file_api_mall_v1_group_proto_goTypes = []any{
 	(*ServiceRequest)(nil),  // 0: mall.v1.ServiceRequest
 	(*ServiceResponse)(nil), // 1: mall.v1.ServiceResponse
 }
 var file_api_mall_v1_group_proto_depIdxs = []int32{
-	0, // 0: mall.v1.GroupService.Cancel:input_type -> mall.v1.ServiceRequest
-	0, // 1: mall.v1.GroupService.Create:input_type -> mall.v1.ServiceRequest
-	0, // 2: mall.v1.GroupService.Expire:input_type -> mall.v1.ServiceRequest
-	0, // 3: mall.v1.GroupService.Get:input_type -> mall.v1.ServiceRequest
-	0, // 4: mall.v1.GroupService.List:input_type -> mall.v1.ServiceRequest
-	0, // 5: mall.v1.GroupService.Paid:input_type -> mall.v1.ServiceRequest
-	0, // 6: mall.v1.GroupService.Reserve:input_type -> mall.v1.ServiceRequest
-	1, // 7: mall.v1.GroupService.Cancel:output_type -> mall.v1.ServiceResponse
-	1, // 8: mall.v1.GroupService.Create:output_type -> mall.v1.ServiceResponse
-	1, // 9: mall.v1.GroupService.Expire:output_type -> mall.v1.ServiceResponse
-	1, // 10: mall.v1.GroupService.Get:output_type -> mall.v1.ServiceResponse
-	1, // 11: mall.v1.GroupService.List:output_type -> mall.v1.ServiceResponse
-	1, // 12: mall.v1.GroupService.Paid:output_type -> mall.v1.ServiceResponse
-	1, // 13: mall.v1.GroupService.Reserve:output_type -> mall.v1.ServiceResponse
-	7, // [7:14] is the sub-list for method output_type
-	0, // [0:7] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0,  // 0: mall.v1.GroupService.Cancel:input_type -> mall.v1.ServiceRequest
+	0,  // 1: mall.v1.GroupService.Create:input_type -> mall.v1.ServiceRequest
+	0,  // 2: mall.v1.GroupService.Expire:input_type -> mall.v1.ServiceRequest
+	0,  // 3: mall.v1.GroupService.Get:input_type -> mall.v1.ServiceRequest
+	0,  // 4: mall.v1.GroupService.List:input_type -> mall.v1.ServiceRequest
+	0,  // 5: mall.v1.GroupService.Paid:input_type -> mall.v1.ServiceRequest
+	0,  // 6: mall.v1.GroupService.Reserve:input_type -> mall.v1.ServiceRequest
+	0,  // 7: mall.v1.GroupService.AdminList:input_type -> mall.v1.ServiceRequest
+	0,  // 8: mall.v1.GroupService.Rules:input_type -> mall.v1.ServiceRequest
+	0,  // 9: mall.v1.GroupService.RulesAdmin:input_type -> mall.v1.ServiceRequest
+	0,  // 10: mall.v1.GroupService.RuleUpsert:input_type -> mall.v1.ServiceRequest
+	1,  // 11: mall.v1.GroupService.Cancel:output_type -> mall.v1.ServiceResponse
+	1,  // 12: mall.v1.GroupService.Create:output_type -> mall.v1.ServiceResponse
+	1,  // 13: mall.v1.GroupService.Expire:output_type -> mall.v1.ServiceResponse
+	1,  // 14: mall.v1.GroupService.Get:output_type -> mall.v1.ServiceResponse
+	1,  // 15: mall.v1.GroupService.List:output_type -> mall.v1.ServiceResponse
+	1,  // 16: mall.v1.GroupService.Paid:output_type -> mall.v1.ServiceResponse
+	1,  // 17: mall.v1.GroupService.Reserve:output_type -> mall.v1.ServiceResponse
+	1,  // 18: mall.v1.GroupService.AdminList:output_type -> mall.v1.ServiceResponse
+	1,  // 19: mall.v1.GroupService.Rules:output_type -> mall.v1.ServiceResponse
+	1,  // 20: mall.v1.GroupService.RulesAdmin:output_type -> mall.v1.ServiceResponse
+	1,  // 21: mall.v1.GroupService.RuleUpsert:output_type -> mall.v1.ServiceResponse
+	11, // [11:22] is the sub-list for method output_type
+	0,  // [0:11] is the sub-list for method input_type
+	0,  // [0:0] is the sub-list for extension type_name
+	0,  // [0:0] is the sub-list for extension extendee
+	0,  // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_api_mall_v1_group_proto_init() }

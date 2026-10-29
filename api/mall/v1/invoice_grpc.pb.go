@@ -21,12 +21,14 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	InvoiceService_AdjustDemo_FullMethodName = "/mall.v1.InvoiceService/AdjustDemo"
-	InvoiceService_Create_FullMethodName     = "/mall.v1.InvoiceService/Create"
-	InvoiceService_Get_FullMethodName        = "/mall.v1.InvoiceService/Get"
-	InvoiceService_IssueDemo_FullMethodName  = "/mall.v1.InvoiceService/IssueDemo"
-	InvoiceService_List_FullMethodName       = "/mall.v1.InvoiceService/List"
-	InvoiceService_Reversals_FullMethodName  = "/mall.v1.InvoiceService/Reversals"
+	InvoiceService_AdjustDemo_FullMethodName   = "/mall.v1.InvoiceService/AdjustDemo"
+	InvoiceService_Create_FullMethodName       = "/mall.v1.InvoiceService/Create"
+	InvoiceService_Get_FullMethodName          = "/mall.v1.InvoiceService/Get"
+	InvoiceService_IssueDemo_FullMethodName    = "/mall.v1.InvoiceService/IssueDemo"
+	InvoiceService_List_FullMethodName         = "/mall.v1.InvoiceService/List"
+	InvoiceService_Reversals_FullMethodName    = "/mall.v1.InvoiceService/Reversals"
+	InvoiceService_AdminList_FullMethodName    = "/mall.v1.InvoiceService/AdminList"
+	InvoiceService_AdminSummary_FullMethodName = "/mall.v1.InvoiceService/AdminSummary"
 )
 
 // InvoiceServiceClient is the client API for InvoiceService service.
@@ -39,6 +41,8 @@ type InvoiceServiceClient interface {
 	IssueDemo(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	List(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Reversals(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	AdminSummary(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type invoiceServiceClient struct {
@@ -103,6 +107,24 @@ func (c *invoiceServiceClient) Reversals(ctx context.Context, in *ServiceRequest
 	return out, nil
 }
 
+func (c *invoiceServiceClient) AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, InvoiceService_AdminList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *invoiceServiceClient) AdminSummary(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, InvoiceService_AdminSummary_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InvoiceServiceServer is the server API for InvoiceService service.
 // All implementations must embed UnimplementedInvoiceServiceServer
 // for forward compatibility
@@ -113,6 +135,8 @@ type InvoiceServiceServer interface {
 	IssueDemo(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	List(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Reversals(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	AdminSummary(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedInvoiceServiceServer()
 }
 
@@ -137,6 +161,12 @@ func (UnimplementedInvoiceServiceServer) List(context.Context, *ServiceRequest) 
 }
 func (UnimplementedInvoiceServiceServer) Reversals(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Reversals not implemented")
+}
+func (UnimplementedInvoiceServiceServer) AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminList not implemented")
+}
+func (UnimplementedInvoiceServiceServer) AdminSummary(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminSummary not implemented")
 }
 func (UnimplementedInvoiceServiceServer) mustEmbedUnimplementedInvoiceServiceServer() {}
 
@@ -259,6 +289,42 @@ func _InvoiceService_Reversals_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _InvoiceService_AdminList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InvoiceServiceServer).AdminList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InvoiceService_AdminList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InvoiceServiceServer).AdminList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InvoiceService_AdminSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InvoiceServiceServer).AdminSummary(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InvoiceService_AdminSummary_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InvoiceServiceServer).AdminSummary(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // InvoiceService_ServiceDesc is the grpc.ServiceDesc for InvoiceService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -289,6 +355,14 @@ var InvoiceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Reversals",
 			Handler:    _InvoiceService_Reversals_Handler,
+		},
+		{
+			MethodName: "AdminList",
+			Handler:    _InvoiceService_AdminList_Handler,
+		},
+		{
+			MethodName: "AdminSummary",
+			Handler:    _InvoiceService_AdminSummary_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

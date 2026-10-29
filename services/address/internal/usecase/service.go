@@ -44,7 +44,11 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 		return nil, e
 	}
 
-	c.ID = platform.ID("addr")
+	id, e := s.repo.BusinessID(ctx, "addr", "", "")
+	if e != nil {
+		return nil, e
+	}
+	c.ID = id
 	recipient := platform.Text(c.Data, "recipient")
 	phone := platform.Text(c.Data, "phone")
 	address := platform.Text(c.Data, "address")

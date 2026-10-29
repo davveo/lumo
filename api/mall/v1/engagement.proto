@@ -9,8 +9,15 @@ option go_package = "github.com/davveo/lumo/api/mall/v1;mallv1";
 import "api/mall/v1/service_request.proto";
 
 service EngagementService {
+  rpc AdminCancel(ServiceRequest) returns (ServiceResponse);
+  rpc AdminList(ServiceRequest) returns (ServiceResponse);
   rpc Clear(ServiceRequest) returns (ServiceResponse);
   rpc Delete(ServiceRequest) returns (ServiceResponse);
   rpc List(ServiceRequest) returns (ServiceResponse);
+  rpc PolicyGet(ServiceRequest) returns (ServiceResponse);
+  rpc PolicyUpsert(ServiceRequest) returns (ServiceResponse);
   rpc Put(ServiceRequest) returns (ServiceResponse);
+  rpc Subscribe(ServiceRequest) returns (ServiceResponse);
+  rpc Subscriptions(ServiceRequest) returns (ServiceResponse);
+  rpc Unsubscribe(ServiceRequest) returns (ServiceResponse);
 }

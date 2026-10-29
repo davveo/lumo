@@ -26,14 +26,15 @@ var File_api_mall_v1_catalog_proto protoreflect.FileDescriptor
 
 const file_api_mall_v1_catalog_proto_rawDesc = "" +
 	"\n" +
-	"\x19api/mall/v1/catalog.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\x95\x03\n" +
+	"\x19api/mall/v1/catalog.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xd5\x03\n" +
 	"\x0eCatalogService\x12=\n" +
 	"\bBatchGet\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x128\n" +
 	"\x03Get\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x129\n" +
 	"\x04List\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12M\n" +
 	"\x18RecommendationCandidates\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12C\n" +
 	"\x0eSearchProducts\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
-	"\x06Upsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
+	"\x06Upsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tAdminList\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
 
 var file_api_mall_v1_catalog_proto_goTypes = []any{
 	(*ServiceRequest)(nil),  // 0: mall.v1.ServiceRequest
@@ -46,14 +47,16 @@ var file_api_mall_v1_catalog_proto_depIdxs = []int32{
 	0, // 3: mall.v1.CatalogService.RecommendationCandidates:input_type -> mall.v1.ServiceRequest
 	0, // 4: mall.v1.CatalogService.SearchProducts:input_type -> mall.v1.ServiceRequest
 	0, // 5: mall.v1.CatalogService.Upsert:input_type -> mall.v1.ServiceRequest
-	1, // 6: mall.v1.CatalogService.BatchGet:output_type -> mall.v1.ServiceResponse
-	1, // 7: mall.v1.CatalogService.Get:output_type -> mall.v1.ServiceResponse
-	1, // 8: mall.v1.CatalogService.List:output_type -> mall.v1.ServiceResponse
-	1, // 9: mall.v1.CatalogService.RecommendationCandidates:output_type -> mall.v1.ServiceResponse
-	1, // 10: mall.v1.CatalogService.SearchProducts:output_type -> mall.v1.ServiceResponse
-	1, // 11: mall.v1.CatalogService.Upsert:output_type -> mall.v1.ServiceResponse
-	6, // [6:12] is the sub-list for method output_type
-	0, // [0:6] is the sub-list for method input_type
+	0, // 6: mall.v1.CatalogService.AdminList:input_type -> mall.v1.ServiceRequest
+	1, // 7: mall.v1.CatalogService.BatchGet:output_type -> mall.v1.ServiceResponse
+	1, // 8: mall.v1.CatalogService.Get:output_type -> mall.v1.ServiceResponse
+	1, // 9: mall.v1.CatalogService.List:output_type -> mall.v1.ServiceResponse
+	1, // 10: mall.v1.CatalogService.RecommendationCandidates:output_type -> mall.v1.ServiceResponse
+	1, // 11: mall.v1.CatalogService.SearchProducts:output_type -> mall.v1.ServiceResponse
+	1, // 12: mall.v1.CatalogService.Upsert:output_type -> mall.v1.ServiceResponse
+	1, // 13: mall.v1.CatalogService.AdminList:output_type -> mall.v1.ServiceResponse
+	7, // [7:14] is the sub-list for method output_type
+	0, // [0:7] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

@@ -15,4 +15,6 @@ service InvoiceService {
   rpc IssueDemo(ServiceRequest) returns (ServiceResponse);
   rpc List(ServiceRequest) returns (ServiceResponse);
   rpc Reversals(ServiceRequest) returns (ServiceResponse);
+  rpc AdminList(ServiceRequest) returns (ServiceResponse);
+  rpc AdminSummary(ServiceRequest) returns (ServiceResponse);
 }

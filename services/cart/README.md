@@ -4,6 +4,8 @@
 
 `List` 返回本人 `cart_item` 的精确 `total`（商品行数）和 `quantity_total`（商品件数），不受 `limit` / `offset` 分页影响；付款消费回执不计入。`items` 仍最多 100 行，`limit` 表示本页实际返回行数。统计与列表共用用户、类型及可选状态过滤条件，通过兼容 MySQL / SQLite 的 SQL 聚合完成，不为计数加载全部记录；无效 JSON、缺失数量或负数数量按 0 件计。
 
+公开 `Remove` 只删除本人的 `cart_item`，兼容真实行ID和SKU形式；同表的付款消费回执不能通过该入口删除，保证合法支付事件重投不会再次消耗后来加入的商品。
+
 入口 `service.go` 只组装依赖；各层依次为：
 
 1. `internal/transport`：RPC命令入口和请求追踪。

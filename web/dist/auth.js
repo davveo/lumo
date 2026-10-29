@@ -47,6 +47,18 @@
     refreshPromise = null;
   const ui = {
     tab: 'password',
+    methods: [{ id: 'password', name: '账号密码' }],
+    methodsLoaded: false,
+    methodsFailed: false,
+    methodsLoading: false,
+    phone: '',
+    code: '',
+    otpChallenge: '',
+    otpPhone: '',
+    otpUntil: 0,
+    sendingOTP: false,
+    demoCode: '',
+    allowRegistration: true,
     returnTo: safeHash(safeRead(sessionStorage, RETURN_KEY)),
     remember: !!session?.remember,
     menuOpen: false,
@@ -99,7 +111,11 @@
       loggedIn: isLoggedIn(),
       user: user(),
       returnLabel: labels[ui.returnTo.slice(2).split('/')[0]] || '个人中心',
-      otp: {},
+      otp: {
+        sending: ui.sendingOTP,
+        remaining: Math.max(0, Math.ceil((ui.otpUntil - Date.now()) / 1000)),
+        demoCode: ui.demoCode,
+      },
     };
   }
   const redraw = () => {
@@ -234,7 +250,7 @@
     if (menu) menu.hidden = true;
     document.querySelector('[data-auth-menu-trigger]')?.setAttribute('aria-expanded', 'false');
   }
-  async function login(username, password, remember = false) {
+  async function login(username, password, remember = false, method = 'password') {
     if (ui.busy) return null;
     ui.busy = true;
     ui.error = '';
@@ -243,8 +259,13 @@
     try {
       const result = await window.LumoAPI.call(
         C.Service.IAM,
-        C.Action.Login,
-        { data: { username, password } },
+        method === 'phone' ? C.Action.OtpLogin : C.Action.Login,
+        {
+          data:
+            method === 'phone'
+              ? { phone: username, code: password, challenge_id: ui.otpPhone === username ? ui.otpChallenge : '' }
+              : { username, password },
+        },
         { auth: false },
       );
       memory.clear();
@@ -263,6 +284,125 @@
       redraw();
     }
   }
+  let methodsFlight = null,
+    oauthHandled = false;
+  async function loadMethods(force = false) {
+    if (methodsFlight) return methodsFlight;
+    if (ui.methodsLoaded && !force) return ui.methods;
+    ui.methodsLoading = true;
+    ui.methodsFailed = false;
+    methodsFlight = (async () => {
+      const result = await window.LumoAPI.call(C.Service.IAM, C.Action.LoginMethods, {}, { auth: false });
+      ui.methods = Array.isArray(result.items) ? result.items : [];
+      ui.methodsLoaded = true;
+      ui.allowRegistration = !!result.allow_registration;
+      ui.demoSMS = !!result.demo_sms;
+      if (!ui.methods.some((m) => m.id === ui.tab))
+        ui.tab = ui.methods.find((m) => ['password', 'phone'].includes(m.id))?.id || '';
+      return ui.methods;
+    })()
+      .catch((error) => {
+        ui.error = error.message;
+        ui.methodsFailed = true;
+        throw error;
+      })
+      .finally(() => {
+        ui.methodsLoading = false;
+        methodsFlight = null;
+        if (location.hash === '#/login') redraw();
+      });
+    return methodsFlight;
+  }
+  async function sendOTP() {
+    if (ui.sendingOTP || Date.now() < ui.otpUntil) return;
+    const phone = String(document.getElementById('auth-phone')?.value || ui.phone || '').trim();
+    ui.phone = phone;
+    ui.sendingOTP = true;
+    ui.error = '';
+    redraw();
+    try {
+      const value = await window.LumoAPI.call(C.Service.IAM, C.Action.OtpSend, { data: { phone } }, { auth: false });
+      ui.otpChallenge = value.challenge_id;
+      ui.otpPhone = phone;
+      ui.otpUntil = Date.now() + Number(value.retry_after || 60) * 1000;
+      ui.demoCode = String(value.demo_code || '');
+    } catch (error) {
+      ui.error = error.message;
+    } finally {
+      ui.sendingOTP = false;
+      redraw();
+    }
+  }
+  async function startOAuth(provider) {
+    if (ui.busy) return;
+    ui.busy = true;
+    ui.error = '';
+    redraw();
+    try {
+      const proof = crypto.randomUUID() + crypto.randomUUID();
+      const value = await window.LumoAPI.call(
+        C.Service.IAM,
+        C.Action.OAuthStart,
+        { data: { provider, proof } },
+        { auth: false },
+      );
+      const target = new URL(value.authorization_url);
+      if (target.protocol !== 'https:' || !['open.weixin.qq.com', 'graph.qq.com'].includes(target.hostname))
+        throw Error('登录授权地址无效');
+      sessionStorage.setItem(
+        'lumo-oauth-flow-v1',
+        JSON.stringify({
+          provider,
+          proof,
+          state: value.oauth_state,
+          returnTo: ui.returnTo,
+          remember: ui.remember,
+          at: Date.now(),
+        }),
+      );
+      location.href = target.href;
+    } catch (error) {
+      ui.error = error.message;
+      ui.busy = false;
+      redraw();
+    }
+  }
+  async function oauthReturn() {
+    if (oauthHandled) return;
+    const query = new URL(location.href).searchParams;
+    if (!query.has('code') && !query.has('error')) return;
+    oauthHandled = true;
+    const flow = parse(safeRead(sessionStorage, 'lumo-oauth-flow-v1'));
+    remove(sessionStorage, 'lumo-oauth-flow-v1');
+    const code = query.get('code'),
+      stateValue = query.get('state');
+    history.replaceState(null, '', new URL(location.href).pathname + '#/login');
+    if (!flow || !code || flow.state !== stateValue || Date.now() - flow.at > 300000) {
+      ui.error = '登录授权已失效，请重新发起';
+      redraw();
+      return;
+    }
+    ui.busy = true;
+    redraw();
+    try {
+      const result = await window.LumoAPI.call(
+        C.Service.IAM,
+        C.Action.OAuthCallback,
+        { data: { provider: flow.provider, oauth_state: stateValue, proof: flow.proof, code } },
+        { auth: false },
+      );
+      memory.clear();
+      persistSession(result, flow.remember);
+      emit('lumo:login', { user: user() });
+      location.hash = safeHash(flow.returnTo);
+    } catch (error) {
+      ui.error = error.message;
+    } finally {
+      ui.busy = false;
+      redraw();
+    }
+  }
+
   function logout() {
     if (!ensureSession()) {
       requireLogin('#/member');
@@ -314,6 +454,24 @@
             authButton.setAttribute('aria-label', ui.passwordVisible ? '隐藏密码' : '显示密码');
             authButton.setAttribute('aria-pressed', String(ui.passwordVisible));
           }
+          return;
+        }
+        if (action === 'login-tab') {
+          ui.tab = authButton.dataset.id;
+          ui.error = '';
+          redraw();
+          return;
+        }
+        if (action === 'send-otp') {
+          void sendOTP();
+          return;
+        }
+        if (action === 'oauth') {
+          void startOAuth(authButton.dataset.id);
+          return;
+        }
+        if (action === 'reload-methods') {
+          void loadMethods(true).catch(() => {});
           return;
         }
         if (action === 'forgot-password') {
@@ -423,10 +581,10 @@
       if (ui.busy) return;
       const form = event.target;
       const data = new FormData(form),
-        username = String(data.get('username') || '').trim(),
-        password = String(data.get('password') || '');
+        username = String(data.get(ui.tab === 'phone' ? 'phone' : 'username') || '').trim(),
+        password = String(data.get(ui.tab === 'phone' ? 'code' : 'password') || '');
       if (!username || !password) {
-        ui.error = '请输入账号和密码';
+        ui.error = ui.tab === 'phone' ? '请输入手机号和验证码' : '请输入账号和密码';
         redraw();
         return;
       }
@@ -435,10 +593,14 @@
         button.disabled = true;
         button.textContent = '正在登录…';
       }
-      login(username, password, data.get('remember') === 'on').catch(() => {});
+      login(username, password, data.get('remember') === 'on', ui.tab).catch(() => {});
     },
     true,
   );
+  document.addEventListener('input', (event) => {
+    if (event.target.id === 'auth-phone') ui.phone = event.target.value;
+    if (event.target.id === 'auth-code') ui.code = event.target.value;
+  });
   document.addEventListener('change', (event) => {
     if (event.target.name === 'remember' && event.target.closest('#auth-login-form'))
       ui.remember = event.target.checked;
@@ -486,6 +648,14 @@
       redraw();
     }
   });
+  setInterval(() => {
+    const button = document.querySelector('[data-auth-action="send-otp"]');
+    if (button) {
+      const left = Math.max(0, Math.ceil((ui.otpUntil - Date.now()) / 1000));
+      button.disabled = ui.sendingOTP || left > 0;
+      button.textContent = ui.sendingOTP ? '正在发送…' : left ? left + '秒后重试' : '获取验证码';
+    }
+  }, 1000);
   window.LumoAuth = {
     getItem,
     setItem,
@@ -495,7 +665,14 @@
     requireLogin,
     gate,
     ensureSession,
-    afterRender: () => {},
+    afterRender: () => {
+      if (location.hash === '#/login' && !ui.methodsLoaded && !ui.methodsLoading && !ui.methodsFailed)
+        void loadMethods().catch(() => {});
+      void oauthReturn();
+    },
+    loadMethods,
+    sendOTP,
+    startOAuth,
     refresh,
     login,
     logout,

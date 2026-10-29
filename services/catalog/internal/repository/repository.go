@@ -20,9 +20,15 @@ type Repository struct {
 
 func New(db *gorm.DB) *Repository { return &Repository{db: db} }
 func (r *Repository) Migrate(ctx context.Context) error {
+	if e := platform.MigrateBusinessIDs(ctx, r.db); e != nil {
+		return e
+	}
 	ctx, s := platform.Start(ctx, "catalog.repository.Migrate")
 	defer s.End()
 	if err := r.db.WithContext(ctx).AutoMigrate(&domain.Record{}); err != nil {
+		return err
+	}
+	if err := r.migrateAdminListing(ctx); err != nil {
 		return err
 	}
 	if err := r.migrateSearchCategory(ctx); err != nil {
@@ -201,9 +207,15 @@ func (r *Repository) ListProducts(
 	count := q
 	if r.db.Dialector.Name() == "mysql" {
 		// MySQL may otherwise choose the narrower parent_id index and fetch
-		// every matching payload row. Count on the existing covering index;
-		// retain the optimizer's choice for the separately ordered page read.
-		count = q.Session(&gorm.Session{}).Table("catalog_records FORCE INDEX (idx_catalog_page)")
+		// every matching payload row. Both counts use a covering index.
+		index := "idx_catalog_page"
+		if state == "" {
+			// Without a status predicate, idx_catalog_page cannot provide the
+			// timestamp order. Bound the admin read before fetching payloads.
+			index = adminListingIndex
+			q = q.Session(&gorm.Session{}).Table("catalog_records FORCE INDEX (" + index + ")")
+		}
+		count = q.Session(&gorm.Session{}).Table("catalog_records FORCE INDEX (" + index + ")")
 	}
 	if e := count.Count(&n).Error; e != nil {
 		return nil, 0, e
@@ -215,6 +227,16 @@ func (r *Repository) ListProducts(
 		offset = 0
 	}
 	var rows []domain.Record
+	if state == "" && r.db.Dialector.Name() == "mysql" {
+		// OFFSET must skip index entries, not load every skipped JSON payload.
+		// Materialize only the requested IDs, then fetch at most limit products
+		// in the same SQL statement. The outer sort is bounded by the page size.
+		page := q.Select("id,created_at").Order("created_at DESC,id DESC").Limit(limit).Offset(offset)
+		err := r.db.WithContext(ctx).Table("catalog_records AS product").Select("product.*").Joins(
+			"JOIN (?) AS catalog_page ON catalog_page.id = product.id", page,
+		).Order("catalog_page.created_at DESC,catalog_page.id DESC").Find(&rows).Error
+		return rows, n, err
+	}
 	e := q.Order("created_at DESC,id DESC").Limit(limit).Offset(offset).Find(&rows).Error
 	return rows, n, e
 }

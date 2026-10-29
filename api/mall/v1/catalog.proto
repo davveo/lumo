@@ -15,4 +15,5 @@ service CatalogService {
   rpc RecommendationCandidates(ServiceRequest) returns (ServiceResponse);
   rpc SearchProducts(ServiceRequest) returns (ServiceResponse);
   rpc Upsert(ServiceRequest) returns (ServiceResponse);
+  rpc AdminList(ServiceRequest) returns (ServiceResponse);
 }

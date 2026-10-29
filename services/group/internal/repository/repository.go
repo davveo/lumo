@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"github.com/davveo/lumo/internal/adminconfig"
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/group/internal/domain"
@@ -18,14 +19,24 @@ import (
 type Repository struct{ DB *gorm.DB }
 
 func (r *Repository) Migrate(ctx context.Context) error {
-	return r.DB.WithContext(ctx).AutoMigrate(&domain.Team{}, &domain.Seat{})
+	if e := platform.MigrateBusinessIDs(ctx, r.DB); e != nil {
+		return e
+	}
+	if e := adminconfig.Migrate(ctx, r.DB); e != nil {
+		return e
+	}
+	return r.DB.WithContext(ctx).AutoMigrate(&domain.Team{}, &domain.Seat{}, &domain.Rule{})
 }
 func (r *Repository) Seed(ctx context.Context) error {
+	if err := r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&domain.Rule{ID: "group-default", Name: "标准拼团", ActivityID: "group-demo", Required: 2, DurationMinutes: 30, Active: true}).Error; err != nil {
+		return err
+	}
 	return r.DB.WithContext(ctx).
 		Clauses(clause.OnConflict{DoNothing: true}).
 		Create(
 			&domain.Team{
-				ID:        "group-demo",
+				ID:     "group-demo",
+				RuleID: "group-default", ActivityID: "group-demo", RuleVersion: 1,
 				SKUID:     "sku-headphones",
 				CreatorID: "demo",
 				Required:  2,
@@ -46,12 +57,50 @@ func (r *Repository) Get(ctx context.Context, id string) (platform.Result, error
 	ctx, s := platform.Start(ctx, "repository.group.Get")
 	defer s.End()
 	var t domain.Team
+	var aliasErr error
+	id, aliasErr = r.resolveCreateAlias(ctx, id)
+	if aliasErr != nil {
+		return nil, aliasErr
+	}
 	if e := r.DB.WithContext(ctx).First(&t, "id = ?", id).Error; e != nil {
 		return nil, status.Error(codes.NotFound, "group not found")
 	}
 	out := platform.Map(t)
 	out["formed"] = t.State == constants.GroupStatusFormed
 	return out, nil
+}
+
+// ExistingCreate returns the immutable team before consulting a changed policy.
+func (r *Repository) ExistingCreate(ctx context.Context, c platform.Request) (platform.Result, bool, error) {
+	ctx, span := platform.Start(ctx, "group.repository.ExistingCreate")
+	defer span.End()
+	if c.ID == "" && c.IdempotencyKey == "" {
+		return nil, false, nil
+	}
+	id, idErr := r.createBusinessID(ctx, c)
+	if idErr != nil {
+		return nil, false, idErr
+	}
+
+	var old domain.Team
+	result := r.DB.WithContext(ctx).Where("id = ?", id).Find(&old)
+	if result.Error != nil {
+		return nil, false, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, false, nil
+	}
+	if old.CreatorID != c.UserID {
+		return nil, true, status.Error(codes.PermissionDenied, "group owner mismatch")
+	}
+	ruleID := platform.Text(c.Data, "rule_id")
+	if ruleID == "" {
+		ruleID = "group-default"
+	}
+	if old.SKUID != platform.Text(c.Data, "sku_id") || old.RuleID != "" && old.RuleID != ruleID {
+		return nil, true, status.Error(codes.AlreadyExists, "group request differs")
+	}
+	return platform.Map(old), true, nil
 }
 func (r *Repository) Create(ctx context.Context, c platform.Request) (platform.Result, error) {
 	ctx, s := platform.Start(ctx, "repository.group.Create")
@@ -64,23 +113,19 @@ func (r *Repository) Create(ctx context.Context, c platform.Request) (platform.R
 	if sku == "" || required < 2 || required > 10 {
 		return nil, status.Error(codes.InvalidArgument, "SKU and required count 2..10 required")
 	}
-	id := c.ID
-	if id == "" {
-		id = platform.ID("group")
+	id, idErr := r.createBusinessID(ctx, c)
+	if idErr != nil {
+		return nil, idErr
 	}
-	if c.IdempotencyKey != "" {
-		id = "group:" + c.UserID + ":" + c.IdempotencyKey
-		if len(id) > 120 {
-			return nil, status.Error(codes.InvalidArgument, "idempotency key too long")
-		}
-	}
+
 	t := domain.Team{
+		RuleID: platform.Text(c.Data, "rule_id"), ActivityID: platform.Text(c.Data, "activity_id"), RuleVersion: platform.Int(c.Data, "rule_version"),
 		ID:        id,
 		SKUID:     sku,
 		CreatorID: c.UserID,
 		Required:  required,
 		State:     constants.GroupStatusOpen,
-		ExpiresAt: time.Now().Add(30 * time.Minute),
+		ExpiresAt: time.Now().Add(time.Duration(platform.Int(c.Data, "duration_minutes")) * time.Minute),
 	}
 	e := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var old domain.Team
@@ -106,6 +151,11 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Request) (platform.
 	ctx, s := platform.Start(ctx, "repository.group.Reserve")
 	defer s.End()
 	gid := platform.Text(c.Data, "group_id")
+	var aliasErr error
+	gid, aliasErr = r.resolveCreateAlias(ctx, gid)
+	if aliasErr != nil {
+		return nil, aliasErr
+	}
 	if c.ID == "" || gid == "" {
 		return nil, status.Error(codes.InvalidArgument, "order and group IDs required")
 	}

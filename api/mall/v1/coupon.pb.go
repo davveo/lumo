@@ -26,46 +26,55 @@ var File_api_mall_v1_coupon_proto protoreflect.FileDescriptor
 
 const file_api_mall_v1_coupon_proto_rawDesc = "" +
 	"\n" +
-	"\x18api/mall/v1/coupon.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xc9\x04\n" +
+	"\x18api/mall/v1/coupon.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\x93\x06\n" +
 	"\rCouponService\x12;\n" +
 	"\x06Cancel\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12:\n" +
 	"\x05Claim\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12<\n" +
 	"\aConfirm\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x129\n" +
 	"\x04List\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
 	"\x06Refund\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12<\n" +
-	"\aReserve\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\aReserve\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12C\n" +
+	"\x0eTemplateUpsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
 	"\tTemplates\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12C\n" +
+	"\x0eTemplatesAdmin\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12C\n" +
 	"\x0eTemplatesByIds\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12F\n" +
-	"\x11TemplatesSnapshot\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
+	"\x11TemplatesSnapshot\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tCalculate\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
 
 var file_api_mall_v1_coupon_proto_goTypes = []any{
 	(*ServiceRequest)(nil),  // 0: mall.v1.ServiceRequest
 	(*ServiceResponse)(nil), // 1: mall.v1.ServiceResponse
 }
 var file_api_mall_v1_coupon_proto_depIdxs = []int32{
-	0, // 0: mall.v1.CouponService.Cancel:input_type -> mall.v1.ServiceRequest
-	0, // 1: mall.v1.CouponService.Claim:input_type -> mall.v1.ServiceRequest
-	0, // 2: mall.v1.CouponService.Confirm:input_type -> mall.v1.ServiceRequest
-	0, // 3: mall.v1.CouponService.List:input_type -> mall.v1.ServiceRequest
-	0, // 4: mall.v1.CouponService.Refund:input_type -> mall.v1.ServiceRequest
-	0, // 5: mall.v1.CouponService.Reserve:input_type -> mall.v1.ServiceRequest
-	0, // 6: mall.v1.CouponService.Templates:input_type -> mall.v1.ServiceRequest
-	0, // 7: mall.v1.CouponService.TemplatesByIds:input_type -> mall.v1.ServiceRequest
-	0, // 8: mall.v1.CouponService.TemplatesSnapshot:input_type -> mall.v1.ServiceRequest
-	1, // 9: mall.v1.CouponService.Cancel:output_type -> mall.v1.ServiceResponse
-	1, // 10: mall.v1.CouponService.Claim:output_type -> mall.v1.ServiceResponse
-	1, // 11: mall.v1.CouponService.Confirm:output_type -> mall.v1.ServiceResponse
-	1, // 12: mall.v1.CouponService.List:output_type -> mall.v1.ServiceResponse
-	1, // 13: mall.v1.CouponService.Refund:output_type -> mall.v1.ServiceResponse
-	1, // 14: mall.v1.CouponService.Reserve:output_type -> mall.v1.ServiceResponse
-	1, // 15: mall.v1.CouponService.Templates:output_type -> mall.v1.ServiceResponse
-	1, // 16: mall.v1.CouponService.TemplatesByIds:output_type -> mall.v1.ServiceResponse
-	1, // 17: mall.v1.CouponService.TemplatesSnapshot:output_type -> mall.v1.ServiceResponse
-	9, // [9:18] is the sub-list for method output_type
-	0, // [0:9] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0,  // 0: mall.v1.CouponService.Cancel:input_type -> mall.v1.ServiceRequest
+	0,  // 1: mall.v1.CouponService.Claim:input_type -> mall.v1.ServiceRequest
+	0,  // 2: mall.v1.CouponService.Confirm:input_type -> mall.v1.ServiceRequest
+	0,  // 3: mall.v1.CouponService.List:input_type -> mall.v1.ServiceRequest
+	0,  // 4: mall.v1.CouponService.Refund:input_type -> mall.v1.ServiceRequest
+	0,  // 5: mall.v1.CouponService.Reserve:input_type -> mall.v1.ServiceRequest
+	0,  // 6: mall.v1.CouponService.TemplateUpsert:input_type -> mall.v1.ServiceRequest
+	0,  // 7: mall.v1.CouponService.Templates:input_type -> mall.v1.ServiceRequest
+	0,  // 8: mall.v1.CouponService.TemplatesAdmin:input_type -> mall.v1.ServiceRequest
+	0,  // 9: mall.v1.CouponService.TemplatesByIds:input_type -> mall.v1.ServiceRequest
+	0,  // 10: mall.v1.CouponService.TemplatesSnapshot:input_type -> mall.v1.ServiceRequest
+	0,  // 11: mall.v1.CouponService.Calculate:input_type -> mall.v1.ServiceRequest
+	1,  // 12: mall.v1.CouponService.Cancel:output_type -> mall.v1.ServiceResponse
+	1,  // 13: mall.v1.CouponService.Claim:output_type -> mall.v1.ServiceResponse
+	1,  // 14: mall.v1.CouponService.Confirm:output_type -> mall.v1.ServiceResponse
+	1,  // 15: mall.v1.CouponService.List:output_type -> mall.v1.ServiceResponse
+	1,  // 16: mall.v1.CouponService.Refund:output_type -> mall.v1.ServiceResponse
+	1,  // 17: mall.v1.CouponService.Reserve:output_type -> mall.v1.ServiceResponse
+	1,  // 18: mall.v1.CouponService.TemplateUpsert:output_type -> mall.v1.ServiceResponse
+	1,  // 19: mall.v1.CouponService.Templates:output_type -> mall.v1.ServiceResponse
+	1,  // 20: mall.v1.CouponService.TemplatesAdmin:output_type -> mall.v1.ServiceResponse
+	1,  // 21: mall.v1.CouponService.TemplatesByIds:output_type -> mall.v1.ServiceResponse
+	1,  // 22: mall.v1.CouponService.TemplatesSnapshot:output_type -> mall.v1.ServiceResponse
+	1,  // 23: mall.v1.CouponService.Calculate:output_type -> mall.v1.ServiceResponse
+	12, // [12:24] is the sub-list for method output_type
+	0,  // [0:12] is the sub-list for method input_type
+	0,  // [0:0] is the sub-list for extension type_name
+	0,  // [0:0] is the sub-list for extension extendee
+	0,  // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_api_mall_v1_coupon_proto_init() }

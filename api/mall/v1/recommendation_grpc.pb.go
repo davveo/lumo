@@ -23,6 +23,8 @@ const _ = grpc.SupportPackageIsVersion7
 const (
 	RecommendationService_List_FullMethodName          = "/mall.v1.RecommendationService/List"
 	RecommendationService_RankBootstrap_FullMethodName = "/mall.v1.RecommendationService/RankBootstrap"
+	RecommendationService_PolicyGet_FullMethodName     = "/mall.v1.RecommendationService/PolicyGet"
+	RecommendationService_PolicyUpsert_FullMethodName  = "/mall.v1.RecommendationService/PolicyUpsert"
 )
 
 // RecommendationServiceClient is the client API for RecommendationService service.
@@ -31,6 +33,8 @@ const (
 type RecommendationServiceClient interface {
 	List(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	RankBootstrap(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PolicyGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PolicyUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type recommendationServiceClient struct {
@@ -59,12 +63,32 @@ func (c *recommendationServiceClient) RankBootstrap(ctx context.Context, in *Ser
 	return out, nil
 }
 
+func (c *recommendationServiceClient) PolicyGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, RecommendationService_PolicyGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *recommendationServiceClient) PolicyUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, RecommendationService_PolicyUpsert_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RecommendationServiceServer is the server API for RecommendationService service.
 // All implementations must embed UnimplementedRecommendationServiceServer
 // for forward compatibility
 type RecommendationServiceServer interface {
 	List(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	RankBootstrap(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PolicyGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedRecommendationServiceServer()
 }
 
@@ -77,6 +101,12 @@ func (UnimplementedRecommendationServiceServer) List(context.Context, *ServiceRe
 }
 func (UnimplementedRecommendationServiceServer) RankBootstrap(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RankBootstrap not implemented")
+}
+func (UnimplementedRecommendationServiceServer) PolicyGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PolicyGet not implemented")
+}
+func (UnimplementedRecommendationServiceServer) PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PolicyUpsert not implemented")
 }
 func (UnimplementedRecommendationServiceServer) mustEmbedUnimplementedRecommendationServiceServer() {}
 
@@ -127,6 +157,42 @@ func _RecommendationService_RankBootstrap_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RecommendationService_PolicyGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RecommendationServiceServer).PolicyGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RecommendationService_PolicyGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RecommendationServiceServer).PolicyGet(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RecommendationService_PolicyUpsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RecommendationServiceServer).PolicyUpsert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RecommendationService_PolicyUpsert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RecommendationServiceServer).PolicyUpsert(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RecommendationService_ServiceDesc is the grpc.ServiceDesc for RecommendationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -141,6 +207,14 @@ var RecommendationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RankBootstrap",
 			Handler:    _RecommendationService_RankBootstrap_Handler,
+		},
+		{
+			MethodName: "PolicyGet",
+			Handler:    _RecommendationService_PolicyGet_Handler,
+		},
+		{
+			MethodName: "PolicyUpsert",
+			Handler:    _RecommendationService_PolicyUpsert_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

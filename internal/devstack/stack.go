@@ -236,6 +236,7 @@ func (s *Stack) Pump(ctx context.Context) error {
 						return fmt.Errorf("%s -> %s (%s): %w", producer, consumer, event.Type, err)
 					}
 					inbox := platform.Inbox{
+						PayloadJSON: row.PayloadJSON, CarrierJSON: row.CarrierJSON,
 						Consumer:  consumer,
 						EventID:   event.ID,
 						State:     constants.InboxStateDone,

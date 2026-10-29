@@ -7,6 +7,7 @@
     addresses: '地址管理',
     coupons: '优惠券',
     favorites: '我的收藏',
+    alerts: '购物提醒',
     history: '浏览足迹',
     points: '我的积分',
     aftersales: '售后服务',
@@ -123,6 +124,7 @@
           ['coupons', 'ticket', '优惠券'],
           ['points', 'coin', '我的积分'],
           ['favorites', 'heart', '我的收藏'],
+          ['alerts', 'bell', '购物提醒'],
           ['history', 'clock', '浏览足迹'],
         ],
       ],
@@ -297,7 +299,7 @@
     if (!tabs.some(([id]) => id === filter)) filter = C.CouponViewStatus.Available;
     const coupons = member().coupons(),
       visible = coupons.filter((c) => c.status === filter);
-    return `${pageHead('我的优惠券', '每一张好券，都让喜欢更近一点。', '<button class="mem-text-button" data-member-action="coupon-rules">使用规则' + icon('info') + '</button>')}<section class="mem-claim-banner"><div><span class="mem-kicker">A LITTLE GIFT FOR YOU</span><h2>好券都在领券中心</h2><p>限时好券与会员专享券，满足条件即可领取。</p></div><a class="mem-primary" href="#/coupons">去领券中心${icon('arrow')}</a></section><section class="mem-panel"><nav class="mem-tabs" aria-label="优惠券状态">${tabs.map(([id, label]) => `<a href="#/member/coupons/${id}" class="${filter === id ? 'active' : ''}" ${filter === id ? 'aria-current="page"' : ''}>${label}<span>${coupons.filter((c) => c.status === id).length}</span></a>`).join('')}</nav>${visible.length ? `<div class="mem-coupon-grid">${visible.map((c) => `<article class="mem-coupon-card ${c.status !== C.CouponViewStatus.Available ? 'is-disabled' : ''}"><div class="mem-coupon-value">${price(c.value)}<span>满 ¥${money(c.min)} 可用</span></div><div class="mem-coupon-main"><span class="mem-badge">普通商品专享</span><h3>${esc(c.title)}</h3><p>有效期至 ${date(c.expiresAt)}</p><small>每单限 1 张 · 不适用于拼团、秒杀</small></div><div class="mem-coupon-action">${c.status === C.CouponViewStatus.Available ? button(c.selected ? '已选 · 去使用' : '去使用', 'use-coupon', c.id) : `<span>${c.status === C.CouponViewStatus.Used ? '已使用' : c.status === C.CouponViewStatus.Frozen ? '订单占用' : '已过期'}</span>`}</div></article>`).join('')}</div>` : emptyState(filter === C.CouponViewStatus.Used ? '还没有使用过的优惠券' : filter === C.CouponViewStatus.Expired ? '暂时没有过期优惠券' : '好券正在路上', filter === C.CouponViewStatus.Available ? '去领券中心领取好券，再挑选喜欢的好物。' : '优惠券使用状态会自动更新在这里。', '', '', 'ticket')}</section><p class="mem-section-note">优惠券按普通商品优惠前金额判断门槛；换购品不参与满减计算。</p>`;
+    return `${pageHead('我的优惠券', '每一张好券，都让喜欢更近一点。', '<button class="mem-text-button" data-member-action="coupon-rules">使用规则' + icon('info') + '</button>')}<section class="mem-claim-banner"><div><span class="mem-kicker">A LITTLE GIFT FOR YOU</span><h2>好券都在领券中心</h2><p>限时好券与会员专享券，满足条件即可领取。</p></div><a class="mem-primary" href="#/coupons">去领券中心${icon('arrow')}</a></section><section class="mem-panel"><nav class="mem-tabs" aria-label="优惠券状态">${tabs.map(([id, label]) => `<a href="#/member/coupons/${id}" class="${filter === id ? 'active' : ''}" ${filter === id ? 'aria-current="page"' : ''}>${label}<span>${coupons.filter((c) => c.status === id).length}</span></a>`).join('')}</nav>${visible.length ? `<div class="mem-coupon-grid">${visible.map((c) => `<article class="mem-coupon-card ${c.status !== C.CouponViewStatus.Available ? 'is-disabled' : ''}"><div class="mem-coupon-value">${window.LumoCouponBenefits ? esc(window.LumoCouponBenefits.face(c.rule)) : price(c.value)}<span>${esc(window.LumoCouponBenefits?.condition(c.rule) || '满 ¥' + money(c.min) + ' 可用')}</span></div><div class="mem-coupon-main"><span class="mem-badge">${esc(window.LumoCouponBenefits?.scope(c.rule) || '普通商品专享')}</span><h3>${esc(c.title)}</h3><p>有效期至 ${date(c.expiresAt)}</p><small>每单限 1 张 · 不适用于拼团、秒杀</small></div><div class="mem-coupon-action">${c.status === C.CouponViewStatus.Available ? button(c.selected ? '已选 · 去使用' : '去使用', 'use-coupon', c.id) : `<span>${c.status === C.CouponViewStatus.Used ? '已使用' : c.status === C.CouponViewStatus.Frozen ? '订单占用' : '已过期'}</span>`}</div></article>`).join('')}</div>` : emptyState(filter === C.CouponViewStatus.Used ? '还没有使用过的优惠券' : filter === C.CouponViewStatus.Expired ? '暂时没有过期优惠券' : '好券正在路上', filter === C.CouponViewStatus.Available ? '去领券中心领取好券，再挑选喜欢的好物。' : '优惠券使用状态会自动更新在这里。', '', '', 'ticket')}</section><p class="mem-section-note">优惠券按普通商品优惠前金额判断门槛；换购品不参与满减计算。</p>`;
   }
   function productForMember(p) {
     if (p.visible !== false) return productCard(p);
@@ -371,6 +373,7 @@
       counts = member().counts();
     const views = {
       overview: () => overview(data, counts),
+      alerts: () => window.LumoProductAlerts?.page() || '',
       orders: () => ordersView(filter, counts),
       addresses: () => addressesView(data),
       coupons: () => couponsView(filter),

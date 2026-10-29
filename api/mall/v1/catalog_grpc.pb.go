@@ -27,6 +27,7 @@ const (
 	CatalogService_RecommendationCandidates_FullMethodName = "/mall.v1.CatalogService/RecommendationCandidates"
 	CatalogService_SearchProducts_FullMethodName           = "/mall.v1.CatalogService/SearchProducts"
 	CatalogService_Upsert_FullMethodName                   = "/mall.v1.CatalogService/Upsert"
+	CatalogService_AdminList_FullMethodName                = "/mall.v1.CatalogService/AdminList"
 )
 
 // CatalogServiceClient is the client API for CatalogService service.
@@ -39,6 +40,7 @@ type CatalogServiceClient interface {
 	RecommendationCandidates(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	SearchProducts(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Upsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type catalogServiceClient struct {
@@ -103,6 +105,15 @@ func (c *catalogServiceClient) Upsert(ctx context.Context, in *ServiceRequest, o
 	return out, nil
 }
 
+func (c *catalogServiceClient) AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CatalogService_AdminList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CatalogServiceServer is the server API for CatalogService service.
 // All implementations must embed UnimplementedCatalogServiceServer
 // for forward compatibility
@@ -113,6 +124,7 @@ type CatalogServiceServer interface {
 	RecommendationCandidates(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	SearchProducts(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Upsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedCatalogServiceServer()
 }
 
@@ -137,6 +149,9 @@ func (UnimplementedCatalogServiceServer) SearchProducts(context.Context, *Servic
 }
 func (UnimplementedCatalogServiceServer) Upsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Upsert not implemented")
+}
+func (UnimplementedCatalogServiceServer) AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminList not implemented")
 }
 func (UnimplementedCatalogServiceServer) mustEmbedUnimplementedCatalogServiceServer() {}
 
@@ -259,6 +274,24 @@ func _CatalogService_Upsert_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CatalogService_AdminList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).AdminList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_AdminList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).AdminList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CatalogService_ServiceDesc is the grpc.ServiceDesc for CatalogService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -289,6 +322,10 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Upsert",
 			Handler:    _CatalogService_Upsert_Handler,
+		},
+		{
+			MethodName: "AdminList",
+			Handler:    _CatalogService_AdminList_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -94,8 +94,21 @@ func (s *Service) Complete(ctx context.Context, request OrderRequest) (domain.Or
 			order.Status = constants.OrderStatusCompleted
 			return transition{
 				eventType: constants.EventOrderCompleted,
-				data:      map[string]any{"order_id": order.ID, "payable_cents": order.Payable},
+				data:      completionData(order),
 			}, nil
 		},
 	)
+}
+
+func completionData(order *domain.Order) map[string]any {
+	data := map[string]any{"order_id": order.ID, "payable_cents": order.Payable}
+	var quote map[string]any
+	if json.Unmarshal([]byte(order.Quote), &quote) == nil {
+		for _, key := range []string{"reward_points", "growth_points", "points_policy", "membership_policy"} {
+			if value, ok := quote[key]; ok {
+				data[key] = value
+			}
+		}
+	}
+	return data
 }

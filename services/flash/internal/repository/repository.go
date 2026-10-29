@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/davveo/lumo/internal/adminconfig"
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/flash/internal/domain"
@@ -18,6 +19,12 @@ import (
 type Repository struct{ DB *gorm.DB }
 
 func (r *Repository) Migrate(ctx context.Context) error {
+	if e := platform.MigrateBusinessIDs(ctx, r.DB); e != nil {
+		return e
+	}
+	if err := adminconfig.Migrate(ctx, r.DB); err != nil {
+		return err
+	}
 	return r.DB.WithContext(ctx).AutoMigrate(&domain.Session{}, &domain.Request{})
 }
 func (r *Repository) Seed(ctx context.Context) error {
@@ -79,8 +86,12 @@ func (r *Repository) Create(ctx context.Context, c platform.Request) (platform.R
 		return nil, status.Error(codes.InvalidArgument, "invalid flash payload")
 	}
 	sum := sha256.Sum256([]byte(c.UserID + "\x00" + c.IdempotencyKey))
-	id := "flash-" + hex.EncodeToString(sum[:16])
+	id, e := r.BusinessID(ctx, "flash", c.UserID+"\x00"+c.IdempotencyKey, "flash-"+hex.EncodeToString(sum[:16]))
+	if e != nil {
+		return nil, e
+	}
 	v := domain.Request{
+		SessionID:   platform.Text(c.Data, "session_id"),
 		ID:          id,
 		UserID:      c.UserID,
 		Key:         c.IdempotencyKey,

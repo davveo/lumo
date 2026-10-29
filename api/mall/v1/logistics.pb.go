@@ -26,13 +26,15 @@ var File_api_mall_v1_logistics_proto protoreflect.FileDescriptor
 
 const file_api_mall_v1_logistics_proto_rawDesc = "" +
 	"\n" +
-	"\x1bapi/mall/v1/logistics.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xbe\x02\n" +
+	"\x1bapi/mall/v1/logistics.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xc1\x03\n" +
 	"\x10LogisticsService\x12;\n" +
 	"\x06Create\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12<\n" +
 	"\aDeliver\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x128\n" +
 	"\x03Get\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x129\n" +
 	"\x04List\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12:\n" +
-	"\x05Quote\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
+	"\x05Quote\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tPolicyGet\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12A\n" +
+	"\fPolicyUpsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
 
 var file_api_mall_v1_logistics_proto_goTypes = []any{
 	(*ServiceRequest)(nil),  // 0: mall.v1.ServiceRequest
@@ -44,13 +46,17 @@ var file_api_mall_v1_logistics_proto_depIdxs = []int32{
 	0, // 2: mall.v1.LogisticsService.Get:input_type -> mall.v1.ServiceRequest
 	0, // 3: mall.v1.LogisticsService.List:input_type -> mall.v1.ServiceRequest
 	0, // 4: mall.v1.LogisticsService.Quote:input_type -> mall.v1.ServiceRequest
-	1, // 5: mall.v1.LogisticsService.Create:output_type -> mall.v1.ServiceResponse
-	1, // 6: mall.v1.LogisticsService.Deliver:output_type -> mall.v1.ServiceResponse
-	1, // 7: mall.v1.LogisticsService.Get:output_type -> mall.v1.ServiceResponse
-	1, // 8: mall.v1.LogisticsService.List:output_type -> mall.v1.ServiceResponse
-	1, // 9: mall.v1.LogisticsService.Quote:output_type -> mall.v1.ServiceResponse
-	5, // [5:10] is the sub-list for method output_type
-	0, // [0:5] is the sub-list for method input_type
+	0, // 5: mall.v1.LogisticsService.PolicyGet:input_type -> mall.v1.ServiceRequest
+	0, // 6: mall.v1.LogisticsService.PolicyUpsert:input_type -> mall.v1.ServiceRequest
+	1, // 7: mall.v1.LogisticsService.Create:output_type -> mall.v1.ServiceResponse
+	1, // 8: mall.v1.LogisticsService.Deliver:output_type -> mall.v1.ServiceResponse
+	1, // 9: mall.v1.LogisticsService.Get:output_type -> mall.v1.ServiceResponse
+	1, // 10: mall.v1.LogisticsService.List:output_type -> mall.v1.ServiceResponse
+	1, // 11: mall.v1.LogisticsService.Quote:output_type -> mall.v1.ServiceResponse
+	1, // 12: mall.v1.LogisticsService.PolicyGet:output_type -> mall.v1.ServiceResponse
+	1, // 13: mall.v1.LogisticsService.PolicyUpsert:output_type -> mall.v1.ServiceResponse
+	7, // [7:14] is the sub-list for method output_type
+	0, // [0:7] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

@@ -472,3 +472,110 @@
     transition: none;
   }
 }
+.mp-poster {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  object-fit: cover;
+  border-radius: 14px;
+  margin-bottom: 20px;
+}
+.mp-layout-announcement {
+  background: #fff !important;
+  color: #233248 !important;
+  border: 1px solid #e2e8f0;
+}
+.mp-layout-announcement .mp-eyebrow,
+.mp-layout-announcement .mp-description {
+  color: #64748b;
+}
+.mp-layout-announcement .mp-confetti {
+  display: none;
+}
+.mp-layout-announcement .mp-primary {
+  background: #2d4f8a;
+  color: #fff;
+}
+.mp-layout-announcement .mp-heading h2 {
+  color: #233248;
+}
+.mp-layout-welcome {
+  background: #fff4e7 !important;
+  color: #6a3e20 !important;
+}
+.mp-layout-welcome .mp-primary {
+  background: #8e5330;
+  color: #fff;
+}
+.mp-layout-welcome .mp-eyebrow,
+.mp-layout-welcome .mp-description {
+  color: #987253;
+}
+.mp-layout-member {
+  background: #292641 !important;
+  color: #faf7ee !important;
+}
+.mp-layout-member .mp-primary {
+  background: #e2c7a2;
+  color: #3c2c26;
+}
+.mp-layout-member .mp-eyebrow,
+.mp-layout-member .mp-description {
+  color: #d8cbe0;
+}
+.mp-layout-image {
+  background: #fff !important;
+  color: #273448 !important;
+}
+.mp-layout-image .mp-confetti {
+  display: none;
+}
+.mp-layout-image .mp-eyebrow,
+.mp-layout-image .mp-description {
+  color: #6b7280;
+}
+.mp-layout-image .mp-poster {
+  max-height: 340px;
+  margin-bottom: 18px;
+}
+.mp-layout-campaign {
+  background: #aa2f24 !important;
+}
+.mp-layout-campaign .mp-primary {
+  background: #fff0d6;
+  color: #a02c21;
+}
+.mp-layout-campaign .mp-eyebrow,
+.mp-layout-campaign .mp-description {
+  color: #ffe8d5;
+}
+.mp-layout-announcement,
+.mp-layout-image {
+  --mp-layout-title: #24354c;
+  --mp-layout-copy: #596a7e;
+  --mp-layout-muted: #69798c;
+}
+.mp-layout-welcome {
+  --mp-layout-title: #754828;
+  --mp-layout-copy: #805a3c;
+  --mp-layout-muted: #926d4c;
+}
+.mp-layout-announcement .mp-heading h2,
+.mp-layout-image .mp-heading h2,
+.mp-layout-welcome .mp-heading h2 {
+  color: var(--mp-layout-title);
+  text-shadow: none;
+}
+.mp-layout-announcement .mp-heading p,
+.mp-layout-image .mp-heading p,
+.mp-layout-welcome .mp-heading p,
+.mp-layout-announcement .mp-details > p,
+.mp-layout-image .mp-details > p,
+.mp-layout-welcome .mp-details > p {
+  color: var(--mp-layout-copy);
+}
+.mp-layout-announcement .mp-validity,
+.mp-layout-image .mp-validity,
+.mp-layout-welcome .mp-validity {
+  color: var(--mp-layout-muted);
+}

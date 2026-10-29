@@ -565,6 +565,9 @@ test('configured links use the real shopping routes and reject unsupported categ
     '#/',
     '#/coupons',
     '#/member/coupons',
+    '#/member',
+    '#/member/points',
+    '#/member/growth',
     '#/promotions',
     '#/promotions/flash/tomorrow',
     '#/promotions/group',
@@ -585,7 +588,7 @@ test('configured links use the real shopping routes and reject unsupported categ
   }
   for (const destination of [
     '#/category/phones',
-    '#/member',
+    '#/member/security',
     '#/payment',
     '#/promotions/mygroups',
     '#/product/%zz',

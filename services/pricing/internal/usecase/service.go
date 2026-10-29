@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/davveo/lumo/internal/commercepolicy"
 	"github.com/davveo/lumo/internal/constants"
+	"github.com/davveo/lumo/internal/couponrules"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/pricing/internal/domain"
 	"github.com/davveo/lumo/services/pricing/internal/repository"
@@ -61,12 +63,14 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 	}
 
 	var in struct {
-		Items    []domain.Item `json:"items"`
-		CouponID string        `json:"coupon_id"`
-		Points   int64         `json:"points"`
-		Addon    string        `json:"addon_sku_id"`
-		Activity string        `json:"activity_id"`
-		Group    string        `json:"group_id"`
+		Items      []domain.Item `json:"items"`
+		CouponMode string        `json:"coupon_mode"`
+		PointsMode string        `json:"points_mode"`
+		CouponID   string        `json:"coupon_id"`
+		Points     int64         `json:"points"`
+		Addon      string        `json:"addon_sku_id"`
+		Activity   string        `json:"activity_id"`
+		Group      string        `json:"group_id"`
 	}
 	if err := platform.Decode(c.Data, &in); err != nil {
 		return nil, err
@@ -102,7 +106,10 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 			return nil, status.Error(codes.FailedPrecondition, "group SKU or state does not match")
 		}
 		if in.Activity == "" {
-			in.Activity = "group-demo"
+			in.Activity = platform.Text(team, "activity_id")
+			if in.Activity == "" {
+				in.Activity = "group-demo"
+			}
 		}
 	}
 	if in.Addon != "" {
@@ -111,13 +118,13 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 	seen := map[string]int64{}
 	ids := make([]string, 0, len(in.Items))
 	for _, line := range in.Items {
+		if line.SKUID == "" || line.Quantity < 1 || line.Quantity > 10 || seen[line.SKUID] > 10-line.Quantity {
+			return nil, status.Error(codes.InvalidArgument, "invalid SKU quantity")
+		}
 		if _, exists := seen[line.SKUID]; !exists {
 			ids = append(ids, line.SKUID)
 		}
 		seen[line.SKUID] += line.Quantity
-		if line.SKUID == "" || line.Quantity < 1 || seen[line.SKUID] > 10 {
-			return nil, status.Error(codes.InvalidArgument, "invalid SKU quantity")
-		}
 	}
 	sort.Strings(ids)
 	catalog, err := platform.NewClients(
@@ -147,6 +154,7 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 	var subtotal int64
 	var addonAmount int64
 	var quantity int64
+	couponItems := []couponrules.Line{}
 	for index, line := range in.Items {
 		p, exists := bySKU[line.SKUID]
 		if !exists {
@@ -161,6 +169,11 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 			return nil, status.Error(codes.FailedPrecondition, "invalid product price")
 		}
 		line.Name = platform.Text(p, "name")
+		line.Category = platform.Text(p, "category")
+		line.ProductID = platform.Text(p, "product_id")
+		if line.ProductID == "" {
+			line.ProductID = line.SKUID
+		}
 		line.UnitPrice = unit
 		line.Amount = unit * line.Quantity
 		subtotal += line.Amount
@@ -168,8 +181,20 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 		if in.Addon != "" && index == len(in.Items)-1 {
 			addonAmount = line.Amount
 		}
+		if in.Addon == "" || index != len(in.Items)-1 {
+			couponItems = append(
+				couponItems,
+				couponrules.Line{
+					SKUID:     line.SKUID,
+					ProductID: line.ProductID,
+					Category:  line.Category,
+					Amount:    line.Amount,
+				},
+			)
+		}
 		items = append(items, line)
 	}
+	mainSubtotal := subtotal - addonAmount
 	camp, err := platform.NewClients(
 		s.rpc,
 	).Campaign.Evaluate(
@@ -178,7 +203,7 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 			UserID: c.UserID,
 			Role:   c.Role,
 			Data: map[string]any{
-				"subtotal_cents": subtotal - addonAmount,
+				"subtotal_cents": mainSubtotal,
 				"quantity":       quantity,
 				"addon_sku_id":   in.Addon,
 				"activity_id":    in.Activity,
@@ -202,58 +227,50 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 		(kind == constants.CampaignKindGroup && in.Group == "") {
 		return nil, status.Error(codes.FailedPrecondition, "group must use its group campaign")
 	}
+	if kind == constants.CampaignKindFlash {
+		session, e := platform.NewClients(s.rpc).Flash.SessionGet(ctx, platform.Request{Data: map[string]any{"activity_id": in.Activity}})
+		if e != nil {
+			return nil, e
+		}
+		open, _ := session["open"].(bool)
+		if !open || len(items) != 1 || items[0].Quantity != 1 || items[0].SKUID != platform.Text(session, "sku_id") {
+			return nil, status.Error(codes.FailedPrecondition, "flash session, time or SKU does not match")
+		}
+	}
 	if kind == constants.CampaignKindAddon && in.Addon == "" {
 		return nil, status.Error(codes.FailedPrecondition, "add-on campaign requires its add-on SKU")
+	}
+	if (kind == constants.CampaignKindFlash || kind == constants.CampaignKindGroup) &&
+		(in.CouponID != "" || in.Points > 0) {
+		return nil, status.Error(codes.FailedPrecondition, "flash and group orders cannot use coupons or points")
 	}
 	resolvedActivity := platform.Text(camp, "activity_id")
 	if resolvedActivity != "" {
 		in.Activity = resolvedActivity
 	}
 	campaignDiscount := discount
+	var couponOptions []platform.Result
 	var couponDiscount int64
-	if in.CouponID != "" {
-		coupons, e := platform.NewClients(s.rpc).Coupon.List(ctx, platform.Request{
-			UserID: c.UserID,
-			Role:   c.Role,
-		})
+	if in.Group == "" && kind != constants.CampaignKindFlash && kind != constants.CampaignKindGroup {
+		var e error
+		in.CouponID, couponDiscount, couponOptions, e = s.chooseCoupon(ctx, c, in.CouponMode, in.CouponID, mainSubtotal, subtotal-discount, couponItems)
 		if e != nil {
 			return nil, e
 		}
-		raw, _ := json.Marshal(coupons["items"])
-		var rows []map[string]any
-		_ = json.Unmarshal(raw, &rows)
-		found := false
-		for _, row := range rows {
-			if platform.Text(row, "id") == in.CouponID {
-				st := platform.Text(row, "status")
-				if st != constants.CouponStatusAvailable && st != constants.CouponStatusAvailableLegacy {
-					return nil, status.Error(codes.FailedPrecondition, "coupon not available")
-				}
-				min := platform.Int(row, "min_cents")
-				if min == 0 {
-					min = platform.Int(row, "min_spend_cents")
-				}
-				if subtotal < min {
-					return nil, status.Error(codes.FailedPrecondition, "coupon threshold not met")
-				}
-				value := platform.Int(row, "amount_cents")
-				if value == 0 {
-					value = platform.Int(row, "discount_cents")
-				}
-				if value <= 0 {
-					return nil, status.Error(codes.FailedPrecondition, "invalid coupon amount")
-				}
-				discount += value
-				couponDiscount = value
-				found = true
-				break
-			}
-		}
-		if !found {
-			return nil, status.Error(codes.NotFound, "coupon not found")
-		}
+		discount += couponDiscount
 	}
-	if in.Points > 0 {
+	membership, e := commercepolicy.ReadMembership(ctx, s.rpc)
+	if e != nil {
+		return nil, e
+	}
+	policy, e := commercepolicy.ReadPoints(ctx, s.rpc)
+	if e != nil {
+		return nil, e
+	}
+	if in.PointsMode != "" && in.PointsMode != "max" {
+		return nil, status.Error(codes.InvalidArgument, "invalid points mode")
+	}
+	if in.Points > 0 || in.PointsMode == "max" {
 		pts, e := platform.NewClients(s.rpc).Points.Get(ctx, platform.Request{
 			UserID: c.UserID,
 			Role:   c.Role,
@@ -261,34 +278,78 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 		if e != nil {
 			return nil, e
 		}
-		if in.Points > platform.Int(pts, "available") || in.Points > subtotal/10 {
+		if in.PointsMode == "max" {
+			if in.Group != "" || kind == constants.CampaignKindFlash || kind == constants.CampaignKindGroup {
+				return nil, status.Error(codes.FailedPrecondition, "points unavailable for this activity")
+			}
+			in.Points = min(platform.Int(pts, "available"), policy.Limit(mainSubtotal), subtotal-discount-1)
+			if in.Points < 0 {
+				in.Points = 0
+			}
+		}
+		if in.Points > platform.Int(pts, "available") || in.Points > policy.Limit(mainSubtotal) {
 			return nil, status.Error(codes.FailedPrecondition, "points balance or deduction limit exceeded")
 		}
 	}
-	if discount < 0 || discount+in.Points >= subtotal {
+	if discount < 0 || discount >= subtotal || in.Points >= subtotal-discount {
 		return nil, status.Error(codes.FailedPrecondition, "discount exceeds order amount")
 	}
-	id := platform.ID("quote")
+	var shippingAddress map[string]any
+	if value, ok := c.Data["address"].(map[string]any); ok {
+		shippingAddress = value
+	}
+	if id := platform.Text(c.Data, "address_id"); id != "" {
+		value, err := platform.NewClients(s.rpc).Address.Get(ctx, platform.Request{ID: id, UserID: c.UserID, Role: c.Role})
+		if err != nil {
+			return nil, err
+		}
+		shippingAddress = map[string]any(value)
+	}
+	shipping, e := platform.NewClients(s.rpc).Logistics.Quote(ctx, platform.Request{UserID: constants.RoleSystem, Role: constants.RoleSystem, Data: map[string]any{"address": shippingAddress, "subtotal_cents": subtotal, "quantity": quantity}})
+	if e != nil {
+		return nil, e
+	}
+	if allowed, ok := shipping["serviceable"].(bool); ok && !allowed {
+		return nil, status.Error(codes.FailedPrecondition, "shipping destination is not serviceable")
+	}
+	fee := platform.Int(shipping, "shipping_cents")
+	if fee < 0 || fee > 1000000000000 {
+		return nil, status.Error(codes.FailedPrecondition, "invalid shipping fee")
+	}
+	id, e := s.r.BusinessID(ctx, "quote", "", "")
+	if e != nil {
+		return nil, e
+	}
 	expires := time.Now().UTC().Add(10 * time.Minute)
 	out := platform.Result{
 		"quote_id":                id,
 		"user_id":                 c.UserID,
 		"subtotal_cents":          subtotal,
-		"main_subtotal_cents":     subtotal - addonAmount,
+		"main_subtotal_cents":     mainSubtotal,
 		"discount_cents":          discount,
 		"coupon_discount_cents":   couponDiscount,
+		"coupon_items":            couponItems,
 		"campaign_discount_cents": campaignDiscount,
 		"campaign_policy_version": camp["policy_version"],
 		"points":                  in.Points,
-		"payable_cents":           subtotal - discount - in.Points,
+		"points_policy":           policy,
+		"points_limit_cents":      policy.Limit(mainSubtotal),
+		"reward_points":           policy.Reward(subtotal - discount - in.Points),
+		"growth_points":           membership.Growth(subtotal - discount - in.Points),
+		"payable_cents":           subtotal - discount - in.Points + fee,
 		"items":                   items,
 		"coupon_id":               in.CouponID,
-		"activity_id":             in.Activity,
-		"group_id":                in.Group,
-		"addon_sku_id":            in.Addon,
-		"expires_at":              expires.Format(time.RFC3339Nano),
-		"shipping_cents":          int64(0),
-		"policy_version":          constants.PricingPolicyVersionDemo,
+		"coupon_mode":             in.CouponMode, "coupon_options": couponOptions,
+		"activity_id":       in.Activity,
+		"group_id":          in.Group,
+		"addon_sku_id":      in.Addon,
+		"expires_at":        expires.Format(time.RFC3339Nano),
+		"shipping_cents":    fee,
+		"shipping":          shipping,
+		"shipping_policy":   shipping["policy"],
+		"shipping_region":   shipping["region"],
+		"membership_policy": membership,
+		"policy_version":    constants.PricingPolicyVersionDemo,
 	}
 	out["activity_kind"], out["activity_name"] = kind, platform.Text(camp, "name")
 	out["pay_rate_bps"], out["min_quantity"] = platform.Int(camp, "pay_rate_bps"), platform.Int(camp, "min_quantity")

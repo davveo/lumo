@@ -21,14 +21,18 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	InventoryService_Adjust_FullMethodName   = "/mall.v1.InventoryService/Adjust"
-	InventoryService_BatchGet_FullMethodName = "/mall.v1.InventoryService/BatchGet"
-	InventoryService_Cancel_FullMethodName   = "/mall.v1.InventoryService/Cancel"
-	InventoryService_Confirm_FullMethodName  = "/mall.v1.InventoryService/Confirm"
-	InventoryService_Dispatch_FullMethodName = "/mall.v1.InventoryService/Dispatch"
-	InventoryService_Get_FullMethodName      = "/mall.v1.InventoryService/Get"
-	InventoryService_Reserve_FullMethodName  = "/mall.v1.InventoryService/Reserve"
-	InventoryService_Restock_FullMethodName  = "/mall.v1.InventoryService/Restock"
+	InventoryService_Adjust_FullMethodName      = "/mall.v1.InventoryService/Adjust"
+	InventoryService_BatchGet_FullMethodName    = "/mall.v1.InventoryService/BatchGet"
+	InventoryService_Cancel_FullMethodName      = "/mall.v1.InventoryService/Cancel"
+	InventoryService_Confirm_FullMethodName     = "/mall.v1.InventoryService/Confirm"
+	InventoryService_Dispatch_FullMethodName    = "/mall.v1.InventoryService/Dispatch"
+	InventoryService_Get_FullMethodName         = "/mall.v1.InventoryService/Get"
+	InventoryService_Reserve_FullMethodName     = "/mall.v1.InventoryService/Reserve"
+	InventoryService_Restock_FullMethodName     = "/mall.v1.InventoryService/Restock"
+	InventoryService_Adjustments_FullMethodName = "/mall.v1.InventoryService/Adjustments"
+	InventoryService_AdminList_FullMethodName   = "/mall.v1.InventoryService/AdminList"
+	InventoryService_Threshold_FullMethodName   = "/mall.v1.InventoryService/Threshold"
+	InventoryService_Ledger_FullMethodName      = "/mall.v1.InventoryService/Ledger"
 )
 
 // InventoryServiceClient is the client API for InventoryService service.
@@ -43,6 +47,10 @@ type InventoryServiceClient interface {
 	Get(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Reserve(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Restock(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Adjustments(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Threshold(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Ledger(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type inventoryServiceClient struct {
@@ -125,6 +133,42 @@ func (c *inventoryServiceClient) Restock(ctx context.Context, in *ServiceRequest
 	return out, nil
 }
 
+func (c *inventoryServiceClient) Adjustments(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, InventoryService_Adjustments_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inventoryServiceClient) AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, InventoryService_AdminList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inventoryServiceClient) Threshold(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, InventoryService_Threshold_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inventoryServiceClient) Ledger(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, InventoryService_Ledger_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InventoryServiceServer is the server API for InventoryService service.
 // All implementations must embed UnimplementedInventoryServiceServer
 // for forward compatibility
@@ -137,6 +181,10 @@ type InventoryServiceServer interface {
 	Get(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Reserve(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Restock(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Adjustments(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Threshold(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Ledger(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedInventoryServiceServer()
 }
 
@@ -167,6 +215,18 @@ func (UnimplementedInventoryServiceServer) Reserve(context.Context, *ServiceRequ
 }
 func (UnimplementedInventoryServiceServer) Restock(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Restock not implemented")
+}
+func (UnimplementedInventoryServiceServer) Adjustments(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Adjustments not implemented")
+}
+func (UnimplementedInventoryServiceServer) AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminList not implemented")
+}
+func (UnimplementedInventoryServiceServer) Threshold(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Threshold not implemented")
+}
+func (UnimplementedInventoryServiceServer) Ledger(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Ledger not implemented")
 }
 func (UnimplementedInventoryServiceServer) mustEmbedUnimplementedInventoryServiceServer() {}
 
@@ -325,6 +385,78 @@ func _InventoryService_Restock_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _InventoryService_Adjustments_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).Adjustments(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_Adjustments_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).Adjustments(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InventoryService_AdminList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).AdminList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_AdminList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).AdminList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InventoryService_Threshold_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).Threshold(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_Threshold_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).Threshold(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InventoryService_Ledger_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).Ledger(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_Ledger_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).Ledger(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // InventoryService_ServiceDesc is the grpc.ServiceDesc for InventoryService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -363,6 +495,22 @@ var InventoryService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Restock",
 			Handler:    _InventoryService_Restock_Handler,
+		},
+		{
+			MethodName: "Adjustments",
+			Handler:    _InventoryService_Adjustments_Handler,
+		},
+		{
+			MethodName: "AdminList",
+			Handler:    _InventoryService_AdminList_Handler,
+		},
+		{
+			MethodName: "Threshold",
+			Handler:    _InventoryService_Threshold_Handler,
+		},
+		{
+			MethodName: "Ledger",
+			Handler:    _InventoryService_Ledger_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

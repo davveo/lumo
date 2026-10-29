@@ -3,6 +3,7 @@ package domain
 import "time"
 
 type Activity struct {
+	Version     int64  `gorm:"not null;default:1" json:"version"`
 	ID          string `gorm:"primaryKey;size:120" json:"id"`
 	Kind        string `gorm:"size:32" json:"kind"`
 	Name        string `gorm:"size:120" json:"name"`

@@ -15,7 +15,10 @@ service CouponService {
   rpc List(ServiceRequest) returns (ServiceResponse);
   rpc Refund(ServiceRequest) returns (ServiceResponse);
   rpc Reserve(ServiceRequest) returns (ServiceResponse);
+  rpc TemplateUpsert(ServiceRequest) returns (ServiceResponse);
   rpc Templates(ServiceRequest) returns (ServiceResponse);
+  rpc TemplatesAdmin(ServiceRequest) returns (ServiceResponse);
   rpc TemplatesByIds(ServiceRequest) returns (ServiceResponse);
   rpc TemplatesSnapshot(ServiceRequest) returns (ServiceResponse);
+  rpc Calculate(ServiceRequest) returns (ServiceResponse);
 }

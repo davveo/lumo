@@ -49,6 +49,7 @@ function setup(t) {
   const server = { order: order(), payment: null };
   const calls = [];
   const respond = async (service, action, command) => {
+    if (service === 'payment' && action === 'methods') return { items: [{ id: 'demo', name: '演示支付' }] };
     if (service === 'payment' && action === 'create') {
       server.payment = {
         id: 'pay-' + command.id,
@@ -121,7 +122,10 @@ test('the pay button submits the demo receipt and waits for server order accepta
   await app.click({ action: 'pay' });
   await until(() => calls.some((call) => call.route === 'order/get'), 'the server order confirmation request');
   assert.deepEqual(
-    calls.slice(0, 2).map((call) => call.route),
+    calls
+      .filter((call) => call.route !== 'payment/methods')
+      .slice(0, 2)
+      .map((call) => call.route),
     ['payment/create', 'payment/submit_demo'],
   );
   assert.equal(app.ctx.LumoCommerce.state.payment.status, 'SUCCEEDED');
@@ -393,7 +397,7 @@ test('canceling an order refreshes its status, coupon and point balances, and on
   await app.ctx.LumoCommerce.cancelOrder(server.order.id);
   await tick();
   assert.deepEqual(
-    calls.map((call) => call.route),
+    calls.filter((call) => call.route !== 'payment/methods').map((call) => call.route),
     ['checkout/cancel', 'order/list'],
   );
   assert.deepEqual(memberReads, [{ force: false, resources: ['coupons', 'points'] }]);

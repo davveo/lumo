@@ -2,11 +2,10 @@ package repository
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/davveo/lumo/internal/constants"
+	"github.com/davveo/lumo/internal/couponrules"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/coupon/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -19,8 +18,19 @@ import (
 type Repository struct{ DB *gorm.DB }
 
 func (r *Repository) Migrate(ctx context.Context) error {
+	if e := platform.MigrateBusinessIDs(ctx, r.DB); e != nil {
+		return e
+	}
+	if err := r.DB.WithContext(ctx).
+		AutoMigrate(&domain.Coupon{}, &domain.Hold{}, &domain.Ledger{}, &domain.Template{}, &domain.Claim{}); err != nil {
+		return err
+	}
+	// Existing seeded/operator-owned templates predate optimistic versions.
 	return r.DB.WithContext(ctx).
-		AutoMigrate(&domain.Coupon{}, &domain.Hold{}, &domain.Ledger{}, &domain.Template{}, &domain.Claim{})
+		Model(&domain.Template{}).
+		Where("version < 1 OR version IS NULL").
+		Update("version", 1).
+		Error
 }
 func (r *Repository) Seed(ctx context.Context) error {
 	if e := r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(
@@ -206,7 +216,8 @@ func (r *Repository) templateItems(
 	return items, now, nil
 }
 func validTemplate(v domain.Template) bool {
-	return v.ValidDays >= 1 && v.ValidDays <= 3660 && v.Amount > 0 && v.Minimum >= 0 && v.MinPoints >= 0 &&
+	return v.ValidDays >= 1 && v.ValidDays <= 3660 && v.Rule.Normalize(v.Amount, v.Minimum) == nil && v.Minimum >= 0 &&
+		v.MinPoints >= 0 &&
 		v.MinGrowth >= 0 &&
 		(v.StartsAt == nil || v.StartsAt.Before(v.ExpiresAt))
 }
@@ -268,11 +279,14 @@ func (r *Repository) Claim(
 		if !template.ExpiresAt.After(now) {
 			return status.Error(codes.FailedPrecondition, "领取已结束")
 		}
-		sum := sha256.Sum256([]byte(c.UserID + "\x00" + id))
-		claimID := "claim-" + hex.EncodeToString(sum[:])
+		claimID, er := platform.NextBusinessID(ctx, tx, "coupon")
+		if er != nil {
+			return er
+		}
 		expires := now.AddDate(0, 0, int(template.ValidDays))
 		out = domain.Coupon{
 			ID:         claimID,
+			Rule:       template.Rule,
 			TemplateID: id,
 			UserID:     c.UserID,
 			Amount:     template.Amount,
@@ -327,6 +341,12 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Request) (platform.
 	if c.ID == "" || id == "" || sub < 1 {
 		return nil, status.Error(codes.InvalidArgument, "order, coupon and subtotal required")
 	}
+	var input struct {
+		Items []couponrules.Line `json:"items"`
+	}
+	if err := platform.Decode(c.Data, &input); err != nil {
+		return nil, err
+	}
 	var out domain.Hold
 	e := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		er := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&out, "id = ?", c.ID).Error
@@ -359,11 +379,15 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Request) (platform.
 		if cp.State != constants.CouponStatusAvailable || time.Now().After(cp.ExpiresAt) || sub < cp.Minimum {
 			return status.Error(codes.FailedPrecondition, "coupon unavailable or threshold unmet")
 		}
+		value, err := couponrules.Discount(cp.Rule, cp.Amount, cp.Minimum, sub, input.Items)
+		if err != nil {
+			return status.Error(codes.FailedPrecondition, err.Error())
+		}
 		out = domain.Hold{
 			ID:       c.ID,
 			UserID:   c.UserID,
 			CouponID: id,
-			Amount:   cp.Amount,
+			Amount:   value,
 			State:    constants.CouponHoldStateReserved,
 		}
 		if er = tx.WithContext(ctx).Create(&out).Error; er != nil {

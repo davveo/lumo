@@ -41,10 +41,11 @@ func captureTracePayload(
 
 func TestTracePayloadRedactsPrivateFieldsWithoutChangingBusinessValues(t *testing.T) {
 	data := map[string]any{
-		"sku_id":        "sku-test",
-		"quantity":      2,
-		"amount_cents":  json.Number("9223372036854775807"),
-		"password":      "private-password",
+		"sku_id":       "sku-test",
+		"quantity":     2,
+		"amount_cents": json.Number("9223372036854775807"),
+		"password":     "private-password",
+		"code":         "private-otp-code", "demo_code": "private-demo-code", "proof": "private-browser-proof", "oauth_state": "private-oauth-state", "challenge_id": "private-challenge-id",
 		"accessToken":   "private-token",
 		"phone":         "13521373352",
 		"user_id":       "private-user",
@@ -77,6 +78,7 @@ func TestTracePayloadRedactsPrivateFieldsWithoutChangingBusinessValues(t *testin
 	)
 	encoded := attrs["lumo.request"].AsString()
 	for _, value := range []string{
+		"private-otp-code", "private-demo-code", "private-browser-proof", "private-oauth-state", "private-challenge-id",
 		"private-password",
 		"private-token",
 		"13521373352",

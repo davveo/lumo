@@ -50,3 +50,10 @@ groups必须存在但允许空数组以关闭目录；group.rows及row.items必�
 非演示环境不会自动创建营销活动。演示模式使用 InsertOnce 提供首次访客、新会员、老会员及成长会员四个不同的首页活动，每个用户每活动最多一次，每天/每会话最多一次，冷却 24 小时；重启不会覆盖管理员修改，不会自动发券。
 
 业务入口使用不含 `Action` 的 `platform.Request`；每项操作由独立公开方法实现权限、参数与业务校验。方法：`List`、`Get`、`Upsert`、`PopupList`、`PopupUpsert`、`PopupConfigure`、`PopupDecide`、`PopupEvent`、`PopupClaim`。运输层仅维护操作到方法的注册表，HTTP 兼容命令不会进入业务层。
+
+
+## 内容模板与商城装修
+
+营销内容layout支持coupon、announcement、image、welcome、member、campaign六种，配合image_url、badge及既有主题。后端只接收安全商城图片或无凭据HTTPS地址，海报必须有图片；按钮保持商城内白名单。选模板不绕过真实人群和频控条件，新增配置默认保存为草稿。
+
+`storefront-main`文档补齐页头标语与搜索提示、最多5张轮播（主视觉加4张附加图）、0或3–30秒轮播间隔、6项首页模块开关、公告及页脚客服信息。新字段执行明确类型/长度/图片/链接校验，其它编辑器字段保持兼容；前端保存前合并最新文档的已修改键。未配置时使用公开默认值，首次后台保存才发布，不在启动时覆盖运营内容。

@@ -18,6 +18,7 @@ func New(d platform.Dependencies) platform.Module {
 		Handle:     t.Handle,
 		Operations: t.Operations(),
 		Topics: []string{
+			constants.EventProductPriceReached, constants.EventProductBackInStock,
 			constants.EventOrderAwaitingPayment,
 			constants.EventOrderPaymentAccepted,
 			constants.EventOrderClosed,

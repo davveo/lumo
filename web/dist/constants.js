@@ -10,11 +10,19 @@
       "Add": "add",
       "Adjust": "adjust",
       "AdjustDemo": "adjust_demo",
+      "Adjustments": "adjustments",
+      "AdminCancel": "admin_cancel",
+      "AdminGet": "admin_get",
+      "AdminList": "admin_list",
+      "AdminSummary": "admin_summary",
+      "AdminUpsert": "admin_upsert",
       "Answer": "answer",
       "Approve": "approve",
+      "AuditList": "audit_list",
       "Batch": "batch",
       "BatchGet": "batch_get",
       "Bootstrap": "bootstrap",
+      "Calculate": "calculate",
       "Cancel": "cancel",
       "Checkin": "checkin",
       "Claim": "claim",
@@ -29,6 +37,7 @@
       "CreateExchange": "create_exchange",
       "CreateFailed": "create_failed",
       "Current": "current",
+      "Dashboard": "dashboard",
       "Default": "default",
       "Delete": "delete",
       "Deliver": "deliver",
@@ -44,15 +53,25 @@
       "Inspect": "inspect",
       "InspectReturn": "inspect_return",
       "IssueDemo": "issue_demo",
+      "Ledger": "ledger",
       "Like": "like",
       "List": "list",
       "Login": "login",
+      "LoginMethods": "login_methods",
       "Logout": "logout",
       "LogoutAll": "logout_all",
       "Merge": "merge",
+      "Methods": "methods",
       "Moderate": "moderate",
+      "Note": "note",
+      "OAuthCallback": "oauth_callback",
+      "OAuthStart": "oauth_start",
+      "OtpLogin": "otp_login",
+      "OtpSend": "otp_send",
       "Paid": "paid",
       "Pending": "pending",
+      "PolicyGet": "policy_get",
+      "PolicyUpsert": "policy_upsert",
       "Popup": "popup",
       "PopupClaim": "popup_claim",
       "PopupClick": "popup_click",
@@ -81,22 +100,36 @@
       "Remove": "remove",
       "Reply": "reply",
       "Request": "request",
+      "RequestsAdmin": "requests_admin",
       "Reserve": "reserve",
       "Restock": "restock",
+      "Retry": "retry",
       "Return": "return",
       "Reversals": "reversals",
       "Reward": "reward",
+      "RuleUpsert": "rule_upsert",
+      "Rules": "rules",
+      "RulesAdmin": "rules_admin",
       "Run": "run",
       "SearchProducts": "search_products",
+      "SessionGet": "session_get",
       "Set": "set",
+      "SetActive": "set_active",
       "Shell": "shell",
       "Shipped": "shipped",
       "Submit": "submit",
       "SubmitDemo": "submit_demo",
+      "Subscribe": "subscribe",
+      "Subscriptions": "subscriptions",
       "Suggest": "suggest",
+      "Tasks": "tasks",
+      "TemplateUpsert": "template_upsert",
       "Templates": "templates",
+      "TemplatesAdmin": "templates_admin",
       "TemplatesByIds": "templates_by_ids",
       "TemplatesSnapshot": "templates_snapshot",
+      "Threshold": "threshold",
+      "Unsubscribe": "unsubscribe",
       "Update": "update",
       "Upsert": "upsert",
       "Validate": "validate",
@@ -239,7 +272,10 @@
       "Storefront": "storefront"
     },
     "ContentStatus": {
-      "Published": "PUBLISHED"
+      "Draft": "DRAFT",
+      "Paused": "PAUSED",
+      "Published": "PUBLISHED",
+      "Scheduled": "SCHEDULED"
     },
     "ConversationRole": {
       "Assistant": "assistant",
@@ -281,12 +317,23 @@
       "NotEligible": "NOT_ELIGIBLE",
       "Returned": "RETURNED"
     },
+    "CouponScope": {
+      "All": "all",
+      "Category": "category",
+      "Product": "product"
+    },
     "CouponStatus": {
       "Available": "AVAILABLE",
       "AvailableLegacy": "available",
       "Expired": "EXPIRED",
       "Held": "HELD",
       "Used": "USED"
+    },
+    "CouponType": {
+      "Cash": "cash",
+      "Discount": "discount",
+      "Reduction": "reduction",
+      "ThresholdDiscount": "threshold_discount"
     },
     "CouponViewStatus": {
       "Available": "available",
@@ -318,7 +365,9 @@
       "OrderReadyToFulfill": "OrderReadyToFulfill",
       "PaymentRejected": "PaymentRejected",
       "PaymentSucceeded": "PaymentSucceeded",
+      "ProductBackInStock": "ProductBackInStock",
       "ProductChanged": "ProductChanged",
+      "ProductPriceReached": "ProductPriceReached",
       "RefundSucceeded": "RefundSucceeded",
       "ReturnInspectionCompleted": "ReturnInspectionCompleted",
       "ReviewPublished": "ReviewPublished",
@@ -577,6 +626,7 @@
       "Checkin": "CHECKIN",
       "Confirmed": "CONFIRMED",
       "Freeze": "FREEZE",
+      "Manual": "MANUAL",
       "Refund": "REFUND",
       "Reward": "REWARD",
       "RewardReversal": "REWARD_REVERSAL"
@@ -591,6 +641,14 @@
       "Click": "click",
       "Dismiss": "dismiss",
       "Impression": "impression"
+    },
+    "PopupLayout": {
+      "Announcement": "announcement",
+      "Campaign": "campaign",
+      "Coupon": "coupon",
+      "Image": "image",
+      "Member": "member",
+      "Welcome": "welcome"
     },
     "PopupPlacement": {
       "Category": "category",
@@ -688,7 +746,10 @@
     },
     "ReconciliationStatus": {
       "Differences": "DIFFERENCES",
-      "Matched": "MATCHED"
+      "Failed": "FAILED",
+      "Matched": "MATCHED",
+      "Queued": "QUEUED",
+      "Running": "RUNNING"
     },
     "RefundProvider": {
       "Demo": "demo"
@@ -739,6 +800,7 @@
       "Inventory": "inventory",
       "Invoice": "invoice",
       "Logistics": "logistics",
+      "Management": "management",
       "Media": "media",
       "Member": "member",
       "Notification": "notification",
@@ -756,6 +818,16 @@
       "Damaged": "damaged",
       "Sellable": "sellable",
       "Unsellable": "unsellable"
+    },
+    "SubscriptionKind": {
+      "Price": "price",
+      "Stock": "stock"
+    },
+    "SubscriptionStatus": {
+      "Active": "ACTIVE",
+      "Cancelled": "CANCELLED",
+      "Expired": "EXPIRED",
+      "Triggered": "TRIGGERED"
     },
     "TicketViewStatus": {
       "Answered": "answered",

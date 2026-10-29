@@ -8,11 +8,13 @@ import (
 
 func New(s *usecase.Service) *platform.MethodHandler {
 	return platform.NewMethodHandler(constants.ServiceInvoice, map[string]platform.Operation{
-		constants.ActionList:       s.List,
-		constants.ActionCreate:     s.Create,
-		constants.ActionGet:        s.Get,
-		constants.ActionReversals:  s.Reversals,
-		constants.ActionIssueDemo:  s.IssueDemo,
-		constants.ActionAdjustDemo: s.AdjustDemo,
+		constants.ActionAdminList:    s.AdminList,
+		constants.ActionAdminSummary: s.AdminSummary,
+		constants.ActionList:         s.List,
+		constants.ActionCreate:       s.Create,
+		constants.ActionGet:          s.Get,
+		constants.ActionReversals:    s.Reversals,
+		constants.ActionIssueDemo:    s.IssueDemo,
+		constants.ActionAdjustDemo:   s.AdjustDemo,
 	}, nil)
 }

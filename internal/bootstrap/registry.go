@@ -71,6 +71,13 @@ var Names = []string{
 }
 
 func New(name string, d platform.Dependencies) (platform.Module, error) {
+	m, e := newDomain(name, d)
+	if e != nil {
+		return m, e
+	}
+	return platform.WithAdministration(m, d.DB), nil
+}
+func newDomain(name string, d platform.Dependencies) (platform.Module, error) {
 	switch name {
 	case constants.ServiceIAM:
 		return iam.New(d), nil

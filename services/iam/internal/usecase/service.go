@@ -12,12 +12,16 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"net/http"
 	"os"
 	"strings"
 	"time"
 )
 
-type Service struct{ repo *repository.Repository }
+type Service struct {
+	repo      *repository.Repository
+	oauthHTTP *http.Client
+}
 
 func New(r *repository.Repository) *Service          { return &Service{repo: r} }
 func (s *Service) Migrate(ctx context.Context) error { return s.repo.Migrate(ctx) }
@@ -67,6 +71,13 @@ func (s *Service) Login(ctx context.Context, c platform.Request) (traceResult pl
 	a, e := s.repo.ByUsername(ctx, username)
 	if e != nil || !a.Active || bcrypt.CompareHashAndPassword([]byte(a.PasswordHash), []byte(password)) != nil {
 		return nil, status.Error(codes.Unauthenticated, "invalid credentials")
+	}
+	policy, _, policyErr := s.repo.LoginPolicy(ctx)
+	if policyErr != nil {
+		return nil, policyErr
+	}
+	if a.Role != constants.RoleAdmin && !policy.Password {
+		return nil, status.Error(codes.PermissionDenied, "账号密码登录已关闭，请使用其他登录方式")
 	}
 	raw, e := token()
 	if e != nil {

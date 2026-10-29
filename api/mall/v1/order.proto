@@ -86,7 +86,41 @@ message Order {
 
 // One RPC per order use case. The legacy DomainService.Execute endpoint is
 // retained separately for callers that have not yet migrated.
+message AdminOrdersRequest {
+ OrderActor actor = 1;
+ int32 page = 2;
+ int32 page_size = 3;
+ string keyword = 4;
+ string status = 5;
+ string from = 6;
+ string to = 7;
+ int32 days = 8;
+}
+message AdminOrdersResponse {
+ repeated Order items = 1;
+ int64 total = 2;
+ int32 page = 3;
+ int32 page_size = 4;
+ bool has_more = 5;
+}
+message OrderSummaryBucket {
+ string status = 1;
+ int64 count = 2;
+ int64 amount_cents = 3;
+ string day = 4;
+}
+message OrderSummaryResponse {
+ int64 total = 1;
+ repeated OrderSummaryBucket states = 2;
+ repeated OrderSummaryBucket daily = 3;
+ int32 days = 4;
+ string timezone = 5;
+ string generated_at = 6;
+}
+
 service OrderService {
+ rpc AdminList(AdminOrdersRequest) returns (AdminOrdersResponse);
+ rpc AdminSummary(AdminOrdersRequest) returns (OrderSummaryResponse);
   rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
   rpc GetOrder(OrderRequest) returns (Order);
   rpc CreateOrder(CreateOrderRequest) returns (Order);

@@ -18,4 +18,6 @@ service ContentService {
   rpc PopupList(ServiceRequest) returns (ServiceResponse);
   rpc PopupUpsert(ServiceRequest) returns (ServiceResponse);
   rpc Upsert(ServiceRequest) returns (ServiceResponse);
+  rpc AdminList(ServiceRequest) returns (ServiceResponse);
+  rpc AdminUpsert(ServiceRequest) returns (ServiceResponse);
 }

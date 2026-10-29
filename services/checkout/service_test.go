@@ -2,8 +2,6 @@ package checkout_test
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"github.com/davveo/lumo/internal/platform"
 	checkoutmod "github.com/davveo/lumo/services/checkout"
 	ordermod "github.com/davveo/lumo/services/order"
@@ -147,8 +145,18 @@ func TestUnknownReservationIsCompensated(t *testing.T) {
 	if p.held || !p.cancelled {
 		t.Fatal("UNKNOWN reservation was leaked instead of cancelled")
 	}
-	h := sha256.Sum256([]byte("demo\x00lost-response"))
-	id := "ord_" + hex.EncodeToString(h[:])[:32]
+	listed, readErr := p.order.Handle(ctx, platform.Command{Action: "list", UserID: "demo", Role: "user"})
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	var listedRows struct{ Items []struct{ ID string } }
+	if e = platform.Decode(listed, &listedRows); e != nil || len(listedRows.Items) != 1 {
+		t.Fatalf("missing generated order: %v %v", listed, e)
+	}
+	id := listedRows.Items[0].ID
+	if !platform.IsBusinessID(id, "order") {
+		t.Fatalf("not a snowflake order number: %s", id)
+	}
 	v, e := m.Handle(ctx, platform.Command{Action: "get", ID: id, UserID: "demo", Role: "user"})
 	if e != nil || platform.Text(v, "status") != "CANCELLED" {
 		t.Fatalf("compensation state not durable: %v %v", v, e)

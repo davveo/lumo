@@ -21,22 +21,28 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	CampaignService_Cancel_FullMethodName   = "/mall.v1.CampaignService/Cancel"
-	CampaignService_Confirm_FullMethodName  = "/mall.v1.CampaignService/Confirm"
-	CampaignService_Evaluate_FullMethodName = "/mall.v1.CampaignService/Evaluate"
-	CampaignService_List_FullMethodName     = "/mall.v1.CampaignService/List"
-	CampaignService_Reserve_FullMethodName  = "/mall.v1.CampaignService/Reserve"
+	CampaignService_AdminList_FullMethodName  = "/mall.v1.CampaignService/AdminList"
+	CampaignService_Cancel_FullMethodName     = "/mall.v1.CampaignService/Cancel"
+	CampaignService_Confirm_FullMethodName    = "/mall.v1.CampaignService/Confirm"
+	CampaignService_Evaluate_FullMethodName   = "/mall.v1.CampaignService/Evaluate"
+	CampaignService_List_FullMethodName       = "/mall.v1.CampaignService/List"
+	CampaignService_Reserve_FullMethodName    = "/mall.v1.CampaignService/Reserve"
+	CampaignService_Upsert_FullMethodName     = "/mall.v1.CampaignService/Upsert"
+	CampaignService_RuleUpsert_FullMethodName = "/mall.v1.CampaignService/RuleUpsert"
 )
 
 // CampaignServiceClient is the client API for CampaignService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CampaignServiceClient interface {
+	AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Cancel(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Confirm(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Evaluate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	List(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Reserve(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Upsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	RuleUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type campaignServiceClient struct {
@@ -45,6 +51,15 @@ type campaignServiceClient struct {
 
 func NewCampaignServiceClient(cc grpc.ClientConnInterface) CampaignServiceClient {
 	return &campaignServiceClient{cc}
+}
+
+func (c *campaignServiceClient) AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CampaignService_AdminList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *campaignServiceClient) Cancel(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
@@ -92,15 +107,36 @@ func (c *campaignServiceClient) Reserve(ctx context.Context, in *ServiceRequest,
 	return out, nil
 }
 
+func (c *campaignServiceClient) Upsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CampaignService_Upsert_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *campaignServiceClient) RuleUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CampaignService_RuleUpsert_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CampaignServiceServer is the server API for CampaignService service.
 // All implementations must embed UnimplementedCampaignServiceServer
 // for forward compatibility
 type CampaignServiceServer interface {
+	AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Cancel(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Confirm(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Evaluate(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	List(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Reserve(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Upsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	RuleUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedCampaignServiceServer()
 }
 
@@ -108,6 +144,9 @@ type CampaignServiceServer interface {
 type UnimplementedCampaignServiceServer struct {
 }
 
+func (UnimplementedCampaignServiceServer) AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminList not implemented")
+}
 func (UnimplementedCampaignServiceServer) Cancel(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Cancel not implemented")
 }
@@ -123,6 +162,12 @@ func (UnimplementedCampaignServiceServer) List(context.Context, *ServiceRequest)
 func (UnimplementedCampaignServiceServer) Reserve(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Reserve not implemented")
 }
+func (UnimplementedCampaignServiceServer) Upsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Upsert not implemented")
+}
+func (UnimplementedCampaignServiceServer) RuleUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RuleUpsert not implemented")
+}
 func (UnimplementedCampaignServiceServer) mustEmbedUnimplementedCampaignServiceServer() {}
 
 // UnsafeCampaignServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -134,6 +179,24 @@ type UnsafeCampaignServiceServer interface {
 
 func RegisterCampaignServiceServer(s grpc.ServiceRegistrar, srv CampaignServiceServer) {
 	s.RegisterService(&CampaignService_ServiceDesc, srv)
+}
+
+func _CampaignService_AdminList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CampaignServiceServer).AdminList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CampaignService_AdminList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CampaignServiceServer).AdminList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _CampaignService_Cancel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -226,6 +289,42 @@ func _CampaignService_Reserve_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CampaignService_Upsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CampaignServiceServer).Upsert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CampaignService_Upsert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CampaignServiceServer).Upsert(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CampaignService_RuleUpsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CampaignServiceServer).RuleUpsert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CampaignService_RuleUpsert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CampaignServiceServer).RuleUpsert(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CampaignService_ServiceDesc is the grpc.ServiceDesc for CampaignService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -233,6 +332,10 @@ var CampaignService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "mall.v1.CampaignService",
 	HandlerType: (*CampaignServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "AdminList",
+			Handler:    _CampaignService_AdminList_Handler,
+		},
 		{
 			MethodName: "Cancel",
 			Handler:    _CampaignService_Cancel_Handler,
@@ -252,6 +355,14 @@ var CampaignService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Reserve",
 			Handler:    _CampaignService_Reserve_Handler,
+		},
+		{
+			MethodName: "Upsert",
+			Handler:    _CampaignService_Upsert_Handler,
+		},
+		{
+			MethodName: "RuleUpsert",
+			Handler:    _CampaignService_RuleUpsert_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

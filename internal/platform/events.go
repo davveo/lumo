@@ -7,9 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/davveo/lumo/internal/constants"
+	"io"
 	"log/slog"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/redis/go-redis/v9"
@@ -39,24 +41,38 @@ type Outbox struct {
 	UpdatedAt     time.Time
 }
 type Inbox struct {
-	Consumer   string `gorm:"primaryKey;size:80"`
-	EventID    string `gorm:"primaryKey;size:80"`
-	State      string `gorm:"size:20"`
-	Attempts   int
-	ClaimToken string `gorm:"size:80"`
-	LeaseUntil time.Time
-	UpdatedAt  time.Time
+	PayloadJSON string `gorm:"type:longtext"`
+	CarrierJSON string `gorm:"type:text"`
+	Consumer    string `gorm:"primaryKey;size:80"`
+	EventID     string `gorm:"primaryKey;size:80"`
+	State       string `gorm:"size:20"`
+	Attempts    int
+	ClaimToken  string `gorm:"size:80"`
+	LeaseUntil  time.Time
+	UpdatedAt   time.Time
 }
 
 func MigratePlatform(ctx context.Context, db *gorm.DB) error {
-	return db.WithContext(ctx).AutoMigrate(&Outbox{}, &Inbox{})
+	if e := MigrateBusinessIDs(ctx, db); e != nil {
+		return e
+	}
+	return db.WithContext(ctx).AutoMigrate(&Outbox{}, &Inbox{}, &Recovery{}, &TaskAudit{})
+}
+func validateEventMetadata(event Event) error {
+	if strings.TrimSpace(event.ID) == "" || utf8.RuneCountInString(event.ID) > 80 || len(event.ID) > 255 {
+		return fmt.Errorf("event ID requires 1..80 characters and at most 255 bytes")
+	}
+	if strings.TrimSpace(event.Type) == "" || utf8.RuneCountInString(event.Type) > 100 || len(event.Type) > 255 {
+		return fmt.Errorf("event type requires 1..100 characters and at most 255 bytes")
+	}
+	return nil
 }
 func Enqueue(ctx context.Context, tx *gorm.DB, event Event) error {
-	if event.Type == "" {
-		return fmt.Errorf("event type is required")
-	}
 	if event.ID == "" {
 		event.ID = ID("evt")
+	}
+	if err := validateEventMetadata(event); err != nil {
+		return err
 	}
 	payload, err := json.Marshal(event)
 	if err != nil {
@@ -486,7 +502,12 @@ func consumeOne(
 	var event Event
 	decoder := json.NewDecoder(bytes.NewReader(d.Body))
 	decoder.UseNumber()
-	if err := decoder.Decode(&event); err != nil || event.ID == "" || event.Type == "" {
+	if err := decoder.Decode(&event); err != nil || validateEventMetadata(event) != nil {
+		return d.Reject(false)
+	}
+	// Schema-invalid deliveries cannot be retried into MySQL forever, and one
+	// broker message must contain one complete event rather than a JSON prefix.
+	if err := decoder.Decode(new(any)); err != io.EOF {
 		return d.Reject(false)
 	}
 	if !moduleWants(m, event.Type) {
@@ -522,6 +543,13 @@ func consumeOne(
 	)
 	if err != nil {
 		return err
+	}
+	if owned {
+		raw, _ := json.Marshal(event)
+		headers, _ := json.Marshal(carrier)
+		if err = db.WithContext(ctx).Model(&Inbox{}).Where("consumer = ? AND event_id = ? AND claim_token = ?", m.Name, event.ID, claim.ClaimToken).Updates(map[string]any{"payload_json": string(raw), "carrier_json": string(headers)}).Error; err != nil {
+			return err
+		}
 	}
 	if !owned {
 		if claim.State == constants.InboxStateDone {

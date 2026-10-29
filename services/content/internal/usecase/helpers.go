@@ -51,6 +51,12 @@ func payload(r domain.Record) map[string]any {
 func view(r domain.Record) platform.Result {
 	v := payload(r)
 	v["id"] = r.ID
+	if r.Kind == constants.ContentKindNotice || r.Kind == constants.ContentKindFaq {
+		v["version"] = r.Version
+		v["publish_at"] = r.PublishAt
+		v["unpublish_at"] = r.UnpublishAt
+		v["visible"] = visibleContent(r)
+	}
 	v["user_id"] = r.UserID
 	v["status"] = r.Status
 	v["kind"] = r.Kind

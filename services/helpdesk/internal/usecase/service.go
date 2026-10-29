@@ -73,8 +73,12 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 			return nil, status.Error(codes.PermissionDenied, "order belongs to another user")
 		}
 	}
+	id, e := s.repo.BusinessID(ctx, "ticket", c.UserID+"\x00"+c.IdempotencyKey, stable(c.UserID, constants.HelpdeskKindTicket, c.IdempotencyKey))
+	if e != nil {
+		return nil, e
+	}
 	r := record(
-		stable(c.UserID, constants.HelpdeskKindTicket, c.IdempotencyKey),
+		id,
 		c.UserID,
 		constants.HelpdeskKindTicket,
 		constants.HelpdeskStatusOpen,

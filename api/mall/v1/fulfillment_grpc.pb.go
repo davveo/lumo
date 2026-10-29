@@ -27,6 +27,8 @@ const (
 	FulfillmentService_Get_FullMethodName            = "/mall.v1.FulfillmentService/Get"
 	FulfillmentService_InspectReturn_FullMethodName  = "/mall.v1.FulfillmentService/InspectReturn"
 	FulfillmentService_List_FullMethodName           = "/mall.v1.FulfillmentService/List"
+	FulfillmentService_AdminList_FullMethodName      = "/mall.v1.FulfillmentService/AdminList"
+	FulfillmentService_AdminSummary_FullMethodName   = "/mall.v1.FulfillmentService/AdminSummary"
 )
 
 // FulfillmentServiceClient is the client API for FulfillmentService service.
@@ -39,6 +41,8 @@ type FulfillmentServiceClient interface {
 	Get(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	InspectReturn(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	List(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	AdminSummary(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type fulfillmentServiceClient struct {
@@ -103,6 +107,24 @@ func (c *fulfillmentServiceClient) List(ctx context.Context, in *ServiceRequest,
 	return out, nil
 }
 
+func (c *fulfillmentServiceClient) AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, FulfillmentService_AdminList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *fulfillmentServiceClient) AdminSummary(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, FulfillmentService_AdminSummary_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // FulfillmentServiceServer is the server API for FulfillmentService service.
 // All implementations must embed UnimplementedFulfillmentServiceServer
 // for forward compatibility
@@ -113,6 +135,8 @@ type FulfillmentServiceServer interface {
 	Get(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	InspectReturn(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	List(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	AdminSummary(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedFulfillmentServiceServer()
 }
 
@@ -137,6 +161,12 @@ func (UnimplementedFulfillmentServiceServer) InspectReturn(context.Context, *Ser
 }
 func (UnimplementedFulfillmentServiceServer) List(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
+}
+func (UnimplementedFulfillmentServiceServer) AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminList not implemented")
+}
+func (UnimplementedFulfillmentServiceServer) AdminSummary(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminSummary not implemented")
 }
 func (UnimplementedFulfillmentServiceServer) mustEmbedUnimplementedFulfillmentServiceServer() {}
 
@@ -259,6 +289,42 @@ func _FulfillmentService_List_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FulfillmentService_AdminList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FulfillmentServiceServer).AdminList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FulfillmentService_AdminList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FulfillmentServiceServer).AdminList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FulfillmentService_AdminSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FulfillmentServiceServer).AdminSummary(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FulfillmentService_AdminSummary_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FulfillmentServiceServer).AdminSummary(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // FulfillmentService_ServiceDesc is the grpc.ServiceDesc for FulfillmentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -289,6 +355,14 @@ var FulfillmentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "List",
 			Handler:    _FulfillmentService_List_Handler,
+		},
+		{
+			MethodName: "AdminList",
+			Handler:    _FulfillmentService_AdminList_Handler,
+		},
+		{
+			MethodName: "AdminSummary",
+			Handler:    _FulfillmentService_AdminSummary_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

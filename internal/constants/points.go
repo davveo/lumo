@@ -11,6 +11,7 @@ const (
 // enum:PointsLedgerKind
 const (
 	PointsLedgerKindFreeze         = "FREEZE"
+	PointsLedgerKindManual         = "MANUAL"
 	PointsLedgerKindConfirmed      = "CONFIRMED"
 	PointsLedgerKindCancelled      = "CANCELLED"
 	PointsLedgerKindReward         = "REWARD"

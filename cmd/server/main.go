@@ -138,16 +138,20 @@ func run() error {
 		return fmt.Errorf("Consul registration: %w", err)
 	}
 	defer unregister()
-	failures := make(chan error, 2)
 	if os.Getenv("AMQP_URL") == "" {
 		slog.Warn("AMQP_URL empty: durable outbox is retained; no external message transport running")
 	}
 	// RunEvents also coordinates scheduled work when AMQP is disabled; all
 	// replicas share the same cross-process task exclusion in either mode.
-	go func() { failures <- platform.RunEvents(ctx, db, cache, os.Getenv("AMQP_URL"), module) }()
-	go func() {
-		failures <- platform.ServeRPC(ctx, env("RPC_ADDR", ":9000"), os.Getenv("INTERNAL_RPC_TOKEN"), module)
-	}()
+	failures, finishWorkers := startWorkers(ctx,
+		func(workerCtx context.Context) error {
+			return platform.RunEvents(workerCtx, db, cache, os.Getenv("AMQP_URL"), module)
+		},
+		func(workerCtx context.Context) error {
+			return platform.ServeRPC(workerCtx, env("RPC_ADDR", ":9000"), os.Getenv("INTERNAL_RPC_TOKEN"), module)
+		},
+	)
+	defer finishWorkers()
 	slog.Info(
 		"service started",
 		"service",

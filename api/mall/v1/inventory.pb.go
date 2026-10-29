@@ -26,7 +26,7 @@ var File_api_mall_v1_inventory_proto protoreflect.FileDescriptor
 
 const file_api_mall_v1_inventory_proto_rawDesc = "" +
 	"\n" +
-	"\x1bapi/mall/v1/inventory.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xfe\x03\n" +
+	"\x1bapi/mall/v1/inventory.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xfd\x05\n" +
 	"\x10InventoryService\x12;\n" +
 	"\x06Adjust\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12=\n" +
 	"\bBatchGet\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
@@ -35,34 +35,46 @@ const file_api_mall_v1_inventory_proto_rawDesc = "" +
 	"\bDispatch\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x128\n" +
 	"\x03Get\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12<\n" +
 	"\aReserve\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12<\n" +
-	"\aRestock\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
+	"\aRestock\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12@\n" +
+	"\vAdjustments\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tAdminList\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tThreshold\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
+	"\x06Ledger\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
 
 var file_api_mall_v1_inventory_proto_goTypes = []any{
 	(*ServiceRequest)(nil),  // 0: mall.v1.ServiceRequest
 	(*ServiceResponse)(nil), // 1: mall.v1.ServiceResponse
 }
 var file_api_mall_v1_inventory_proto_depIdxs = []int32{
-	0, // 0: mall.v1.InventoryService.Adjust:input_type -> mall.v1.ServiceRequest
-	0, // 1: mall.v1.InventoryService.BatchGet:input_type -> mall.v1.ServiceRequest
-	0, // 2: mall.v1.InventoryService.Cancel:input_type -> mall.v1.ServiceRequest
-	0, // 3: mall.v1.InventoryService.Confirm:input_type -> mall.v1.ServiceRequest
-	0, // 4: mall.v1.InventoryService.Dispatch:input_type -> mall.v1.ServiceRequest
-	0, // 5: mall.v1.InventoryService.Get:input_type -> mall.v1.ServiceRequest
-	0, // 6: mall.v1.InventoryService.Reserve:input_type -> mall.v1.ServiceRequest
-	0, // 7: mall.v1.InventoryService.Restock:input_type -> mall.v1.ServiceRequest
-	1, // 8: mall.v1.InventoryService.Adjust:output_type -> mall.v1.ServiceResponse
-	1, // 9: mall.v1.InventoryService.BatchGet:output_type -> mall.v1.ServiceResponse
-	1, // 10: mall.v1.InventoryService.Cancel:output_type -> mall.v1.ServiceResponse
-	1, // 11: mall.v1.InventoryService.Confirm:output_type -> mall.v1.ServiceResponse
-	1, // 12: mall.v1.InventoryService.Dispatch:output_type -> mall.v1.ServiceResponse
-	1, // 13: mall.v1.InventoryService.Get:output_type -> mall.v1.ServiceResponse
-	1, // 14: mall.v1.InventoryService.Reserve:output_type -> mall.v1.ServiceResponse
-	1, // 15: mall.v1.InventoryService.Restock:output_type -> mall.v1.ServiceResponse
-	8, // [8:16] is the sub-list for method output_type
-	0, // [0:8] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0,  // 0: mall.v1.InventoryService.Adjust:input_type -> mall.v1.ServiceRequest
+	0,  // 1: mall.v1.InventoryService.BatchGet:input_type -> mall.v1.ServiceRequest
+	0,  // 2: mall.v1.InventoryService.Cancel:input_type -> mall.v1.ServiceRequest
+	0,  // 3: mall.v1.InventoryService.Confirm:input_type -> mall.v1.ServiceRequest
+	0,  // 4: mall.v1.InventoryService.Dispatch:input_type -> mall.v1.ServiceRequest
+	0,  // 5: mall.v1.InventoryService.Get:input_type -> mall.v1.ServiceRequest
+	0,  // 6: mall.v1.InventoryService.Reserve:input_type -> mall.v1.ServiceRequest
+	0,  // 7: mall.v1.InventoryService.Restock:input_type -> mall.v1.ServiceRequest
+	0,  // 8: mall.v1.InventoryService.Adjustments:input_type -> mall.v1.ServiceRequest
+	0,  // 9: mall.v1.InventoryService.AdminList:input_type -> mall.v1.ServiceRequest
+	0,  // 10: mall.v1.InventoryService.Threshold:input_type -> mall.v1.ServiceRequest
+	0,  // 11: mall.v1.InventoryService.Ledger:input_type -> mall.v1.ServiceRequest
+	1,  // 12: mall.v1.InventoryService.Adjust:output_type -> mall.v1.ServiceResponse
+	1,  // 13: mall.v1.InventoryService.BatchGet:output_type -> mall.v1.ServiceResponse
+	1,  // 14: mall.v1.InventoryService.Cancel:output_type -> mall.v1.ServiceResponse
+	1,  // 15: mall.v1.InventoryService.Confirm:output_type -> mall.v1.ServiceResponse
+	1,  // 16: mall.v1.InventoryService.Dispatch:output_type -> mall.v1.ServiceResponse
+	1,  // 17: mall.v1.InventoryService.Get:output_type -> mall.v1.ServiceResponse
+	1,  // 18: mall.v1.InventoryService.Reserve:output_type -> mall.v1.ServiceResponse
+	1,  // 19: mall.v1.InventoryService.Restock:output_type -> mall.v1.ServiceResponse
+	1,  // 20: mall.v1.InventoryService.Adjustments:output_type -> mall.v1.ServiceResponse
+	1,  // 21: mall.v1.InventoryService.AdminList:output_type -> mall.v1.ServiceResponse
+	1,  // 22: mall.v1.InventoryService.Threshold:output_type -> mall.v1.ServiceResponse
+	1,  // 23: mall.v1.InventoryService.Ledger:output_type -> mall.v1.ServiceResponse
+	12, // [12:24] is the sub-list for method output_type
+	0,  // [0:12] is the sub-list for method input_type
+	0,  // [0:0] is the sub-list for extension type_name
+	0,  // [0:0] is the sub-list for extension extendee
+	0,  // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_api_mall_v1_inventory_proto_init() }

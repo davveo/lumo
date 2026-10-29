@@ -21,13 +21,18 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	PointsService_Cancel_FullMethodName  = "/mall.v1.PointsService/Cancel"
-	PointsService_Checkin_FullMethodName = "/mall.v1.PointsService/Checkin"
-	PointsService_Confirm_FullMethodName = "/mall.v1.PointsService/Confirm"
-	PointsService_Get_FullMethodName     = "/mall.v1.PointsService/Get"
-	PointsService_Refund_FullMethodName  = "/mall.v1.PointsService/Refund"
-	PointsService_Reserve_FullMethodName = "/mall.v1.PointsService/Reserve"
-	PointsService_Reward_FullMethodName  = "/mall.v1.PointsService/Reward"
+	PointsService_Cancel_FullMethodName       = "/mall.v1.PointsService/Cancel"
+	PointsService_Checkin_FullMethodName      = "/mall.v1.PointsService/Checkin"
+	PointsService_Confirm_FullMethodName      = "/mall.v1.PointsService/Confirm"
+	PointsService_Get_FullMethodName          = "/mall.v1.PointsService/Get"
+	PointsService_Refund_FullMethodName       = "/mall.v1.PointsService/Refund"
+	PointsService_Reserve_FullMethodName      = "/mall.v1.PointsService/Reserve"
+	PointsService_Reward_FullMethodName       = "/mall.v1.PointsService/Reward"
+	PointsService_PolicyGet_FullMethodName    = "/mall.v1.PointsService/PolicyGet"
+	PointsService_PolicyUpsert_FullMethodName = "/mall.v1.PointsService/PolicyUpsert"
+	PointsService_AdminGet_FullMethodName     = "/mall.v1.PointsService/AdminGet"
+	PointsService_Adjust_FullMethodName       = "/mall.v1.PointsService/Adjust"
+	PointsService_Ledger_FullMethodName       = "/mall.v1.PointsService/Ledger"
 )
 
 // PointsServiceClient is the client API for PointsService service.
@@ -41,6 +46,11 @@ type PointsServiceClient interface {
 	Refund(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Reserve(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Reward(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PolicyGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PolicyUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	AdminGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Adjust(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Ledger(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type pointsServiceClient struct {
@@ -114,6 +124,51 @@ func (c *pointsServiceClient) Reward(ctx context.Context, in *ServiceRequest, op
 	return out, nil
 }
 
+func (c *pointsServiceClient) PolicyGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PointsService_PolicyGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pointsServiceClient) PolicyUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PointsService_PolicyUpsert_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pointsServiceClient) AdminGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PointsService_AdminGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pointsServiceClient) Adjust(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PointsService_Adjust_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pointsServiceClient) Ledger(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PointsService_Ledger_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PointsServiceServer is the server API for PointsService service.
 // All implementations must embed UnimplementedPointsServiceServer
 // for forward compatibility
@@ -125,6 +180,11 @@ type PointsServiceServer interface {
 	Refund(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Reserve(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Reward(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PolicyGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	AdminGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Adjust(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Ledger(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedPointsServiceServer()
 }
 
@@ -152,6 +212,21 @@ func (UnimplementedPointsServiceServer) Reserve(context.Context, *ServiceRequest
 }
 func (UnimplementedPointsServiceServer) Reward(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Reward not implemented")
+}
+func (UnimplementedPointsServiceServer) PolicyGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PolicyGet not implemented")
+}
+func (UnimplementedPointsServiceServer) PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PolicyUpsert not implemented")
+}
+func (UnimplementedPointsServiceServer) AdminGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminGet not implemented")
+}
+func (UnimplementedPointsServiceServer) Adjust(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Adjust not implemented")
+}
+func (UnimplementedPointsServiceServer) Ledger(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Ledger not implemented")
 }
 func (UnimplementedPointsServiceServer) mustEmbedUnimplementedPointsServiceServer() {}
 
@@ -292,6 +367,96 @@ func _PointsService_Reward_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PointsService_PolicyGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PointsServiceServer).PolicyGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PointsService_PolicyGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PointsServiceServer).PolicyGet(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PointsService_PolicyUpsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PointsServiceServer).PolicyUpsert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PointsService_PolicyUpsert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PointsServiceServer).PolicyUpsert(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PointsService_AdminGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PointsServiceServer).AdminGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PointsService_AdminGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PointsServiceServer).AdminGet(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PointsService_Adjust_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PointsServiceServer).Adjust(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PointsService_Adjust_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PointsServiceServer).Adjust(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PointsService_Ledger_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PointsServiceServer).Ledger(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PointsService_Ledger_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PointsServiceServer).Ledger(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PointsService_ServiceDesc is the grpc.ServiceDesc for PointsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -326,6 +491,26 @@ var PointsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Reward",
 			Handler:    _PointsService_Reward_Handler,
+		},
+		{
+			MethodName: "PolicyGet",
+			Handler:    _PointsService_PolicyGet_Handler,
+		},
+		{
+			MethodName: "PolicyUpsert",
+			Handler:    _PointsService_PolicyUpsert_Handler,
+		},
+		{
+			MethodName: "AdminGet",
+			Handler:    _PointsService_AdminGet_Handler,
+		},
+		{
+			MethodName: "Adjust",
+			Handler:    _PointsService_Adjust_Handler,
+		},
+		{
+			MethodName: "Ledger",
+			Handler:    _PointsService_Ledger_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

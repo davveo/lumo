@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"strings"
+
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/member/internal/domain"
@@ -42,7 +44,11 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 		return nil, e
 	}
 	out["growth"] = growth
-	if growth >= 1000 {
+	policy, err := s.repo.Policy(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if growth >= policy.GoldGrowth {
 		out["level"] = constants.MemberLevelGold
 	} else {
 		out["level"] = constants.MemberLevelMember
@@ -72,10 +78,32 @@ func (s *Service) Update(ctx context.Context, c platform.Request) (traceResult p
 		constants.MemberStatusActive,
 		map[string]any{"display_name": id, "avatar": "", "preferences": map[string]any{}},
 	)
+	if c.Role == constants.RoleAdmin && c.ID != "" && c.ID != c.UserID {
+		reason := strings.TrimSpace(platform.Text(c.Data, "reason"))
+		if reason == "" || len([]rune(reason)) > 240 {
+			return nil, bad("administrator profile changes require a reason")
+		}
+	}
 	r, e := s.repo.Mutate(ctx, seed, true, func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
 		{
 			d := payload(*v)
 			for k, x := range c.Data {
+				if k == "reason" && c.Role == constants.RoleAdmin {
+					continue
+				}
+				if k == "display_name" {
+					value, ok := x.(string)
+					if !ok || strings.TrimSpace(value) == "" || len([]rune(value)) > 100 {
+						return nil, nil, bad("nickname must contain 1..100 characters")
+					}
+				}
+				if k == "avatar" {
+					value, ok := x.(string)
+					if !ok || len(value) > 2000 || (value != "" && !strings.HasPrefix(value, "https://") && !strings.HasPrefix(value, "assets/")) {
+						return nil, nil, bad("avatar must be an HTTPS or existing asset URL")
+					}
+				}
+
 				switch k {
 				case "display_name", "avatar", "preferences":
 					d[k] = x
@@ -85,6 +113,10 @@ func (s *Service) Update(ctx context.Context, c platform.Request) (traceResult p
 			}
 			next := record(v.ID, v.UserID, v.Kind, v.Status, d)
 			v.Payload = next.Payload
+		}
+		if c.Role == constants.RoleAdmin && c.ID != "" && c.ID != c.UserID {
+			change := record(platform.ID("profile-change"), id, "profile_change", "RECORDED", map[string]any{"actor_id": c.UserID, "reason": platform.Text(c.Data, "reason"), "fields": c.Data})
+			return []domain.Record{change}, nil, nil
 		}
 		return nil, nil, nil
 	})
@@ -97,7 +129,11 @@ func (s *Service) Update(ctx context.Context, c platform.Request) (traceResult p
 		return nil, e
 	}
 	out["growth"] = growth
-	if growth >= 1000 {
+	policy, err := s.repo.Policy(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if growth >= policy.GoldGrowth {
 		out["level"] = constants.MemberLevelGold
 	} else {
 		out["level"] = constants.MemberLevelMember
@@ -122,6 +158,9 @@ func (s *Service) event(ctx context.Context, e platform.Event) (traceErr error) 
 		map[string]any{"order_id": e.AggregateID},
 	)
 	r.Amount = platform.Int(e.Data, "payable_cents") / 10000
+	if _, ok := e.Data["growth_points"]; ok {
+		r.Amount = platform.Int(e.Data, "growth_points")
+	}
 	if r.Amount < 1 {
 		r.Amount = 1
 	}

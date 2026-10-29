@@ -238,10 +238,13 @@
     const progress = Math.min(100, Math.max(0, (stateView.baseAmount / stateView.threshold) * 100));
     return `<section class="promo-exchange-box in-${esc(placement)}" aria-label="满额加价换购"><div class="promo-exchange-head"><div><span class="promo-kicker">A LITTLE EXTRA JOY</span><h2>满额换购 <span>好物再加一件</span></h2></div>${ruleLink(C.PromotionType.Exchange)}</div><div class="promo-exchange-status">${restricted ? '<strong>本单为秒杀或拼团订单，暂不参加换购</strong>' : stateView.eligible ? `<strong>${icon('check')}已满足 ¥${money(stateView.threshold)} 换购门槛</strong><span>每单任选 1 件，换购金额不计入门槛</span>` : `<strong>再购 ¥${money(stateView.remaining)}，即可低价换购</strong><span>已选普通商品 ¥${money(stateView.baseAmount)} / ¥${money(stateView.threshold)}</span>`}</div><div class="promo-exchange-progress" aria-hidden="true"><i style="width:${restricted ? 0 : progress}%"></i></div>${placement === 'page' ? pagedList(offers, (offer) => exchangeCard(offer, { ...stateView, hasRestricted: restricted }, true), 'promo-exchange-grid') : `<div class="promo-exchange-grid">${offers.map((offer) => exchangeCard(offer, { ...stateView, hasRestricted: restricted }, true)).join('')}</div>`}${stateView.selectedId ? '<p class="promo-exchange-selected">换购商品已加入本次结算，可在上方移除或更换。</p>' : '<p class="promo-exchange-hint">主商品优惠前金额满足门槛后可加价换购，券和积分以服务端报价为准。</p>'}</section>`;
   }
+  function pageHeading() {
+    return `<div class="section-head storefront-section-head"><div><h1>活动福利</h1><p>秒杀、拼团、满减与多件好价，找到适合你的优惠。</p></div><a class="storefront-section-action" href="#/coupons">领券中心 ${icon('arrow')}</a></div>`;
+  }
   function page(tab = C.PromotionType.Flash, session = C.PromotionSession.Today) {
     const P = engine();
     if (!P)
-      return `${header(true)}<main class="container promo-page" id="main"><div class="promo-empty">活动准备中，请稍后再来。</div></main>${footer()}`;
+      return `${storefrontPageStart('promo-page')}${pageHeading()}<div class="promo-empty">活动准备中，请稍后再来。</div></main>${footer()}`;
     tab = [
       C.PromotionType.Flash,
       C.PromotionType.Group,
@@ -291,7 +294,7 @@
             count: 6,
             label: '正在加载活动商品',
           }) || '';
-    return `${header(true)}<main class="container promo-page" id="main"><div class="breadcrumb"><a href="#/">首页</a>${icon('chevron')}<span>好物福利社</span></div><section class="promo-hero"><div class="promo-hero-copy"><span class="promo-hero-badge">LUMO GOOD THINGS CLUB</span><h1>好物有约，心动有价</h1><p>秒杀、拼团、满减与多件好价，找到适合你的优惠。</p></div><div class="promo-hero-art" aria-hidden="true">${icon('ticket')}<span>GOOD THINGS<br>COME TOGETHER.</span></div></section><nav class="promo-tabs" aria-label="优惠活动">${[[C.PromotionType.Flash, 'clock', '限时秒杀'], [C.PromotionType.Group, 'user', '2 人拼团'], [C.PromotionType.Exchange, 'ticket', '满额换购'], ...campaignTypes.map((type) => [type, campaignGlyphs[type], labels[type]]), ['mygroups', 'bag', '我的拼团']].map(([key, glyph, name]) => `<a class="${tab === key ? 'active' : ''}" href="#/promotions/${key}">${icon(glyph)}${name}</a>`).join('')}</nav><section class="promo-content">${P.status?.().error ? `<div class="promo-checkout-note" role="alert">${esc(P.status().error)}<button class="outline" data-promo-action="refresh-promotions">重新加载活动</button></div>` : ''}${content}</section><p class="promo-footnote">${icon('info')}${demoNote}</p></main>${footer()}`;
+    return `${storefrontPageStart('promo-page')}${pageHeading()}<nav class="promo-tabs storefront-tabs" aria-label="优惠活动">${[[C.PromotionType.Flash, 'clock', '限时秒杀'], [C.PromotionType.Group, 'user', '2 人拼团'], [C.PromotionType.Exchange, 'ticket', '满额换购'], ...campaignTypes.map((type) => [type, campaignGlyphs[type], labels[type]]), ['mygroups', 'bag', '我的拼团']].map(([key, glyph, name]) => `<a class="${tab === key ? 'active' : ''}" href="#/promotions/${key}"${tab === key ? ' aria-current="page"' : ''}>${icon(glyph)}${name}</a>`).join('')}</nav><section class="promo-content">${P.status?.().error ? `<div class="promo-checkout-note" role="alert">${esc(P.status().error)}<button class="outline" data-promo-action="refresh-promotions">重新加载活动</button></div>` : ''}${content}</section><p class="promo-footnote">${icon('info')}${demoNote}</p></main>${footer()}`;
   }
   function detailView(product, selection) {
     const P = engine();

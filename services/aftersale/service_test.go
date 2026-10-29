@@ -165,6 +165,32 @@ func TestReturnRefundQuantityClaimAndMoneyEvent(t *testing.T) {
 		t.Fatal("refund repeated")
 	}
 }
+
+func TestHighValuePartialReturnsPreserveExactRefundProportion(t *testing.T) {
+	rpc := &fakeCaller{fn: func(_ context.Context, _ string, c platform.Command) (platform.Result, error) {
+		return platform.Result{
+			"id": c.ID, "user_id": "demo", "status": "SHIPPED", "payment_id": "paid-high-value",
+			"payable_cents": int64(8000000000),
+			"items": []map[string]any{
+				{"sku_id": "high-value-a", "quantity": 1, "unit_price_cents": int64(4000000000)},
+				{"sku_id": "high-value-b", "quantity": 1, "unit_price_cents": int64(4000000000)},
+			},
+		}, nil
+	}}
+	m, _ := setup(t, rpc)
+	for _, sku := range []string{"high-value-a", "high-value-b"} {
+		row, err := m.Handle(context.Background(), platform.Command{
+			Action: "create", UserID: "demo", IdempotencyKey: sku,
+			Data: map[string]any{
+				"order_id": "high-value-order", "type": "return", "reason": "return one item",
+				"lines": []map[string]any{{"sku_id": sku, "quantity": 1}},
+			},
+		})
+		if err != nil || platform.Int(row, "amount_cents") != 4000000000 {
+			t.Fatalf("valid high-value return lost its proportional cash amount: %v %v", row, err)
+		}
+	}
+}
 func TestExchangeCreatesSeparateFulfillmentAndWaitsForDelivery(t *testing.T) {
 	calls := []string{}
 	rpc := &fakeCaller{fn: func(ctx context.Context, svc string, c platform.Command) (platform.Result, error) {

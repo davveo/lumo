@@ -23,8 +23,10 @@ MINIO_USE_SSL=false
 
 1. `create`：输入 `file_name, content_type, size`（兼容 `mime_type, size_bytes`）。允许 JPEG、PNG、WebP、PDF、纯文本，大小 1字节至10MiB。返回 `id/file_id, upload_url, upload_method=POST, upload_fields, expires_in=600`。
 2. 客户端将 `upload_fields` 原样作为 multipart 表单字段，最后添加二进制 `file` 字段，POST 到 `upload_url`。不要把它当作普通PUT地址。POST policy 绑定随机对象key、MIME和准确声明长度；文件名不参与key构造。
-3. 上传返回成功后调用 `complete`，ID 为 `file_id`。服务用内部 StatObject 复核实际大小与Content-Type；不符则标记 `REJECTED`，不能获取下载授权。成功才变为 `READY`。
-4. `get/download`：只有已完成、归属检查通过的文件才返回10分钟预签名GET。每次签名前再次Stat复核，防止未过期上传授权替换对象后绕过大小/MIME约束。
+3. 上传返回成功后调用 `complete`，ID 为 `file_id`。服务用内部 StatObject 复核实际大小与Content-Type，并保存返回的ETag；不符则标记 `REJECTED`，不能获取下载授权。成功才变为 `READY`。
+4. `get/download`：只有已完成、归属检查通过的文件才返回10分钟预签名GET。每次签名前再次Stat复核大小、MIME及已保存的ETag；同大小/MIME的已完成文件被替换后，也不能重新完成或获取新的下载授权。
+
+指纹复核保护的是新签发授权前的检查点；已发出的预签名URL仍在其有效期内可用，Stat之后对象仍可能被未过期的上传授权替换。当前没有对象版本绑定或撤销既有URL的能力；需要不可变附件时还需版本化对象或完成后转存策略。旧记录没有ETag时继续按大小与MIME验证。
 
 签名URL只在短期响应中返回，不持久化到数据库或写入日志/trace。`StatObject` 验证的是对象存储返回的大小和MIME元数据；正式生产还应接恶意文件扫描和内容嗅探，并配置未完成/拒绝对象清理周期。
 

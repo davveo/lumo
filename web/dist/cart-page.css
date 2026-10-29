@@ -50,9 +50,9 @@
   align-items: center;
   gap: 15px;
   padding: 13px 17px;
-  background: linear-gradient(110deg, #fff0ee, #fff6f8);
+  background: var(--brand-surface-gradient);
   border-radius: 8px;
-  color: #b9524d;
+  color: var(--red-dark);
   font-size: 12px;
 }
 .cart-benefits-strip span,
@@ -132,7 +132,7 @@
 .cart-brand-mark {
   font-size: 10px;
   font-weight: 600;
-  background: #fff0ed;
+  background: var(--pale);
   color: var(--red);
   padding: 2px 5px;
   border-radius: 3px;
@@ -478,4 +478,34 @@
 }
 .cart-page .cart-summary > div {
   white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .cart-page .cart-table-row {
+    grid-template-columns: 20px minmax(0, 1fr) 124px;
+  }
+  .cart-page .cart-table-row .quantity {
+    height: 44px;
+    width: 124px;
+  }
+  .cart-page .cart-table-row .quantity button {
+    flex: 0 0 44px;
+    width: 44px;
+    min-width: 44px;
+  }
+  .cart-page .cart-table-row .quantity output {
+    flex: 0 0 36px;
+    width: 36px;
+    font-size: 12px;
+  }
+  .cart-toolbar > div > button,
+  .cart-row-actions button,
+  .cart-destination,
+  .cart-page .cart-bottom .primary {
+    min-height: 44px;
+  }
+  .cart-row-actions button {
+    font-size: 12px;
+    padding: 8px;
+  }
 }

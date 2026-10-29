@@ -42,3 +42,10 @@ transport 通过 `MethodHandler` 注册方法并执行边界校验与链路追�
 - `adjust` → `Adjust(context.Context, platform.Request)`。
 
 库存确认、取消、发货分别调用仓储方法；共享事务只接收明确的目标状态，保持原行锁与库存流水规则。
+
+
+## 后台按商品盘点
+
+前端从商品服务取得父商品和实际颜色/规格SKU，一次 `BatchGet` 读取本页所有库存。`Adjust`支持 `expected_on_hand` 乐观校验和reason；在本地行锁事务中禁止盘点量低于reserved+allocated，写入Adjustment的before/after、actor_id、reason及时间。不通过盘点接口直接修改预占或分配。
+
+`Adjustments`为独立管理员读取，按SKU返回最近20条调整，使用(sku_id,created_at,id)复合索引。内部订单库存流水继续保存在既有账本，两种记录不混淆。

@@ -28,6 +28,71 @@
     [C.PopupStatus.Published]: '已启用',
     [C.PopupStatus.Paused]: '已暂停',
   };
+  const layoutNames = {
+    [C.PopupLayout.Coupon]: '专属优惠券',
+    [C.PopupLayout.Announcement]: '消息公告',
+    [C.PopupLayout.Image]: '图片海报',
+    [C.PopupLayout.Welcome]: '新人欢迎',
+    [C.PopupLayout.Member]: '会员权益',
+    [C.PopupLayout.Campaign]: '活动推广',
+  };
+  const templates = {
+    coupon: {
+      title: '恭喜获得专属优惠券',
+      subtitle: '好券先领，心动好物再慢慢选',
+      body: '领取后可在我的优惠券查看有效期与适用范围。',
+      action_type: C.PopupAction.ClaimCoupon,
+      button_text: '立即领取',
+      action_target: '#/coupons',
+      segment: C.PopupSegment.NewMember,
+    },
+    announcement: {
+      title: '商城服务提醒',
+      subtitle: '让每一次购物更安心',
+      body: '商城服务信息已更新，进入会员中心查看相关权益与服务入口。',
+      action_type: C.PopupAction.Link,
+      button_text: '了解详情',
+      action_target: '#/member',
+      segment: C.PopupSegment.All,
+    },
+    image: {
+      title: '本周精选好物',
+      subtitle: '为你的生活添一点新意',
+      body: '精选活动以实际商品页面为准。',
+      image_url: 'hero.jpg',
+      action_type: C.PopupAction.Link,
+      button_text: '立即探索',
+      action_target: '#/',
+      segment: C.PopupSegment.Member,
+    },
+    welcome: {
+      title: '欢迎来到 LUMO Mall',
+      subtitle: '从这里，发现生活的小美好',
+      body: '先领取一张好券，再挑选心仪商品。',
+      action_type: C.PopupAction.CouponCenter,
+      button_text: '看看新人好券',
+      action_target: '#/coupons',
+      segment: C.PopupSegment.NewGuest,
+    },
+    member: {
+      title: '你的会员权益已就位',
+      subtitle: '每一份热爱，都值得被认真对待',
+      body: '查看成长值、专属好券与会员权益。',
+      action_type: C.PopupAction.Link,
+      button_text: '查看会员权益',
+      action_target: '#/member',
+      segment: C.PopupSegment.GoldMember,
+    },
+    campaign: {
+      title: '限时好物，优惠开场',
+      subtitle: '心动价格，限时相遇',
+      body: '活动时间、库存与购买限制以活动页为准。',
+      action_type: C.PopupAction.Link,
+      button_text: '前往活动中心',
+      action_target: '#/promotions',
+      segment: C.PopupSegment.ReturningMember,
+    },
+  };
   const defaults = () => ({
     id: '',
     name: '',
@@ -56,6 +121,9 @@
       stop_after_claim: true,
     },
     content: {
+      layout: C.PopupLayout.Coupon,
+      image_url: '',
+      badge: '专属好礼',
       title: '送你一份专属好礼',
       subtitle: '精选优惠，为你而来',
       body: '领取后可在领券中心查看使用范围。',
@@ -172,7 +240,7 @@
     const theme = [C.PopupTheme.Red, C.PopupTheme.Peach, C.PopupTheme.Plum].includes(content.theme)
       ? content.theme
       : C.PopupTheme.Red;
-    return `<div class="pa-preview-stage"><div class="pa-preview-card pa-theme-${theme}"><span class="pa-preview-spark">✦</span><p>${esc(content.subtitle || '专属优惠')}</p><h2>${esc(content.title || '填写弹窗标题')}</h2>${isCoupon ? `<div class="pa-preview-ticket"><div><span>¥</span><strong>${coupon ? money(coupon.amount_cents ?? coupon.amount) : '—'}</strong></div><section><b>${coupon ? `满 ${money(coupon.min_cents ?? coupon.minimum_cents ?? coupon.minimum)} 元可用` : '请选择优惠券'}</b><span>${esc(coupon?.name || content.coupon_template_id || '优惠券名称')}</span></section></div>` : `<div class="pa-preview-message">${esc(content.body || '填写活动说明')}</div>`}<p class="pa-preview-description">${esc(isCoupon ? content.body : '按配置条件展示专属内容')}</p><div class="pa-preview-cta">${esc(content.button_text || (isCoupon ? '立即领取' : '前往查看'))}</div><small>${coupon?.expires_at ? `活动截止 ${esc(new Date(coupon.expires_at).toLocaleDateString('zh-CN'))}` : '权益详情以实际页面为准'}</small></div><span class="pa-preview-close" aria-hidden="true">×</span></div><p class="pa-preview-note">样式预览 · 不触发展示、不发放优惠券</p><div class="pa-preview-rules"><strong>谁会看到</strong><p>${esc(audienceText(draft))}</p><span>同时满足所配条件；同一时刻优先展示优先级更高的弹窗。</span><strong>展示频次</strong><p>每人最多 ${esc(draft.frequency.max_per_user)} 次 · 每天最多 ${esc(draft.frequency.max_per_day)} 次</p><span>全局频次与单个弹窗频次同时生效。</span></div>`;
+    return `<div class="pa-preview-stage"><div class="pa-preview-card pa-theme-${theme} pa-layout-${esc(content.layout || 'coupon')}">${content.image_url ? `<img class="pa-poster-preview" src="${esc(content.image_url.startsWith('assets/') || content.image_url.startsWith('https://') ? content.image_url : 'assets/' + content.image_url)}" alt="宣传图片预览">` : ''}<span class="pa-preview-spark" aria-hidden="true">✦</span><p>${esc(content.subtitle || '专属优惠')}</p><h2>${esc(content.title || '填写弹窗标题')}</h2>${isCoupon ? `<div class="pa-preview-ticket"><div><strong>${coupon ? esc(window.LumoCouponBenefits?.face(coupon) || '¥' + money(coupon.amount_cents ?? coupon.amount)) : '—'}</strong></div><section><b>${coupon ? `满 ${money(coupon.min_cents ?? coupon.minimum_cents ?? coupon.minimum)} 元可用` : '请选择优惠券'}</b><span>${esc(coupon?.name || content.coupon_template_id || '优惠券名称')}</span></section></div>` : `<div class="pa-preview-message">${esc(content.body || '填写活动说明')}</div>`}<p class="pa-preview-description">${esc(isCoupon ? content.body : '按配置条件展示专属内容')}</p><div class="pa-preview-cta">${esc(content.button_text || (isCoupon ? '立即领取' : '前往查看'))}</div><small>${coupon?.expires_at ? `活动截止 ${esc(new Date(coupon.expires_at).toLocaleDateString('zh-CN'))}` : '权益详情以实际页面为准'}</small></div><span class="pa-preview-close" aria-hidden="true">×</span></div><p class="pa-preview-note">样式预览 · 不触发展示、不发放优惠券</p><div class="pa-preview-rules"><strong>谁会看到</strong><p>${esc(audienceText(draft))}</p><span>同时满足所配条件；同一时刻优先展示优先级更高的弹窗。</span><strong>展示频次</strong><p>每人最多 ${esc(draft.frequency.max_per_user)} 次 · 每天最多 ${esc(draft.frequency.max_per_day)} 次</p><span>全局频次与单个弹窗频次同时生效。</span></div>`;
   }
   function listView() {
     const visible = rows.filter(
@@ -224,8 +292,20 @@
     const a = draft.audience,
       f = draft.frequency,
       c = draft.content;
-    return `<div class="pa-editor-layout"><form id="popup-campaign-form" class="pa-editor-form">
-      <section class="pa-card"><div class="pa-section-title"><b>01</b><div><h2>基本信息</h2><p>先确定活动名称、投放位置和生效时间。</p></div></div><div class="pa-fields">${field('弹窗名称', 'name', draft.name, 'text', '仅后台可见', 'required maxlength="80"')}${field('优先级', 'priority', draft.priority, 'number', '数值越大，越优先展示', 'min="0" max="1000" step="1" required')}${field('开始时间', 'starts_at', dateInput(draft.starts_at), 'datetime-local', '留空即刻生效；按当前设备时区显示')}${field('结束时间', 'ends_at', dateInput(draft.ends_at), 'datetime-local', '留空为长期有效')}</div><fieldset class="pa-choice-group"><legend>展示页面（至少选择一个）</legend>${placements.map(([key, text]) => `<label class="pa-choice"><input type="checkbox" data-pa-placement="${key}"${draft.placements.includes(key) ? ' checked' : ''}>${text}</label>`).join('')}</fieldset></section>
+    return `<div class="pa-editor-layout"><form id="popup-campaign-form" class="pa-editor-form"><section class="pa-card"><h2>选择弹窗模板</h2><p>应用模板将更新内容与目标人群，仍可继续自定义规则。</p><div class="pa-template-grid">${Object.entries(
+      layoutNames,
+    )
+      .map(
+        ([id, name]) =>
+          `<button type="button" data-pa-template="${id}" ${busy ? 'disabled' : ''}><strong>${name}</strong><small>${esc(templates[id].title)}</small></button>`,
+      )
+      .join('')}</div></section>
+      <section class="pa-card"><div class="pa-section-title"><b>01</b><div><h2>基本信息</h2><p>先确定活动名称、投放位置和生效时间。</p></div></div><div class="pa-fields">${select(
+        '弹窗类型',
+        'content.layout',
+        c.layout || C.PopupLayout.Coupon,
+        Object.values(C.PopupLayout).map((value) => [value, layoutNames[value]]),
+      )}${field('弹窗名称', 'name', draft.name, 'text', '仅后台可见', 'required maxlength="80"')}${field('优先级', 'priority', draft.priority, 'number', '数值越大，越优先展示', 'min="0" max="1000" step="1" required')}${field('开始时间', 'starts_at', dateInput(draft.starts_at), 'datetime-local', '留空即刻生效；按当前设备时区显示')}${field('结束时间', 'ends_at', dateInput(draft.ends_at), 'datetime-local', '留空为长期有效')}</div><fieldset class="pa-choice-group"><legend>展示页面（至少选择一个）</legend>${placements.map(([key, text]) => `<label class="pa-choice"><input type="checkbox" data-pa-placement="${key}"${draft.placements.includes(key) ? ' checked' : ''}>${text}</label>`).join('')}</fieldset></section>
       <section class="pa-card"><div class="pa-section-title"><b>02</b><div><h2>目标人群与条件</h2><p>选中的人群满足任意一项即可；下方附加条件需要同时满足。</p></div></div><fieldset class="pa-choice-group"><legend>目标人群</legend>${segments.map(([key, text]) => `<label class="pa-choice"><input type="checkbox" data-pa-segment="${key}"${a.segments.includes(key) ? ' checked' : ''}>${text}</label>`).join('')}</fieldset><div class="pa-fields">${field('新会员认定天数', 'audience.new_member_days', a.new_member_days, 'number', '按真实账号注册时间判断；超过此天数为老会员', 'min="1" max="365" step="1" required')}${textarea('兴趣品类', 'audience.interest_categories', a.interest_categories, '每行一个商品品类；匹配任意一个即可，留空不限制。', true)}${field('最低成长值', 'audience.min_growth', a.min_growth, 'number', '', 'min="0" step="1" required')}${field('最高成长值', 'audience.max_growth', a.max_growth, 'number', '0 表示不限制', 'min="0" step="1" required')}${field('最低可用积分', 'audience.min_points', a.min_points, 'number', '', 'min="0" step="1" required')}${field('最高可用积分', 'audience.max_points', a.max_points, 'number', '0 表示不限制', 'min="0" step="1" required')}${textarea('指定用户编号', 'audience.include_user_ids', a.include_user_ids, '每行一个编号；留空时不限制具体用户。', true)}${textarea('排除用户编号', 'audience.exclude_user_ids', a.exclude_user_ids, '排除优先；即使满足其他条件也不会展示。', true)}</div><p class="pa-hint">“高成长值会员”按会员服务的等级判断。游客无法满足积分、成长值或指定用户条件。</p></section>
       <section class="pa-card"><div class="pa-section-title"><b>03</b><div><h2>内容与优惠券</h2><p>配置文案与主题；优惠券的库存、门槛和有效期由优惠券服务校验。</p></div></div><div class="pa-fields">${field('弹窗标题', 'content.title', c.title, 'text', '', 'required maxlength="60"')}${field('副标题', 'content.subtitle', c.subtitle, 'text', '', 'maxlength="100"')}${select(
         '视觉主题',
@@ -240,7 +320,7 @@
         [C.PopupAction.ClaimCoupon, '领取优惠券'],
         [C.PopupAction.CouponCenter, '进入领券中心'],
         [C.PopupAction.Link, '打开商城页面'],
-      ])}${field('优惠券模板编号', 'content.coupon_template_id', c.coupon_template_id, 'text', '领取优惠券时必填；可输入编号或从下拉建议中选择。', 'list="pa-coupon-options" maxlength="120"')}<datalist id="pa-coupon-options">${coupons.map((coupon) => `<option value="${esc(coupon.id)}">${esc(coupon.name)} · ¥${money(coupon.amount_cents ?? coupon.amount)} · ${esc(coupon.state || '')}</option>`).join('')}</datalist>${field('按钮文字', 'content.button_text', c.button_text, 'text', '', 'required maxlength="24"')}${field('商城内跳转地址', 'content.action_target', c.action_target, 'text', '仅允许商城内页面，如 #/coupons；不支持外部网址。', 'maxlength="200"')}${textarea('活动说明', 'content.body', c.body, '向用户说明优惠用途或使用范围。')}</div></section>
+      ])}${field('优惠券模板编号', 'content.coupon_template_id', c.coupon_template_id, 'text', '领取优惠券时必填；可输入编号或从下拉建议中选择。', 'list="pa-coupon-options" maxlength="120"')}<datalist id="pa-coupon-options">${coupons.map((coupon) => `<option value="${esc(coupon.id)}">${esc(coupon.name)} · ${esc(window.LumoCouponBenefits?.face(coupon) || '¥' + money(coupon.amount_cents ?? coupon.amount))} · ${esc(coupon.state || '')}</option>`).join('')}</datalist>${field('按钮文字', 'content.button_text', c.button_text, 'text', '', 'required maxlength="24"')}${field('商城内跳转地址', 'content.action_target', c.action_target, 'text', '仅允许商城内页面，如 #/coupons；不支持外部网址。', 'maxlength="200"')}${field('活动标签', 'content.badge', c.badge || '', 'text', '展示在弹窗上方', 'maxlength="24"')}${field('宣传图片', 'content.image_url', c.image_url || '', 'text', '海报弹窗必填，支持 HTTPS 或已有商城素材路径', 'maxlength="1000"')}${textarea('活动说明', 'content.body', c.body, '向用户说明优惠用途或使用范围。')}</div></section>
       <section class="pa-card"><div class="pa-section-title"><b>04</b><div><h2>展示频次</h2><p>展示次数以实际弹出为准；刷新页面、重复请求不会重复计算。</p></div></div><div class="pa-fields">${field('每人累计最多展示', 'frequency.max_per_user', f.max_per_user, 'number', '', 'min="1" max="100" step="1" required')}${field('每人每天最多展示', 'frequency.max_per_day', f.max_per_day, 'number', '', 'min="1" max="10" step="1" required')}${field('两次展示间隔（小时）', 'frequency.cooldown_hours', f.cooldown_hours, 'number', '', 'min="0" max="8760" step="1" required')}${field('关闭后不再展示（小时）', 'frequency.close_cooldown_hours', f.close_cooldown_hours, 'number', '', 'min="0" max="8760" step="1" required')}${field('进入页面后延迟（秒）', 'content.delay_seconds', c.delay_seconds, 'number', '', 'min="0" max="30" step="1" required')}${field('自动关闭（秒）', 'content.auto_close_seconds', c.auto_close_seconds, 'number', '0 为手动关闭；启用时填写 5–60 秒', 'min="0" max="60" step="1" required')}</div><div class="pa-toggles">${toggle('同一会话最多展示一次', 'frequency.once_per_session', f.once_per_session)}${toggle('领取成功后不再展示', 'frequency.stop_after_claim', f.stop_after_claim)}</div></section>
       <footer class="pa-save-bar"><span data-pa-save-state>${dirty ? '有未保存的修改' : draft.id ? '已保存 · ' + (statuses[draft.status] || '草稿') : '新建弹窗尚未保存'}</span><div>${draft.status === C.PopupStatus.Published ? button('pause', '保存并暂停') : ''}${button('save-draft', '保存草稿')}${button('publish', busy ? '正在保存…' : '保存并启用', '', true)}</div></footer>
       </form><aside class="pa-preview"><div class="pa-preview-title"><span>实时预览</span><small>内容随编辑更新</small></div><div data-pa-preview>${preview()}</div></aside></div>`;
@@ -261,6 +341,9 @@
       'audience.max_growth',
       'audience.min_points',
       'audience.max_points',
+      'content.layout',
+      'content.image_url',
+      'content.badge',
       'content.title',
       'content.subtitle',
       'content.body',
@@ -389,7 +472,27 @@
     dirty = !draft.id;
     error = '';
     draw();
+    window.scrollTo?.(0, 0);
   }
+  document.addEventListener('click', (event) => {
+    const target = event.target.closest?.('[data-pa-template]');
+    if (!target || !draft || busy || !authorized() || !document.querySelector('.pa-admin')) return;
+    const layout = target.dataset.paTemplate;
+    if (!templates[layout]) return;
+    const preset = copy(templates[layout]);
+    const segment = preset.segment;
+    delete preset.segment;
+    draft.content = {
+      ...defaults().content,
+      ...preset,
+      layout,
+      coupon_template_id:
+        preset.action_type === C.PopupAction.ClaimCoupon ? draft.content.coupon_template_id || '' : '',
+    };
+    draft.audience.segments = [segment];
+    dirty = true;
+    draw();
+  });
   document.addEventListener('input', (event) => {
     checkScope();
     if (!authorized() || busy) return;
@@ -498,6 +601,7 @@
       dirty = false;
       error = '';
       draw();
+      window.scrollTo?.(0, 0);
       return;
     }
     if (action === 'prev' || action === 'next') {

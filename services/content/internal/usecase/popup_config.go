@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/davveo/lumo/internal/constants"
 	"io"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -37,6 +38,9 @@ type popupFrequency struct {
 	StopAfterClaim     bool `json:"stop_after_claim"`
 }
 type popupContent struct {
+	Layout           string `json:"layout"`
+	ImageURL         string `json:"image_url"`
+	Badge            string `json:"badge"`
 	Title            string `json:"title"`
 	Subtitle         string `json:"subtitle"`
 	Body             string `json:"body"`
@@ -68,7 +72,7 @@ type popupConfig struct {
 var popupIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$`)
 
 var popupTargetPattern = regexp.MustCompile(
-	`^#/(?:coupons|member/coupons|promotions(?:/(?:flash|group|exchange|reduction|discount|quantity_discount|direct)(?:/[A-Za-z0-9_-]+)?)?|product/(?:[A-Za-z0-9_.:-]|%[A-Fa-f0-9]{2}){1,180})?$`,
+	`^#/(?:coupons|member(?:/(?:coupons|points|growth))?|promotions(?:/(?:flash|group|exchange|reduction|discount|quantity_discount|direct)(?:/[A-Za-z0-9_-]+)?)?|product/(?:[A-Za-z0-9_.:-]|%[A-Fa-f0-9]{2}){1,180})?$`,
 )
 
 func popupDecode(v any, out any) error {
@@ -215,6 +219,37 @@ func validatePopup(p *popupConfig) error {
 	if c.ButtonText, err = popupText(c.ButtonText, 24, true); err != nil {
 		return err
 	}
+	if c.Layout == "" {
+		c.Layout = constants.PopupLayoutAnnouncement
+		if c.ActionType == constants.PopupActionClaimCoupon {
+			c.Layout = constants.PopupLayoutCoupon
+		}
+	}
+	switch c.Layout {
+	case constants.PopupLayoutCoupon,
+		constants.PopupLayoutAnnouncement,
+		constants.PopupLayoutImage,
+		constants.PopupLayoutWelcome,
+		constants.PopupLayoutMember,
+		constants.PopupLayoutCampaign:
+	default:
+		return bad("invalid popup layout")
+	}
+	if c.Badge, err = popupText(c.Badge, 24, false); err != nil {
+		return err
+	}
+	if c.ImageURL != "" {
+		c.ImageURL = strings.TrimSpace(c.ImageURL)
+		u, e := url.Parse(c.ImageURL)
+		local := regexp.MustCompile(`^(?:assets/)?(?:[a-zA-Z0-9_-]+\.(?:jpg|jpeg|png|webp)|demo-[a-z0-9-]+\.svg)$`).
+			MatchString(c.ImageURL)
+		if len(c.ImageURL) > 1000 || (!local && (e != nil || u.Scheme != "https" || u.Host == "" || u.User != nil)) {
+			return bad("popup image must be HTTPS or an existing asset path")
+		}
+	}
+	if c.Layout == constants.PopupLayoutImage && c.ImageURL == "" {
+		return bad("image popup requires a poster image")
+	}
 	if c.Theme != constants.PopupThemeRed && c.Theme != constants.PopupThemePeach &&
 		c.Theme != constants.PopupThemePlum {
 		return bad("invalid popup theme")
@@ -315,7 +350,11 @@ func (s *Service) PopupUpsert(ctx context.Context, c platform.Request) (traceRes
 		return nil, err
 	}
 	if p.ID == "" {
-		p.ID = platform.ID("popup")
+		var err error
+		p.ID, err = s.repo.BusinessID(ctx, "popup", "", "")
+		if err != nil {
+			return nil, err
+		}
 	}
 	version := p.Version
 	p.Version = 0

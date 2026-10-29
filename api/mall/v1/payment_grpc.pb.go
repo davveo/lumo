@@ -21,12 +21,17 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	PaymentService_Close_FullMethodName       = "/mall.v1.PaymentService/Close"
-	PaymentService_ConfirmDemo_FullMethodName = "/mall.v1.PaymentService/ConfirmDemo"
-	PaymentService_Create_FullMethodName      = "/mall.v1.PaymentService/Create"
-	PaymentService_Get_FullMethodName         = "/mall.v1.PaymentService/Get"
-	PaymentService_List_FullMethodName        = "/mall.v1.PaymentService/List"
-	PaymentService_SubmitDemo_FullMethodName  = "/mall.v1.PaymentService/SubmitDemo"
+	PaymentService_Close_FullMethodName        = "/mall.v1.PaymentService/Close"
+	PaymentService_ConfirmDemo_FullMethodName  = "/mall.v1.PaymentService/ConfirmDemo"
+	PaymentService_Create_FullMethodName       = "/mall.v1.PaymentService/Create"
+	PaymentService_Get_FullMethodName          = "/mall.v1.PaymentService/Get"
+	PaymentService_List_FullMethodName         = "/mall.v1.PaymentService/List"
+	PaymentService_SubmitDemo_FullMethodName   = "/mall.v1.PaymentService/SubmitDemo"
+	PaymentService_AdminList_FullMethodName    = "/mall.v1.PaymentService/AdminList"
+	PaymentService_AdminSummary_FullMethodName = "/mall.v1.PaymentService/AdminSummary"
+	PaymentService_Methods_FullMethodName      = "/mall.v1.PaymentService/Methods"
+	PaymentService_PolicyGet_FullMethodName    = "/mall.v1.PaymentService/PolicyGet"
+	PaymentService_PolicyUpsert_FullMethodName = "/mall.v1.PaymentService/PolicyUpsert"
 )
 
 // PaymentServiceClient is the client API for PaymentService service.
@@ -39,6 +44,11 @@ type PaymentServiceClient interface {
 	Get(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	List(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	SubmitDemo(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	AdminSummary(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Methods(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PolicyGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PolicyUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type paymentServiceClient struct {
@@ -103,6 +113,51 @@ func (c *paymentServiceClient) SubmitDemo(ctx context.Context, in *ServiceReques
 	return out, nil
 }
 
+func (c *paymentServiceClient) AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PaymentService_AdminList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *paymentServiceClient) AdminSummary(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PaymentService_AdminSummary_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *paymentServiceClient) Methods(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PaymentService_Methods_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *paymentServiceClient) PolicyGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PaymentService_PolicyGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *paymentServiceClient) PolicyUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PaymentService_PolicyUpsert_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PaymentServiceServer is the server API for PaymentService service.
 // All implementations must embed UnimplementedPaymentServiceServer
 // for forward compatibility
@@ -113,6 +168,11 @@ type PaymentServiceServer interface {
 	Get(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	List(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	SubmitDemo(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	AdminSummary(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Methods(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PolicyGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedPaymentServiceServer()
 }
 
@@ -137,6 +197,21 @@ func (UnimplementedPaymentServiceServer) List(context.Context, *ServiceRequest) 
 }
 func (UnimplementedPaymentServiceServer) SubmitDemo(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SubmitDemo not implemented")
+}
+func (UnimplementedPaymentServiceServer) AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminList not implemented")
+}
+func (UnimplementedPaymentServiceServer) AdminSummary(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminSummary not implemented")
+}
+func (UnimplementedPaymentServiceServer) Methods(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Methods not implemented")
+}
+func (UnimplementedPaymentServiceServer) PolicyGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PolicyGet not implemented")
+}
+func (UnimplementedPaymentServiceServer) PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PolicyUpsert not implemented")
 }
 func (UnimplementedPaymentServiceServer) mustEmbedUnimplementedPaymentServiceServer() {}
 
@@ -259,6 +334,96 @@ func _PaymentService_SubmitDemo_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PaymentService_AdminList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PaymentServiceServer).AdminList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PaymentService_AdminList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PaymentServiceServer).AdminList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PaymentService_AdminSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PaymentServiceServer).AdminSummary(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PaymentService_AdminSummary_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PaymentServiceServer).AdminSummary(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PaymentService_Methods_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PaymentServiceServer).Methods(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PaymentService_Methods_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PaymentServiceServer).Methods(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PaymentService_PolicyGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PaymentServiceServer).PolicyGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PaymentService_PolicyGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PaymentServiceServer).PolicyGet(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PaymentService_PolicyUpsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PaymentServiceServer).PolicyUpsert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PaymentService_PolicyUpsert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PaymentServiceServer).PolicyUpsert(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PaymentService_ServiceDesc is the grpc.ServiceDesc for PaymentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -289,6 +454,26 @@ var PaymentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SubmitDemo",
 			Handler:    _PaymentService_SubmitDemo_Handler,
+		},
+		{
+			MethodName: "AdminList",
+			Handler:    _PaymentService_AdminList_Handler,
+		},
+		{
+			MethodName: "AdminSummary",
+			Handler:    _PaymentService_AdminSummary_Handler,
+		},
+		{
+			MethodName: "Methods",
+			Handler:    _PaymentService_Methods_Handler,
+		},
+		{
+			MethodName: "PolicyGet",
+			Handler:    _PaymentService_PolicyGet_Handler,
+		},
+		{
+			MethodName: "PolicyUpsert",
+			Handler:    _PaymentService_PolicyUpsert_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -63,4 +63,6 @@ run_http_suite() {
 }
 run_http_suite web/tests/frontend-http.test.cjs
 run_http_suite tests/frontend-member-services.cjs
+run_http_suite tests/frontend-admin-configuration.cjs
+run_http_suite tests/frontend-admin-operations.cjs
 printf '\n前端语法、认证与真实 HTTP 业务链路测试通过。\n'

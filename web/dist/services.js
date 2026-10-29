@@ -107,19 +107,29 @@
     const event = r.event_type || '',
       isTicket = event === C.Event.TicketReplied,
       isInvoice = event === C.Event.InvoiceIssued,
-      isService = /Refund|Invoice|Ticket/.test(event);
+      isService = /Refund|Invoice|Ticket/.test(event),
+      isProduct = [C.Event.ProductPriceReached, C.Event.ProductBackInStock].includes(event);
     return {
       id: r.id,
-      type: /Group/.test(event) ? C.MessageType.Activity : isService ? C.MessageType.Service : C.MessageType.Order,
-      title: labels[event] || r.title || event,
-      body: '业务编号 ' + (r.business_id || ''),
-      target: isTicket
-        ? '#/member/support/tickets'
-        : isInvoice
-          ? '#/member/invoices'
-          : /Refund/.test(event)
-            ? '#/member/aftersales'
-            : '#/member/orders',
+      type: isProduct
+        ? C.MessageType.Activity
+        : /Group/.test(event)
+          ? C.MessageType.Activity
+          : isService
+            ? C.MessageType.Service
+            : C.MessageType.Order,
+      title: r.title || labels[event] || event,
+      body: r.body || '业务编号 ' + (r.business_id || ''),
+      target: isProduct
+        ? '#/product/' +
+          (products.find((p) => p.skuId === r.sku_id || p.variants?.some((v) => v.sku_id === r.sku_id))?.id || r.sku_id)
+        : isTicket
+          ? '#/member/support/tickets'
+          : isInvoice
+            ? '#/member/invoices'
+            : /Refund/.test(event)
+              ? '#/member/aftersales'
+              : '#/member/orders',
       at: at(r.created_at),
       read: r.status === C.NotificationStatus.Read,
     };

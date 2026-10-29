@@ -22,6 +22,18 @@ type quoteBatchCaller struct {
 }
 
 func (r *quoteBatchCaller) Call(_ context.Context, service string, c platform.Command) (platform.Result, error) {
+	if service == "member" && c.Action == "policy_get" {
+		return platform.Result{"config": map[string]any{"gold_growth": 1000, "growth_spend_cents": 10000}}, nil
+	}
+	if service == "points" && c.Action == "policy_get" {
+		return platform.Result{"config": map[string]any{"checkin_points": 20, "deduction_bps": 1000, "reward_per_yuan": 1}}, nil
+	}
+	if service == "logistics" {
+		return platform.Result{"shipping_cents": int64(0), "serviceable": true}, nil
+	}
+	if service == "flash" && c.Action == "session_get" {
+		return platform.Result{"open": true, "sku_id": "sku-a"}, nil
+	}
 	if service == "campaign" {
 		return platform.Result{"eligible": true, "discount_cents": int64(0)}, nil
 	}

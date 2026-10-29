@@ -26,10 +26,12 @@ var File_api_mall_v1_search_proto protoreflect.FileDescriptor
 
 const file_api_mall_v1_search_proto_rawDesc = "" +
 	"\n" +
-	"\x18api/mall/v1/search.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\x89\x01\n" +
+	"\x18api/mall/v1/search.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\x8c\x02\n" +
 	"\rSearchService\x12:\n" +
 	"\x05Query\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12<\n" +
-	"\aSuggest\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
+	"\aSuggest\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tPolicyGet\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12A\n" +
+	"\fPolicyUpsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
 
 var file_api_mall_v1_search_proto_goTypes = []any{
 	(*ServiceRequest)(nil),  // 0: mall.v1.ServiceRequest
@@ -38,10 +40,14 @@ var file_api_mall_v1_search_proto_goTypes = []any{
 var file_api_mall_v1_search_proto_depIdxs = []int32{
 	0, // 0: mall.v1.SearchService.Query:input_type -> mall.v1.ServiceRequest
 	0, // 1: mall.v1.SearchService.Suggest:input_type -> mall.v1.ServiceRequest
-	1, // 2: mall.v1.SearchService.Query:output_type -> mall.v1.ServiceResponse
-	1, // 3: mall.v1.SearchService.Suggest:output_type -> mall.v1.ServiceResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	0, // 2: mall.v1.SearchService.PolicyGet:input_type -> mall.v1.ServiceRequest
+	0, // 3: mall.v1.SearchService.PolicyUpsert:input_type -> mall.v1.ServiceRequest
+	1, // 4: mall.v1.SearchService.Query:output_type -> mall.v1.ServiceResponse
+	1, // 5: mall.v1.SearchService.Suggest:output_type -> mall.v1.ServiceResponse
+	1, // 6: mall.v1.SearchService.PolicyGet:output_type -> mall.v1.ServiceResponse
+	1, // 7: mall.v1.SearchService.PolicyUpsert:output_type -> mall.v1.ServiceResponse
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

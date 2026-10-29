@@ -1,6 +1,6 @@
 # coupon-service / 优惠券实例与核销账
 
-公开 `templates/templates_snapshot`；用户 `list/claim`；内部 `templates_by_ids/reserve/confirm/cancel/refund`。
+公开 `templates/templates_snapshot`；用户 `list/claim`；管理员 `templates_admin/template_upsert`；内部 `templates_by_ids/reserve/confirm/cancel/refund`。
 
 ## 目录分层
 
@@ -49,3 +49,19 @@
 `Handle` 仅兼容现有命令调用入口。确认与取消分别调用明确的仓储方法，事务和幂等规则保持不变。
 
 跨服务调用使用 `platform.NewClients(...).Service.Method(ctx, platform.Request{...})`，不传递业务action。
+
+
+## 后台优惠券配置
+
+- 管理员独立方法 `TemplatesAdmin` / `TemplateUpsert` 对应 `templates_admin` / `template_upsert`；均要求具备真实登录身份的 admin，system 与普通会员也不能调用。管理列表包含停用模板，按名称/编号、启停状态和每页最多100项分页，返回精确总数及本页模板的已领取数；不混入当前管理员的领券资格，也不调用积分/会员服务。
+- 可创建、编辑、复制、启用/停用，配置面额、使用门槛、领取后有效天数、领取窗口、积分/成长值门槛。当前每个用户每种券固定限领1张，由既有唯一约束执行；后台不提供虚假的可配置限领次数。
+- 新建提交 `remaining` 初始可领数量。编辑必须提交读取到的 `version`，库存只允许提交相对 `stock_delta`，不能回写旧的剩余数量。模板行锁下累计增减并检查非负/精确整数边界，与领取使用同一行锁；版本冲突要求刷新。迁移将旧模板版本归一化为1，新建的version0不能覆盖既有编号。
+- 一旦存在领取记录，优惠金额、使用门槛、领券后有效天数冻结；修改权益请复制为新模板。名称、未来领取时间、领取资格和启停只影响后续领取。既有券实例继续保留原来的金额、门槛和到期时间；停用不作废已领券，也不重置已领取配额。
+- 后台保存后重新读取分页权威数据。管理写接口不开放给匿名或通用批处理；所有管理动作仍记录独立RPC/用例/仓储trace。
+
+
+## 券类型与适用范围
+
+共享 `internal/couponrules.Rule` 维护满减reduction、代金cash、折扣discount和满额折扣threshold_discount。折扣以整数bps表示应付比例，支持抵扣封顶；范围为全场、实际一级类目或父商品ID。门槛只看范围内主商品金额，不包含换购；报价服务覆写商品归属，预占重新计算并与报价对账。
+
+模板和已领券均持久化完整规则。首次领取后冻结规则、适用范围和有效天数；领取时复制快照，修改模板不影响既有券。旧记录缺少type/scope字段时按原金额门槛归一为固定金额券/全场，不要求强制覆写存量记录。MySQL JSON scope序列化、迁移重复执行及快照预占另有独立scratch库回归。

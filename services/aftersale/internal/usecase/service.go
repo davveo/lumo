@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"sort"
 	"strings"
 
@@ -476,7 +477,12 @@ func (s *Service) create(ctx context.Context, c platform.Request) (platform.Resu
 	for _, l := range requested {
 		weight += weights[l.SKUID] * l.Quantity / purchased[l.SKUID]
 	}
-	amount := payable * weight / base
+	// Prices and line quantities are bounded, but multiplying two valid order
+	// amounts can still overflow int64 before the proportional division.
+	var allocated big.Int
+	allocated.Mul(big.NewInt(payable), big.NewInt(weight))
+	allocated.Quo(&allocated, big.NewInt(base))
+	amount := allocated.Int64()
 	if typ == constants.AftersaleTypeExchange {
 		amount = 0
 	}
@@ -484,7 +490,10 @@ func (s *Service) create(ctx context.Context, c platform.Request) (platform.Resu
 		return nil, status.Error(codes.FailedPrecondition, "no refundable cash for requested lines")
 	}
 	sum := sha256.Sum256([]byte(user + "\x00" + c.IdempotencyKey))
-	id := fmt.Sprintf("as-%x", sum[:16])
+	id, err := s.Repo.BusinessID(ctx, "aftersale", user+"\x00"+c.IdempotencyKey, fmt.Sprintf("as-%x", sum[:16]))
+	if err != nil {
+		return nil, err
+	}
 	lines, _ := json.Marshal(requested)
 	row := &domain.Record{
 		ID:             id,
@@ -647,7 +656,7 @@ func (s *Service) refund(ctx context.Context, r *domain.Record) (platform.Result
 		}
 	}
 	refundID := "refund:" + r.ID
-	_, err = platform.NewClients(s.RPC).Refund.Create(
+	refundResult, err := platform.NewClients(s.RPC).Refund.Create(
 		ctx, platform.Request{
 			ID:             refundID,
 			UserID:         r.UserID,
@@ -664,6 +673,9 @@ func (s *Service) refund(ctx context.Context, r *domain.Record) (platform.Result
 	)
 	if err != nil {
 		return nil, err
+	}
+	if actual := platform.Text(refundResult, "id"); actual != "" {
+		refundID = actual
 	}
 	if latest, readErr := s.Repo.Get(ctx, r.ID); readErr == nil && latest.Status == constants.AftersaleStatusCompleted {
 		return platform.Map(latest), nil

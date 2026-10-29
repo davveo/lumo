@@ -2,6 +2,8 @@ package constants
 
 // enum:Event
 const (
+	EventProductPriceReached       = "ProductPriceReached"
+	EventProductBackInStock        = "ProductBackInStock"
 	EventBehaviorAccepted          = "BehaviorAccepted"
 	EventDeliveryConfirmed         = "DeliveryConfirmed"
 	EventFlashOrderRequested       = "FlashOrderRequested"

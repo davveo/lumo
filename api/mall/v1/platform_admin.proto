@@ -1,0 +1,9 @@
+syntax = "proto3";
+package mall.v1;
+option go_package = "github.com/davveo/lumo/api/mall/v1;mallv1";
+import "api/mall/v1/service_request.proto";
+// Bound to one owning service schema. It cannot accept a database or SQL target.
+service PlatformAdminService {
+ rpc Tasks(ServiceRequest) returns (ServiceResponse);
+ rpc Retry(ServiceRequest) returns (ServiceResponse);
+}

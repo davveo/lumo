@@ -112,12 +112,12 @@ test('a late administrative list cannot replace another tab or restore private r
   await tick();
   await f.app.click({ tab: 'refunds' });
   await tick();
-  assert.match(f.html(), /退款确认/);
+  assert.match(f.html(), /退款管理/);
   assert.match(f.html(), /暂无记录/);
   pending.resolve({ items: [{ id: 'old-payment', name: '不该出现的旧记录' }] });
   await tick();
   assert.doesNotMatch(f.html(), /不该出现/);
-  assert.match(f.html(), /退款确认/);
+  assert.match(f.html(), /退款管理/);
   const another = deferred();
   f.handlers.set('payment/list', () => another.promise);
   await f.app.click({ tab: 'payments' });

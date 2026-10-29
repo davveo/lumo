@@ -52,9 +52,13 @@ func (r *Repository) ApplyRefund(ctx context.Context, orderID, refundID, userID 
 		if amount == 0 {
 			return nil
 		}
+		reversalID, idErr := platform.NextBusinessID(ctx, tx, "reversal")
+		if idErr != nil {
+			return idErr
+		}
 		row.RefundedCents += amount
 		adjustment := domain.Reversal{
-			ID:             row.ID + ":" + refundID,
+			ID:             reversalID,
 			InvoiceID:      row.ID,
 			RefundID:       refundID,
 			OriginalNumber: row.Number,

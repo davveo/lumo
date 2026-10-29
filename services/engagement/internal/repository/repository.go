@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"errors"
+	"github.com/davveo/lumo/internal/adminconfig"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/engagement/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -15,9 +17,15 @@ type Repository struct{ db *gorm.DB }
 
 func New(db *gorm.DB) *Repository { return &Repository{db: db} }
 func (r *Repository) Migrate(ctx context.Context) error {
+	if e := platform.MigrateBusinessIDs(ctx, r.db); e != nil {
+		return e
+	}
 	ctx, s := platform.Start(ctx, "engagement.repository.Migrate")
 	defer s.End()
-	return r.db.WithContext(ctx).AutoMigrate(&domain.Record{})
+	if e := adminconfig.Migrate(ctx, r.db); e != nil {
+		return e
+	}
+	return r.db.WithContext(ctx).AutoMigrate(&domain.Record{}, &domain.CompareOwner{}, &domain.Subscription{})
 }
 func (r *Repository) Get(ctx context.Context, id string) (domain.Record, error) {
 	ctx, s := platform.Start(ctx, "engagement.repository.Get")
@@ -90,6 +98,42 @@ func (r *Repository) Save(ctx context.Context, v *domain.Record, event *platform
 			return platform.Enqueue(ctx, tx, *event)
 		}
 		return nil
+	})
+}
+
+// SaveComparison keeps the size check and write in the same owner-locked
+// transaction. Locking only existing product rows cannot protect an empty slot.
+func (r *Repository) SaveComparison(ctx context.Context, v *domain.Record) error {
+	ctx, span := platform.Start(ctx, "engagement.repository.SaveComparison")
+	defer span.End()
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		guard := domain.CompareOwner{UserID: v.UserID}
+		if err := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&guard).Error; err != nil {
+			return err
+		}
+		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&guard, "user_id = ?", v.UserID).Error; err != nil {
+			return err
+		}
+		var existing domain.Record
+		err := tx.WithContext(ctx).First(&existing, "id = ?", v.ID).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			var count int64
+			if err = tx.WithContext(ctx).Model(&domain.Record{}).Where("user_id = ? AND kind = ?", v.UserID, constants.EngagementKindCompare).Count(&count).Error; err != nil {
+				return err
+			}
+			if count >= 3 {
+				return status.Error(codes.ResourceExhausted, "compare list limited to three products")
+			}
+		} else if err != nil {
+			return err
+		}
+		if err = tx.WithContext(ctx).Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "id"}},
+			DoUpdates: clause.AssignmentColumns([]string{"payload", "updated_at"}),
+		}).Create(v).Error; err != nil {
+			return err
+		}
+		return tx.WithContext(ctx).First(v, "id = ?", v.ID).Error
 	})
 }
 func (r *Repository) InsertOnce(ctx context.Context, v *domain.Record, event *platform.Event) (bool, error) {

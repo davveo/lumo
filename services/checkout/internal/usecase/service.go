@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/davveo/lumo/internal/commercepolicy"
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/checkout/internal/domain"
@@ -25,6 +26,76 @@ type Service struct {
 }
 
 func New(r *repository.Repository, rpc platform.Caller) *Service { return &Service{r, rpc} }
+
+func quoteMainSubtotal(q map[string]any) (int64, error) {
+	subtotal := platform.Int(q, "subtotal_cents")
+	invalid := func() (int64, error) {
+		return 0, status.Error(codes.FailedPrecondition, "invalid quote main subtotal; requote required")
+	}
+	if subtotal < 0 {
+		return invalid()
+	}
+	if _, exists := q["main_subtotal_cents"]; exists {
+		main := platform.Int(q, "main_subtotal_cents")
+		if main < 0 || main > subtotal {
+			return invalid()
+		}
+		return main, nil
+	}
+	addon := platform.Text(q, "addon_sku_id")
+	if addon == "" {
+		return subtotal, nil
+	}
+	// Old quotes lack the explicit projection. Pricing appended one add-on at
+	// the end; regular units of the same SKU still belong to the main amount.
+	var legacy struct {
+		Items []struct {
+			SKUID    string `json:"sku_id"`
+			Quantity int64  `json:"quantity"`
+			Unit     int64  `json:"unit_price_cents"`
+		} `json:"items"`
+	}
+	if platform.Decode(q, &legacy) != nil {
+		return invalid()
+	}
+	for index := len(legacy.Items) - 1; index >= 0; index-- {
+		item := legacy.Items[index]
+		if item.SKUID != addon {
+			continue
+		}
+		if item.Quantity != 1 || item.Unit < 0 || item.Unit > subtotal {
+			return invalid()
+		}
+		return subtotal - item.Unit, nil
+	}
+	return invalid()
+}
+func validateQuoteBenefits(q map[string]any) error {
+	points := platform.Int(q, "points")
+	if platform.Text(q, "coupon_id") == "" && points == 0 {
+		return nil
+	}
+	kind := platform.Text(q, "activity_kind")
+	if platform.Text(q, "group_id") != "" || kind == constants.CampaignKindFlash ||
+		kind == constants.CampaignKindGroup {
+		return status.Error(
+			codes.FailedPrecondition,
+			"flash and group orders cannot use coupons or points; requote required",
+		)
+	}
+	main, err := quoteMainSubtotal(q)
+	if err != nil {
+		return err
+	}
+	limit := main / 10
+	if _, ok := q["points_policy"]; ok {
+		limit = platform.Int(q, "points_limit_cents")
+	}
+	if points < 0 || points > limit {
+		return status.Error(codes.FailedPrecondition, "points deduction limit exceeded; requote required")
+	}
+	return nil
+}
 func (s *Service) Topics() []string {
 	return []string{
 		constants.EventOrderPaymentAccepted,
@@ -95,14 +166,14 @@ func (s *Service) Submit(ctx context.Context, c platform.Request) (traceResult p
 	}
 	bodyHash := sha256.Sum256(body)
 	requestHash := hex.EncodeToString(bodyHash[:])
-	id := "ord_" + key[:32]
-	old, err := s.r.Get(ctx, id)
+	id := ""
+	old, err := s.r.ByRequestKey(ctx, key)
 	if err == nil {
 		if old.QuoteID != platform.Text(c.Data, "quote_id") ||
 			(old.RequestHash != "" && old.RequestHash != requestHash) {
 			return nil, status.Error(codes.AlreadyExists, "idempotency key reused with a different quote")
 		}
-		return s.resumeWorkflow(ctx, id, c.UserID, constants.CheckoutModeCreate)
+		return s.resumeWorkflow(ctx, old.ID, c.UserID, constants.CheckoutModeCreate)
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
@@ -118,6 +189,9 @@ func (s *Service) Submit(ctx context.Context, c platform.Request) (traceResult p
 		},
 	)
 	if err != nil {
+		return nil, err
+	}
+	if err = validateQuoteBenefits(q); err != nil {
 		return nil, err
 	}
 	t, err := time.Parse(time.RFC3339Nano, platform.Text(q, "expires_at"))
@@ -181,9 +255,9 @@ func (s *Service) Submit(ctx context.Context, c platform.Request) (traceResult p
 		}
 	}
 	if platform.Text(q, "activity_id") != "" {
-		mainSubtotal := platform.Int(q, "main_subtotal_cents")
-		if mainSubtotal == 0 {
-			mainSubtotal = platform.Int(q, "subtotal_cents")
+		mainSubtotal, e := quoteMainSubtotal(q)
+		if e != nil {
+			return nil, e
 		}
 		current, e := platform.NewClients(
 			s.rpc,
@@ -276,9 +350,37 @@ func (s *Service) Submit(ctx context.Context, c platform.Request) (traceResult p
 		len(ship.PostalCode) > 30 {
 		return nil, status.Error(codes.InvalidArgument, "valid recipient, phone and shipping address required")
 	}
+	if raw, ok := q["shipping_policy"]; ok && raw != nil {
+		var policy commercepolicy.Shipping
+		wrapper := map[string]any{"policy": raw}
+		var decoded struct {
+			Policy commercepolicy.Shipping `json:"policy"`
+		}
+		if e := platform.Decode(wrapper, &decoded); e != nil {
+			return nil, e
+		}
+		policy = decoded.Policy
+		destination := commercepolicy.Region(map[string]any{"province": ship.Province, "city": ship.City, "district": ship.District})
+		region := platform.Text(q, "shipping_region")
+		if policy.Version > 0 && destination != region {
+			return nil, status.Error(codes.FailedPrecondition, "shipping address changed; requote required")
+		}
+		var quantity int64
+		for _, line := range payload.Items {
+			quantity += line.Quantity
+		}
+		fee, allowed := policy.Quote(destination, platform.Int(q, "subtotal_cents"), quantity)
+		if !allowed || fee != platform.Int(q, "shipping_cents") {
+			return nil, status.Error(codes.FailedPrecondition, "shipping eligibility or fee changed; requote required")
+		}
+	}
 	address = ship
 	qb, _ := json.Marshal(q)
 	ab, _ := json.Marshal(address)
+	id, err = s.r.BusinessID(ctx, "order", key, "ord_"+key[:32])
+	if err != nil {
+		return nil, err
+	}
 	a := domain.Saga{
 		ID:          id,
 		UserID:      c.UserID,
@@ -296,6 +398,13 @@ func (s *Service) Submit(ctx context.Context, c platform.Request) (traceResult p
 	if err = s.r.Ensure(ctx, &a); err != nil {
 		return nil, err
 	}
+	id = a.ID
+	// A concurrent submit can create this key after the initial absent read.
+	// Ensure returns the stored winner, whose snapshot must match this request.
+	if a.UserID != c.UserID || a.QuoteID != platform.Text(c.Data, "quote_id") ||
+		(a.RequestHash != "" && a.RequestHash != requestHash) {
+		return nil, status.Error(codes.AlreadyExists, "idempotency key reused with a different quote")
+	}
 	return s.resumeWorkflow(ctx, id, c.UserID, constants.CheckoutModeCreate)
 }
 func (s *Service) resumeWorkflow(ctx context.Context, id, user, mode string) (platform.Result, error) {
@@ -306,12 +415,12 @@ func (s *Service) resumeWorkflow(ctx context.Context, id, user, mode string) (pl
 	}
 	if !ok {
 		return platform.Result{
-			"order_id": id,
-			"status":   constants.CheckoutStateProcessing,
-		}, status.Error(
-			codes.Aborted,
-			"checkout workflow is already processing; query original order",
-		)
+				"order_id": id,
+				"status":   constants.CheckoutStateProcessing,
+			}, status.Error(
+				codes.Aborted,
+				"checkout workflow is already processing; query original order",
+			)
 	}
 	defer func() {
 		releaseCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
@@ -373,11 +482,15 @@ func (s *Service) resumeWorkflow(ctx context.Context, id, user, mode string) (pl
 			})
 		}
 		if platform.Text(q, "coupon_id") != "" {
+			mainSubtotal, e := quoteMainSubtotal(q)
+			if e != nil {
+				return nil, e
+			}
 			resources = append(resources, reservation{
 				name:    constants.ServiceCoupon,
 				reserve: clients.Coupon.Reserve,
 				data: map[string]any{
-					"order_id": id, "coupon_id": q["coupon_id"], "subtotal_cents": q["subtotal_cents"],
+					"order_id": id, "coupon_id": q["coupon_id"], "subtotal_cents": mainSubtotal, "items": q["coupon_items"],
 				},
 			})
 		}

@@ -26,35 +26,72 @@ var File_api_mall_v1_iam_proto protoreflect.FileDescriptor
 
 const file_api_mall_v1_iam_proto_rawDesc = "" +
 	"\n" +
-	"\x15api/mall/v1/iam.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xc2\x02\n" +
+	"\x15api/mall/v1/iam.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xcc\b\n" +
 	"\n" +
 	"IAMService\x12:\n" +
 	"\x05Login\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
 	"\x06Logout\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
 	"\tLogoutAll\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12<\n" +
 	"\aRefresh\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12=\n" +
-	"\bValidate\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
+	"\bValidate\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tAdminList\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12A\n" +
+	"\fAdminSummary\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tSetActive\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tAuditList\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12=\n" +
+	"\bAdminGet\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tPolicyGet\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12A\n" +
+	"\fPolicyUpsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12A\n" +
+	"\fLoginMethods\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12<\n" +
+	"\aOtpSend\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12=\n" +
+	"\bOtpLogin\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12?\n" +
+	"\n" +
+	"OAuthStart\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12B\n" +
+	"\rOAuthCallback\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
 
 var file_api_mall_v1_iam_proto_goTypes = []any{
 	(*ServiceRequest)(nil),  // 0: mall.v1.ServiceRequest
 	(*ServiceResponse)(nil), // 1: mall.v1.ServiceResponse
 }
 var file_api_mall_v1_iam_proto_depIdxs = []int32{
-	0, // 0: mall.v1.IAMService.Login:input_type -> mall.v1.ServiceRequest
-	0, // 1: mall.v1.IAMService.Logout:input_type -> mall.v1.ServiceRequest
-	0, // 2: mall.v1.IAMService.LogoutAll:input_type -> mall.v1.ServiceRequest
-	0, // 3: mall.v1.IAMService.Refresh:input_type -> mall.v1.ServiceRequest
-	0, // 4: mall.v1.IAMService.Validate:input_type -> mall.v1.ServiceRequest
-	1, // 5: mall.v1.IAMService.Login:output_type -> mall.v1.ServiceResponse
-	1, // 6: mall.v1.IAMService.Logout:output_type -> mall.v1.ServiceResponse
-	1, // 7: mall.v1.IAMService.LogoutAll:output_type -> mall.v1.ServiceResponse
-	1, // 8: mall.v1.IAMService.Refresh:output_type -> mall.v1.ServiceResponse
-	1, // 9: mall.v1.IAMService.Validate:output_type -> mall.v1.ServiceResponse
-	5, // [5:10] is the sub-list for method output_type
-	0, // [0:5] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0,  // 0: mall.v1.IAMService.Login:input_type -> mall.v1.ServiceRequest
+	0,  // 1: mall.v1.IAMService.Logout:input_type -> mall.v1.ServiceRequest
+	0,  // 2: mall.v1.IAMService.LogoutAll:input_type -> mall.v1.ServiceRequest
+	0,  // 3: mall.v1.IAMService.Refresh:input_type -> mall.v1.ServiceRequest
+	0,  // 4: mall.v1.IAMService.Validate:input_type -> mall.v1.ServiceRequest
+	0,  // 5: mall.v1.IAMService.AdminList:input_type -> mall.v1.ServiceRequest
+	0,  // 6: mall.v1.IAMService.AdminSummary:input_type -> mall.v1.ServiceRequest
+	0,  // 7: mall.v1.IAMService.SetActive:input_type -> mall.v1.ServiceRequest
+	0,  // 8: mall.v1.IAMService.AuditList:input_type -> mall.v1.ServiceRequest
+	0,  // 9: mall.v1.IAMService.AdminGet:input_type -> mall.v1.ServiceRequest
+	0,  // 10: mall.v1.IAMService.PolicyGet:input_type -> mall.v1.ServiceRequest
+	0,  // 11: mall.v1.IAMService.PolicyUpsert:input_type -> mall.v1.ServiceRequest
+	0,  // 12: mall.v1.IAMService.LoginMethods:input_type -> mall.v1.ServiceRequest
+	0,  // 13: mall.v1.IAMService.OtpSend:input_type -> mall.v1.ServiceRequest
+	0,  // 14: mall.v1.IAMService.OtpLogin:input_type -> mall.v1.ServiceRequest
+	0,  // 15: mall.v1.IAMService.OAuthStart:input_type -> mall.v1.ServiceRequest
+	0,  // 16: mall.v1.IAMService.OAuthCallback:input_type -> mall.v1.ServiceRequest
+	1,  // 17: mall.v1.IAMService.Login:output_type -> mall.v1.ServiceResponse
+	1,  // 18: mall.v1.IAMService.Logout:output_type -> mall.v1.ServiceResponse
+	1,  // 19: mall.v1.IAMService.LogoutAll:output_type -> mall.v1.ServiceResponse
+	1,  // 20: mall.v1.IAMService.Refresh:output_type -> mall.v1.ServiceResponse
+	1,  // 21: mall.v1.IAMService.Validate:output_type -> mall.v1.ServiceResponse
+	1,  // 22: mall.v1.IAMService.AdminList:output_type -> mall.v1.ServiceResponse
+	1,  // 23: mall.v1.IAMService.AdminSummary:output_type -> mall.v1.ServiceResponse
+	1,  // 24: mall.v1.IAMService.SetActive:output_type -> mall.v1.ServiceResponse
+	1,  // 25: mall.v1.IAMService.AuditList:output_type -> mall.v1.ServiceResponse
+	1,  // 26: mall.v1.IAMService.AdminGet:output_type -> mall.v1.ServiceResponse
+	1,  // 27: mall.v1.IAMService.PolicyGet:output_type -> mall.v1.ServiceResponse
+	1,  // 28: mall.v1.IAMService.PolicyUpsert:output_type -> mall.v1.ServiceResponse
+	1,  // 29: mall.v1.IAMService.LoginMethods:output_type -> mall.v1.ServiceResponse
+	1,  // 30: mall.v1.IAMService.OtpSend:output_type -> mall.v1.ServiceResponse
+	1,  // 31: mall.v1.IAMService.OtpLogin:output_type -> mall.v1.ServiceResponse
+	1,  // 32: mall.v1.IAMService.OAuthStart:output_type -> mall.v1.ServiceResponse
+	1,  // 33: mall.v1.IAMService.OAuthCallback:output_type -> mall.v1.ServiceResponse
+	17, // [17:34] is the sub-list for method output_type
+	0,  // [0:17] is the sub-list for method input_type
+	0,  // [0:0] is the sub-list for extension type_name
+	0,  // [0:0] is the sub-list for extension extendee
+	0,  // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_api_mall_v1_iam_proto_init() }

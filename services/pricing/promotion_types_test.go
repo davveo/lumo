@@ -14,11 +14,25 @@ import (
 )
 
 type promotionRouter struct {
-	modules map[string]platform.Module
-	prices  map[string]int64
+	modules       map[string]platform.Module
+	prices        map[string]int64
+	couponMinimum int64
+	pointBalance  int64
 }
 
 func (r *promotionRouter) Call(ctx context.Context, service string, c platform.Command) (platform.Result, error) {
+	if service == "member" && c.Action == "policy_get" {
+		return platform.Result{"config": map[string]any{"gold_growth": 1000, "growth_spend_cents": 10000}}, nil
+	}
+	if service == "points" && c.Action == "policy_get" {
+		return platform.Result{"config": map[string]any{"checkin_points": 20, "deduction_bps": 1000, "reward_per_yuan": 1}}, nil
+	}
+	if service == "logistics" {
+		return platform.Result{"shipping_cents": int64(0), "serviceable": true}, nil
+	}
+	if service == "flash" && c.Action == "session_get" {
+		return platform.Result{"open": true, "sku_id": "sku-a"}, nil
+	}
 	if m, ok := r.modules[service]; ok {
 		return m.Handle(ctx, c)
 	}
@@ -43,10 +57,12 @@ func (r *promotionRouter) Call(ctx context.Context, service string, c platform.C
 		return row(c.ID), nil
 	case "coupon":
 		return platform.Result{
-			"items": []map[string]any{{"id": "coupon-test", "status": "AVAILABLE", "amount_cents": int64(500)}},
+			"items": []map[string]any{
+				{"id": "coupon-test", "status": "AVAILABLE", "amount_cents": int64(500), "min_cents": r.couponMinimum},
+			},
 		}, nil
 	case "points":
-		return platform.Result{"available": int64(5000)}, nil
+		return platform.Result{"available": r.pointBalance}, nil
 	case "group":
 		return platform.Result{"id": c.ID, "status": "OPEN", "sku_id": "sku-a"}, nil
 	}
@@ -57,8 +73,9 @@ func setupPromotions(t *testing.T) (*promotionRouter, *gorm.DB) {
 	t.Helper()
 	ctx := context.Background()
 	r := &promotionRouter{
-		modules: map[string]platform.Module{},
-		prices:  map[string]int64{"sku-a": 10001, "sku-b": 19999, "sku-coffee": 39900},
+		modules:      map[string]platform.Module{},
+		prices:       map[string]int64{"sku-a": 10001, "sku-b": 19999, "sku-coffee": 39900},
+		pointBalance: 5000,
 	}
 	var campaignDB *gorm.DB
 	for name, factory := range map[string]func(platform.Dependencies) platform.Module{
@@ -202,5 +219,56 @@ func TestPromotionQuotesRejectForgedQuantityAndIncompatibleCampaigns(t *testing.
 	flash, err := r.quote(map[string]any{"items": single, "activity_id": "flash-demo"})
 	if err != nil || platform.Int(flash, "campaign_discount_cents") != 0 {
 		t.Fatalf("existing flash quote no longer works: %v %v", flash, err)
+	}
+}
+
+func TestFlashAndGroupQuotesCannotStackCouponsOrPoints(t *testing.T) {
+	r, _ := setupPromotions(t)
+	for _, grouped := range []bool{false, true} {
+		for _, coupon := range []bool{false, true} {
+			data := map[string]any{"items": []any{map[string]any{"sku_id": "sku-a", "quantity": 1}}}
+			if grouped {
+				data["group_id"] = "team-test"
+			} else {
+				data["activity_id"] = "flash-demo"
+			}
+			if coupon {
+				data["coupon_id"] = "coupon-test"
+			} else {
+				data["points"] = int64(100)
+			}
+			if quote, err := r.quote(data); status.Code(err) != codes.FailedPrecondition {
+				t.Fatalf("group=%v coupon=%v: restricted quote accepted %v, %v", grouped, coupon, quote, err)
+			}
+		}
+	}
+}
+
+func TestAddonDoesNotQualifyCouponOrIncreasePointDeductionLimit(t *testing.T) {
+	r, _ := setupPromotions(t)
+	r.prices["sku-a"] = 180000
+	r.pointBalance = 50000
+	r.couponMinimum = 200000
+	base := func() map[string]any {
+		return map[string]any{
+			"items":        []any{map[string]any{"sku_id": "sku-a", "quantity": 1}},
+			"addon_sku_id": "sku-coffee",
+		}
+	}
+	withCoupon := base()
+	withCoupon["coupon_id"] = "coupon-test"
+	if quote, err := r.quote(withCoupon); status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("add-on qualified a coupon on its own amount: %v %v", quote, err)
+	}
+	withPoints := base()
+	withPoints["points"] = int64(19000)
+	if quote, err := r.quote(withPoints); status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("add-on increased the ordinary point deduction limit: %v %v", quote, err)
+	}
+	r.couponMinimum = 180000
+	valid := base()
+	valid["coupon_id"], valid["points"] = "coupon-test", int64(18000)
+	if quote, err := r.quote(valid); err != nil || platform.Int(quote, "payable_cents") != 195400 {
+		t.Fatalf("valid ordinary coupon/points no longer work with an add-on: %v %v", quote, err)
 	}
 }

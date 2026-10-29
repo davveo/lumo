@@ -12,6 +12,9 @@ const (
 // enum:ContentStatus
 const (
 	ContentStatusPublished = "PUBLISHED"
+	ContentStatusDraft     = "DRAFT"
+	ContentStatusScheduled = "SCHEDULED"
+	ContentStatusPaused    = "PAUSED"
 )
 
 // enum:PopupStatus
@@ -62,4 +65,14 @@ const (
 	PopupThemeRed   = "red"
 	PopupThemePeach = "peach"
 	PopupThemePlum  = "plum"
+)
+
+// enum:PopupLayout
+const (
+	PopupLayoutCoupon       = "coupon"
+	PopupLayoutAnnouncement = "announcement"
+	PopupLayoutImage        = "image"
+	PopupLayoutWelcome      = "welcome"
+	PopupLayoutMember       = "member"
+	PopupLayoutCampaign     = "campaign"
 )

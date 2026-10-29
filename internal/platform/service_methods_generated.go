@@ -88,27 +88,32 @@ var namedOperationActions = map[string]map[string]string{
 		"Update":  constants.ActionUpdate,
 	},
 	constants.ServiceAftersale: {
-		"Approve":  constants.ActionApprove,
-		"Cancel":   constants.ActionCancel,
-		"Create":   constants.ActionCreate,
-		"Exchange": constants.ActionExchange,
-		"Get":      constants.ActionGet,
-		"Inspect":  constants.ActionInspect,
-		"List":     constants.ActionList,
-		"Refund":   constants.ActionRefund,
-		"Reject":   constants.ActionReject,
-		"Return":   constants.ActionReturn,
+		"Approve":      constants.ActionApprove,
+		"Cancel":       constants.ActionCancel,
+		"Create":       constants.ActionCreate,
+		"Exchange":     constants.ActionExchange,
+		"Get":          constants.ActionGet,
+		"Inspect":      constants.ActionInspect,
+		"List":         constants.ActionList,
+		"Refund":       constants.ActionRefund,
+		"Reject":       constants.ActionReject,
+		"Return":       constants.ActionReturn,
+		"AdminList":    constants.ActionAdminList,
+		"AdminSummary": constants.ActionAdminSummary,
 	},
 	constants.ServiceAnalytics: {
 		"List":   constants.ActionList,
 		"Record": constants.ActionRecord,
 	},
 	constants.ServiceCampaign: {
-		"Cancel":   constants.ActionCancel,
-		"Confirm":  constants.ActionConfirm,
-		"Evaluate": constants.ActionEvaluate,
-		"List":     constants.ActionList,
-		"Reserve":  constants.ActionReserve,
+		"AdminList":  constants.ActionAdminList,
+		"Cancel":     constants.ActionCancel,
+		"Confirm":    constants.ActionConfirm,
+		"Evaluate":   constants.ActionEvaluate,
+		"List":       constants.ActionList,
+		"Reserve":    constants.ActionReserve,
+		"Upsert":     constants.ActionUpsert,
+		"RuleUpsert": constants.ActionRuleUpsert,
 	},
 	constants.ServiceCart: {
 		"Add":    constants.ActionAdd,
@@ -125,6 +130,7 @@ var namedOperationActions = map[string]map[string]string{
 		"RecommendationCandidates": constants.ActionRecommendationCandidates,
 		"SearchProducts":           constants.ActionSearchProducts,
 		"Upsert":                   constants.ActionUpsert,
+		"AdminList":                constants.ActionAdminList,
 	},
 	constants.ServiceCheckout: {
 		"Cancel": constants.ActionCancel,
@@ -143,6 +149,8 @@ var namedOperationActions = map[string]map[string]string{
 		"PopupList":      constants.ActionPopupList,
 		"PopupUpsert":    constants.ActionPopupUpsert,
 		"Upsert":         constants.ActionUpsert,
+		"AdminList":      constants.ActionAdminList,
+		"AdminUpsert":    constants.ActionAdminUpsert,
 	},
 	constants.ServiceCoupon: {
 		"Cancel":            constants.ActionCancel,
@@ -151,20 +159,34 @@ var namedOperationActions = map[string]map[string]string{
 		"List":              constants.ActionList,
 		"Refund":            constants.ActionRefund,
 		"Reserve":           constants.ActionReserve,
+		"TemplateUpsert":    constants.ActionTemplateUpsert,
 		"Templates":         constants.ActionTemplates,
+		"TemplatesAdmin":    constants.ActionTemplatesAdmin,
 		"TemplatesByIds":    constants.ActionTemplatesByIds,
 		"TemplatesSnapshot": constants.ActionTemplatesSnapshot,
+		"Calculate":         constants.ActionCalculate,
 	},
 	constants.ServiceEngagement: {
-		"Clear":  constants.ActionClear,
-		"Delete": constants.ActionDelete,
-		"List":   constants.ActionList,
-		"Put":    constants.ActionPut,
+		"AdminCancel":   constants.ActionAdminCancel,
+		"AdminList":     constants.ActionAdminList,
+		"Clear":         constants.ActionClear,
+		"Delete":        constants.ActionDelete,
+		"List":          constants.ActionList,
+		"PolicyGet":     constants.ActionPolicyGet,
+		"PolicyUpsert":  constants.ActionPolicyUpsert,
+		"Put":           constants.ActionPut,
+		"Subscribe":     constants.ActionSubscribe,
+		"Subscriptions": constants.ActionSubscriptions,
+		"Unsubscribe":   constants.ActionUnsubscribe,
 	},
 	constants.ServiceFlash: {
-		"Get":     constants.ActionGet,
-		"List":    constants.ActionList,
-		"Request": constants.ActionRequest,
+		"Get":           constants.ActionGet,
+		"List":          constants.ActionList,
+		"Request":       constants.ActionRequest,
+		"AdminList":     constants.ActionAdminList,
+		"Upsert":        constants.ActionUpsert,
+		"SessionGet":    constants.ActionSessionGet,
+		"RequestsAdmin": constants.ActionRequestsAdmin,
 	},
 	constants.ServiceFulfillment: {
 		"Cancel":         constants.ActionCancel,
@@ -173,15 +195,21 @@ var namedOperationActions = map[string]map[string]string{
 		"Get":            constants.ActionGet,
 		"InspectReturn":  constants.ActionInspectReturn,
 		"List":           constants.ActionList,
+		"AdminList":      constants.ActionAdminList,
+		"AdminSummary":   constants.ActionAdminSummary,
 	},
 	constants.ServiceGroup: {
-		"Cancel":  constants.ActionCancel,
-		"Create":  constants.ActionCreate,
-		"Expire":  constants.ActionExpire,
-		"Get":     constants.ActionGet,
-		"List":    constants.ActionList,
-		"Paid":    constants.ActionPaid,
-		"Reserve": constants.ActionReserve,
+		"Cancel":     constants.ActionCancel,
+		"Create":     constants.ActionCreate,
+		"Expire":     constants.ActionExpire,
+		"Get":        constants.ActionGet,
+		"List":       constants.ActionList,
+		"Paid":       constants.ActionPaid,
+		"Reserve":    constants.ActionReserve,
+		"AdminList":  constants.ActionAdminList,
+		"Rules":      constants.ActionRules,
+		"RulesAdmin": constants.ActionRulesAdmin,
+		"RuleUpsert": constants.ActionRuleUpsert,
 	},
 	constants.ServiceHelpdesk: {
 		"Close":  constants.ActionClose,
@@ -192,11 +220,23 @@ var namedOperationActions = map[string]map[string]string{
 		"Reply":  constants.ActionReply,
 	},
 	constants.ServiceIAM: {
-		"Login":     constants.ActionLogin,
-		"Logout":    constants.ActionLogout,
-		"LogoutAll": constants.ActionLogoutAll,
-		"Refresh":   constants.ActionRefresh,
-		"Validate":  constants.ActionValidate,
+		"Login":         constants.ActionLogin,
+		"Logout":        constants.ActionLogout,
+		"LogoutAll":     constants.ActionLogoutAll,
+		"Refresh":       constants.ActionRefresh,
+		"Validate":      constants.ActionValidate,
+		"AdminList":     constants.ActionAdminList,
+		"AdminSummary":  constants.ActionAdminSummary,
+		"SetActive":     constants.ActionSetActive,
+		"AuditList":     constants.ActionAuditList,
+		"AdminGet":      constants.ActionAdminGet,
+		"PolicyGet":     constants.ActionPolicyGet,
+		"PolicyUpsert":  constants.ActionPolicyUpsert,
+		"LoginMethods":  constants.ActionLoginMethods,
+		"OtpSend":       constants.ActionOtpSend,
+		"OtpLogin":      constants.ActionOtpLogin,
+		"OAuthStart":    constants.ActionOAuthStart,
+		"OAuthCallback": constants.ActionOAuthCallback,
 	},
 	constants.ServiceInteraction: {
 		"Answer":   constants.ActionAnswer,
@@ -206,29 +246,37 @@ var namedOperationActions = map[string]map[string]string{
 		"Moderate": constants.ActionModerate,
 	},
 	constants.ServiceInventory: {
-		"Adjust":   constants.ActionAdjust,
-		"BatchGet": constants.ActionBatchGet,
-		"Cancel":   constants.ActionCancel,
-		"Confirm":  constants.ActionConfirm,
-		"Dispatch": constants.ActionDispatch,
-		"Get":      constants.ActionGet,
-		"Reserve":  constants.ActionReserve,
-		"Restock":  constants.ActionRestock,
+		"Adjust":      constants.ActionAdjust,
+		"BatchGet":    constants.ActionBatchGet,
+		"Cancel":      constants.ActionCancel,
+		"Confirm":     constants.ActionConfirm,
+		"Dispatch":    constants.ActionDispatch,
+		"Get":         constants.ActionGet,
+		"Reserve":     constants.ActionReserve,
+		"Restock":     constants.ActionRestock,
+		"Adjustments": constants.ActionAdjustments,
+		"AdminList":   constants.ActionAdminList,
+		"Threshold":   constants.ActionThreshold,
+		"Ledger":      constants.ActionLedger,
 	},
 	constants.ServiceInvoice: {
-		"AdjustDemo": constants.ActionAdjustDemo,
-		"Create":     constants.ActionCreate,
-		"Get":        constants.ActionGet,
-		"IssueDemo":  constants.ActionIssueDemo,
-		"List":       constants.ActionList,
-		"Reversals":  constants.ActionReversals,
+		"AdjustDemo":   constants.ActionAdjustDemo,
+		"Create":       constants.ActionCreate,
+		"Get":          constants.ActionGet,
+		"IssueDemo":    constants.ActionIssueDemo,
+		"List":         constants.ActionList,
+		"Reversals":    constants.ActionReversals,
+		"AdminList":    constants.ActionAdminList,
+		"AdminSummary": constants.ActionAdminSummary,
 	},
 	constants.ServiceLogistics: {
-		"Create":  constants.ActionCreate,
-		"Deliver": constants.ActionDeliver,
-		"Get":     constants.ActionGet,
-		"List":    constants.ActionList,
-		"Quote":   constants.ActionQuote,
+		"Create":       constants.ActionCreate,
+		"Deliver":      constants.ActionDeliver,
+		"Get":          constants.ActionGet,
+		"List":         constants.ActionList,
+		"Quote":        constants.ActionQuote,
+		"PolicyGet":    constants.ActionPolicyGet,
+		"PolicyUpsert": constants.ActionPolicyUpsert,
 	},
 	constants.ServiceMedia: {
 		"Complete": constants.ActionComplete,
@@ -237,13 +285,17 @@ var namedOperationActions = map[string]map[string]string{
 		"Get":      constants.ActionGet,
 	},
 	constants.ServiceMember: {
-		"Get":    constants.ActionGet,
-		"Update": constants.ActionUpdate,
+		"Get":          constants.ActionGet,
+		"Update":       constants.ActionUpdate,
+		"PolicyGet":    constants.ActionPolicyGet,
+		"PolicyUpsert": constants.ActionPolicyUpsert,
 	},
 	constants.ServiceNotification: {
-		"List":    constants.ActionList,
-		"Read":    constants.ActionRead,
-		"ReadAll": constants.ActionReadAll,
+		"List":           constants.ActionList,
+		"Read":           constants.ActionRead,
+		"ReadAll":        constants.ActionReadAll,
+		"TemplatesAdmin": constants.ActionTemplatesAdmin,
+		"TemplateUpsert": constants.ActionTemplateUpsert,
 	},
 	constants.ServiceOrder: {
 		"AcceptPayment": constants.ActionAcceptPayment,
@@ -261,23 +313,35 @@ var namedOperationActions = map[string]map[string]string{
 		"Refunded":      constants.ActionRefunded,
 		"Shipped":       constants.ActionShipped,
 		"WaitGroup":     constants.ActionWaitGroup,
+		"AdminList":     constants.ActionAdminList,
+		"AdminSummary":  constants.ActionAdminSummary,
 	},
 	constants.ServicePayment: {
-		"Close":       constants.ActionClose,
-		"ConfirmDemo": constants.ActionConfirmDemo,
-		"Create":      constants.ActionCreate,
-		"Get":         constants.ActionGet,
-		"List":        constants.ActionList,
-		"SubmitDemo":  constants.ActionSubmitDemo,
+		"Close":        constants.ActionClose,
+		"ConfirmDemo":  constants.ActionConfirmDemo,
+		"Create":       constants.ActionCreate,
+		"Get":          constants.ActionGet,
+		"List":         constants.ActionList,
+		"SubmitDemo":   constants.ActionSubmitDemo,
+		"AdminList":    constants.ActionAdminList,
+		"AdminSummary": constants.ActionAdminSummary,
+		"Methods":      constants.ActionMethods,
+		"PolicyGet":    constants.ActionPolicyGet,
+		"PolicyUpsert": constants.ActionPolicyUpsert,
 	},
 	constants.ServicePoints: {
-		"Cancel":  constants.ActionCancel,
-		"Checkin": constants.ActionCheckin,
-		"Confirm": constants.ActionConfirm,
-		"Get":     constants.ActionGet,
-		"Refund":  constants.ActionRefund,
-		"Reserve": constants.ActionReserve,
-		"Reward":  constants.ActionReward,
+		"Cancel":       constants.ActionCancel,
+		"Checkin":      constants.ActionCheckin,
+		"Confirm":      constants.ActionConfirm,
+		"Get":          constants.ActionGet,
+		"Refund":       constants.ActionRefund,
+		"Reserve":      constants.ActionReserve,
+		"Reward":       constants.ActionReward,
+		"PolicyGet":    constants.ActionPolicyGet,
+		"PolicyUpsert": constants.ActionPolicyUpsert,
+		"AdminGet":     constants.ActionAdminGet,
+		"Adjust":       constants.ActionAdjust,
+		"Ledger":       constants.ActionLedger,
 	},
 	constants.ServicePricing: {
 		"Get":   constants.ActionGet,
@@ -286,20 +350,29 @@ var namedOperationActions = map[string]map[string]string{
 	constants.ServiceRecommendation: {
 		"List":          constants.ActionList,
 		"RankBootstrap": constants.ActionRankBootstrap,
+		"PolicyGet":     constants.ActionPolicyGet,
+		"PolicyUpsert":  constants.ActionPolicyUpsert,
 	},
 	constants.ServiceReconciliation: {
-		"List": constants.ActionList,
-		"Run":  constants.ActionRun,
+		"List":      constants.ActionList,
+		"Run":       constants.ActionRun,
+		"AdminList": constants.ActionAdminList,
+		"Get":       constants.ActionGet,
+		"Note":      constants.ActionNote,
 	},
 	constants.ServiceRefund: {
-		"ConfirmDemo": constants.ActionConfirmDemo,
-		"Create":      constants.ActionCreate,
-		"Get":         constants.ActionGet,
-		"List":        constants.ActionList,
+		"ConfirmDemo":  constants.ActionConfirmDemo,
+		"Create":       constants.ActionCreate,
+		"Get":          constants.ActionGet,
+		"List":         constants.ActionList,
+		"AdminList":    constants.ActionAdminList,
+		"AdminSummary": constants.ActionAdminSummary,
 	},
 	constants.ServiceSearch: {
-		"Query":   constants.ActionQuery,
-		"Suggest": constants.ActionSuggest,
+		"Query":        constants.ActionQuery,
+		"Suggest":      constants.ActionSuggest,
+		"PolicyGet":    constants.ActionPolicyGet,
+		"PolicyUpsert": constants.ActionPolicyUpsert,
 	},
 }
 
@@ -436,6 +509,22 @@ func (client AftersaleMethods) Return(
 		constants.ActionReturn, request,
 	)
 }
+func (client AftersaleMethods) AdminList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceAftersale, "AdminList",
+		constants.ActionAdminList, request,
+	)
+}
+func (client AftersaleMethods) AdminSummary(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceAftersale, "AdminSummary",
+		constants.ActionAdminSummary, request,
+	)
+}
 
 type AnalyticsMethods struct{ caller Caller }
 
@@ -458,6 +547,14 @@ func (client AnalyticsMethods) Record(
 
 type CampaignMethods struct{ caller Caller }
 
+func (client CampaignMethods) AdminList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceCampaign, "AdminList",
+		constants.ActionAdminList, request,
+	)
+}
 func (client CampaignMethods) Cancel(
 	ctx context.Context, request Request,
 ) (Result, error) {
@@ -496,6 +593,22 @@ func (client CampaignMethods) Reserve(
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceCampaign, "Reserve",
 		constants.ActionReserve, request,
+	)
+}
+func (client CampaignMethods) Upsert(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceCampaign, "Upsert",
+		constants.ActionUpsert, request,
+	)
+}
+func (client CampaignMethods) RuleUpsert(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceCampaign, "RuleUpsert",
+		constants.ActionRuleUpsert, request,
 	)
 }
 
@@ -598,6 +711,14 @@ func (client CatalogMethods) Upsert(
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceCatalog, "Upsert",
 		constants.ActionUpsert, request,
+	)
+}
+func (client CatalogMethods) AdminList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceCatalog, "AdminList",
+		constants.ActionAdminList, request,
 	)
 }
 
@@ -718,6 +839,22 @@ func (client ContentMethods) Upsert(
 		constants.ActionUpsert, request,
 	)
 }
+func (client ContentMethods) AdminList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceContent, "AdminList",
+		constants.ActionAdminList, request,
+	)
+}
+func (client ContentMethods) AdminUpsert(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceContent, "AdminUpsert",
+		constants.ActionAdminUpsert, request,
+	)
+}
 
 type CouponMethods struct{ caller Caller }
 
@@ -769,12 +906,28 @@ func (client CouponMethods) Reserve(
 		constants.ActionReserve, request,
 	)
 }
+func (client CouponMethods) TemplateUpsert(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceCoupon, "TemplateUpsert",
+		constants.ActionTemplateUpsert, request,
+	)
+}
 func (client CouponMethods) Templates(
 	ctx context.Context, request Request,
 ) (Result, error) {
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceCoupon, "Templates",
 		constants.ActionTemplates, request,
+	)
+}
+func (client CouponMethods) TemplatesAdmin(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceCoupon, "TemplatesAdmin",
+		constants.ActionTemplatesAdmin, request,
 	)
 }
 func (client CouponMethods) TemplatesByIds(
@@ -793,9 +946,33 @@ func (client CouponMethods) TemplatesSnapshot(
 		constants.ActionTemplatesSnapshot, request,
 	)
 }
+func (client CouponMethods) Calculate(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceCoupon, "Calculate",
+		constants.ActionCalculate, request,
+	)
+}
 
 type EngagementMethods struct{ caller Caller }
 
+func (client EngagementMethods) AdminCancel(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceEngagement, "AdminCancel",
+		constants.ActionAdminCancel, request,
+	)
+}
+func (client EngagementMethods) AdminList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceEngagement, "AdminList",
+		constants.ActionAdminList, request,
+	)
+}
 func (client EngagementMethods) Clear(
 	ctx context.Context, request Request,
 ) (Result, error) {
@@ -820,12 +997,52 @@ func (client EngagementMethods) List(
 		constants.ActionList, request,
 	)
 }
+func (client EngagementMethods) PolicyGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceEngagement, "PolicyGet",
+		constants.ActionPolicyGet, request,
+	)
+}
+func (client EngagementMethods) PolicyUpsert(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceEngagement, "PolicyUpsert",
+		constants.ActionPolicyUpsert, request,
+	)
+}
 func (client EngagementMethods) Put(
 	ctx context.Context, request Request,
 ) (Result, error) {
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceEngagement, "Put",
 		constants.ActionPut, request,
+	)
+}
+func (client EngagementMethods) Subscribe(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceEngagement, "Subscribe",
+		constants.ActionSubscribe, request,
+	)
+}
+func (client EngagementMethods) Subscriptions(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceEngagement, "Subscriptions",
+		constants.ActionSubscriptions, request,
+	)
+}
+func (client EngagementMethods) Unsubscribe(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceEngagement, "Unsubscribe",
+		constants.ActionUnsubscribe, request,
 	)
 }
 
@@ -853,6 +1070,38 @@ func (client FlashMethods) Request(
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceFlash, "Request",
 		constants.ActionRequest, request,
+	)
+}
+func (client FlashMethods) AdminList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceFlash, "AdminList",
+		constants.ActionAdminList, request,
+	)
+}
+func (client FlashMethods) Upsert(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceFlash, "Upsert",
+		constants.ActionUpsert, request,
+	)
+}
+func (client FlashMethods) SessionGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceFlash, "SessionGet",
+		constants.ActionSessionGet, request,
+	)
+}
+func (client FlashMethods) RequestsAdmin(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceFlash, "RequestsAdmin",
+		constants.ActionRequestsAdmin, request,
 	)
 }
 
@@ -904,6 +1153,22 @@ func (client FulfillmentMethods) List(
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceFulfillment, "List",
 		constants.ActionList, request,
+	)
+}
+func (client FulfillmentMethods) AdminList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceFulfillment, "AdminList",
+		constants.ActionAdminList, request,
+	)
+}
+func (client FulfillmentMethods) AdminSummary(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceFulfillment, "AdminSummary",
+		constants.ActionAdminSummary, request,
 	)
 }
 
@@ -963,6 +1228,38 @@ func (client GroupMethods) Reserve(
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceGroup, "Reserve",
 		constants.ActionReserve, request,
+	)
+}
+func (client GroupMethods) AdminList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceGroup, "AdminList",
+		constants.ActionAdminList, request,
+	)
+}
+func (client GroupMethods) Rules(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceGroup, "Rules",
+		constants.ActionRules, request,
+	)
+}
+func (client GroupMethods) RulesAdmin(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceGroup, "RulesAdmin",
+		constants.ActionRulesAdmin, request,
+	)
+}
+func (client GroupMethods) RuleUpsert(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceGroup, "RuleUpsert",
+		constants.ActionRuleUpsert, request,
 	)
 }
 
@@ -1057,6 +1354,102 @@ func (client IAMMethods) Validate(
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceIAM, "Validate",
 		constants.ActionValidate, request,
+	)
+}
+func (client IAMMethods) AdminList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "AdminList",
+		constants.ActionAdminList, request,
+	)
+}
+func (client IAMMethods) AdminSummary(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "AdminSummary",
+		constants.ActionAdminSummary, request,
+	)
+}
+func (client IAMMethods) SetActive(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "SetActive",
+		constants.ActionSetActive, request,
+	)
+}
+func (client IAMMethods) AuditList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "AuditList",
+		constants.ActionAuditList, request,
+	)
+}
+func (client IAMMethods) AdminGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "AdminGet",
+		constants.ActionAdminGet, request,
+	)
+}
+func (client IAMMethods) PolicyGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "PolicyGet",
+		constants.ActionPolicyGet, request,
+	)
+}
+func (client IAMMethods) PolicyUpsert(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "PolicyUpsert",
+		constants.ActionPolicyUpsert, request,
+	)
+}
+func (client IAMMethods) LoginMethods(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "LoginMethods",
+		constants.ActionLoginMethods, request,
+	)
+}
+func (client IAMMethods) OtpSend(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "OtpSend",
+		constants.ActionOtpSend, request,
+	)
+}
+func (client IAMMethods) OtpLogin(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "OtpLogin",
+		constants.ActionOtpLogin, request,
+	)
+}
+func (client IAMMethods) OAuthStart(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "OAuthStart",
+		constants.ActionOAuthStart, request,
+	)
+}
+func (client IAMMethods) OAuthCallback(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "OAuthCallback",
+		constants.ActionOAuthCallback, request,
 	)
 }
 
@@ -1169,6 +1562,38 @@ func (client InventoryMethods) Restock(
 		constants.ActionRestock, request,
 	)
 }
+func (client InventoryMethods) Adjustments(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInventory, "Adjustments",
+		constants.ActionAdjustments, request,
+	)
+}
+func (client InventoryMethods) AdminList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInventory, "AdminList",
+		constants.ActionAdminList, request,
+	)
+}
+func (client InventoryMethods) Threshold(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInventory, "Threshold",
+		constants.ActionThreshold, request,
+	)
+}
+func (client InventoryMethods) Ledger(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInventory, "Ledger",
+		constants.ActionLedger, request,
+	)
+}
 
 type InvoiceMethods struct{ caller Caller }
 
@@ -1220,6 +1645,22 @@ func (client InvoiceMethods) Reversals(
 		constants.ActionReversals, request,
 	)
 }
+func (client InvoiceMethods) AdminList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInvoice, "AdminList",
+		constants.ActionAdminList, request,
+	)
+}
+func (client InvoiceMethods) AdminSummary(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInvoice, "AdminSummary",
+		constants.ActionAdminSummary, request,
+	)
+}
 
 type LogisticsMethods struct{ caller Caller }
 
@@ -1261,6 +1702,22 @@ func (client LogisticsMethods) Quote(
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceLogistics, "Quote",
 		constants.ActionQuote, request,
+	)
+}
+func (client LogisticsMethods) PolicyGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceLogistics, "PolicyGet",
+		constants.ActionPolicyGet, request,
+	)
+}
+func (client LogisticsMethods) PolicyUpsert(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceLogistics, "PolicyUpsert",
+		constants.ActionPolicyUpsert, request,
 	)
 }
 
@@ -1317,6 +1774,22 @@ func (client MemberMethods) Update(
 		constants.ActionUpdate, request,
 	)
 }
+func (client MemberMethods) PolicyGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceMember, "PolicyGet",
+		constants.ActionPolicyGet, request,
+	)
+}
+func (client MemberMethods) PolicyUpsert(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceMember, "PolicyUpsert",
+		constants.ActionPolicyUpsert, request,
+	)
+}
 
 type NotificationMethods struct{ caller Caller }
 
@@ -1342,6 +1815,22 @@ func (client NotificationMethods) ReadAll(
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceNotification, "ReadAll",
 		constants.ActionReadAll, request,
+	)
+}
+func (client NotificationMethods) TemplatesAdmin(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceNotification, "TemplatesAdmin",
+		constants.ActionTemplatesAdmin, request,
+	)
+}
+func (client NotificationMethods) TemplateUpsert(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceNotification, "TemplateUpsert",
+		constants.ActionTemplateUpsert, request,
 	)
 }
 
@@ -1467,6 +1956,22 @@ func (client OrderMethods) WaitGroup(
 		constants.ActionWaitGroup, request,
 	)
 }
+func (client OrderMethods) AdminList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceOrder, "AdminList",
+		constants.ActionAdminList, request,
+	)
+}
+func (client OrderMethods) AdminSummary(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceOrder, "AdminSummary",
+		constants.ActionAdminSummary, request,
+	)
+}
 
 type PaymentMethods struct{ caller Caller }
 
@@ -1516,6 +2021,46 @@ func (client PaymentMethods) SubmitDemo(
 	return invokeMethod(
 		ctx, client.caller, constants.ServicePayment, "SubmitDemo",
 		constants.ActionSubmitDemo, request,
+	)
+}
+func (client PaymentMethods) AdminList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServicePayment, "AdminList",
+		constants.ActionAdminList, request,
+	)
+}
+func (client PaymentMethods) AdminSummary(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServicePayment, "AdminSummary",
+		constants.ActionAdminSummary, request,
+	)
+}
+func (client PaymentMethods) Methods(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServicePayment, "Methods",
+		constants.ActionMethods, request,
+	)
+}
+func (client PaymentMethods) PolicyGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServicePayment, "PolicyGet",
+		constants.ActionPolicyGet, request,
+	)
+}
+func (client PaymentMethods) PolicyUpsert(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServicePayment, "PolicyUpsert",
+		constants.ActionPolicyUpsert, request,
 	)
 }
 
@@ -1577,6 +2122,46 @@ func (client PointsMethods) Reward(
 		constants.ActionReward, request,
 	)
 }
+func (client PointsMethods) PolicyGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServicePoints, "PolicyGet",
+		constants.ActionPolicyGet, request,
+	)
+}
+func (client PointsMethods) PolicyUpsert(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServicePoints, "PolicyUpsert",
+		constants.ActionPolicyUpsert, request,
+	)
+}
+func (client PointsMethods) AdminGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServicePoints, "AdminGet",
+		constants.ActionAdminGet, request,
+	)
+}
+func (client PointsMethods) Adjust(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServicePoints, "Adjust",
+		constants.ActionAdjust, request,
+	)
+}
+func (client PointsMethods) Ledger(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServicePoints, "Ledger",
+		constants.ActionLedger, request,
+	)
+}
 
 type PricingMethods struct{ caller Caller }
 
@@ -1615,6 +2200,22 @@ func (client RecommendationMethods) RankBootstrap(
 		constants.ActionRankBootstrap, request,
 	)
 }
+func (client RecommendationMethods) PolicyGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceRecommendation, "PolicyGet",
+		constants.ActionPolicyGet, request,
+	)
+}
+func (client RecommendationMethods) PolicyUpsert(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceRecommendation, "PolicyUpsert",
+		constants.ActionPolicyUpsert, request,
+	)
+}
 
 type ReconciliationMethods struct{ caller Caller }
 
@@ -1632,6 +2233,30 @@ func (client ReconciliationMethods) Run(
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceReconciliation, "Run",
 		constants.ActionRun, request,
+	)
+}
+func (client ReconciliationMethods) AdminList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceReconciliation, "AdminList",
+		constants.ActionAdminList, request,
+	)
+}
+func (client ReconciliationMethods) Get(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceReconciliation, "Get",
+		constants.ActionGet, request,
+	)
+}
+func (client ReconciliationMethods) Note(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceReconciliation, "Note",
+		constants.ActionNote, request,
 	)
 }
 
@@ -1669,6 +2294,22 @@ func (client RefundMethods) List(
 		constants.ActionList, request,
 	)
 }
+func (client RefundMethods) AdminList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceRefund, "AdminList",
+		constants.ActionAdminList, request,
+	)
+}
+func (client RefundMethods) AdminSummary(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceRefund, "AdminSummary",
+		constants.ActionAdminSummary, request,
+	)
+}
 
 type SearchMethods struct{ caller Caller }
 
@@ -1686,6 +2327,22 @@ func (client SearchMethods) Suggest(
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceSearch, "Suggest",
 		constants.ActionSuggest, request,
+	)
+}
+func (client SearchMethods) PolicyGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceSearch, "PolicyGet",
+		constants.ActionPolicyGet, request,
+	)
+}
+func (client SearchMethods) PolicyUpsert(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceSearch, "PolicyUpsert",
+		constants.ActionPolicyUpsert, request,
 	)
 }
 
@@ -1794,6 +2451,18 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewAftersaleServiceClient(connection).Return(ctx, request)
 			}},
+		constants.ActionAdminList: {
+			fullMethod: mallv1.AftersaleService_AdminList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewAftersaleServiceClient(connection).AdminList(ctx, request)
+			}},
+		constants.ActionAdminSummary: {
+			fullMethod: mallv1.AftersaleService_AdminSummary_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewAftersaleServiceClient(connection).AdminSummary(ctx, request)
+			}},
 	},
 	constants.ServiceAnalytics: {
 		constants.ActionList: {
@@ -1810,6 +2479,12 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			}},
 	},
 	constants.ServiceCampaign: {
+		constants.ActionAdminList: {
+			fullMethod: mallv1.CampaignService_AdminList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewCampaignServiceClient(connection).AdminList(ctx, request)
+			}},
 		constants.ActionCancel: {
 			fullMethod: mallv1.CampaignService_Cancel_FullMethodName,
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
@@ -1839,6 +2514,18 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewCampaignServiceClient(connection).Reserve(ctx, request)
+			}},
+		constants.ActionUpsert: {
+			fullMethod: mallv1.CampaignService_Upsert_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewCampaignServiceClient(connection).Upsert(ctx, request)
+			}},
+		constants.ActionRuleUpsert: {
+			fullMethod: mallv1.CampaignService_RuleUpsert_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewCampaignServiceClient(connection).RuleUpsert(ctx, request)
 			}},
 	},
 	constants.ServiceCart: {
@@ -1915,6 +2602,12 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewCatalogServiceClient(connection).Upsert(ctx, request)
+			}},
+		constants.ActionAdminList: {
+			fullMethod: mallv1.CatalogService_AdminList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewCatalogServiceClient(connection).AdminList(ctx, request)
 			}},
 	},
 	constants.ServiceCheckout: {
@@ -2004,6 +2697,18 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewContentServiceClient(connection).Upsert(ctx, request)
 			}},
+		constants.ActionAdminList: {
+			fullMethod: mallv1.ContentService_AdminList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewContentServiceClient(connection).AdminList(ctx, request)
+			}},
+		constants.ActionAdminUpsert: {
+			fullMethod: mallv1.ContentService_AdminUpsert_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewContentServiceClient(connection).AdminUpsert(ctx, request)
+			}},
 	},
 	constants.ServiceCoupon: {
 		constants.ActionCancel: {
@@ -2042,11 +2747,23 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewCouponServiceClient(connection).Reserve(ctx, request)
 			}},
+		constants.ActionTemplateUpsert: {
+			fullMethod: mallv1.CouponService_TemplateUpsert_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewCouponServiceClient(connection).TemplateUpsert(ctx, request)
+			}},
 		constants.ActionTemplates: {
 			fullMethod: mallv1.CouponService_Templates_FullMethodName,
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewCouponServiceClient(connection).Templates(ctx, request)
+			}},
+		constants.ActionTemplatesAdmin: {
+			fullMethod: mallv1.CouponService_TemplatesAdmin_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewCouponServiceClient(connection).TemplatesAdmin(ctx, request)
 			}},
 		constants.ActionTemplatesByIds: {
 			fullMethod: mallv1.CouponService_TemplatesByIds_FullMethodName,
@@ -2060,8 +2777,26 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewCouponServiceClient(connection).TemplatesSnapshot(ctx, request)
 			}},
+		constants.ActionCalculate: {
+			fullMethod: mallv1.CouponService_Calculate_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewCouponServiceClient(connection).Calculate(ctx, request)
+			}},
 	},
 	constants.ServiceEngagement: {
+		constants.ActionAdminCancel: {
+			fullMethod: mallv1.EngagementService_AdminCancel_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewEngagementServiceClient(connection).AdminCancel(ctx, request)
+			}},
+		constants.ActionAdminList: {
+			fullMethod: mallv1.EngagementService_AdminList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewEngagementServiceClient(connection).AdminList(ctx, request)
+			}},
 		constants.ActionClear: {
 			fullMethod: mallv1.EngagementService_Clear_FullMethodName,
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
@@ -2080,11 +2815,41 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewEngagementServiceClient(connection).List(ctx, request)
 			}},
+		constants.ActionPolicyGet: {
+			fullMethod: mallv1.EngagementService_PolicyGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewEngagementServiceClient(connection).PolicyGet(ctx, request)
+			}},
+		constants.ActionPolicyUpsert: {
+			fullMethod: mallv1.EngagementService_PolicyUpsert_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewEngagementServiceClient(connection).PolicyUpsert(ctx, request)
+			}},
 		constants.ActionPut: {
 			fullMethod: mallv1.EngagementService_Put_FullMethodName,
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewEngagementServiceClient(connection).Put(ctx, request)
+			}},
+		constants.ActionSubscribe: {
+			fullMethod: mallv1.EngagementService_Subscribe_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewEngagementServiceClient(connection).Subscribe(ctx, request)
+			}},
+		constants.ActionSubscriptions: {
+			fullMethod: mallv1.EngagementService_Subscriptions_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewEngagementServiceClient(connection).Subscriptions(ctx, request)
+			}},
+		constants.ActionUnsubscribe: {
+			fullMethod: mallv1.EngagementService_Unsubscribe_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewEngagementServiceClient(connection).Unsubscribe(ctx, request)
 			}},
 	},
 	constants.ServiceFlash: {
@@ -2105,6 +2870,30 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewFlashServiceClient(connection).Request(ctx, request)
+			}},
+		constants.ActionAdminList: {
+			fullMethod: mallv1.FlashService_AdminList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewFlashServiceClient(connection).AdminList(ctx, request)
+			}},
+		constants.ActionUpsert: {
+			fullMethod: mallv1.FlashService_Upsert_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewFlashServiceClient(connection).Upsert(ctx, request)
+			}},
+		constants.ActionSessionGet: {
+			fullMethod: mallv1.FlashService_SessionGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewFlashServiceClient(connection).SessionGet(ctx, request)
+			}},
+		constants.ActionRequestsAdmin: {
+			fullMethod: mallv1.FlashService_RequestsAdmin_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewFlashServiceClient(connection).RequestsAdmin(ctx, request)
 			}},
 	},
 	constants.ServiceFulfillment: {
@@ -2143,6 +2932,18 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewFulfillmentServiceClient(connection).List(ctx, request)
+			}},
+		constants.ActionAdminList: {
+			fullMethod: mallv1.FulfillmentService_AdminList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewFulfillmentServiceClient(connection).AdminList(ctx, request)
+			}},
+		constants.ActionAdminSummary: {
+			fullMethod: mallv1.FulfillmentService_AdminSummary_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewFulfillmentServiceClient(connection).AdminSummary(ctx, request)
 			}},
 	},
 	constants.ServiceGroup: {
@@ -2187,6 +2988,30 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewGroupServiceClient(connection).Reserve(ctx, request)
+			}},
+		constants.ActionAdminList: {
+			fullMethod: mallv1.GroupService_AdminList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewGroupServiceClient(connection).AdminList(ctx, request)
+			}},
+		constants.ActionRules: {
+			fullMethod: mallv1.GroupService_Rules_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewGroupServiceClient(connection).Rules(ctx, request)
+			}},
+		constants.ActionRulesAdmin: {
+			fullMethod: mallv1.GroupService_RulesAdmin_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewGroupServiceClient(connection).RulesAdmin(ctx, request)
+			}},
+		constants.ActionRuleUpsert: {
+			fullMethod: mallv1.GroupService_RuleUpsert_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewGroupServiceClient(connection).RuleUpsert(ctx, request)
 			}},
 	},
 	constants.ServiceHelpdesk: {
@@ -2257,6 +3082,78 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewIAMServiceClient(connection).Validate(ctx, request)
+			}},
+		constants.ActionAdminList: {
+			fullMethod: mallv1.IAMService_AdminList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).AdminList(ctx, request)
+			}},
+		constants.ActionAdminSummary: {
+			fullMethod: mallv1.IAMService_AdminSummary_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).AdminSummary(ctx, request)
+			}},
+		constants.ActionSetActive: {
+			fullMethod: mallv1.IAMService_SetActive_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).SetActive(ctx, request)
+			}},
+		constants.ActionAuditList: {
+			fullMethod: mallv1.IAMService_AuditList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).AuditList(ctx, request)
+			}},
+		constants.ActionAdminGet: {
+			fullMethod: mallv1.IAMService_AdminGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).AdminGet(ctx, request)
+			}},
+		constants.ActionPolicyGet: {
+			fullMethod: mallv1.IAMService_PolicyGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).PolicyGet(ctx, request)
+			}},
+		constants.ActionPolicyUpsert: {
+			fullMethod: mallv1.IAMService_PolicyUpsert_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).PolicyUpsert(ctx, request)
+			}},
+		constants.ActionLoginMethods: {
+			fullMethod: mallv1.IAMService_LoginMethods_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).LoginMethods(ctx, request)
+			}},
+		constants.ActionOtpSend: {
+			fullMethod: mallv1.IAMService_OtpSend_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).OtpSend(ctx, request)
+			}},
+		constants.ActionOtpLogin: {
+			fullMethod: mallv1.IAMService_OtpLogin_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).OtpLogin(ctx, request)
+			}},
+		constants.ActionOAuthStart: {
+			fullMethod: mallv1.IAMService_OAuthStart_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).OAuthStart(ctx, request)
+			}},
+		constants.ActionOAuthCallback: {
+			fullMethod: mallv1.IAMService_OAuthCallback_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).OAuthCallback(ctx, request)
 			}},
 	},
 	constants.ServiceInteraction: {
@@ -2340,6 +3237,30 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewInventoryServiceClient(connection).Restock(ctx, request)
 			}},
+		constants.ActionAdjustments: {
+			fullMethod: mallv1.InventoryService_Adjustments_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInventoryServiceClient(connection).Adjustments(ctx, request)
+			}},
+		constants.ActionAdminList: {
+			fullMethod: mallv1.InventoryService_AdminList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInventoryServiceClient(connection).AdminList(ctx, request)
+			}},
+		constants.ActionThreshold: {
+			fullMethod: mallv1.InventoryService_Threshold_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInventoryServiceClient(connection).Threshold(ctx, request)
+			}},
+		constants.ActionLedger: {
+			fullMethod: mallv1.InventoryService_Ledger_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInventoryServiceClient(connection).Ledger(ctx, request)
+			}},
 	},
 	constants.ServiceInvoice: {
 		constants.ActionAdjustDemo: {
@@ -2378,6 +3299,18 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewInvoiceServiceClient(connection).Reversals(ctx, request)
 			}},
+		constants.ActionAdminList: {
+			fullMethod: mallv1.InvoiceService_AdminList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInvoiceServiceClient(connection).AdminList(ctx, request)
+			}},
+		constants.ActionAdminSummary: {
+			fullMethod: mallv1.InvoiceService_AdminSummary_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInvoiceServiceClient(connection).AdminSummary(ctx, request)
+			}},
 	},
 	constants.ServiceLogistics: {
 		constants.ActionCreate: {
@@ -2409,6 +3342,18 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewLogisticsServiceClient(connection).Quote(ctx, request)
+			}},
+		constants.ActionPolicyGet: {
+			fullMethod: mallv1.LogisticsService_PolicyGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewLogisticsServiceClient(connection).PolicyGet(ctx, request)
+			}},
+		constants.ActionPolicyUpsert: {
+			fullMethod: mallv1.LogisticsService_PolicyUpsert_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewLogisticsServiceClient(connection).PolicyUpsert(ctx, request)
 			}},
 	},
 	constants.ServiceMedia: {
@@ -2450,6 +3395,18 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewMemberServiceClient(connection).Update(ctx, request)
 			}},
+		constants.ActionPolicyGet: {
+			fullMethod: mallv1.MemberService_PolicyGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewMemberServiceClient(connection).PolicyGet(ctx, request)
+			}},
+		constants.ActionPolicyUpsert: {
+			fullMethod: mallv1.MemberService_PolicyUpsert_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewMemberServiceClient(connection).PolicyUpsert(ctx, request)
+			}},
 	},
 	constants.ServiceNotification: {
 		constants.ActionList: {
@@ -2469,6 +3426,18 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewNotificationServiceClient(connection).ReadAll(ctx, request)
+			}},
+		constants.ActionTemplatesAdmin: {
+			fullMethod: mallv1.NotificationService_TemplatesAdmin_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewNotificationServiceClient(connection).TemplatesAdmin(ctx, request)
+			}},
+		constants.ActionTemplateUpsert: {
+			fullMethod: mallv1.NotificationService_TemplateUpsert_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewNotificationServiceClient(connection).TemplateUpsert(ctx, request)
 			}},
 	},
 	constants.ServicePayment: {
@@ -2507,6 +3476,36 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewPaymentServiceClient(connection).SubmitDemo(ctx, request)
+			}},
+		constants.ActionAdminList: {
+			fullMethod: mallv1.PaymentService_AdminList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewPaymentServiceClient(connection).AdminList(ctx, request)
+			}},
+		constants.ActionAdminSummary: {
+			fullMethod: mallv1.PaymentService_AdminSummary_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewPaymentServiceClient(connection).AdminSummary(ctx, request)
+			}},
+		constants.ActionMethods: {
+			fullMethod: mallv1.PaymentService_Methods_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewPaymentServiceClient(connection).Methods(ctx, request)
+			}},
+		constants.ActionPolicyGet: {
+			fullMethod: mallv1.PaymentService_PolicyGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewPaymentServiceClient(connection).PolicyGet(ctx, request)
+			}},
+		constants.ActionPolicyUpsert: {
+			fullMethod: mallv1.PaymentService_PolicyUpsert_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewPaymentServiceClient(connection).PolicyUpsert(ctx, request)
 			}},
 	},
 	constants.ServicePoints: {
@@ -2552,6 +3551,36 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewPointsServiceClient(connection).Reward(ctx, request)
 			}},
+		constants.ActionPolicyGet: {
+			fullMethod: mallv1.PointsService_PolicyGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewPointsServiceClient(connection).PolicyGet(ctx, request)
+			}},
+		constants.ActionPolicyUpsert: {
+			fullMethod: mallv1.PointsService_PolicyUpsert_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewPointsServiceClient(connection).PolicyUpsert(ctx, request)
+			}},
+		constants.ActionAdminGet: {
+			fullMethod: mallv1.PointsService_AdminGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewPointsServiceClient(connection).AdminGet(ctx, request)
+			}},
+		constants.ActionAdjust: {
+			fullMethod: mallv1.PointsService_Adjust_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewPointsServiceClient(connection).Adjust(ctx, request)
+			}},
+		constants.ActionLedger: {
+			fullMethod: mallv1.PointsService_Ledger_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewPointsServiceClient(connection).Ledger(ctx, request)
+			}},
 	},
 	constants.ServicePricing: {
 		constants.ActionGet: {
@@ -2580,6 +3609,18 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewRecommendationServiceClient(connection).RankBootstrap(ctx, request)
 			}},
+		constants.ActionPolicyGet: {
+			fullMethod: mallv1.RecommendationService_PolicyGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewRecommendationServiceClient(connection).PolicyGet(ctx, request)
+			}},
+		constants.ActionPolicyUpsert: {
+			fullMethod: mallv1.RecommendationService_PolicyUpsert_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewRecommendationServiceClient(connection).PolicyUpsert(ctx, request)
+			}},
 	},
 	constants.ServiceReconciliation: {
 		constants.ActionList: {
@@ -2593,6 +3634,24 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewReconciliationServiceClient(connection).Run(ctx, request)
+			}},
+		constants.ActionAdminList: {
+			fullMethod: mallv1.ReconciliationService_AdminList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewReconciliationServiceClient(connection).AdminList(ctx, request)
+			}},
+		constants.ActionGet: {
+			fullMethod: mallv1.ReconciliationService_Get_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewReconciliationServiceClient(connection).Get(ctx, request)
+			}},
+		constants.ActionNote: {
+			fullMethod: mallv1.ReconciliationService_Note_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewReconciliationServiceClient(connection).Note(ctx, request)
 			}},
 	},
 	constants.ServiceRefund: {
@@ -2620,6 +3679,18 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewRefundServiceClient(connection).List(ctx, request)
 			}},
+		constants.ActionAdminList: {
+			fullMethod: mallv1.RefundService_AdminList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewRefundServiceClient(connection).AdminList(ctx, request)
+			}},
+		constants.ActionAdminSummary: {
+			fullMethod: mallv1.RefundService_AdminSummary_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewRefundServiceClient(connection).AdminSummary(ctx, request)
+			}},
 	},
 	constants.ServiceSearch: {
 		constants.ActionQuery: {
@@ -2633,6 +3704,18 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewSearchServiceClient(connection).Suggest(ctx, request)
+			}},
+		constants.ActionPolicyGet: {
+			fullMethod: mallv1.SearchService_PolicyGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewSearchServiceClient(connection).PolicyGet(ctx, request)
+			}},
+		constants.ActionPolicyUpsert: {
+			fullMethod: mallv1.SearchService_PolicyUpsert_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewSearchServiceClient(connection).PolicyUpsert(ctx, request)
 			}},
 	},
 }
@@ -2728,6 +3811,16 @@ func (server *aftersaleRPCServer) Return(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionReturn], request)
 }
+func (server *aftersaleRPCServer) AdminList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminList], request)
+}
+func (server *aftersaleRPCServer) AdminSummary(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminSummary], request)
+}
 
 type analyticsRPCServer struct {
 	mallv1.UnimplementedAnalyticsServiceServer
@@ -2750,6 +3843,11 @@ type campaignRPCServer struct {
 	operations map[string]Operation
 }
 
+func (server *campaignRPCServer) AdminList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminList], request)
+}
 func (server *campaignRPCServer) Cancel(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
@@ -2774,6 +3872,16 @@ func (server *campaignRPCServer) Reserve(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionReserve], request)
+}
+func (server *campaignRPCServer) Upsert(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionUpsert], request)
+}
+func (server *campaignRPCServer) RuleUpsert(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionRuleUpsert], request)
 }
 
 type cartRPCServer struct {
@@ -2846,6 +3954,11 @@ func (server *catalogRPCServer) Upsert(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionUpsert], request)
+}
+func (server *catalogRPCServer) AdminList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminList], request)
 }
 
 type checkoutRPCServer struct {
@@ -2929,6 +4042,16 @@ func (server *contentRPCServer) Upsert(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionUpsert], request)
 }
+func (server *contentRPCServer) AdminList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminList], request)
+}
+func (server *contentRPCServer) AdminUpsert(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminUpsert], request)
+}
 
 type couponRPCServer struct {
 	mallv1.UnimplementedCouponServiceServer
@@ -2965,10 +4088,20 @@ func (server *couponRPCServer) Reserve(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionReserve], request)
 }
+func (server *couponRPCServer) TemplateUpsert(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionTemplateUpsert], request)
+}
 func (server *couponRPCServer) Templates(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionTemplates], request)
+}
+func (server *couponRPCServer) TemplatesAdmin(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionTemplatesAdmin], request)
 }
 func (server *couponRPCServer) TemplatesByIds(
 	ctx context.Context, request *mallv1.ServiceRequest,
@@ -2980,12 +4113,27 @@ func (server *couponRPCServer) TemplatesSnapshot(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionTemplatesSnapshot], request)
 }
+func (server *couponRPCServer) Calculate(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionCalculate], request)
+}
 
 type engagementRPCServer struct {
 	mallv1.UnimplementedEngagementServiceServer
 	operations map[string]Operation
 }
 
+func (server *engagementRPCServer) AdminCancel(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminCancel], request)
+}
+func (server *engagementRPCServer) AdminList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminList], request)
+}
 func (server *engagementRPCServer) Clear(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
@@ -3001,10 +4149,35 @@ func (server *engagementRPCServer) List(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionList], request)
 }
+func (server *engagementRPCServer) PolicyGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPolicyGet], request)
+}
+func (server *engagementRPCServer) PolicyUpsert(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPolicyUpsert], request)
+}
 func (server *engagementRPCServer) Put(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionPut], request)
+}
+func (server *engagementRPCServer) Subscribe(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionSubscribe], request)
+}
+func (server *engagementRPCServer) Subscriptions(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionSubscriptions], request)
+}
+func (server *engagementRPCServer) Unsubscribe(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionUnsubscribe], request)
 }
 
 type flashRPCServer struct {
@@ -3026,6 +4199,26 @@ func (server *flashRPCServer) Request(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionRequest], request)
+}
+func (server *flashRPCServer) AdminList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminList], request)
+}
+func (server *flashRPCServer) Upsert(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionUpsert], request)
+}
+func (server *flashRPCServer) SessionGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionSessionGet], request)
+}
+func (server *flashRPCServer) RequestsAdmin(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionRequestsAdmin], request)
 }
 
 type fulfillmentRPCServer struct {
@@ -3062,6 +4255,16 @@ func (server *fulfillmentRPCServer) List(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionList], request)
+}
+func (server *fulfillmentRPCServer) AdminList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminList], request)
+}
+func (server *fulfillmentRPCServer) AdminSummary(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminSummary], request)
 }
 
 type groupRPCServer struct {
@@ -3103,6 +4306,26 @@ func (server *groupRPCServer) Reserve(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionReserve], request)
+}
+func (server *groupRPCServer) AdminList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminList], request)
+}
+func (server *groupRPCServer) Rules(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionRules], request)
+}
+func (server *groupRPCServer) RulesAdmin(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionRulesAdmin], request)
+}
+func (server *groupRPCServer) RuleUpsert(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionRuleUpsert], request)
 }
 
 type helpdeskRPCServer struct {
@@ -3170,6 +4393,66 @@ func (server *iamRPCServer) Validate(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionValidate], request)
+}
+func (server *iamRPCServer) AdminList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminList], request)
+}
+func (server *iamRPCServer) AdminSummary(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminSummary], request)
+}
+func (server *iamRPCServer) SetActive(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionSetActive], request)
+}
+func (server *iamRPCServer) AuditList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAuditList], request)
+}
+func (server *iamRPCServer) AdminGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminGet], request)
+}
+func (server *iamRPCServer) PolicyGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPolicyGet], request)
+}
+func (server *iamRPCServer) PolicyUpsert(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPolicyUpsert], request)
+}
+func (server *iamRPCServer) LoginMethods(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionLoginMethods], request)
+}
+func (server *iamRPCServer) OtpSend(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionOtpSend], request)
+}
+func (server *iamRPCServer) OtpLogin(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionOtpLogin], request)
+}
+func (server *iamRPCServer) OAuthStart(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionOAuthStart], request)
+}
+func (server *iamRPCServer) OAuthCallback(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionOAuthCallback], request)
 }
 
 type interactionRPCServer struct {
@@ -3248,6 +4531,26 @@ func (server *inventoryRPCServer) Restock(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionRestock], request)
 }
+func (server *inventoryRPCServer) Adjustments(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdjustments], request)
+}
+func (server *inventoryRPCServer) AdminList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminList], request)
+}
+func (server *inventoryRPCServer) Threshold(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionThreshold], request)
+}
+func (server *inventoryRPCServer) Ledger(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionLedger], request)
+}
 
 type invoiceRPCServer struct {
 	mallv1.UnimplementedInvoiceServiceServer
@@ -3284,6 +4587,16 @@ func (server *invoiceRPCServer) Reversals(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionReversals], request)
 }
+func (server *invoiceRPCServer) AdminList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminList], request)
+}
+func (server *invoiceRPCServer) AdminSummary(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminSummary], request)
+}
 
 type logisticsRPCServer struct {
 	mallv1.UnimplementedLogisticsServiceServer
@@ -3314,6 +4627,16 @@ func (server *logisticsRPCServer) Quote(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionQuote], request)
+}
+func (server *logisticsRPCServer) PolicyGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPolicyGet], request)
+}
+func (server *logisticsRPCServer) PolicyUpsert(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPolicyUpsert], request)
 }
 
 type mediaRPCServer struct {
@@ -3357,6 +4680,16 @@ func (server *memberRPCServer) Update(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionUpdate], request)
 }
+func (server *memberRPCServer) PolicyGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPolicyGet], request)
+}
+func (server *memberRPCServer) PolicyUpsert(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPolicyUpsert], request)
+}
 
 type notificationRPCServer struct {
 	mallv1.UnimplementedNotificationServiceServer
@@ -3377,6 +4710,16 @@ func (server *notificationRPCServer) ReadAll(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionReadAll], request)
+}
+func (server *notificationRPCServer) TemplatesAdmin(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionTemplatesAdmin], request)
+}
+func (server *notificationRPCServer) TemplateUpsert(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionTemplateUpsert], request)
 }
 
 type paymentRPCServer struct {
@@ -3413,6 +4756,31 @@ func (server *paymentRPCServer) SubmitDemo(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionSubmitDemo], request)
+}
+func (server *paymentRPCServer) AdminList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminList], request)
+}
+func (server *paymentRPCServer) AdminSummary(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminSummary], request)
+}
+func (server *paymentRPCServer) Methods(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionMethods], request)
+}
+func (server *paymentRPCServer) PolicyGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPolicyGet], request)
+}
+func (server *paymentRPCServer) PolicyUpsert(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPolicyUpsert], request)
 }
 
 type pointsRPCServer struct {
@@ -3455,6 +4823,31 @@ func (server *pointsRPCServer) Reward(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionReward], request)
 }
+func (server *pointsRPCServer) PolicyGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPolicyGet], request)
+}
+func (server *pointsRPCServer) PolicyUpsert(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPolicyUpsert], request)
+}
+func (server *pointsRPCServer) AdminGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminGet], request)
+}
+func (server *pointsRPCServer) Adjust(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdjust], request)
+}
+func (server *pointsRPCServer) Ledger(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionLedger], request)
+}
 
 type pricingRPCServer struct {
 	mallv1.UnimplementedPricingServiceServer
@@ -3487,6 +4880,16 @@ func (server *recommendationRPCServer) RankBootstrap(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionRankBootstrap], request)
 }
+func (server *recommendationRPCServer) PolicyGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPolicyGet], request)
+}
+func (server *recommendationRPCServer) PolicyUpsert(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPolicyUpsert], request)
+}
 
 type reconciliationRPCServer struct {
 	mallv1.UnimplementedReconciliationServiceServer
@@ -3502,6 +4905,21 @@ func (server *reconciliationRPCServer) Run(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionRun], request)
+}
+func (server *reconciliationRPCServer) AdminList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminList], request)
+}
+func (server *reconciliationRPCServer) Get(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionGet], request)
+}
+func (server *reconciliationRPCServer) Note(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionNote], request)
 }
 
 type refundRPCServer struct {
@@ -3529,6 +4947,16 @@ func (server *refundRPCServer) List(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionList], request)
 }
+func (server *refundRPCServer) AdminList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminList], request)
+}
+func (server *refundRPCServer) AdminSummary(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminSummary], request)
+}
 
 type searchRPCServer struct {
 	mallv1.UnimplementedSearchServiceServer
@@ -3544,6 +4972,16 @@ func (server *searchRPCServer) Suggest(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionSuggest], request)
+}
+func (server *searchRPCServer) PolicyGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPolicyGet], request)
+}
+func (server *searchRPCServer) PolicyUpsert(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPolicyUpsert], request)
 }
 func registerServiceMethods(registrar grpc.ServiceRegistrar, module Module) {
 	switch module.Name {

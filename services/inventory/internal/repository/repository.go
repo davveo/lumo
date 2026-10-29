@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/davveo/lumo/internal/adminconfig"
 	"os"
 	"sort"
 
@@ -22,7 +23,14 @@ import (
 type Repository struct{ DB *gorm.DB }
 
 func (r *Repository) Migrate(ctx context.Context) error {
-	return r.DB.WithContext(ctx).AutoMigrate(&domain.Stock{}, &domain.Reservation{}, &domain.Ledger{})
+	if e := platform.MigrateBusinessIDs(ctx, r.DB); e != nil {
+		return e
+	}
+	if e := adminconfig.Migrate(ctx, r.DB); e != nil {
+		return e
+	}
+	return r.DB.WithContext(ctx).
+		AutoMigrate(&domain.Stock{}, &domain.Reservation{}, &domain.Ledger{}, &domain.Adjustment{})
 }
 func (r *Repository) Seed(ctx context.Context) error {
 	ids := append([]string{"sku-phone", "sku-headphones", "sku-watch", "sku-coffee"}, democatalog.SKUs()...)
@@ -50,6 +58,7 @@ func (r *Repository) Get(ctx context.Context, id string) (platform.Result, error
 		"reserved":  v.Reserved,
 		"allocated": v.Allocated,
 		"available": v.OnHand - v.Reserved - v.Allocated,
+		"threshold": v.Threshold,
 	}, nil
 }
 func (r *Repository) GetMany(ctx context.Context, ids []string) (platform.Result, error) {
@@ -74,6 +83,7 @@ func (r *Repository) GetMany(ctx context.Context, ids []string) (platform.Result
 					"reserved":  row.Reserved,
 					"allocated": row.Allocated,
 					"available": row.OnHand - row.Reserved - row.Allocated,
+					"threshold": row.Threshold,
 				},
 			)
 		} else {
@@ -300,32 +310,6 @@ func (r *Repository) Restock(ctx context.Context, c platform.Request) (platform.
 		return nil
 	})
 	return platform.Map(l), e
-}
-func (r *Repository) Adjust(ctx context.Context, c platform.Request) (platform.Result, error) {
-	ctx, s := platform.Start(ctx, "repository.inventory.Adjust")
-	defer s.End()
-	qty := platform.Int(c.Data, "on_hand")
-	if c.ID == "" || qty < 0 {
-		return nil, status.Error(codes.InvalidArgument, "nonnegative on_hand required")
-	}
-	e := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var st domain.Stock
-		er := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&st, "sku_id = ?", c.ID).Error
-		if errors.Is(er, gorm.ErrRecordNotFound) {
-			return tx.WithContext(ctx).Create(&domain.Stock{SKUID: c.ID, OnHand: qty}).Error
-		}
-		if er != nil {
-			return er
-		}
-		if qty < st.Reserved+st.Allocated {
-			return status.Error(codes.FailedPrecondition, "cannot set stock below committed resources")
-		}
-		return tx.WithContext(ctx).Model(&st).Update("on_hand", qty).Error
-	})
-	if e != nil {
-		return nil, e
-	}
-	return r.Get(ctx, c.ID)
 }
 func movement(ctx context.Context, tx *gorm.DB, ref, user string, line domain.Line, kind string) error {
 	sum := sha256.Sum256([]byte(ref + "\x00" + line.SKUID + "\x00" + kind))

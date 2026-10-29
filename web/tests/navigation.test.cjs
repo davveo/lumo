@@ -66,15 +66,30 @@ function assertSelected(html, expected, labels) {
     'visual state and accessible current state agree',
   );
 }
+function assertShoppingShell(html, referenceHeader) {
+  const headers = [...html.matchAll(/<header class="header">[\s\S]*?<\/header>/g)];
+  assert.equal(headers.length, 1, 'shopping sections share one header');
+  assert.equal(headers[0][0], referenceHeader, 'changing sections must not replace the storefront header');
+  assert.match(html, /<main[^>]*class="container storefront-page /);
+  assert.match(html, /<nav class="nav home-category-nav" aria-label="商品分类">/);
+  assert.doesNotMatch(html, /class="(?:promo-hero|cc-hero|cc-breadcrumb)"/);
+  assert.ok(
+    html.indexOf('<main') < html.indexOf('aria-label="商品分类"'),
+    'all primary navigation stays inside the same page shell',
+  );
+}
 
 test('primary navigation stays consistent through categories, every activity section and coupons', async () => {
   const { app, calls } = setup();
   try {
     const initial = app.navigate('');
+    const referenceHeader = initial.match(/<header class="header">[\s\S]*?<\/header>/)[0];
     const labels = primary(initial).map((item) => item.label);
     assertSelected(initial, '全部好物', labels);
+    assertShoppingShell(initial, referenceHeader);
     await app.click({ action: 'category', value: '家用电器' });
     assertSelected(app.ids.get('app').innerHTML, '家用电器', labels);
+    assertShoppingShell(app.ids.get('app').innerHTML, referenceHeader);
     assert.match(app.ids.get('app').innerHTML, /<h2>家用电器<\/h2>/);
     for (const section of [
       'flash',
@@ -87,14 +102,18 @@ test('primary navigation stays consistent through categories, every activity sec
       'mygroups',
       'flash/tomorrow',
     ]) {
-      assertSelected(app.navigate('promotions/' + section), '活动福利', labels);
+      const activity = app.navigate('promotions/' + section);
+      assertSelected(activity, '活动福利', labels);
+      assertShoppingShell(activity, referenceHeader);
       assert.equal(
         app.json('ui.category'),
         '家用电器',
         'activity subnavigation must preserve the previous catalog category',
       );
     }
-    assertSelected(app.navigate('coupons'), '领券中心', labels);
+    const coupons = app.navigate('coupons');
+    assertSelected(coupons, '领券中心', labels);
+    assertShoppingShell(coupons, referenceHeader);
     await app.click({ action: 'category', value: '家用电器' });
     assert.equal(app.ctx.location.hash, '#/', 'category navigation must return from coupons to catalog');
     assertSelected(app.navigate(''), '家用电器', labels); // Deliver the browser hashchange render.

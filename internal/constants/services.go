@@ -23,6 +23,7 @@ const (
 	ServiceInvoice        = "invoice"
 	ServiceLogistics      = "logistics"
 	ServiceMedia          = "media"
+	ServiceManagement     = "management"
 	ServiceMember         = "member"
 	ServiceNotification   = "notification"
 	ServiceOrder          = "order"

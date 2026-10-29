@@ -25,15 +25,25 @@ func (s *Service) Suggest(ctx context.Context, c platform.Request) (traceResult 
 	return s.search(ctx, c)
 }
 func (s *Service) search(ctx context.Context, c platform.Request) (platform.Result, error) {
-	cfg, e := s.repo.Get(ctx, "search-policy")
+	policy, policyVersion, e := s.repo.Policy(ctx)
 	if e != nil {
 		return nil, e
 	}
-	_ = cfg
+	excluded := map[string]bool{}
+	for _, id := range policy.ExcludedIDs {
+		excluded[id] = true
+	}
+	hidden := map[string]bool{}
+	for _, brand := range policy.HiddenBrands {
+		hidden[brand] = true
+	}
 	// Apply constraints to the full authoritative catalog before taking a
 	// bounded candidate window. Only this server constructs the internal role.
 	sortKey := platform.Text(c.Data, "sort")
 	catalogSort := sortKey
+	if catalogSort == "" {
+		catalogSort = policy.DefaultSort
+	}
 	switch catalogSort {
 	case constants.CatalogSortDefault,
 		constants.CatalogSortPriceAsc,
@@ -50,7 +60,7 @@ func (s *Service) search(ctx context.Context, c platform.Request) (platform.Resu
 			"query": strings.TrimSpace(
 				platform.Text(c.Data, "query"),
 			), "category": strings.TrimSpace(platform.Text(c.Data, "category")),
-			"brand": strings.TrimSpace(platform.Text(c.Data, "brand")), "sort": catalogSort, "limit": 100,
+			"brand": strings.TrimSpace(platform.Text(c.Data, "brand")), "sort": catalogSort, "limit": policy.MaxResults,
 		},
 	}
 	data, e := platform.NewClients(s.rpc).Catalog.SearchProducts(ctx, catalogRequest)
@@ -70,6 +80,9 @@ func (s *Service) search(ctx context.Context, c platform.Request) (platform.Resu
 	candidates := []map[string]any{}
 	ids, seen := []string{}, map[string]bool{}
 	for _, p := range decoded.Items {
+		if excluded[platform.Text(p, "id")] || excluded[platform.Text(p, "product_id")] || hidden[platform.Text(p, "brand")] {
+			continue
+		}
 		if q != "" &&
 			!strings.Contains(
 				strings.ToLower(
@@ -168,7 +181,8 @@ func (s *Service) search(ctx context.Context, c platform.Request) (platform.Resu
 		"total":           total,
 		"offset":          offset,
 		"limit":           limit,
-		"candidate_limit": 100,
+		"candidate_limit": policy.MaxResults,
+		"policy_version":  policyVersion,
 		"engine":          constants.SearchEngineCatalogRPC,
 	}, nil
 }

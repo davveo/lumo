@@ -10,6 +10,7 @@ import (
 
 func New(s *usecase.Service) *platform.MethodHandler {
 	return platform.NewMethodHandler(constants.ServiceReconciliation, map[string]platform.Operation{
+		constants.ActionAdminList: s.AdminList, constants.ActionGet: s.Get, constants.ActionNote: s.Note,
 		constants.ActionList: s.List,
 		constants.ActionRun:  s.Run,
 	}, func(c platform.Request) error {

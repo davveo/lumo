@@ -15,3 +15,5 @@ transport 通过 `MethodHandler` 注册方法并执行边界校验与链路追�
 - `close` → `Close(context.Context, platform.Request)`。
 
 顾客模拟提交与管理员确认分别校验权限；支付锁顺序、订单状态校验、幂等回执与 Outbox 事件保持不变。
+
+新增 `methods` 返回已配置启用的可用渠道，`policy_get/policy_upsert` 仅管理员可读写。创建支付和用户 submit_demo 均重新检查开关；已产生渠道回执仍可处理。当前真实可执行适配器只有演示支付，其他渠道不能启用。新支付号为 PAY 雪花编号。

@@ -154,6 +154,40 @@ function assertNoReads(fixture) {
   assert.deepEqual(fixture.app.failures, []);
 }
 
+test('every activity tab shares the storefront navigation and compact heading', () => {
+  const f = setup();
+  try {
+    for (const section of ['flash', 'group', 'exchange', ...types, 'mygroups']) {
+      const html = f.app.navigate('promotions/' + section);
+      assert.match(html, /<main[^>]+class="container storefront-page promo-page"/);
+      assert.equal((html.match(/aria-label="商品分类"/g) || []).length, 1, section);
+      assert.match(html, /class="section-head storefront-section-head"[\s\S]*?<h1>活动福利<\/h1>/);
+      const tabs = html.match(/<nav class="promo-tabs storefront-tabs"[^>]*>([\s\S]*?)<\/nav>/)?.[1];
+      assert.ok(tabs, section);
+      assert.match(tabs, new RegExp('href="#/promotions/' + section + '" aria-current="page"'));
+      assert.doesNotMatch(html, /class="promo-hero|LUMO GOOD THINGS CLUB|class="breadcrumb"/);
+    }
+    assertNoReads(f);
+  } finally {
+    f.app.dispose();
+  }
+});
+
+test('a missing activity engine keeps the same storefront shell and useful preparation state', () => {
+  const f = setup();
+  try {
+    delete f.app.ctx.LumoPromotions;
+    const html = f.app.ctx.LumoPromoView.page('flash');
+    assert.match(html, /<main[^>]+class="container storefront-page promo-page"/);
+    assert.equal((html.match(/aria-label="商品分类"/g) || []).length, 1);
+    assert.match(html, /<h1>活动福利<\/h1>/);
+    assert.match(html, /活动准备中，请稍后再来/);
+    assertNoReads(f);
+  } finally {
+    f.app.dispose();
+  }
+});
+
 for (const section of ['flash', 'group', 'exchange', ...types]) {
   test(section + ' shows six activities per page and keeps the final partial page reachable', async () => {
     const f = setup();

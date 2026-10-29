@@ -1,0 +1,27 @@
+package usecase
+
+import (
+	"context"
+	"github.com/davveo/lumo/internal/platform"
+)
+
+func (s *Service) AdminList(ctx context.Context, c platform.Request) (result platform.Result, err error) {
+	ctx, span := platform.Start(ctx, "invoice.usecase.AdminList")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, result, err) }()
+	if err = platform.RequireAdmin(c); err != nil {
+		return nil, err
+	}
+	return s.Repo.AdminList(ctx, c)
+}
+func (s *Service) AdminSummary(ctx context.Context, c platform.Request) (result platform.Result, err error) {
+	ctx, span := platform.Start(ctx, "invoice.usecase.AdminSummary")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, result, err) }()
+	if err = platform.RequireAdmin(c); err != nil {
+		return nil, err
+	}
+	return s.Repo.AdminSummary(ctx, c)
+}

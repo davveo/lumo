@@ -12,4 +12,8 @@ service FlashService {
   rpc Get(ServiceRequest) returns (ServiceResponse);
   rpc List(ServiceRequest) returns (ServiceResponse);
   rpc Request(ServiceRequest) returns (ServiceResponse);
+  rpc AdminList(ServiceRequest) returns (ServiceResponse);
+  rpc Upsert(ServiceRequest) returns (ServiceResponse);
+  rpc SessionGet(ServiceRequest) returns (ServiceResponse);
+  rpc RequestsAdmin(ServiceRequest) returns (ServiceResponse);
 }

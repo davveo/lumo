@@ -190,9 +190,19 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: iam
       DB_DSN: iam:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_iam?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
+      IAM_OTP_HASH_KEY: ${IAM_OTP_HASH_KEY:-}
+      SMS_WEBHOOK_URL: ${SMS_WEBHOOK_URL:-}
+      SMS_WEBHOOK_TOKEN: ${SMS_WEBHOOK_TOKEN:-}
+      WECHAT_LOGIN_APP_ID: ${WECHAT_LOGIN_APP_ID:-}
+      WECHAT_LOGIN_APP_SECRET: ${WECHAT_LOGIN_APP_SECRET:-}
+      WECHAT_LOGIN_REDIRECT_URI: ${WECHAT_LOGIN_REDIRECT_URI:-}
+      QQ_LOGIN_APP_ID: ${QQ_LOGIN_APP_ID:-}
+      QQ_LOGIN_APP_SECRET: ${QQ_LOGIN_APP_SECRET:-}
+      QQ_LOGIN_REDIRECT_URI: ${QQ_LOGIN_REDIRECT_URI:-}
     depends_on:
       mysql: &id001
         condition: service_healthy
@@ -233,6 +243,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: member
       DB_DSN: member:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_member?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -271,6 +282,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: address
       DB_DSN: address:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_address?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -309,6 +321,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: catalog
       DB_DSN: catalog:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_catalog?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -347,6 +360,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: media
       DB_DSN: media:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_media?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -393,6 +407,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: interaction
       DB_DSN: interaction:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_interaction?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -431,6 +446,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: engagement
       DB_DSN: engagement:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_engagement?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -469,6 +485,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: search
       DB_DSN: search:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_search?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -507,6 +524,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: recommendation
       DB_DSN: recommendation:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_recommendation?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -545,6 +563,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: content
       DB_DSN: content:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_content?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -583,6 +602,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: analytics
       DB_DSN: analytics:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_analytics?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -621,6 +641,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: cart
       DB_DSN: cart:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_cart?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -659,6 +680,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: pricing
       DB_DSN: pricing:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_pricing?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -697,6 +719,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: checkout
       DB_DSN: checkout:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_checkout?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -735,6 +758,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: order
       DB_DSN: order:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_order?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -773,6 +797,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: campaign
       DB_DSN: campaign:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_campaign?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -811,6 +836,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: coupon
       DB_DSN: coupon:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_coupon?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -849,6 +875,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: points
       DB_DSN: points:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_points?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -887,6 +914,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: group
       DB_DSN: group:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_group?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -925,6 +953,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: flash
       DB_DSN: flash:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_flash?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -963,6 +992,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: inventory
       DB_DSN: inventory:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_inventory?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -1001,6 +1031,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: fulfillment
       DB_DSN: fulfillment:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_fulfillment?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -1039,6 +1070,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: logistics
       DB_DSN: logistics:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_logistics?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -1077,6 +1109,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: aftersale
       DB_DSN: aftersale:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_aftersale?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -1115,6 +1148,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: payment
       DB_DSN: payment:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_payment?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -1153,6 +1187,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: refund
       DB_DSN: refund:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_refund?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -1191,6 +1226,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: invoice
       DB_DSN: invoice:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_invoice?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -1229,6 +1265,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: reconciliation
       DB_DSN: reconciliation:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_reconciliation?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -1267,6 +1304,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: notification
       DB_DSN: notification:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_notification?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -1305,6 +1343,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       SERVICE_NAME: helpdesk
       DB_DSN: helpdesk:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_helpdesk?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
@@ -1344,6 +1383,7 @@ services:
       CONSUL_HTTP_ADDR: http://consul:8500
       CONSUL_HTTP_TOKEN: ${CONSUL_HTTP_TOKEN:-}
       DEMO_MODE: ${DEMO_MODE:-true}
+      SNOWFLAKE_NODE_ID: ${SNOWFLAKE_NODE_ID:-}
       APP_ENV: development
       HTTP_ADDR: :8080
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}

@@ -26,11 +26,13 @@ var File_api_mall_v1_notification_proto protoreflect.FileDescriptor
 
 const file_api_mall_v1_notification_proto_rawDesc = "" +
 	"\n" +
-	"\x1eapi/mall/v1/notification.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xc9\x01\n" +
+	"\x1eapi/mall/v1/notification.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xd3\x02\n" +
 	"\x13NotificationService\x129\n" +
 	"\x04List\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x129\n" +
 	"\x04Read\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12<\n" +
-	"\aReadAll\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
+	"\aReadAll\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12C\n" +
+	"\x0eTemplatesAdmin\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12C\n" +
+	"\x0eTemplateUpsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
 
 var file_api_mall_v1_notification_proto_goTypes = []any{
 	(*ServiceRequest)(nil),  // 0: mall.v1.ServiceRequest
@@ -40,11 +42,15 @@ var file_api_mall_v1_notification_proto_depIdxs = []int32{
 	0, // 0: mall.v1.NotificationService.List:input_type -> mall.v1.ServiceRequest
 	0, // 1: mall.v1.NotificationService.Read:input_type -> mall.v1.ServiceRequest
 	0, // 2: mall.v1.NotificationService.ReadAll:input_type -> mall.v1.ServiceRequest
-	1, // 3: mall.v1.NotificationService.List:output_type -> mall.v1.ServiceResponse
-	1, // 4: mall.v1.NotificationService.Read:output_type -> mall.v1.ServiceResponse
-	1, // 5: mall.v1.NotificationService.ReadAll:output_type -> mall.v1.ServiceResponse
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	0, // 3: mall.v1.NotificationService.TemplatesAdmin:input_type -> mall.v1.ServiceRequest
+	0, // 4: mall.v1.NotificationService.TemplateUpsert:input_type -> mall.v1.ServiceRequest
+	1, // 5: mall.v1.NotificationService.List:output_type -> mall.v1.ServiceResponse
+	1, // 6: mall.v1.NotificationService.Read:output_type -> mall.v1.ServiceResponse
+	1, // 7: mall.v1.NotificationService.ReadAll:output_type -> mall.v1.ServiceResponse
+	1, // 8: mall.v1.NotificationService.TemplatesAdmin:output_type -> mall.v1.ServiceResponse
+	1, // 9: mall.v1.NotificationService.TemplateUpsert:output_type -> mall.v1.ServiceResponse
+	5, // [5:10] is the sub-list for method output_type
+	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

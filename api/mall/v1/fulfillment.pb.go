@@ -26,14 +26,16 @@ var File_api_mall_v1_fulfillment_proto protoreflect.FileDescriptor
 
 const file_api_mall_v1_fulfillment_proto_rawDesc = "" +
 	"\n" +
-	"\x1dapi/mall/v1/fulfillment.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\x8e\x03\n" +
+	"\x1dapi/mall/v1/fulfillment.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\x91\x04\n" +
 	"\x12FulfillmentService\x12;\n" +
 	"\x06Cancel\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12C\n" +
 	"\x0eCreateExchange\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12=\n" +
 	"\bDispatch\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x128\n" +
 	"\x03Get\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12B\n" +
 	"\rInspectReturn\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x129\n" +
-	"\x04List\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
+	"\x04List\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tAdminList\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12A\n" +
+	"\fAdminSummary\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
 
 var file_api_mall_v1_fulfillment_proto_goTypes = []any{
 	(*ServiceRequest)(nil),  // 0: mall.v1.ServiceRequest
@@ -46,14 +48,18 @@ var file_api_mall_v1_fulfillment_proto_depIdxs = []int32{
 	0, // 3: mall.v1.FulfillmentService.Get:input_type -> mall.v1.ServiceRequest
 	0, // 4: mall.v1.FulfillmentService.InspectReturn:input_type -> mall.v1.ServiceRequest
 	0, // 5: mall.v1.FulfillmentService.List:input_type -> mall.v1.ServiceRequest
-	1, // 6: mall.v1.FulfillmentService.Cancel:output_type -> mall.v1.ServiceResponse
-	1, // 7: mall.v1.FulfillmentService.CreateExchange:output_type -> mall.v1.ServiceResponse
-	1, // 8: mall.v1.FulfillmentService.Dispatch:output_type -> mall.v1.ServiceResponse
-	1, // 9: mall.v1.FulfillmentService.Get:output_type -> mall.v1.ServiceResponse
-	1, // 10: mall.v1.FulfillmentService.InspectReturn:output_type -> mall.v1.ServiceResponse
-	1, // 11: mall.v1.FulfillmentService.List:output_type -> mall.v1.ServiceResponse
-	6, // [6:12] is the sub-list for method output_type
-	0, // [0:6] is the sub-list for method input_type
+	0, // 6: mall.v1.FulfillmentService.AdminList:input_type -> mall.v1.ServiceRequest
+	0, // 7: mall.v1.FulfillmentService.AdminSummary:input_type -> mall.v1.ServiceRequest
+	1, // 8: mall.v1.FulfillmentService.Cancel:output_type -> mall.v1.ServiceResponse
+	1, // 9: mall.v1.FulfillmentService.CreateExchange:output_type -> mall.v1.ServiceResponse
+	1, // 10: mall.v1.FulfillmentService.Dispatch:output_type -> mall.v1.ServiceResponse
+	1, // 11: mall.v1.FulfillmentService.Get:output_type -> mall.v1.ServiceResponse
+	1, // 12: mall.v1.FulfillmentService.InspectReturn:output_type -> mall.v1.ServiceResponse
+	1, // 13: mall.v1.FulfillmentService.List:output_type -> mall.v1.ServiceResponse
+	1, // 14: mall.v1.FulfillmentService.AdminList:output_type -> mall.v1.ServiceResponse
+	1, // 15: mall.v1.FulfillmentService.AdminSummary:output_type -> mall.v1.ServiceResponse
+	8, // [8:16] is the sub-list for method output_type
+	0, // [0:8] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

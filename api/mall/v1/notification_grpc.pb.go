@@ -21,9 +21,11 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	NotificationService_List_FullMethodName    = "/mall.v1.NotificationService/List"
-	NotificationService_Read_FullMethodName    = "/mall.v1.NotificationService/Read"
-	NotificationService_ReadAll_FullMethodName = "/mall.v1.NotificationService/ReadAll"
+	NotificationService_List_FullMethodName           = "/mall.v1.NotificationService/List"
+	NotificationService_Read_FullMethodName           = "/mall.v1.NotificationService/Read"
+	NotificationService_ReadAll_FullMethodName        = "/mall.v1.NotificationService/ReadAll"
+	NotificationService_TemplatesAdmin_FullMethodName = "/mall.v1.NotificationService/TemplatesAdmin"
+	NotificationService_TemplateUpsert_FullMethodName = "/mall.v1.NotificationService/TemplateUpsert"
 )
 
 // NotificationServiceClient is the client API for NotificationService service.
@@ -33,6 +35,8 @@ type NotificationServiceClient interface {
 	List(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Read(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	ReadAll(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	TemplatesAdmin(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	TemplateUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type notificationServiceClient struct {
@@ -70,6 +74,24 @@ func (c *notificationServiceClient) ReadAll(ctx context.Context, in *ServiceRequ
 	return out, nil
 }
 
+func (c *notificationServiceClient) TemplatesAdmin(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, NotificationService_TemplatesAdmin_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *notificationServiceClient) TemplateUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, NotificationService_TemplateUpsert_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NotificationServiceServer is the server API for NotificationService service.
 // All implementations must embed UnimplementedNotificationServiceServer
 // for forward compatibility
@@ -77,6 +99,8 @@ type NotificationServiceServer interface {
 	List(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Read(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	ReadAll(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	TemplatesAdmin(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	TemplateUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedNotificationServiceServer()
 }
 
@@ -92,6 +116,12 @@ func (UnimplementedNotificationServiceServer) Read(context.Context, *ServiceRequ
 }
 func (UnimplementedNotificationServiceServer) ReadAll(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReadAll not implemented")
+}
+func (UnimplementedNotificationServiceServer) TemplatesAdmin(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TemplatesAdmin not implemented")
+}
+func (UnimplementedNotificationServiceServer) TemplateUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TemplateUpsert not implemented")
 }
 func (UnimplementedNotificationServiceServer) mustEmbedUnimplementedNotificationServiceServer() {}
 
@@ -160,6 +190,42 @@ func _NotificationService_ReadAll_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NotificationService_TemplatesAdmin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NotificationServiceServer).TemplatesAdmin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NotificationService_TemplatesAdmin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NotificationServiceServer).TemplatesAdmin(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NotificationService_TemplateUpsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NotificationServiceServer).TemplateUpsert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NotificationService_TemplateUpsert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NotificationServiceServer).TemplateUpsert(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NotificationService_ServiceDesc is the grpc.ServiceDesc for NotificationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -178,6 +244,14 @@ var NotificationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReadAll",
 			Handler:    _NotificationService_ReadAll_Handler,
+		},
+		{
+			MethodName: "TemplatesAdmin",
+			Handler:    _NotificationService_TemplatesAdmin_Handler,
+		},
+		{
+			MethodName: "TemplateUpsert",
+			Handler:    _NotificationService_TemplateUpsert_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

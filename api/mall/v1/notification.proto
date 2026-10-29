@@ -12,4 +12,6 @@ service NotificationService {
   rpc List(ServiceRequest) returns (ServiceResponse);
   rpc Read(ServiceRequest) returns (ServiceResponse);
   rpc ReadAll(ServiceRequest) returns (ServiceResponse);
+  rpc TemplatesAdmin(ServiceRequest) returns (ServiceResponse);
+  rpc TemplateUpsert(ServiceRequest) returns (ServiceResponse);
 }

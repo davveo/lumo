@@ -3,18 +3,27 @@ package repository
 import (
 	"context"
 	"errors"
+	"github.com/davveo/lumo/internal/adminconfig"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/content/internal/domain"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"time"
 )
 
 type Repository struct{ db *gorm.DB }
 
 func New(db *gorm.DB) *Repository { return &Repository{db: db} }
 func (r *Repository) Migrate(ctx context.Context) error {
+	if e := platform.MigrateBusinessIDs(ctx, r.db); e != nil {
+		return e
+	}
+	if e := adminconfig.Migrate(ctx, r.db); e != nil {
+		return e
+	}
 	ctx, s := platform.Start(ctx, "content.repository.Migrate")
 	defer s.End()
 	return r.db.WithContext(ctx).
@@ -49,7 +58,12 @@ func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, of
 		q = q.Where("kind = ?", kind)
 	}
 	if st != "" {
-		q = q.Where("status = ?", st)
+		if st == constants.ContentStatusPublished {
+			now := time.Now().UTC()
+			q = q.Where("(status = ? OR (status = ? AND publish_at <= ?)) AND (publish_at IS NULL OR publish_at <= ?) AND (unpublish_at IS NULL OR unpublish_at > ?)", st, constants.ContentStatusScheduled, now, now, now)
+		} else {
+			q = q.Where("status = ?", st)
+		}
 	}
 	if limit < 1 || limit > 100 {
 		limit = 20
@@ -69,10 +83,8 @@ func (r *Repository) Save(ctx context.Context, v *domain.Record, event *platform
 		// A newly assembled aggregate must not write a zero datetime on update.
 		if err := tx.WithContext(ctx).Clauses(
 			clause.OnConflict{
-				Columns: []clause.Column{{Name: "id"}},
-				DoUpdates: clause.AssignmentColumns(
-					[]string{"user_id", "parent_id", "kind", "status", "payload", "updated_at"},
-				),
+				Columns:   []clause.Column{{Name: "id"}},
+				DoUpdates: clause.Set(append(clause.AssignmentColumns([]string{"user_id", "parent_id", "kind", "status", "payload", "updated_at"}), clause.Assignment{Column: clause.Column{Name: "version"}, Value: gorm.Expr("version + 1")})),
 			},
 		).Create(
 			v,

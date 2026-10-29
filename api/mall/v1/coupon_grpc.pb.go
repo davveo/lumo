@@ -27,9 +27,12 @@ const (
 	CouponService_List_FullMethodName              = "/mall.v1.CouponService/List"
 	CouponService_Refund_FullMethodName            = "/mall.v1.CouponService/Refund"
 	CouponService_Reserve_FullMethodName           = "/mall.v1.CouponService/Reserve"
+	CouponService_TemplateUpsert_FullMethodName    = "/mall.v1.CouponService/TemplateUpsert"
 	CouponService_Templates_FullMethodName         = "/mall.v1.CouponService/Templates"
+	CouponService_TemplatesAdmin_FullMethodName    = "/mall.v1.CouponService/TemplatesAdmin"
 	CouponService_TemplatesByIds_FullMethodName    = "/mall.v1.CouponService/TemplatesByIds"
 	CouponService_TemplatesSnapshot_FullMethodName = "/mall.v1.CouponService/TemplatesSnapshot"
+	CouponService_Calculate_FullMethodName         = "/mall.v1.CouponService/Calculate"
 )
 
 // CouponServiceClient is the client API for CouponService service.
@@ -42,9 +45,12 @@ type CouponServiceClient interface {
 	List(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Refund(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Reserve(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	TemplateUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Templates(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	TemplatesAdmin(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	TemplatesByIds(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	TemplatesSnapshot(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Calculate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type couponServiceClient struct {
@@ -109,9 +115,27 @@ func (c *couponServiceClient) Reserve(ctx context.Context, in *ServiceRequest, o
 	return out, nil
 }
 
+func (c *couponServiceClient) TemplateUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CouponService_TemplateUpsert_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *couponServiceClient) Templates(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
 	out := new(ServiceResponse)
 	err := c.cc.Invoke(ctx, CouponService_Templates_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *couponServiceClient) TemplatesAdmin(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CouponService_TemplatesAdmin_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -136,6 +160,15 @@ func (c *couponServiceClient) TemplatesSnapshot(ctx context.Context, in *Service
 	return out, nil
 }
 
+func (c *couponServiceClient) Calculate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CouponService_Calculate_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CouponServiceServer is the server API for CouponService service.
 // All implementations must embed UnimplementedCouponServiceServer
 // for forward compatibility
@@ -146,9 +179,12 @@ type CouponServiceServer interface {
 	List(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Refund(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Reserve(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	TemplateUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Templates(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	TemplatesAdmin(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	TemplatesByIds(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	TemplatesSnapshot(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Calculate(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedCouponServiceServer()
 }
 
@@ -174,14 +210,23 @@ func (UnimplementedCouponServiceServer) Refund(context.Context, *ServiceRequest)
 func (UnimplementedCouponServiceServer) Reserve(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Reserve not implemented")
 }
+func (UnimplementedCouponServiceServer) TemplateUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TemplateUpsert not implemented")
+}
 func (UnimplementedCouponServiceServer) Templates(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Templates not implemented")
+}
+func (UnimplementedCouponServiceServer) TemplatesAdmin(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TemplatesAdmin not implemented")
 }
 func (UnimplementedCouponServiceServer) TemplatesByIds(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TemplatesByIds not implemented")
 }
 func (UnimplementedCouponServiceServer) TemplatesSnapshot(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TemplatesSnapshot not implemented")
+}
+func (UnimplementedCouponServiceServer) Calculate(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Calculate not implemented")
 }
 func (UnimplementedCouponServiceServer) mustEmbedUnimplementedCouponServiceServer() {}
 
@@ -304,6 +349,24 @@ func _CouponService_Reserve_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CouponService_TemplateUpsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CouponServiceServer).TemplateUpsert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CouponService_TemplateUpsert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CouponServiceServer).TemplateUpsert(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CouponService_Templates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ServiceRequest)
 	if err := dec(in); err != nil {
@@ -318,6 +381,24 @@ func _CouponService_Templates_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CouponServiceServer).Templates(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CouponService_TemplatesAdmin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CouponServiceServer).TemplatesAdmin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CouponService_TemplatesAdmin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CouponServiceServer).TemplatesAdmin(ctx, req.(*ServiceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -358,6 +439,24 @@ func _CouponService_TemplatesSnapshot_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CouponService_Calculate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CouponServiceServer).Calculate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CouponService_Calculate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CouponServiceServer).Calculate(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CouponService_ServiceDesc is the grpc.ServiceDesc for CouponService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -390,8 +489,16 @@ var CouponService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CouponService_Reserve_Handler,
 		},
 		{
+			MethodName: "TemplateUpsert",
+			Handler:    _CouponService_TemplateUpsert_Handler,
+		},
+		{
 			MethodName: "Templates",
 			Handler:    _CouponService_Templates_Handler,
+		},
+		{
+			MethodName: "TemplatesAdmin",
+			Handler:    _CouponService_TemplatesAdmin_Handler,
 		},
 		{
 			MethodName: "TemplatesByIds",
@@ -400,6 +507,10 @@ var CouponService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "TemplatesSnapshot",
 			Handler:    _CouponService_TemplatesSnapshot_Handler,
+		},
+		{
+			MethodName: "Calculate",
+			Handler:    _CouponService_Calculate_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

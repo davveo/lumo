@@ -26,10 +26,12 @@ var File_api_mall_v1_member_proto protoreflect.FileDescriptor
 
 const file_api_mall_v1_member_proto_rawDesc = "" +
 	"\n" +
-	"\x18api/mall/v1/member.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\x86\x01\n" +
+	"\x18api/mall/v1/member.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\x89\x02\n" +
 	"\rMemberService\x128\n" +
 	"\x03Get\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
-	"\x06Update\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
+	"\x06Update\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tPolicyGet\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12A\n" +
+	"\fPolicyUpsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
 
 var file_api_mall_v1_member_proto_goTypes = []any{
 	(*ServiceRequest)(nil),  // 0: mall.v1.ServiceRequest
@@ -38,10 +40,14 @@ var file_api_mall_v1_member_proto_goTypes = []any{
 var file_api_mall_v1_member_proto_depIdxs = []int32{
 	0, // 0: mall.v1.MemberService.Get:input_type -> mall.v1.ServiceRequest
 	0, // 1: mall.v1.MemberService.Update:input_type -> mall.v1.ServiceRequest
-	1, // 2: mall.v1.MemberService.Get:output_type -> mall.v1.ServiceResponse
-	1, // 3: mall.v1.MemberService.Update:output_type -> mall.v1.ServiceResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	0, // 2: mall.v1.MemberService.PolicyGet:input_type -> mall.v1.ServiceRequest
+	0, // 3: mall.v1.MemberService.PolicyUpsert:input_type -> mall.v1.ServiceRequest
+	1, // 4: mall.v1.MemberService.Get:output_type -> mall.v1.ServiceResponse
+	1, // 5: mall.v1.MemberService.Update:output_type -> mall.v1.ServiceResponse
+	1, // 6: mall.v1.MemberService.PolicyGet:output_type -> mall.v1.ServiceResponse
+	1, // 7: mall.v1.MemberService.PolicyUpsert:output_type -> mall.v1.ServiceResponse
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

@@ -705,6 +705,336 @@ func (x *Order) GetAddressSnapshotJson() []byte {
 	return nil
 }
 
+// One RPC per order use case. The legacy DomainService.Execute endpoint is
+// retained separately for callers that have not yet migrated.
+type AdminOrdersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Actor         *OrderActor            `protobuf:"bytes,1,opt,name=actor,proto3" json:"actor,omitempty"`
+	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Keyword       string                 `protobuf:"bytes,4,opt,name=keyword,proto3" json:"keyword,omitempty"`
+	Status        string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	From          string                 `protobuf:"bytes,6,opt,name=from,proto3" json:"from,omitempty"`
+	To            string                 `protobuf:"bytes,7,opt,name=to,proto3" json:"to,omitempty"`
+	Days          int32                  `protobuf:"varint,8,opt,name=days,proto3" json:"days,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminOrdersRequest) Reset() {
+	*x = AdminOrdersRequest{}
+	mi := &file_api_mall_v1_order_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminOrdersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminOrdersRequest) ProtoMessage() {}
+
+func (x *AdminOrdersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_mall_v1_order_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminOrdersRequest.ProtoReflect.Descriptor instead.
+func (*AdminOrdersRequest) Descriptor() ([]byte, []int) {
+	return file_api_mall_v1_order_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *AdminOrdersRequest) GetActor() *OrderActor {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
+}
+
+func (x *AdminOrdersRequest) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *AdminOrdersRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *AdminOrdersRequest) GetKeyword() string {
+	if x != nil {
+		return x.Keyword
+	}
+	return ""
+}
+
+func (x *AdminOrdersRequest) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *AdminOrdersRequest) GetFrom() string {
+	if x != nil {
+		return x.From
+	}
+	return ""
+}
+
+func (x *AdminOrdersRequest) GetTo() string {
+	if x != nil {
+		return x.To
+	}
+	return ""
+}
+
+func (x *AdminOrdersRequest) GetDays() int32 {
+	if x != nil {
+		return x.Days
+	}
+	return 0
+}
+
+type AdminOrdersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Items         []*Order               `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	Total         int64                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	Page          int32                  `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	HasMore       bool                   `protobuf:"varint,5,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminOrdersResponse) Reset() {
+	*x = AdminOrdersResponse{}
+	mi := &file_api_mall_v1_order_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminOrdersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminOrdersResponse) ProtoMessage() {}
+
+func (x *AdminOrdersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_mall_v1_order_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminOrdersResponse.ProtoReflect.Descriptor instead.
+func (*AdminOrdersResponse) Descriptor() ([]byte, []int) {
+	return file_api_mall_v1_order_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *AdminOrdersResponse) GetItems() []*Order {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+func (x *AdminOrdersResponse) GetTotal() int64 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+func (x *AdminOrdersResponse) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *AdminOrdersResponse) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *AdminOrdersResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
+}
+
+type OrderSummaryBucket struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Count         int64                  `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
+	AmountCents   int64                  `protobuf:"varint,3,opt,name=amount_cents,json=amountCents,proto3" json:"amount_cents,omitempty"`
+	Day           string                 `protobuf:"bytes,4,opt,name=day,proto3" json:"day,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OrderSummaryBucket) Reset() {
+	*x = OrderSummaryBucket{}
+	mi := &file_api_mall_v1_order_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OrderSummaryBucket) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OrderSummaryBucket) ProtoMessage() {}
+
+func (x *OrderSummaryBucket) ProtoReflect() protoreflect.Message {
+	mi := &file_api_mall_v1_order_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OrderSummaryBucket.ProtoReflect.Descriptor instead.
+func (*OrderSummaryBucket) Descriptor() ([]byte, []int) {
+	return file_api_mall_v1_order_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *OrderSummaryBucket) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *OrderSummaryBucket) GetCount() int64 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+func (x *OrderSummaryBucket) GetAmountCents() int64 {
+	if x != nil {
+		return x.AmountCents
+	}
+	return 0
+}
+
+func (x *OrderSummaryBucket) GetDay() string {
+	if x != nil {
+		return x.Day
+	}
+	return ""
+}
+
+type OrderSummaryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Total         int64                  `protobuf:"varint,1,opt,name=total,proto3" json:"total,omitempty"`
+	States        []*OrderSummaryBucket  `protobuf:"bytes,2,rep,name=states,proto3" json:"states,omitempty"`
+	Daily         []*OrderSummaryBucket  `protobuf:"bytes,3,rep,name=daily,proto3" json:"daily,omitempty"`
+	Days          int32                  `protobuf:"varint,4,opt,name=days,proto3" json:"days,omitempty"`
+	Timezone      string                 `protobuf:"bytes,5,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	GeneratedAt   string                 `protobuf:"bytes,6,opt,name=generated_at,json=generatedAt,proto3" json:"generated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OrderSummaryResponse) Reset() {
+	*x = OrderSummaryResponse{}
+	mi := &file_api_mall_v1_order_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OrderSummaryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OrderSummaryResponse) ProtoMessage() {}
+
+func (x *OrderSummaryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_mall_v1_order_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OrderSummaryResponse.ProtoReflect.Descriptor instead.
+func (*OrderSummaryResponse) Descriptor() ([]byte, []int) {
+	return file_api_mall_v1_order_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *OrderSummaryResponse) GetTotal() int64 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+func (x *OrderSummaryResponse) GetStates() []*OrderSummaryBucket {
+	if x != nil {
+		return x.States
+	}
+	return nil
+}
+
+func (x *OrderSummaryResponse) GetDaily() []*OrderSummaryBucket {
+	if x != nil {
+		return x.Daily
+	}
+	return nil
+}
+
+func (x *OrderSummaryResponse) GetDays() int32 {
+	if x != nil {
+		return x.Days
+	}
+	return 0
+}
+
+func (x *OrderSummaryResponse) GetTimezone() string {
+	if x != nil {
+		return x.Timezone
+	}
+	return ""
+}
+
+func (x *OrderSummaryResponse) GetGeneratedAt() string {
+	if x != nil {
+		return x.GeneratedAt
+	}
+	return ""
+}
+
 var File_api_mall_v1_order_proto protoreflect.FileDescriptor
 
 const file_api_mall_v1_order_proto_rawDesc = "" +
@@ -771,8 +1101,37 @@ const file_api_mall_v1_order_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12.\n" +
 	"\x13quote_snapshot_json\x18\x11 \x01(\fR\x11quoteSnapshotJson\x122\n" +
-	"\x15address_snapshot_json\x18\x12 \x01(\fR\x13addressSnapshotJson2\xfd\x06\n" +
-	"\fOrderService\x12E\n" +
+	"\x15address_snapshot_json\x18\x12 \x01(\fR\x13addressSnapshotJson\"\xda\x01\n" +
+	"\x12AdminOrdersRequest\x12)\n" +
+	"\x05actor\x18\x01 \x01(\v2\x13.mall.v1.OrderActorR\x05actor\x12\x12\n" +
+	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x18\n" +
+	"\akeyword\x18\x04 \x01(\tR\akeyword\x12\x16\n" +
+	"\x06status\x18\x05 \x01(\tR\x06status\x12\x12\n" +
+	"\x04from\x18\x06 \x01(\tR\x04from\x12\x0e\n" +
+	"\x02to\x18\a \x01(\tR\x02to\x12\x12\n" +
+	"\x04days\x18\b \x01(\x05R\x04days\"\x9d\x01\n" +
+	"\x13AdminOrdersResponse\x12$\n" +
+	"\x05items\x18\x01 \x03(\v2\x0e.mall.v1.OrderR\x05items\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x03R\x05total\x12\x12\n" +
+	"\x04page\x18\x03 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x19\n" +
+	"\bhas_more\x18\x05 \x01(\bR\ahasMore\"w\n" +
+	"\x12OrderSummaryBucket\x12\x16\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status\x12\x14\n" +
+	"\x05count\x18\x02 \x01(\x03R\x05count\x12!\n" +
+	"\famount_cents\x18\x03 \x01(\x03R\vamountCents\x12\x10\n" +
+	"\x03day\x18\x04 \x01(\tR\x03day\"\xe7\x01\n" +
+	"\x14OrderSummaryResponse\x12\x14\n" +
+	"\x05total\x18\x01 \x01(\x03R\x05total\x123\n" +
+	"\x06states\x18\x02 \x03(\v2\x1b.mall.v1.OrderSummaryBucketR\x06states\x121\n" +
+	"\x05daily\x18\x03 \x03(\v2\x1b.mall.v1.OrderSummaryBucketR\x05daily\x12\x12\n" +
+	"\x04days\x18\x04 \x01(\x05R\x04days\x12\x1a\n" +
+	"\btimezone\x18\x05 \x01(\tR\btimezone\x12!\n" +
+	"\fgenerated_at\x18\x06 \x01(\tR\vgeneratedAt2\x91\b\n" +
+	"\fOrderService\x12F\n" +
+	"\tAdminList\x12\x1b.mall.v1.AdminOrdersRequest\x1a\x1c.mall.v1.AdminOrdersResponse\x12J\n" +
+	"\fAdminSummary\x12\x1b.mall.v1.AdminOrdersRequest\x1a\x1d.mall.v1.OrderSummaryResponse\x12E\n" +
 	"\n" +
 	"ListOrders\x12\x1a.mall.v1.ListOrdersRequest\x1a\x1b.mall.v1.ListOrdersResponse\x121\n" +
 	"\bGetOrder\x12\x15.mall.v1.OrderRequest\x1a\x0e.mall.v1.Order\x12:\n" +
@@ -803,7 +1162,7 @@ func file_api_mall_v1_order_proto_rawDescGZIP() []byte {
 	return file_api_mall_v1_order_proto_rawDescData
 }
 
-var file_api_mall_v1_order_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_api_mall_v1_order_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_api_mall_v1_order_proto_goTypes = []any{
 	(*OrderActor)(nil),            // 0: mall.v1.OrderActor
 	(*OrderRequest)(nil),          // 1: mall.v1.OrderRequest
@@ -814,55 +1173,67 @@ var file_api_mall_v1_order_proto_goTypes = []any{
 	(*AcceptPaymentResponse)(nil), // 6: mall.v1.AcceptPaymentResponse
 	(*RecordRefundRequest)(nil),   // 7: mall.v1.RecordRefundRequest
 	(*Order)(nil),                 // 8: mall.v1.Order
-	(*timestamppb.Timestamp)(nil), // 9: google.protobuf.Timestamp
+	(*AdminOrdersRequest)(nil),    // 9: mall.v1.AdminOrdersRequest
+	(*AdminOrdersResponse)(nil),   // 10: mall.v1.AdminOrdersResponse
+	(*OrderSummaryBucket)(nil),    // 11: mall.v1.OrderSummaryBucket
+	(*OrderSummaryResponse)(nil),  // 12: mall.v1.OrderSummaryResponse
+	(*timestamppb.Timestamp)(nil), // 13: google.protobuf.Timestamp
 }
 var file_api_mall_v1_order_proto_depIdxs = []int32{
 	0,  // 0: mall.v1.OrderRequest.actor:type_name -> mall.v1.OrderActor
 	0,  // 1: mall.v1.ListOrdersRequest.actor:type_name -> mall.v1.OrderActor
 	8,  // 2: mall.v1.ListOrdersResponse.items:type_name -> mall.v1.Order
 	0,  // 3: mall.v1.CreateOrderRequest.actor:type_name -> mall.v1.OrderActor
-	9,  // 4: mall.v1.CreateOrderRequest.expires_at:type_name -> google.protobuf.Timestamp
+	13, // 4: mall.v1.CreateOrderRequest.expires_at:type_name -> google.protobuf.Timestamp
 	0,  // 5: mall.v1.AcceptPaymentRequest.actor:type_name -> mall.v1.OrderActor
-	9,  // 6: mall.v1.AcceptPaymentRequest.paid_at:type_name -> google.protobuf.Timestamp
+	13, // 6: mall.v1.AcceptPaymentRequest.paid_at:type_name -> google.protobuf.Timestamp
 	0,  // 7: mall.v1.RecordRefundRequest.actor:type_name -> mall.v1.OrderActor
-	9,  // 8: mall.v1.Order.expires_at:type_name -> google.protobuf.Timestamp
-	9,  // 9: mall.v1.Order.created_at:type_name -> google.protobuf.Timestamp
-	9,  // 10: mall.v1.Order.updated_at:type_name -> google.protobuf.Timestamp
-	2,  // 11: mall.v1.OrderService.ListOrders:input_type -> mall.v1.ListOrdersRequest
-	1,  // 12: mall.v1.OrderService.GetOrder:input_type -> mall.v1.OrderRequest
-	4,  // 13: mall.v1.OrderService.CreateOrder:input_type -> mall.v1.CreateOrderRequest
-	1,  // 14: mall.v1.OrderService.MarkPending:input_type -> mall.v1.OrderRequest
-	1,  // 15: mall.v1.OrderService.MarkCreateFailed:input_type -> mall.v1.OrderRequest
-	5,  // 16: mall.v1.OrderService.AcceptPayment:input_type -> mall.v1.AcceptPaymentRequest
-	1,  // 17: mall.v1.OrderService.MarkReady:input_type -> mall.v1.OrderRequest
-	1,  // 18: mall.v1.OrderService.WaitForGroup:input_type -> mall.v1.OrderRequest
-	1,  // 19: mall.v1.OrderService.BeginClose:input_type -> mall.v1.OrderRequest
-	1,  // 20: mall.v1.OrderService.CompleteClose:input_type -> mall.v1.OrderRequest
-	1,  // 21: mall.v1.OrderService.MarkGroupFormed:input_type -> mall.v1.OrderRequest
-	1,  // 22: mall.v1.OrderService.MarkGroupFailed:input_type -> mall.v1.OrderRequest
-	1,  // 23: mall.v1.OrderService.MarkShipped:input_type -> mall.v1.OrderRequest
-	1,  // 24: mall.v1.OrderService.CompleteOrder:input_type -> mall.v1.OrderRequest
-	7,  // 25: mall.v1.OrderService.RecordRefund:input_type -> mall.v1.RecordRefundRequest
-	3,  // 26: mall.v1.OrderService.ListOrders:output_type -> mall.v1.ListOrdersResponse
-	8,  // 27: mall.v1.OrderService.GetOrder:output_type -> mall.v1.Order
-	8,  // 28: mall.v1.OrderService.CreateOrder:output_type -> mall.v1.Order
-	8,  // 29: mall.v1.OrderService.MarkPending:output_type -> mall.v1.Order
-	8,  // 30: mall.v1.OrderService.MarkCreateFailed:output_type -> mall.v1.Order
-	6,  // 31: mall.v1.OrderService.AcceptPayment:output_type -> mall.v1.AcceptPaymentResponse
-	8,  // 32: mall.v1.OrderService.MarkReady:output_type -> mall.v1.Order
-	8,  // 33: mall.v1.OrderService.WaitForGroup:output_type -> mall.v1.Order
-	8,  // 34: mall.v1.OrderService.BeginClose:output_type -> mall.v1.Order
-	8,  // 35: mall.v1.OrderService.CompleteClose:output_type -> mall.v1.Order
-	8,  // 36: mall.v1.OrderService.MarkGroupFormed:output_type -> mall.v1.Order
-	8,  // 37: mall.v1.OrderService.MarkGroupFailed:output_type -> mall.v1.Order
-	8,  // 38: mall.v1.OrderService.MarkShipped:output_type -> mall.v1.Order
-	8,  // 39: mall.v1.OrderService.CompleteOrder:output_type -> mall.v1.Order
-	8,  // 40: mall.v1.OrderService.RecordRefund:output_type -> mall.v1.Order
-	26, // [26:41] is the sub-list for method output_type
-	11, // [11:26] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	13, // 8: mall.v1.Order.expires_at:type_name -> google.protobuf.Timestamp
+	13, // 9: mall.v1.Order.created_at:type_name -> google.protobuf.Timestamp
+	13, // 10: mall.v1.Order.updated_at:type_name -> google.protobuf.Timestamp
+	0,  // 11: mall.v1.AdminOrdersRequest.actor:type_name -> mall.v1.OrderActor
+	8,  // 12: mall.v1.AdminOrdersResponse.items:type_name -> mall.v1.Order
+	11, // 13: mall.v1.OrderSummaryResponse.states:type_name -> mall.v1.OrderSummaryBucket
+	11, // 14: mall.v1.OrderSummaryResponse.daily:type_name -> mall.v1.OrderSummaryBucket
+	9,  // 15: mall.v1.OrderService.AdminList:input_type -> mall.v1.AdminOrdersRequest
+	9,  // 16: mall.v1.OrderService.AdminSummary:input_type -> mall.v1.AdminOrdersRequest
+	2,  // 17: mall.v1.OrderService.ListOrders:input_type -> mall.v1.ListOrdersRequest
+	1,  // 18: mall.v1.OrderService.GetOrder:input_type -> mall.v1.OrderRequest
+	4,  // 19: mall.v1.OrderService.CreateOrder:input_type -> mall.v1.CreateOrderRequest
+	1,  // 20: mall.v1.OrderService.MarkPending:input_type -> mall.v1.OrderRequest
+	1,  // 21: mall.v1.OrderService.MarkCreateFailed:input_type -> mall.v1.OrderRequest
+	5,  // 22: mall.v1.OrderService.AcceptPayment:input_type -> mall.v1.AcceptPaymentRequest
+	1,  // 23: mall.v1.OrderService.MarkReady:input_type -> mall.v1.OrderRequest
+	1,  // 24: mall.v1.OrderService.WaitForGroup:input_type -> mall.v1.OrderRequest
+	1,  // 25: mall.v1.OrderService.BeginClose:input_type -> mall.v1.OrderRequest
+	1,  // 26: mall.v1.OrderService.CompleteClose:input_type -> mall.v1.OrderRequest
+	1,  // 27: mall.v1.OrderService.MarkGroupFormed:input_type -> mall.v1.OrderRequest
+	1,  // 28: mall.v1.OrderService.MarkGroupFailed:input_type -> mall.v1.OrderRequest
+	1,  // 29: mall.v1.OrderService.MarkShipped:input_type -> mall.v1.OrderRequest
+	1,  // 30: mall.v1.OrderService.CompleteOrder:input_type -> mall.v1.OrderRequest
+	7,  // 31: mall.v1.OrderService.RecordRefund:input_type -> mall.v1.RecordRefundRequest
+	10, // 32: mall.v1.OrderService.AdminList:output_type -> mall.v1.AdminOrdersResponse
+	12, // 33: mall.v1.OrderService.AdminSummary:output_type -> mall.v1.OrderSummaryResponse
+	3,  // 34: mall.v1.OrderService.ListOrders:output_type -> mall.v1.ListOrdersResponse
+	8,  // 35: mall.v1.OrderService.GetOrder:output_type -> mall.v1.Order
+	8,  // 36: mall.v1.OrderService.CreateOrder:output_type -> mall.v1.Order
+	8,  // 37: mall.v1.OrderService.MarkPending:output_type -> mall.v1.Order
+	8,  // 38: mall.v1.OrderService.MarkCreateFailed:output_type -> mall.v1.Order
+	6,  // 39: mall.v1.OrderService.AcceptPayment:output_type -> mall.v1.AcceptPaymentResponse
+	8,  // 40: mall.v1.OrderService.MarkReady:output_type -> mall.v1.Order
+	8,  // 41: mall.v1.OrderService.WaitForGroup:output_type -> mall.v1.Order
+	8,  // 42: mall.v1.OrderService.BeginClose:output_type -> mall.v1.Order
+	8,  // 43: mall.v1.OrderService.CompleteClose:output_type -> mall.v1.Order
+	8,  // 44: mall.v1.OrderService.MarkGroupFormed:output_type -> mall.v1.Order
+	8,  // 45: mall.v1.OrderService.MarkGroupFailed:output_type -> mall.v1.Order
+	8,  // 46: mall.v1.OrderService.MarkShipped:output_type -> mall.v1.Order
+	8,  // 47: mall.v1.OrderService.CompleteOrder:output_type -> mall.v1.Order
+	8,  // 48: mall.v1.OrderService.RecordRefund:output_type -> mall.v1.Order
+	32, // [32:49] is the sub-list for method output_type
+	15, // [15:32] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_api_mall_v1_order_proto_init() }
@@ -876,7 +1247,7 @@ func file_api_mall_v1_order_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_mall_v1_order_proto_rawDesc), len(file_api_mall_v1_order_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

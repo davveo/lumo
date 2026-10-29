@@ -2,7 +2,7 @@ package usecase
 
 import (
 	"context"
-	"crypto/sha256"
+
 	"fmt"
 	"os"
 	"regexp"
@@ -174,8 +174,13 @@ func (s *Service) IssueDemo(ctx context.Context, c platform.Request) (traceResul
 			return nil, err
 		}
 	}
-	sum := sha256.Sum256([]byte(row.ID))
-	number := fmt.Sprintf("DEMO-INVOICE-%X", sum[:10])
+	number := row.ID
+	if !platform.IsBusinessID(number, "invoice") {
+		number, err = s.Repo.BusinessID(ctx, "invoice", row.ID+":issued", "")
+		if err != nil {
+			return nil, err
+		}
+	}
 	row, err = s.Repo.IssueDemo(ctx, row.ID, number)
 	return platform.Map(row), err
 }
@@ -261,8 +266,12 @@ func (s *Service) create(ctx context.Context, c platform.Request) (platform.Resu
 	if amount-refunded <= 0 {
 		return nil, status.Error(codes.FailedPrecondition, "no invoiceable amount")
 	}
+	id, err := s.Repo.BusinessID(ctx, "invoice", orderID, "inv:"+orderID)
+	if err != nil {
+		return nil, err
+	}
 	row := &domain.Record{
-		ID:            "inv:" + orderID,
+		ID:            id,
 		OrderID:       orderID,
 		UserID:        user,
 		Kind:          kind,

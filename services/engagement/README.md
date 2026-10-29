@@ -4,6 +4,8 @@
 
 `List` 返回当前用户、指定行为类型的精确 `total`，不受分页的 `limit` / `offset` 影响；`items` 保持最多 100 条，`limit` 表示本页实际返回条数。总量由数据库计数查询提供，不为统计加载全部行为记录。
 
+对比列表的3件上限在同一数据库事务中检查和写入；`engagement_compare_owners` 提供用户级锁，多个服务副本共享此约束。锁记录使用独立表，不进入行为列表或统计；已有对比商品在满额时仍可刷新。
+
 入口 `service.go` 只组装依赖；各层依次为：
 
 1. `internal/transport`：注册独立 RPC 业务方法并记录请求追踪，不包含业务分发。
@@ -16,3 +18,5 @@
 本服务只写自己的数据库schema。跨服务通过 `platform.NewClients` 提供的明确客户端方法访问独立 gRPC 方法，禁止直接读写对方业务表。网关验证会话后填入调用主体，服务再次检查用户资源归属与管理员角色。
 
 业务入口使用不含 `Action` 的 `platform.Request`；每项操作由独立公开方法实现权限、参数与业务校验。方法：`List`、`Put`、`Delete`、`Clear`。运输层仅维护操作到方法的注册表，HTTP 兼容命令不会进入业务层。
+
+新增购物提醒：`subscribe, subscriptions, unsubscribe, policy_get, policy_upsert, admin_list, admin_cancel`。公开 policy_get 仅返回规则；会员只能查看、取消本人订阅；管理员修改带版本和原因。订阅使用 ALT 雪花编号，用户+类型+SKU 唯一槽，重新订阅递增代次。Tick 每轮最多检查100条，用目录与库存批量RPC，状态和Outbox同事务提交。后台停用不追溯重写有效期；到期不投递。

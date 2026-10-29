@@ -16,4 +16,8 @@ service GroupService {
   rpc List(ServiceRequest) returns (ServiceResponse);
   rpc Paid(ServiceRequest) returns (ServiceResponse);
   rpc Reserve(ServiceRequest) returns (ServiceResponse);
+  rpc AdminList(ServiceRequest) returns (ServiceResponse);
+  rpc Rules(ServiceRequest) returns (ServiceResponse);
+  rpc RulesAdmin(ServiceRequest) returns (ServiceResponse);
+  rpc RuleUpsert(ServiceRequest) returns (ServiceResponse);
 }

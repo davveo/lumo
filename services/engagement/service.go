@@ -19,5 +19,6 @@ func New(d platform.Dependencies) platform.Module {
 		Handle:  t.Handle, Operations: t.Operations(),
 		Topics:  nil,
 		OnEvent: s.OnEvent,
+		Tick:    s.Tick,
 	}
 }

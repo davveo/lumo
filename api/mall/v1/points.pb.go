@@ -26,7 +26,7 @@ var File_api_mall_v1_points_proto protoreflect.FileDescriptor
 
 const file_api_mall_v1_points_proto_rawDesc = "" +
 	"\n" +
-	"\x18api/mall/v1/points.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xba\x03\n" +
+	"\x18api/mall/v1/points.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xf6\x05\n" +
 	"\rPointsService\x12;\n" +
 	"\x06Cancel\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12<\n" +
 	"\aCheckin\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12<\n" +
@@ -34,32 +34,47 @@ const file_api_mall_v1_points_proto_rawDesc = "" +
 	"\x03Get\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
 	"\x06Refund\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12<\n" +
 	"\aReserve\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
-	"\x06Reward\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
+	"\x06Reward\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tPolicyGet\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12A\n" +
+	"\fPolicyUpsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12=\n" +
+	"\bAdminGet\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
+	"\x06Adjust\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
+	"\x06Ledger\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
 
 var file_api_mall_v1_points_proto_goTypes = []any{
 	(*ServiceRequest)(nil),  // 0: mall.v1.ServiceRequest
 	(*ServiceResponse)(nil), // 1: mall.v1.ServiceResponse
 }
 var file_api_mall_v1_points_proto_depIdxs = []int32{
-	0, // 0: mall.v1.PointsService.Cancel:input_type -> mall.v1.ServiceRequest
-	0, // 1: mall.v1.PointsService.Checkin:input_type -> mall.v1.ServiceRequest
-	0, // 2: mall.v1.PointsService.Confirm:input_type -> mall.v1.ServiceRequest
-	0, // 3: mall.v1.PointsService.Get:input_type -> mall.v1.ServiceRequest
-	0, // 4: mall.v1.PointsService.Refund:input_type -> mall.v1.ServiceRequest
-	0, // 5: mall.v1.PointsService.Reserve:input_type -> mall.v1.ServiceRequest
-	0, // 6: mall.v1.PointsService.Reward:input_type -> mall.v1.ServiceRequest
-	1, // 7: mall.v1.PointsService.Cancel:output_type -> mall.v1.ServiceResponse
-	1, // 8: mall.v1.PointsService.Checkin:output_type -> mall.v1.ServiceResponse
-	1, // 9: mall.v1.PointsService.Confirm:output_type -> mall.v1.ServiceResponse
-	1, // 10: mall.v1.PointsService.Get:output_type -> mall.v1.ServiceResponse
-	1, // 11: mall.v1.PointsService.Refund:output_type -> mall.v1.ServiceResponse
-	1, // 12: mall.v1.PointsService.Reserve:output_type -> mall.v1.ServiceResponse
-	1, // 13: mall.v1.PointsService.Reward:output_type -> mall.v1.ServiceResponse
-	7, // [7:14] is the sub-list for method output_type
-	0, // [0:7] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0,  // 0: mall.v1.PointsService.Cancel:input_type -> mall.v1.ServiceRequest
+	0,  // 1: mall.v1.PointsService.Checkin:input_type -> mall.v1.ServiceRequest
+	0,  // 2: mall.v1.PointsService.Confirm:input_type -> mall.v1.ServiceRequest
+	0,  // 3: mall.v1.PointsService.Get:input_type -> mall.v1.ServiceRequest
+	0,  // 4: mall.v1.PointsService.Refund:input_type -> mall.v1.ServiceRequest
+	0,  // 5: mall.v1.PointsService.Reserve:input_type -> mall.v1.ServiceRequest
+	0,  // 6: mall.v1.PointsService.Reward:input_type -> mall.v1.ServiceRequest
+	0,  // 7: mall.v1.PointsService.PolicyGet:input_type -> mall.v1.ServiceRequest
+	0,  // 8: mall.v1.PointsService.PolicyUpsert:input_type -> mall.v1.ServiceRequest
+	0,  // 9: mall.v1.PointsService.AdminGet:input_type -> mall.v1.ServiceRequest
+	0,  // 10: mall.v1.PointsService.Adjust:input_type -> mall.v1.ServiceRequest
+	0,  // 11: mall.v1.PointsService.Ledger:input_type -> mall.v1.ServiceRequest
+	1,  // 12: mall.v1.PointsService.Cancel:output_type -> mall.v1.ServiceResponse
+	1,  // 13: mall.v1.PointsService.Checkin:output_type -> mall.v1.ServiceResponse
+	1,  // 14: mall.v1.PointsService.Confirm:output_type -> mall.v1.ServiceResponse
+	1,  // 15: mall.v1.PointsService.Get:output_type -> mall.v1.ServiceResponse
+	1,  // 16: mall.v1.PointsService.Refund:output_type -> mall.v1.ServiceResponse
+	1,  // 17: mall.v1.PointsService.Reserve:output_type -> mall.v1.ServiceResponse
+	1,  // 18: mall.v1.PointsService.Reward:output_type -> mall.v1.ServiceResponse
+	1,  // 19: mall.v1.PointsService.PolicyGet:output_type -> mall.v1.ServiceResponse
+	1,  // 20: mall.v1.PointsService.PolicyUpsert:output_type -> mall.v1.ServiceResponse
+	1,  // 21: mall.v1.PointsService.AdminGet:output_type -> mall.v1.ServiceResponse
+	1,  // 22: mall.v1.PointsService.Adjust:output_type -> mall.v1.ServiceResponse
+	1,  // 23: mall.v1.PointsService.Ledger:output_type -> mall.v1.ServiceResponse
+	12, // [12:24] is the sub-list for method output_type
+	0,  // [0:12] is the sub-list for method input_type
+	0,  // [0:0] is the sub-list for extension type_name
+	0,  // [0:0] is the sub-list for extension extendee
+	0,  // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_api_mall_v1_points_proto_init() }

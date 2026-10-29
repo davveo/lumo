@@ -69,7 +69,7 @@
     return /^https:|^data:|^assets\//i.test(src) ? src : 'assets/' + src;
   }
   function normalizeSettings(raw) {
-    const output = { ...defaults };
+    const output = { ...defaults, ...(window.LumoStorefrontLayout?.normalize(raw) || {}) };
     if (raw?.heroFileId) output.heroFileId = safeText(raw.heroFileId, 128);
     const lengths = {
       brand: 20,
@@ -288,8 +288,8 @@
   }
   function applyTheme() {
     document.documentElement.style.setProperty('--red', shop.accent);
-    document.documentElement.style.setProperty('--red-dark', shop.accent);
-    document.documentElement.style.setProperty('--pale', shop.accent + '12');
+    document.documentElement.style.removeProperty?.('--red-dark');
+    document.documentElement.style.removeProperty?.('--pale');
   }
   function savedTime() {
     if (!studio.savedAt) return '尚未修改';

@@ -15,4 +15,9 @@ service PaymentService {
   rpc Get(ServiceRequest) returns (ServiceResponse);
   rpc List(ServiceRequest) returns (ServiceResponse);
   rpc SubmitDemo(ServiceRequest) returns (ServiceResponse);
+  rpc AdminList(ServiceRequest) returns (ServiceResponse);
+  rpc AdminSummary(ServiceRequest) returns (ServiceResponse);
+  rpc Methods(ServiceRequest) returns (ServiceResponse);
+  rpc PolicyGet(ServiceRequest) returns (ServiceResponse);
+  rpc PolicyUpsert(ServiceRequest) returns (ServiceResponse);
 }

@@ -563,7 +563,7 @@ func TestCatalogVariantsHaveAuthoritativePricesAndVisibility(t *testing.T) {
 }
 func TestContentLargeStorefrontRetainsFAQBound(t *testing.T) {
 	p := setup(t)
-	body := strings.Repeat("x", 30000)
+	body := `{"extended_content":"` + strings.Repeat("x", 30000) + `"}`
 	run(
 		t,
 		p,

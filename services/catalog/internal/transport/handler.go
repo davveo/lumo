@@ -9,6 +9,7 @@ import (
 // New binds transport operations to independent business methods.
 func New(s *usecase.Service) *platform.MethodHandler {
 	return platform.NewMethodHandler(constants.ServiceCatalog, map[string]platform.Operation{
+		constants.ActionAdminList:                s.AdminList,
 		constants.ActionSearchProducts:           s.SearchProducts,
 		constants.ActionRecommendationCandidates: s.RecommendationCandidates,
 		constants.ActionBatchGet:                 s.BatchGet,

@@ -3,6 +3,9 @@ package constants
 // enum:ReconciliationStatus
 const (
 	ReconciliationStatusMatched     = "MATCHED"
+	ReconciliationStatusQueued      = "QUEUED"
+	ReconciliationStatusRunning     = "RUNNING"
+	ReconciliationStatusFailed      = "FAILED"
 	ReconciliationStatusDifferences = "DIFFERENCES"
 )
 

@@ -106,6 +106,11 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 	} else {
 		return nil, bad("kind must be review or question")
 	}
+	var idErr error
+	c.ID, idErr = s.repo.BusinessID(ctx, kind, c.ID, c.ID)
+	if idErr != nil {
+		return nil, idErr
+	}
 	r := record(
 		c.ID,
 		c.UserID,

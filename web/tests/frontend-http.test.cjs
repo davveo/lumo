@@ -360,7 +360,9 @@ async function main() {
     );
     await adminUI.submit('admin-login', { username: 'admin', password: 'Admin@2026' });
     check(
-      adminUI.ids.get('admin-main').innerHTML.includes('服务端实时记录'),
+      adminUI.ids.get('admin-main').innerHTML.includes('经营工作台') &&
+        Number(adminUI.ctx.LumoDashboardAdmin.state.data.order?.total) >= 1 &&
+        Number(adminUI.ctx.LumoDashboardAdmin.state.data.payment?.total) >= 1,
       'Admin login UI must render real overview responses',
     );
     equal(

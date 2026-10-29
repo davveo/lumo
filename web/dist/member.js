@@ -38,8 +38,11 @@
       coupons: [],
       couponTemplates: [],
       selectedCouponId: null,
+      couponMode: 'auto',
+      quoteCouponOptions: [],
       claimedCoupon: false,
       points: 0,
+      pointsPolicy: { deduction_bps: 1000 },
       frozenPoints: 0,
       debtPoints: 0,
       pointLog: [],
@@ -118,6 +121,7 @@
     return {
       id: c.id,
       templateId: c.template_id || '',
+      rule: clone(c),
       value: Number(c.amount_cents || 0) / 100,
       min: Number(c.min_cents || 0) / 100,
       title: c.template_name || memory.couponTemplates.find((t) => t.id === c.template_id)?.name || '品质生活优惠券',
@@ -273,12 +277,16 @@
       if (templates) memory.couponTemplates = templates.items || [];
       if (coupon) {
         memory.coupons = (coupon.items || []).map(mapCoupon);
-        if (!memory.coupons.some((c) => c.id === memory.selectedCouponId && c.status === C.CouponViewStatus.Available))
-          memory.selectedCouponId = null;
+        if (
+          memory.selectedCouponId &&
+          !memory.coupons.some((c) => c.id === memory.selectedCouponId && c.status === C.CouponViewStatus.Available)
+        )
+          resetCheckoutCoupon();
         memory.claimedCoupon = memory.coupons.some((c) => c.templateId === 'welcome-100');
       }
       if (points) {
         memory.points = Number(points.available || 0);
+        memory.pointsPolicy = points.policy || { deduction_bps: 1000 };
         memory.frozenPoints = Number(points.frozen || 0);
         memory.debtPoints = Number(points.debt || 0);
         memory.pointLog = (points.ledger || []).map((l) => ({
@@ -377,13 +385,42 @@
     (items || [])
       .filter((x) => !x.promotion)
       .reduce((sum, x) => sum + itemPrice(x) * Math.max(0, Number(x.qty) || 0), 0);
+  function couponEstimate(c, items) {
+    if (!window.LumoCouponBenefits)
+      return ordinaryAmount(items) >= c.min ? Math.min(c.value, ordinaryAmount(items)) : 0;
+    const lines = (items || [])
+      .filter((item) => !item.promotion)
+      .map((item) => {
+        const p = findProduct(item.id) || {};
+        return {
+          sku_id: skuFor(item),
+          product_id: p.product_id || p.id || item.id,
+          category: p.category || '',
+          amount_cents: Math.round(itemPrice(item) * Math.max(0, Number(item.qty) || 0) * 100),
+        };
+      });
+    return (
+      window.LumoCouponBenefits.estimate(
+        c.rule || { amount_cents: Math.round(c.value * 100), min_cents: Math.round(c.min * 100) },
+        Math.round(ordinaryAmount(items) * 100),
+        lines,
+      ) / 100
+    );
+  }
   function couponValue(items) {
     if (restricted(items)) return 0;
     const c = coupons().find((c) => c.selected && c.status === C.CouponViewStatus.Available);
-    return c && ordinaryAmount(items) >= c.min ? Math.min(c.value, ordinaryAmount(items)) : 0;
+    return c ? couponEstimate(c, items) : 0;
   }
   function selectCoupon(id) {
+    if (id === 'auto') {
+      memory.couponMode = 'auto';
+      memory.selectedCouponId = null;
+      state.coupon = 0;
+      return true;
+    }
     if (!id || id === '0') {
+      memory.couponMode = 'none';
       memory.selectedCouponId = null;
       state.coupon = 0;
       return true;
@@ -395,6 +432,7 @@
       toast('优惠券不可用，请刷新后重试');
       return false;
     }
+    memory.couponMode = 'manual';
     memory.selectedCouponId = c.id;
     state.coupon = c.value;
     return true;
@@ -402,7 +440,13 @@
   const pointBalance = () => memory.points;
   function pointsUsed(items) {
     return state.points && !restricted(items) && !memory.debtPoints
-      ? Math.max(0, Math.min(memory.points, Math.floor(ordinaryAmount(items) * 10)))
+      ? Math.max(
+          0,
+          Math.min(
+            memory.points,
+            Math.floor((ordinaryAmount(items) * 100 * Number(memory.pointsPolicy.deduction_bps)) / 10000),
+          ),
+        )
       : 0;
   }
   function pointsDiscount(items) {
@@ -410,7 +454,8 @@
   }
   function checkoutMeta(items) {
     return {
-      couponId: couponValue(items) ? memory.selectedCouponId : null,
+      couponId: memory.couponMode === 'manual' ? memory.selectedCouponId : null,
+      couponMode: memory.couponMode,
       pointsUsed: pointsUsed(items),
       addressId: memory.selectedAddressId,
     };
@@ -418,6 +463,12 @@
   function validateCheckout() {
     return null;
   } // authoritative validation is performed by pricing and checkout services
+  function resetCheckoutCoupon() {
+    memory.couponMode = 'auto';
+    memory.selectedCouponId = null;
+    memory.quoteCouponOptions = [];
+    state.coupon = 0;
+  }
   function onPaid() {
     return refresh(true);
   }
@@ -508,6 +559,7 @@
       ...clone(memory),
       coupons: coupons(),
       ledger: clone(memory.pointLog),
+      pointsPolicy: clone(memory.pointsPolicy),
       preferences: clone(memory.notifications),
       profile: { ...clone(memory.profile), level: memory.level },
       signedToday: memory.signInDates.includes(dayKey()),
@@ -628,11 +680,11 @@
       `<p class="modal-desc">每单限用一张，按普通商品优惠前金额判断门槛。${blocked ? '秒杀、拼团订单不叠加券与积分。' : `本单参与门槛金额 ¥${money(amount)}。`}</p>${coupons()
         .map(
           (c) =>
-            `<div class="coupon-card"><span class="price"><small>¥</small>${money(c.value)}</span><div><strong>${esc(c.title)}</strong><p>满 ¥${money(c.min)} 可用 · ${date(c.expiresAt)} 到期</p></div><button data-member-action="select-coupon" data-id="${esc(c.id)}" ${blocked || c.status !== C.CouponViewStatus.Available || amount < c.min ? 'disabled' : ''}>${c.status === C.CouponViewStatus.Used ? '已使用' : c.status === C.CouponViewStatus.Expired ? '已过期' : blocked ? '不可叠加' : amount < c.min ? '未满门槛' : c.selected ? '已选择' : '使用此券'}</button></div>`,
+            `<div class="coupon-card"><span class="price">${esc(window.LumoCouponBenefits?.face(c.rule) || '¥' + money(c.value))}</span><div><strong>${esc(c.title)}</strong><p>${esc(window.LumoCouponBenefits?.condition(c.rule) || '满 ¥' + money(c.min) + ' 可用')} · ${esc(window.LumoCouponBenefits?.scope(c.rule) || '普通商品通用')} · ${date(c.expiresAt)} 到期</p></div><button data-member-action="select-coupon" data-id="${esc(c.id)}" ${blocked || c.status !== C.CouponViewStatus.Available || couponEstimate(c, items) <= 0 ? 'disabled' : ''}>${c.status === C.CouponViewStatus.Used ? '已使用' : c.status === C.CouponViewStatus.Expired ? '已过期' : blocked ? '不可叠加' : couponEstimate(c, items) <= 0 ? '不符合使用条件' : c.selected ? '已选择' : '使用此券'}</button></div>`,
         )
         .join(
           '',
-        )}<button class="text-button" data-member-action="select-coupon" data-id="0" style="display:block;margin:16px auto 0">本单不使用优惠券</button><a class="text-button" href="#/member/coupons" style="display:block;text-align:center;margin-top:14px">查看我的优惠券 ${icon('chevron')}</a>`,
+        )}<button class="text-button" data-member-action="select-coupon" data-id="auto" style="display:block;margin:16px auto 0">${memory.couponMode === 'auto' ? '✓ 已启用自动最优券' : '自动使用最优优惠券'}</button><button class="text-button" data-member-action="select-coupon" data-id="0" style="display:block;margin:16px auto 0">本单不使用优惠券</button><a class="text-button" href="#/member/coupons" style="display:block;text-align:center;margin-top:14px">查看我的优惠券 ${icon('chevron')}</a>`,
     );
   }
   function showProfile() {
@@ -1307,6 +1359,12 @@
     coupons,
     couponValue,
     selectCoupon,
+    resetCheckoutCoupon,
+    applyCouponQuote(q) {
+      memory.quoteCouponOptions = q.coupon_options || [];
+      memory.selectedCouponId = q.coupon_id || null;
+      state.coupon = Number(q.coupon_discount_cents || 0) / 100;
+    },
     showCoupons,
     pointBalance,
     pointsDiscount,

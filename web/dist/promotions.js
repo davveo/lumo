@@ -5,6 +5,7 @@
   let activities = [],
     sessions = [],
     groupRows = [],
+    groupRules = null,
     selectedExchange = null,
     selectedCampaign = null,
     selectionEpoch = 0,
@@ -38,6 +39,7 @@
     activities = [];
     sessions = [];
     groupRows = [];
+    groupRules = null;
     sessionProducts.clear();
     loaded = false;
     loadError = '';
@@ -92,6 +94,7 @@
         },
         (v) => {
           groupRows = v.items || [];
+          groupRules = Array.isArray(v.rules) ? v.rules : null;
         },
       ];
       let failure;
@@ -102,7 +105,13 @@
         } else failure = result.reason;
       });
       if (results[1].status === 'fulfilled') {
-        const ids = [...new Set(sessions.map((session) => session.sku_id).filter(Boolean))];
+        const ids = [
+          ...new Set(
+            [...sessions.map((session) => session.sku_id), ...(groupRules || []).map((rule) => rule.sku_id)].filter(
+              Boolean,
+            ),
+          ),
+        ];
         const detailResults = ids.length
           ? await Promise.allSettled([
               Promise.all(
@@ -125,7 +134,14 @@
         if (!active()) return;
         for (const detailResult of detailResults) if (detailResult.status === 'rejected') failure = detailResult.reason;
       }
-      loaded = results.every((result) => result.status === 'fulfilled') && !failure;
+      if (window.LumoCommerce?.hydrateProducts) {
+        const missing = [...sessionProducts.values()]
+          .filter((row) => !findProduct(row.product_id || row.id))
+          .map((row) => row.id);
+        if (missing.length) await window.LumoCommerce.hydrateProducts(missing, { active });
+      }
+      if(!active())return;
+loaded = results.every((result) => result.status === 'fulfilled') && !failure;
       loadError = failure?.message || '';
       if (failure) throw failure;
       return { activities, sessions, groups: groupRows };
@@ -169,9 +185,16 @@
   }
   function flashOffers(session = C.PromotionSession.Today) {
     ensureReadScope();
-    if (session === C.PromotionSession.Tomorrow) return []; // No forecast exists in the backend contract.
+    const now = Date.now();
     return sessions
-      .filter((s) => s.active)
+      .filter(
+        (s) =>
+          s.active &&
+          (session === C.PromotionSession.Tomorrow
+            ? Date.parse(s.starts_at) > now
+            : !(Date.parse(s.starts_at) > now)) &&
+          !(Date.parse(s.ends_at) <= now),
+      )
       .map((s) => {
         const raw = sessionProducts.get(s.sku_id),
           p = findProduct(raw?.product_id || raw?.attributes?.product_id || s.sku_id);
@@ -180,6 +203,8 @@
           activity = activityFor(s.activity_id);
         const row = offer(C.PromotionType.Flash, activity, p, {
           sessionId: s.id,
+          startAt: Date.parse(s.starts_at) || 0,
+          endAt: Date.parse(s.ends_at) || 0,
           skuId: s.sku_id,
           regularPrice: unit,
           price: Math.max(0, unit - Number(activity?.discount_cents || 0) / 100),
@@ -190,14 +215,48 @@
             window.LumoInventory.stockFor(s.sku_id),
           );
           row.status =
-            activity?.active && row.remaining > 0 ? C.PromotionOfferStatus.Active : C.PromotionOfferStatus.Ended;
+            activity?.active && row.remaining > 0 && !(row.startAt > now) && !(row.endAt > 0 && row.endAt <= now)
+              ? C.PromotionOfferStatus.Active
+              : C.PromotionOfferStatus.Ended;
         }
-        return row;
+        if(row && row.startAt>now)row.status=C.PromotionOfferStatus.Upcoming;
+return row;
       })
       .filter(Boolean);
   }
   function groupOffers() {
     ensureReadScope();
+    if (Array.isArray(groupRules)) {
+      const now = Date.now();
+      return groupRules
+        .filter((rule) => rule.active && !(Date.parse(rule.starts_at) > now) && !(Date.parse(rule.ends_at) <= now))
+        .flatMap((rule) => {
+          const activity = activityFor(rule.activity_id),
+            raw = rule.sku_id && sessionProducts.get(rule.sku_id);
+          const candidates = rule.sku_id
+            ? [findProduct(raw?.product_id || rule.sku_id)].filter(Boolean)
+            : products.filter((p) => p.visible !== false);
+          return candidates
+            .map((p) => {
+              const row = offer(C.PromotionType.Group, activity, p, {
+                ruleId: rule.id,
+                teamSize: Number(rule.required),
+                startAt: Date.parse(rule.starts_at) || 0,
+                endAt: Date.parse(rule.ends_at) || 0,
+              });
+              if (!row) return null;
+              row.id = 'group-rule:' + rule.id + ':' + sku(p);
+              if (raw) {
+                row.skuId = rule.sku_id;
+                row.regularPrice = Number(raw.price_cents) / 100;
+                row.price = Math.max(0, row.regularPrice - Number(activity?.discount_cents || 0) / 100);
+                row.remaining = Math.min(row.remaining, window.LumoInventory?.stockFor(rule.sku_id) ?? row.remaining);
+              }
+              return row;
+            })
+            .filter(Boolean);
+        });
+    }
     const activity = activities.find((a) => a.kind === C.CampaignKind.Group && a.active);
     if (!activity) return [];
     // The current policy allows any active catalogue SKU. Existing teams come first.
@@ -461,7 +520,9 @@
       id: raw.id,
       product,
       productId: product?.id || raw.sku_id,
-      offerId: 'group-demo:' + raw.sku_id,
+      offerId: raw.rule_id
+        ? 'group-rule:' + raw.rule_id + ':' + (product ? sku(product) : raw.sku_id)
+        : (raw.activity_id || 'group-demo') + ':' + (product ? sku(product) : raw.sku_id),
       leader: raw.creator_id === user && user ? '我的拼团' : '商城用户',
       joined: count(raw.paid),
       occupied: count(raw.occupied),
@@ -566,7 +627,11 @@
           const key = window.LumoAPI.key ? window.LumoAPI.key(C.PromotionType.Group) : 'g-' + crypto.randomUUID();
           const result = await api(C.Service.Group, C.Action.Create, {
             idempotency_key: key,
-            data: { sku_id: sku(p), required: 2 },
+            data: {
+              sku_id: row.skuId || sku(p),
+              required: row.teamSize || 2,
+              ...(row.ruleId ? { rule_id: row.ruleId } : {}),
+            },
           });
           groupId = result.id;
           groupRows = [result, ...groupRows.filter((g) => g.id !== result.id)];

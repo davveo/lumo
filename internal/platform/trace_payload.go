@@ -55,7 +55,14 @@ func TraceResponse(ctx context.Context, value any, err error) {
 		code = traceErrorCode(err)
 		span.SetStatus(otelcodes.Error, code.String())
 		if value == nil {
-			value = map[string]any{"error": map[string]any{"code": code.String()}}
+			// This response contains only a locally constructed gRPC enum. User
+			// payloads still redact every code field (OTP and OAuth credentials).
+			encoded, _ := json.Marshal(map[string]any{"error": map[string]any{"code": code.String()}})
+			span.SetAttributes(attribute.String("lumo.error.code", code.String()),
+				attribute.String("lumo.response", string(encoded)),
+				attribute.Bool("lumo.response.redacted", false),
+				attribute.Bool("lumo.response.truncated", false))
+			return
 		}
 	}
 	span.SetAttributes(attribute.String("lumo.error.code", code.String()))
@@ -249,7 +256,7 @@ func sensitiveTraceKey(key string) bool {
 	// Marketing delivery tokens identify browser views and recipient lists
 	// contain private principals. Redact these exact keys at every JSON/RPC
 	// boundary while keeping campaign IDs and targeting metadata useful.
-	case "visitorid", "deliveryid", "viewid", "includeuserids", "excludeuserids":
+	case "code", "democode", "proof", "oauthstate", "challengeid", "openid", "unionid", "clientip", "visitorid", "deliveryid", "viewid", "includeuserids", "excludeuserids":
 		return true
 	case "pwd",
 		"auth",

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
 	"path/filepath"
 	"testing"
 	"time"
@@ -433,6 +434,52 @@ func TestOrderRefundReceiptsDeduplicateAndRejectedAmountsRollBack(t *testing.T) 
 	)
 	if row := f.row(t, before.ID); row.Refunded != row.Payable {
 		t.Fatalf("exact capture total should be allowed: %+v", row)
+	}
+}
+
+func TestOrderRefundAmountCannotOverflowOrReuseAnotherReceiptPayload(t *testing.T) {
+	f := newOrderFixture(t)
+	f.create(t, "refund-overflow", "buyer", "", time.Now().Add(time.Hour))
+	f.pay(t, "refund-overflow")
+	f.call(
+		t,
+		"refunded",
+		"refund-overflow",
+		"buyer",
+		"system",
+		map[string]any{"refund_id": "valid", "amount_cents": int64(600)},
+	)
+	before := f.row(t, "refund-overflow")
+	for _, tc := range []struct {
+		id     string
+		amount int64
+		want   codes.Code
+	}{
+		{"overflow", math.MaxInt64, codes.FailedPrecondition},
+		{"valid", 200, codes.AlreadyExists},
+	} {
+		_, err := f.m.Handle(
+			context.Background(),
+			platform.Command{Action: "refunded", ID: before.ID, UserID: "buyer", Role: "system", Data: map[string]any{
+				"refund_id": tc.id, "amount_cents": tc.amount,
+			}},
+		)
+		if status.Code(err) != tc.want {
+			t.Fatalf("receipt=%s: expected %v, got %v", tc.id, tc.want, err)
+		}
+		if after := f.row(t, before.ID); after.Refunded != before.Refunded || after.Version != before.Version {
+			t.Fatalf("rejected refund changed order: %+v", after)
+		}
+	}
+	f.create(t, "other-order", "buyer", "", time.Now().Add(time.Hour))
+	_, err := f.m.Handle(
+		context.Background(),
+		platform.Command{Action: "refunded", ID: "other-order", UserID: "buyer", Role: "system", Data: map[string]any{
+			"refund_id": "valid", "amount_cents": int64(600),
+		}},
+	)
+	if status.Code(err) != codes.AlreadyExists {
+		t.Fatalf("receipt from another order was silently accepted: %v", err)
 	}
 }
 

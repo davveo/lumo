@@ -128,6 +128,18 @@ func (c *rpcCaller) Call(ctx context.Context, service string, command Command) (
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	ctx = metadata.AppendToOutgoingContext(ctx, rpcTokenHeader, c.token)
+	if command.Action == constants.ActionTasks || command.Action == constants.ActionRetry {
+		request := &mallv1.ServiceRequest{Id: command.ID, UserId: command.UserID, Role: command.Role, IdempotencyKey: command.IdempotencyKey, PayloadJson: payload}
+		client := mallv1.NewPlatformAdminServiceClient(conn)
+		var response *mallv1.ServiceResponse
+		var err error
+		if command.Action == constants.ActionTasks {
+			response, err = client.Tasks(ctx, request)
+		} else {
+			response, err = client.Retry(ctx, request)
+		}
+		return decodeServiceResponse(response, err)
+	}
 	if service == constants.ServiceOrder {
 		out, handled, typedErr := callTypedOrder(ctx, conn, command)
 		// A rolling upgrade may reach an order instance that only has Execute.
@@ -293,6 +305,13 @@ func NewRPCServer(token string, module Module) (*grpc.Server, error) {
 		}
 		module.RPCActions = actions
 	}
+	if len(module.Administration) > 0 {
+		if module.RPCActions == nil {
+			module.RPCActions = map[string]string{}
+		}
+		module.RPCActions[mallv1.PlatformAdminService_Tasks_FullMethodName] = constants.ActionTasks
+		module.RPCActions[mallv1.PlatformAdminService_Retry_FullMethodName] = constants.ActionRetry
+	}
 	interceptor := func(
 		ctx context.Context,
 		req any,
@@ -366,6 +385,9 @@ func NewRPCServer(token string, module Module) (*grpc.Server, error) {
 	}
 	if len(module.Operations) != 0 {
 		registerServiceMethods(server, module)
+	}
+	if len(module.Administration) > 0 {
+		mallv1.RegisterPlatformAdminServiceServer(server, &platformAdminServer{ops: module.Administration})
 	}
 	healthServer := health.NewServer()
 	healthServer.SetServingStatus("", healthv1.HealthCheckResponse_SERVING)

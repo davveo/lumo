@@ -69,7 +69,7 @@ test('first script paint reserves the complete home composition without service 
   const f = setup();
   t.after(() => f.app.dispose());
   const html = f.html();
-  assert.match(html, /class="container catalog-page home-page"/);
+  assert.match(html, /class="container storefront-page catalog-page home-page"/);
   assert.match(html, /class="category-directory" aria-label="正在加载商品分类"/);
   assert.match(html, /class="home-feature-area"><div class="home-feature-top"><section class="hero"/);
   assert.match(html, /class="home-benefits"/);
@@ -316,7 +316,7 @@ test('home, category and search share one catalogue shell and primary navigation
   ]) {
     f.app.evaluate('Object.assign(ui,' + JSON.stringify({ category, query }) + ');');
     const html = f.render();
-    assert.match(html, /class="container catalog-page"/);
+    assert.match(html, /class="container storefront-page catalog-page"/);
     assert.equal(header(html).replace('value="后台商品"', 'value=""'), header(home));
     assert.equal((html.match(/aria-label="商品分类"/g) || []).length, 1);
     assert.deepEqual(items(html), items(home));
@@ -329,7 +329,7 @@ test('home, category and search share one catalogue shell and primary navigation
     assert.doesNotMatch(html, /class="home-category-layout"|class="home-feature-area"|class="home-benefits"/);
     assert.doesNotMatch(html, /style="margin-top:30px"/);
   }
-  assert.match(home, /class="container catalog-page home-page"/);
+  assert.match(home, /class="container storefront-page catalog-page home-page"/);
   assert.match(home, /class="home-feature-area"/);
   assert.equal((home.match(/aria-label="商品分类"/g) || []).length, 1);
   assert.deepEqual(

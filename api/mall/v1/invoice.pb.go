@@ -26,7 +26,7 @@ var File_api_mall_v1_invoice_proto protoreflect.FileDescriptor
 
 const file_api_mall_v1_invoice_proto_rawDesc = "" +
 	"\n" +
-	"\x19api/mall/v1/invoice.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\x83\x03\n" +
+	"\x19api/mall/v1/invoice.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\x86\x04\n" +
 	"\x0eInvoiceService\x12?\n" +
 	"\n" +
 	"AdjustDemo\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
@@ -34,7 +34,9 @@ const file_api_mall_v1_invoice_proto_rawDesc = "" +
 	"\x03Get\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
 	"\tIssueDemo\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x129\n" +
 	"\x04List\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
-	"\tReversals\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
+	"\tReversals\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tAdminList\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12A\n" +
+	"\fAdminSummary\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
 
 var file_api_mall_v1_invoice_proto_goTypes = []any{
 	(*ServiceRequest)(nil),  // 0: mall.v1.ServiceRequest
@@ -47,14 +49,18 @@ var file_api_mall_v1_invoice_proto_depIdxs = []int32{
 	0, // 3: mall.v1.InvoiceService.IssueDemo:input_type -> mall.v1.ServiceRequest
 	0, // 4: mall.v1.InvoiceService.List:input_type -> mall.v1.ServiceRequest
 	0, // 5: mall.v1.InvoiceService.Reversals:input_type -> mall.v1.ServiceRequest
-	1, // 6: mall.v1.InvoiceService.AdjustDemo:output_type -> mall.v1.ServiceResponse
-	1, // 7: mall.v1.InvoiceService.Create:output_type -> mall.v1.ServiceResponse
-	1, // 8: mall.v1.InvoiceService.Get:output_type -> mall.v1.ServiceResponse
-	1, // 9: mall.v1.InvoiceService.IssueDemo:output_type -> mall.v1.ServiceResponse
-	1, // 10: mall.v1.InvoiceService.List:output_type -> mall.v1.ServiceResponse
-	1, // 11: mall.v1.InvoiceService.Reversals:output_type -> mall.v1.ServiceResponse
-	6, // [6:12] is the sub-list for method output_type
-	0, // [0:6] is the sub-list for method input_type
+	0, // 6: mall.v1.InvoiceService.AdminList:input_type -> mall.v1.ServiceRequest
+	0, // 7: mall.v1.InvoiceService.AdminSummary:input_type -> mall.v1.ServiceRequest
+	1, // 8: mall.v1.InvoiceService.AdjustDemo:output_type -> mall.v1.ServiceResponse
+	1, // 9: mall.v1.InvoiceService.Create:output_type -> mall.v1.ServiceResponse
+	1, // 10: mall.v1.InvoiceService.Get:output_type -> mall.v1.ServiceResponse
+	1, // 11: mall.v1.InvoiceService.IssueDemo:output_type -> mall.v1.ServiceResponse
+	1, // 12: mall.v1.InvoiceService.List:output_type -> mall.v1.ServiceResponse
+	1, // 13: mall.v1.InvoiceService.Reversals:output_type -> mall.v1.ServiceResponse
+	1, // 14: mall.v1.InvoiceService.AdminList:output_type -> mall.v1.ServiceResponse
+	1, // 15: mall.v1.InvoiceService.AdminSummary:output_type -> mall.v1.ServiceResponse
+	8, // [8:16] is the sub-list for method output_type
+	0, // [0:8] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

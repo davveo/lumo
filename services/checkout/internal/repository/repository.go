@@ -14,6 +14,9 @@ type Repository struct{ db *gorm.DB }
 
 func New(db *gorm.DB) *Repository { return &Repository{db} }
 func (r *Repository) Migrate(ctx context.Context) error {
+	if e := platform.MigrateBusinessIDs(ctx, r.db); e != nil {
+		return e
+	}
 	ctx, s := platform.Start(ctx, "checkout.repository.Migrate")
 	defer s.End()
 	return r.db.WithContext(ctx).AutoMigrate(&domain.Saga{})
@@ -31,7 +34,7 @@ func (r *Repository) Ensure(ctx context.Context, a *domain.Saga) error {
 	if err := r.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(a).Error; err != nil {
 		return err
 	}
-	return r.db.WithContext(ctx).First(a, "id = ?", a.ID).Error
+	return r.db.WithContext(ctx).First(a, "request_key = ?", a.RequestKey).Error
 }
 func (r *Repository) Claim(ctx context.Context, id, owner string) (bool, error) {
 	ctx, s := platform.Start(ctx, "checkout.repository.Claim")
@@ -86,4 +89,12 @@ func (r *Repository) Pending(ctx context.Context) ([]domain.Saga, error) {
 		Find(&rows).
 		Error
 	return rows, err
+}
+
+func (r *Repository) ByRequestKey(ctx context.Context, key string) (domain.Saga, error) {
+	ctx, span := platform.Start(ctx, "checkout.repository.ByRequestKey")
+	defer span.End()
+	var row domain.Saga
+	e := r.db.WithContext(ctx).First(&row, "request_key = ?", key).Error
+	return row, e
 }

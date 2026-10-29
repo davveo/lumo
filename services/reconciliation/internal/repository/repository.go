@@ -12,9 +12,12 @@ type Repository struct{ db *gorm.DB }
 
 func New(db *gorm.DB) *Repository { return &Repository{db} }
 func (r *Repository) Migrate(ctx context.Context) error {
+	if e := platform.MigrateBusinessIDs(ctx, r.db); e != nil {
+		return e
+	}
 	ctx, s := platform.Start(ctx, "reconciliation.repository.Migrate")
 	defer s.End()
-	return r.db.WithContext(ctx).AutoMigrate(&domain.Run{})
+	return r.db.WithContext(ctx).AutoMigrate(&domain.Run{}, &domain.Difference{}, &domain.Followup{})
 }
 func (r *Repository) Create(ctx context.Context, x *domain.Run) error {
 	ctx, s := platform.Start(ctx, "reconciliation.repository.Create")

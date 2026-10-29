@@ -1,5 +1,66 @@
 # 部署配置核对
 
+## 2026-10-28 后台交易、库存、会员与装修扩展
+
+- 补齐20个后台入口：新增订单和用户管理；交易六个领域使用独立服务端分页/筛选/详情及状态允许操作，展示收货、商品、金额、回执、退款、物流和开票字段。状态文案按领域维护，避免相同COMPLETED/REQUESTED/SUCCEEDED协议值串用。对账明确限定最近100条内部支付及最近30份报告，演示收款、退款、签收和发票操作明确标识，不声称接入真实渠道/WMS。
+- 七个领域新增AdminList/AdminSummary，IAM另增SetActive、库存另增Adjustments，维持30个独立服务和182项具名RPC；订单保持类型化protobuf。工作台只通过management/dashboard聚合7个摘要，包含8项真实指标、7/30天金额趋势、待办与分布，不携带业务列表或首页配置。全部管理读写要求真实admin。日期按UTC+8，MySQL每日键显式格式化为YYYY-MM-DD，失败服务显示不可用。
+- 库存先选真实商品及颜色/规格SKU，一次批量库存；新增并发原值校验、原因、可售下限和调整审计。用户列表分页包含角色/状态/时间，会员资料按需读取；停用普通账号同时撤销会话，保护自身及管理员，原因/操作者/目标状态留痕。不提供任意角色提升或密码修改。
+- 优惠券支持满减、代金、折扣、满额折扣，适用全场/类目/商品及折扣封顶。报价和预占均按整数分计算，信任后端商品归属并排除换购；领取复制权益，已领规则冻结，旧券保留兼容。商城券面、券包、弹窗和结算共用展示逻辑。
+- 营销弹窗新增领券、公告、海报、新人、会员、活动6种内容模板，继续使用真实人群、时间、页面、频次和优先级。商城装修增加页头搜索、主视觉按钮、最多5张轮播、6项模块开关、公告和页脚客服，保存合并最新文档，后端校验安全图片/内链及字段类型。修复两个HTML入口共享依赖顺序，隐藏首页模块后的网格及轮播刷新布局；自动播放可关闭并尊重减少动态效果。
+- 测试：全量go test、go vet、相关领域race通过；前端357项Node测试、73条API/认证断言、129项HTTP、47项会员、125项配置和258项新增运营HTTP检查通过。最后状态文案修正后8项相关Node回归通过。独立MySQL scratch库验证券规则JSON/已领快照/封顶预占、库存审计复合索引、账号状态及日期汇总，测试库与临时程序清理。全局格式与diff检查通过。写入测试全部在隔离库，实际商城只读取和登录/退出验收会话。
+- 浏览器在隔离18181实测四规格库存盘点、订单详情、折扣券创建、会员弹窗草稿、装修发布与真实商城渲染；桌面和390px无横向溢出。实际8080复验工作台、已完成订单文案、301851件商品库存目录/四规格及全部装修分区，未保存实际商城业务修改。实际storefront-main尚未建立，装修页明确展示默认值，首次保存才发布。截图 `/private/tmp/lumo-admin-dashboard-live-final.png`、`/private/tmp/lumo-admin-inventory-live-final.png`、`/private/tmp/lumo-admin-decoration-modules-live-final.png`；隔离配置效果 `/private/tmp/lumo-storefront-configured-preview.png`。
+- 部署：使用固定工具链交叉编译linux/arm64 server/gateway，在已运行可信镜像替换程序；标准独立Nginx镜像构建前端。先执行 `sh start.sh iam order payment fulfillment aftersale refund invoice inventory coupon pricing checkout content gateway web --no-build`，最后状态文案修正仅重建/更新web。共14个目标容器改变、26个容器ID不变（含已成功退出的存储初始化），保留卷与旧镜像；未更新catalog。未伪造标准后端源码构建指纹，后续正常构建仍可检测差异。
+- 运行核验：8080/18080 healthz/readyz均200，32项Consul检查全部passing；工作台7/30天均7域完整，实际分别约11/12ms。七域管理列表200，用户精确10002条且每页20项，普通用户8项管理读取均403；5件商品9个规格库存一次批量返回，券模板总数2007。107个静态文件与工作区逐个SHA256一致，静态文件不带后端Trace；API trace_id只在x-trace-id头。仅撤销本次验收会话，未影响其它登录。
+- 证据：`/private/tmp/lumo-admin-expansion-runtime-final.json`、`/private/tmp/lumo-admin-expansion-go-final.log`、`/private/tmp/lumo-admin-expansion-vet-final.log`、`/private/tmp/lumo-admin-expansion-race.log`、`/private/tmp/lumo-admin-expansion-mysql.log`、`/private/tmp/lumo-admin-expansion-frontend-final.log`、`/private/tmp/lumo-admin-expansion-last-status-tests.log`。部署日志可能含本地凭据，已设为仅当前用户可读。
+
+## 2026-10-27 后台商品管理查询超时修复
+
+- 在实际8080后台复现商品管理HTTP500：`catalog/list` 的 `include_disabled=true` 会去掉状态条件，原 `idx_catalog_page` 的status列阻断排序，MySQL改用parent_id单列索引并filesort，301851件商品导致约10035ms读超时。首屏修复后继续实测尾页，确认直接OFFSET读取完整JSON也会超时。
+- 新增后台分页索引 `idx_catalog_admin_page(kind,parent_id,created_at,id)`，由启动迁移在线创建并验证定义，重复执行不重建；后台精确计数使用覆盖索引，页面在同一SQL中先通过覆盖索引选出本页ID，再JOIN读取本页详情。保持一次COUNT加一次分页SQL，不逐商品请求。公开在售列表保留原查询选择。未更改商品、订单、库存等业务数据。
+- SQLite旧表迁移/重复执行/资料保留及分页顺序回归通过；真实MySQL使用独立scratch库验证上下架、同时间ID排序、越界页、覆盖计数、内层无filesort及外层主键读取，测试库和容器内临时程序均已清理。catalog全包race、go vet、全局format-check及diff空白检查通过。日志 `/private/tmp/lumo-product-admin-race-final.log`、`/private/tmp/lumo-product-admin-mysql-final.log`、`/private/tmp/lumo-product-admin-format-final.log`。
+- 已交叉编译当前server并在已有运行镜像上替换程序，再执行 `sh start.sh catalog --no-build`，仅catalog容器ID变化，其余容器保留；旧镜像已留存。全部服务健康，8080/18080的healthz/readyz均200，Consul32项检查全部passing。实际商品首屏45ms、下一页39ms、offset20000为42ms、尾页offset301840返回11件耗时77ms、越界页71ms，均HTTP200；公开列表50ms。`x-trace-id`仅在响应头。证据 `/private/tmp/lumo-product-admin-runtime-final.json`、`/private/tmp/lumo-product-admin-health-final.json` 及 `/private/tmp/lumo-product-admin-deep-plan-final.log`。部署日志含本地访问凭据，以受限文件保存。
+- 浏览器实际验证商品管理首屏、下一页、返回上一页及编辑资料加载，未提交业务修改；截图 `/private/tmp/lumo-product-admin-fixed.png`。探针登录均已退出，临时浏览器标签已关闭。
+
+## 2026-10-27 运营配置补齐与前端规范验收
+
+- 新增后台商品管理、优惠券管理、活动管理和商城装修，公告/FAQ改为独立内容管理模块；保留现有14入口，共18个管理菜单。新增Coupon TemplatesAdmin/TemplateUpsert、Campaign AdminList/Upsert四个独立RPC（共166），网关和领域双重验证管理员。券管理分页包含停用模板、批量领取计数；库存用stock_delta避免覆盖期间领取，已发行权益冻结、旧版本/旧种子碰撞拒绝。活动保留held/used，限制配额并冻结已参与规则，新增版本迁移和上限保护。
+- 商品完整读取再合并编辑/上下架，保留规格与相对差价，不触碰库存；新商品默认下架。装修保存前合并最新JSON的变更字段，保留其它编辑器配置；公告/FAQ使用真实分页和发布接口。秒杀/拼团/换购仍有交易准入限制，只读显示；未编造会员全量列表、任意积分调整、消息群发、素材列表或推荐权重管理。
+- 按用户前端规范复核现有原生模块及公共组件：统一品牌派生Token和admin语义Token，修复自定义主题后按钮/页头颜色不一致；保留语义状态及固定券面。工作台减少卡片嵌套，用数据重点与平面快捷入口改善层级。手机主要操作44px高、数量按钮44×44、后台及弹窗输入16px；统一禁用/只读样式，关闭弹窗恢复有效触发器焦点。
+- 浏览器实际验证1280px首页、商品详情、后台工作台/券列表，390px首页、购物车、会员地址与地址弹窗、优惠券/商品表单，无页面横向溢出。隔离库后台创建停用券并成功读回、装修设蓝色后商城首页/购买区真实变蓝；实际运行商城配置未修改。截图 `/private/tmp/lumo-design-admin-live-final.png`、`/private/tmp/lumo-admin-config-coupons-live.png`、`/private/tmp/lumo-design-storefront-blue-desktop.png`、`/private/tmp/lumo-design-cart-mobile.png`、`/private/tmp/lumo-design-address-dialog-mobile.png`。
+- 验证：全量 `go test ./...`、`go vet ./...`、coupon/campaign/httpgateway race通过；350项Node测试、73条认证断言、129项前端HTTP、47项会员链路及125项新配置HTTP检查通过。最后购物车点击宽度修正后，主题、购物车和详情相关测试及真实手机排版复验通过；常量/RPC生成、全局格式和diff检查通过。写入测试全部使用独立临时DB，未向实际商城提交配置、库存、订单或领券变更。保存进行中刷新/跨账号迟到回复另有专项回归。
+- 构建环境：恢复官方Go1.26.10工具链；官方模块代理连接超时，使用镜像下载固定版本并按go.sum校验。标准Docker构建依赖层的Alpine网络不可用，本次从当前源交叉编译linux/arm64静态server/gateway，在既有运行镜像上替换两程序，旧镜像保留为 `lumo-mall-backend:before-admin-config-20261027`。使用 `sh start.sh coupon campaign gateway --no-build` 运行已构建镜像，web正常构建；增量脚本仍保留标准后端源码构建待更新标记，没有伪造源码指纹。
+- 运行：仅coupon/campaign/gateway/web四个容器变化，其余36个ID不变，数据卷保留。98个静态资源与工作区逐个哈希一致，health/ready200，32个Consul检查passing；实际管理员读取2007种券和10项活动，版本均已初始化，普通会员四个新管理入口403。实际仅登录/退出自己的验收会话。
+- 证据：`/private/tmp/lumo-admin-config-go-all.log`、`/private/tmp/lumo-admin-config-vet.log`、`/private/tmp/lumo-admin-config-race.log`、`/private/tmp/lumo-admin-config-frontend-final.log`、`/private/tmp/lumo-admin-config-format-check.log`、`/private/tmp/lumo-admin-config-runtime.json`、`/private/tmp/lumo-admin-config-container-diff.json`。start部署日志含凭据，均只保存于受限临时文件，不公开附加。
+
+## 2026-10-27 后台管理界面整理
+
+- 后台改为固定分组侧栏、顶栏面包屑与统一内容区，保留14个管理入口及独立管理会话。工作台加入快捷管理、交易流程、实际近期订单；库存查询、调整与入库拆成独立卡片，内容发布、分类和营销弹窗统一控件及卡片层级。
+- 业务列表新增本地关键词/状态筛选、每页10条底部分页，明确显示已加载记录范围，不增加筛选请求。原始明细和Trace按需展开。修复延迟刷新期间跨页面行缓存混用、失败刷新回滚旧筛选；新增回归覆盖行数据隔离、筛选与分页、退出/失效会话及异步状态。
+- 分类配置按内容宽度收拢，营销编辑桌面保留预览、窄屏将预览置于配置之后。390/1040/1280px 浏览器核对无页面横向溢出；手机抽屉选中后自动关闭，恢复桌面宽度释放锁定；进入营销编辑从顶部开始。截图 `/private/tmp/lumo-admin-ui-live-final.png`、`/private/tmp/lumo-admin-mobile-workbench.png`、`/private/tmp/lumo-admin-popup-editor-mobile.png`。
+- 验证：309项Node测试、73条认证断言、129项隔离真实HTTP及47项会员链路通过；脚本语法、全局格式和diff检查通过。HTTP/浏览器业务写入仅在新建临时数据库进行，使用现有2026-10-25开发运行程序（本轮未改后端；本机Go模块缓存缺失，未重新编译该程序）。证据 `/private/tmp/lumo-admin-ui-node-final.log`、`/private/tmp/lumo-admin-ui-http.log`、`/private/tmp/lumo-admin-ui-member.log`、`/private/tmp/lumo-admin-ui-format-check.log`。
+- 已执行 `sh start.sh web`，只更新web，其他39个容器ID保持不变。89个静态资源与工作区逐个哈希一致，健康/就绪200；实际后台登录后14个入口正常、无页面溢出。运行环境仅登录/退出自身管理员会话，没有提交测试订单、券、库存或配置变更。证据 `/private/tmp/lumo-admin-ui-runtime.json`；部署日志 `/private/tmp/lumo-admin-ui-deploy.log` 含访问凭据，仅保存在受限临时文件。
+
+## 2026-10-26 后端全局扫描与隐患修复
+
+本轮检查30个领域服务、HTTP网关、公共RPC/消息/发现/Trace平台及进程入口，使用源码审查、静态检查、可控并发和隔离真实HTTP回归；以下为已确认并修复的问题，不代表对全部潜在缺陷的完备性证明。
+
+- **报价与退款计算**：重复SKU在累加前逐行校验，防止int64数量溢出绕过10件限制；退款剩余额度用减法比较，订单累计退款同样避免加法溢出；同一退款回执携带不同订单或金额时拒绝。高金额售后比例用整数大数乘除保留向下取整，避免合法订单的中间乘积溢出。
+- **优惠服务端规则**：秒杀/拼团在报价及新提交两端拒绝叠券或积分；换购商品不计入券门槛及主商品10%积分上限。券预占使用主商品金额；旧快照缺字段时仅扣末尾追加的1件换购，不排除相同SKU的正常主商品，无法验证的旧快照要求重新报价。
+- **幂等及数据竞争**：checkout并发创建Saga后再次核对实际落库的hash/quote，防止同key的不同请求复用订单；购物车删除仅允许本人cart_item，付款消费回执不能被公开接口删除后再重放消费。地址内容更新不回写旧默认标记；商品对比的计数与写入放入用户锁事务，两个实例也不能超过3件。新增可重入表仅 `engagement_compare_owners`，不混入业务列表或计数。
+- **消息与生命周期**：生产/消费双方校验事件ID、Type的SQL字符和AMQP 255字节边界；消费要求一个完整JSON对象，尾随数据及非法元数据直接进入死信，不创建Inbox、不调用业务，避免毒消息永久重排。服务退出先取消并等待RPC/事件worker，再释放共享数据库及Caller。网关body读取、认证与业务转发共用25秒请求预算，避免前两阶段耗时后重新获得25秒而超过HTTP写超时。
+- **附件及Trace配置**：已完成附件的Get/再次完成/重新签下载前校验已存ETag，拒绝相同大小/MIME但内容已变的对象。显式HTTPS OTLP端点保留TLS及SDK CA设置，裸host:port保留现有明文collector兼容；非法URL及NaN采样率拒绝。包含真实本地TLS collector的传输回归。
+- **验证**：修前可复现失败、修后针对性回归通过；全量 `go test ./...`、`go vet ./...`、变更相关包及子包的race检查和新增消息/网关边界race通过；完整前端302项Node测试、73条认证断言、129项隔离HTTP及47项会员检查通过。常量/RPC生成器同步、全局格式及diff检查通过。测试写入均使用独立临时数据库，没有向运行商城提交测试订单、退款、领券或库存变更。
+- **运行**：已执行 `sh start.sh`，30个领域服务及gateway共31个容器更新，7个中间件和web容器ID均保持原样，数据卷及副本保留。149项只读验收通过，Consul全部健康检查passing，新的用户锁表已在实际MySQL迁移。仅创建/退出自身探针会话，既有会员Get路径可能更新本人资料时间或懒初始化账户。
+- **证据**：`/private/tmp/lumo-backend-audit-go-final.log`、`/private/tmp/lumo-backend-audit-vet-final.log`、`/private/tmp/lumo-backend-audit-boundary-race.log`、`/private/tmp/lumo-platform-checkout-audit-race.log`、`/private/tmp/lumo-money-audit-race.log`、`/private/tmp/lumo-audit-identity-race.log`、`/private/tmp/lumo-audit-cart-receipt-race.log`、`/private/tmp/lumo-backend-audit-frontend-final.log`、`/private/tmp/lumo-backend-audit-runtime.json`、`/private/tmp/lumo-backend-audit-container-diff.json`。部署日志含访问凭据，保存在受限文件 `/private/tmp/lumo-backend-audit-deploy.log`，不公开附件。
+- **边界**：未向真实RabbitMQ注入故障或进行MinIO并发替换验收；ETag保护重新签发前的检查点，既有预签名URL及Stat之后的替换仍受其有效期/存储策略边界约束。对账仍是最近100条内部演示支付台账，不是全账期或外部渠道对账。官方govulncheck工具下载和官方代理IPv4访问均网络超时，依赖CVE可达性扫描未完成，不能据此声称依赖无漏洞；失败证据 `/private/tmp/lumo-backend-vuln-tool-install.log`。
+
+## 2026-10-25 活动与领券统一商城框架
+
+- 活动福利及领券中心移除旧独立页头/面包屑/大横幅，和首页、商品分类、搜索共用 `storefrontPageStart()` 及 `storefront-page` 样式。页头、主导航、内容宽度、紧凑标题、操作按钮、筛选和底部分页保持一致。活动商品及骨架为6/4/3/2列，券卡及骨架为3/2/1列；首页券预览保持原布局，详情/购物车/结算的内联活动区域保留自身布局。
+- 浏览器1280px实测活动、领券、家电三页：主区x=148/宽1052，页头高94、导航y=126/高53、标题y=203/高34.5完全一致。390px下活动/券页标题y=180，操作按钮y=243.09、筛选y=295.09一致；390/1100/1280px均无横向溢出。搜索面板紧贴输入框底部，展开不移动主区或导航；冷进入活动/领券也使用共享框架。
+- 全站302项前端Node测试、73条认证断言、129项隔离真实HTTP及47项会员检查通过，券/活动/发现独立套件通过；生成器同步、CSS/JS格式及差异检查通过。此轮只改前端和说明，业务写入回归使用临时数据库。证据：`/private/tmp/lumo-welfare-frontend-final.log`、`/private/tmp/lumo-welfare-format-check.log`、`/private/tmp/lumo-welfare-layout.json`；截图 `/private/tmp/lumo-welfare-activity-final.png`、`/private/tmp/lumo-welfare-coupons-final.png` 及对应 `*-mobile.png`。
+- 已执行 `sh start.sh web`，仅web容器更新，其余容器保持原ID。全部运行容器健康，89个部署静态文件与工作区hash一致，代理healthz/readyz均200。只读验收 `/private/tmp/lumo-welfare-runtime-audit.json`；含访问凭据的部署日志保存在受限文件 `/private/tmp/lumo-welfare-deploy.log`。临时预览标签、视口覆盖和开发栈均已清理。
+
 ## 本轮：按展示场景拆分读取、统一页面与响应Trace头
 
 - 原首页大包与通用批量入口已退出正常链路。`storefront/shell` 只返回装修和分类配置；`products` 返回有界商品与同类批量库存；`activities` 返回活动、2张券预览及相关商品/库存；`account_summary` 只返回本人资料投影与页头计数。推荐、兴趣栏、弹窗独立读取；订单、地址、售后、发票、客服与完整券包进入对应页面时再加载。`bootstrap` 仅兼容小型shell，`batch` 对游客、普通用户和管理员均403，单元测试确认零子RPC。
@@ -314,3 +375,10 @@ Collector的DockerHub对应旧tag未能获取，已改用验证可取的官方GH
 - MinIO增加HTTP readiness检查，媒体服务显式等待MinIO健康；生成器与提交的Compose保持一致。
 - Compose CLI已校验默认端口和8181/9101/9102自定义组合，MinIO签名端口和浏览器上传来源随配置同步。
 - 启动脚本回归使用fake Docker验证进程调用与失败行为，不能单独代表真实容器运行结果；后续真实验收另列于本文件开头。
+
+## 2026-10-28 商城能力完善验收
+
+- 完整 `go test ./...` 通过；最终补测支付渠道在非演示模式的限制、购物提醒8个并发检查任务去重与跨用户归属、验证码和OAuth单次消费。
+- `scripts/test-frontend.sh` 通过：前端语法、RPC/枚举生成一致性、模块回归；真实HTTP基础业务129项、会员服务47项、管理配置125项、后台操作258项。新增5个前端回归覆盖报价保留/乱序、登录方法错误重试、后台开关版本、订阅会话隔离及新订单恢复自动择券。
+- 隔离开发服务浏览器实测后台登录/支付开关、手机验证码登录、商品页订阅及个人中心/后台查询；桌面及390px手机布局没有页面横向溢出，后台表格在容器内滚动。积分切换前后金额面板 top/height 一致，未重新出现骨架。
+- `docker compose config --quiet` 通过；生成器与已提交Compose的40个服务环境配置逐项一致。新增凭据仅传入IAM。此次没有重启已有Compose业务，也没有执行真实短信、OAuth账号或支付渠道联调。

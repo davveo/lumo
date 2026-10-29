@@ -49,3 +49,18 @@ const (
 	CouponLedgerKindAvailable = "AVAILABLE"
 	CouponLedgerKindExpired   = "EXPIRED"
 )
+
+// enum:CouponType
+const (
+	CouponTypeReduction         = "reduction"
+	CouponTypeCash              = "cash"
+	CouponTypeDiscount          = "discount"
+	CouponTypeThresholdDiscount = "threshold_discount"
+)
+
+// enum:CouponScope
+const (
+	CouponScopeAll      = "all"
+	CouponScopeCategory = "category"
+	CouponScopeProduct  = "product"
+)

@@ -237,7 +237,7 @@ body:has(.home-page) .container {
 }
 .interest-rail-toggle:hover {
   color: var(--red);
-  background: #fff9f7;
+  background: var(--pale);
 }
 .interest-rail-toggle:focus-visible {
   outline-offset: 2px;
@@ -290,7 +290,7 @@ body:has(.home-page) .container {
 .quick-rail-item.active,
 .quick-rail-item[aria-current='page'] {
   color: var(--red);
-  background: #fff3f0;
+  background: var(--pale);
 }
 .quick-rail-item:focus-visible {
   outline-offset: -2px;
@@ -353,7 +353,7 @@ body:has(.home-page) .container {
 }
 .quick-rail-reopen:hover {
   color: var(--red);
-  background: #fff9f7;
+  background: var(--pale);
 }
 body.has-lumo-sidebars .svc-support-launcher {
   display: none;
@@ -484,7 +484,7 @@ body.has-lumo-sidebars .svc-support-launcher {
   margin-top: 10px;
   padding: 5px 2px;
   border-radius: 5px;
-  background: #fff2ef;
+  background: var(--pale);
   color: var(--red);
   font-size: 10px;
 }

@@ -10,6 +10,8 @@ type Quote struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 type Item struct {
+	Category  string `json:"category"`
+	ProductID string `json:"product_id"`
 	SKUID     string `json:"sku_id"`
 	Quantity  int64  `json:"quantity"`
 	Name      string `json:"name"`

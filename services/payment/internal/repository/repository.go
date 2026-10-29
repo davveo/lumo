@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 
+	"github.com/davveo/lumo/internal/adminconfig"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/payment/internal/domain"
 	"gorm.io/gorm"
@@ -17,6 +18,12 @@ type Tx struct {
 
 func New(db *gorm.DB) *Repository { return &Repository{db} }
 func (r *Repository) Migrate(ctx context.Context) error {
+	if e := adminconfig.Migrate(ctx, r.db); e != nil {
+		return e
+	}
+	if e := platform.MigrateBusinessIDs(ctx, r.db); e != nil {
+		return e
+	}
 	ctx, s := platform.Start(ctx, "payment.repository.Migrate")
 	defer s.End()
 	return r.db.WithContext(ctx).AutoMigrate(&domain.Gate{}, &domain.Payment{})
@@ -70,3 +77,5 @@ func (r *Repository) List(ctx context.Context, user string, all bool) ([]domain.
 	err := q.Order("created_at desc").Limit(100).Find(&p).Error
 	return p, err
 }
+
+func (t *Tx) BusinessID() (string, error) { return platform.NextBusinessID(t.ctx, t.db, "payment") }

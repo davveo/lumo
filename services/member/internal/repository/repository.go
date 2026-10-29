@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"github.com/davveo/lumo/internal/adminconfig"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/member/internal/domain"
 	"google.golang.org/grpc/codes"
@@ -15,6 +16,12 @@ type Repository struct{ db *gorm.DB }
 
 func New(db *gorm.DB) *Repository { return &Repository{db: db} }
 func (r *Repository) Migrate(ctx context.Context) error {
+	if e := platform.MigrateBusinessIDs(ctx, r.db); e != nil {
+		return e
+	}
+	if e := adminconfig.Migrate(ctx, r.db); e != nil {
+		return e
+	}
 	ctx, s := platform.Start(ctx, "member.repository.Migrate")
 	defer s.End()
 	return r.db.WithContext(ctx).AutoMigrate(&domain.Record{})

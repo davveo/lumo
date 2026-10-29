@@ -73,7 +73,8 @@ type Module struct {
 	Seed    func(context.Context) error
 	Handle  func(context.Context, Command) (Result, error)
 	// Operations are explicit business methods exposed through the domain's RPCs.
-	Operations map[string]Operation
+	Operations     map[string]Operation
+	Administration map[string]Operation
 	// RegisterRPC installs explicit domain RPCs alongside the legacy Execute adapter.
 	RegisterRPC func(grpc.ServiceRegistrar)
 	RPCActions  map[string]string

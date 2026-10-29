@@ -95,8 +95,8 @@ body.has-disc-compare {
 .disc-compare-button:hover,
 .disc-compare-button.selected {
   color: var(--red);
-  border-color: #ff443d33;
-  background: #fff6f4;
+  border-color: var(--brand-border);
+  background: var(--pale);
 }
 .disc-pagination {
   display: flex;
@@ -298,7 +298,7 @@ body.has-disc-compare {
   white-space: nowrap;
 }
 .disc-search-history .disc-search-history-chip:hover {
-  background: #fff1ee;
+  background: var(--pale);
   color: var(--red);
 }
 .disc-search-empty {
@@ -355,7 +355,7 @@ body.has-disc-compare {
 }
 .disc-search-option:hover,
 .disc-search-panel [role='option'][aria-selected='true'] {
-  background: #fff5f3 !important;
+  background: var(--pale) !important;
 }
 .disc-search-option > svg:first-child {
   width: 15px;
@@ -411,7 +411,7 @@ body.has-disc-compare {
   align-items: center;
   gap: 20px;
   padding: 15px 19px;
-  border: 1px solid #f0ddd7;
+  border: 1px solid var(--brand-border);
   background: #fffdfcf7;
   backdrop-filter: blur(16px);
   border-radius: 14px;

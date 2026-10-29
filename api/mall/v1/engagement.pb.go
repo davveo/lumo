@@ -26,31 +26,52 @@ var File_api_mall_v1_engagement_proto protoreflect.FileDescriptor
 
 const file_api_mall_v1_engagement_proto_rawDesc = "" +
 	"\n" +
-	"\x1capi/mall/v1/engagement.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\x81\x02\n" +
-	"\x11EngagementService\x12:\n" +
+	"\x1capi/mall/v1/engagement.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xcc\x05\n" +
+	"\x11EngagementService\x12@\n" +
+	"\vAdminCancel\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tAdminList\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12:\n" +
 	"\x05Clear\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
 	"\x06Delete\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x129\n" +
-	"\x04List\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x128\n" +
-	"\x03Put\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
+	"\x04List\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tPolicyGet\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12A\n" +
+	"\fPolicyUpsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x128\n" +
+	"\x03Put\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tSubscribe\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12B\n" +
+	"\rSubscriptions\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12@\n" +
+	"\vUnsubscribe\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
 
 var file_api_mall_v1_engagement_proto_goTypes = []any{
 	(*ServiceRequest)(nil),  // 0: mall.v1.ServiceRequest
 	(*ServiceResponse)(nil), // 1: mall.v1.ServiceResponse
 }
 var file_api_mall_v1_engagement_proto_depIdxs = []int32{
-	0, // 0: mall.v1.EngagementService.Clear:input_type -> mall.v1.ServiceRequest
-	0, // 1: mall.v1.EngagementService.Delete:input_type -> mall.v1.ServiceRequest
-	0, // 2: mall.v1.EngagementService.List:input_type -> mall.v1.ServiceRequest
-	0, // 3: mall.v1.EngagementService.Put:input_type -> mall.v1.ServiceRequest
-	1, // 4: mall.v1.EngagementService.Clear:output_type -> mall.v1.ServiceResponse
-	1, // 5: mall.v1.EngagementService.Delete:output_type -> mall.v1.ServiceResponse
-	1, // 6: mall.v1.EngagementService.List:output_type -> mall.v1.ServiceResponse
-	1, // 7: mall.v1.EngagementService.Put:output_type -> mall.v1.ServiceResponse
-	4, // [4:8] is the sub-list for method output_type
-	0, // [0:4] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0,  // 0: mall.v1.EngagementService.AdminCancel:input_type -> mall.v1.ServiceRequest
+	0,  // 1: mall.v1.EngagementService.AdminList:input_type -> mall.v1.ServiceRequest
+	0,  // 2: mall.v1.EngagementService.Clear:input_type -> mall.v1.ServiceRequest
+	0,  // 3: mall.v1.EngagementService.Delete:input_type -> mall.v1.ServiceRequest
+	0,  // 4: mall.v1.EngagementService.List:input_type -> mall.v1.ServiceRequest
+	0,  // 5: mall.v1.EngagementService.PolicyGet:input_type -> mall.v1.ServiceRequest
+	0,  // 6: mall.v1.EngagementService.PolicyUpsert:input_type -> mall.v1.ServiceRequest
+	0,  // 7: mall.v1.EngagementService.Put:input_type -> mall.v1.ServiceRequest
+	0,  // 8: mall.v1.EngagementService.Subscribe:input_type -> mall.v1.ServiceRequest
+	0,  // 9: mall.v1.EngagementService.Subscriptions:input_type -> mall.v1.ServiceRequest
+	0,  // 10: mall.v1.EngagementService.Unsubscribe:input_type -> mall.v1.ServiceRequest
+	1,  // 11: mall.v1.EngagementService.AdminCancel:output_type -> mall.v1.ServiceResponse
+	1,  // 12: mall.v1.EngagementService.AdminList:output_type -> mall.v1.ServiceResponse
+	1,  // 13: mall.v1.EngagementService.Clear:output_type -> mall.v1.ServiceResponse
+	1,  // 14: mall.v1.EngagementService.Delete:output_type -> mall.v1.ServiceResponse
+	1,  // 15: mall.v1.EngagementService.List:output_type -> mall.v1.ServiceResponse
+	1,  // 16: mall.v1.EngagementService.PolicyGet:output_type -> mall.v1.ServiceResponse
+	1,  // 17: mall.v1.EngagementService.PolicyUpsert:output_type -> mall.v1.ServiceResponse
+	1,  // 18: mall.v1.EngagementService.Put:output_type -> mall.v1.ServiceResponse
+	1,  // 19: mall.v1.EngagementService.Subscribe:output_type -> mall.v1.ServiceResponse
+	1,  // 20: mall.v1.EngagementService.Subscriptions:output_type -> mall.v1.ServiceResponse
+	1,  // 21: mall.v1.EngagementService.Unsubscribe:output_type -> mall.v1.ServiceResponse
+	11, // [11:22] is the sub-list for method output_type
+	0,  // [0:11] is the sub-list for method input_type
+	0,  // [0:0] is the sub-list for extension type_name
+	0,  // [0:0] is the sub-list for extension extendee
+	0,  // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_api_mall_v1_engagement_proto_init() }

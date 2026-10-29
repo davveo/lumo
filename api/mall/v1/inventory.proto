@@ -17,4 +17,8 @@ service InventoryService {
   rpc Get(ServiceRequest) returns (ServiceResponse);
   rpc Reserve(ServiceRequest) returns (ServiceResponse);
   rpc Restock(ServiceRequest) returns (ServiceResponse);
+  rpc Adjustments(ServiceRequest) returns (ServiceResponse);
+  rpc AdminList(ServiceRequest) returns (ServiceResponse);
+  rpc Threshold(ServiceRequest) returns (ServiceResponse);
+  rpc Ledger(ServiceRequest) returns (ServiceResponse);
 }

@@ -277,123 +277,9 @@
   margin-bottom: 7px;
 }
 .promo-page {
-  padding-top: 26px;
+  padding-top: 0;
   padding-bottom: 40px;
   min-width: 0;
-}
-.promo-hero {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 35px;
-  min-height: 215px;
-  padding: 32px 43px;
-  border-radius: 16px;
-  background: linear-gradient(115deg, #fff0eb 0%, #fff8f3 62%, #ffe9e2 100%);
-  position: relative;
-  overflow: hidden;
-}
-.promo-hero-copy {
-  position: relative;
-  z-index: 1;
-  max-width: 760px;
-  min-width: 0;
-}
-.promo-hero-copy h1 {
-  font-size: 34px;
-  line-height: 1.4;
-  font-weight: 700;
-  letter-spacing: -1px;
-  margin-bottom: 9px;
-}
-.promo-hero-copy p {
-  font-size: 12px;
-  color: #a18c84;
-  line-height: 1.9;
-}
-.promo-hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 10px;
-  color: #d16d60;
-  background: #ffffff9c;
-  border: 1px solid #ffdcd3;
-  border-radius: 5px;
-  padding: 3px 9px;
-  margin-bottom: 12px;
-}
-.promo-hero-badge svg {
-  width: 13px;
-  height: 13px;
-}
-.promo-hero-art {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 155px;
-  height: 155px;
-  flex-shrink: 0;
-  border: 1px solid #f6c7bb;
-  border-radius: 50%;
-  color: #ed8d7a;
-  background: #fff5ef77;
-  box-shadow:
-    0 0 0 21px #ffffff30,
-    0 0 0 43px #fff8f240;
-}
-.promo-hero-art > svg {
-  width: 69px;
-  height: 69px;
-  stroke-width: 1.1;
-}
-.promo-hero-art strong {
-  font-size: 46px;
-  line-height: 1;
-  font-weight: 600;
-}
-.promo-hero-art span {
-  font-size: 12px;
-  letter-spacing: 1px;
-}
-.promo-tabs {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 9px;
-  margin: 23px 0 27px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  background: #fff;
-}
-.promo-tabs > a {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  flex: 1;
-  padding: 10px 15px;
-  border-radius: 7px;
-  color: #8b95a1;
-  font-size: 12px;
-  white-space: nowrap;
-  transition:
-    background 0.2s,
-    color 0.2s;
-}
-.promo-tabs > a svg {
-  width: 15px;
-  height: 15px;
-}
-.promo-tabs > a:hover {
-  background: #faf5f3;
-  color: var(--red);
-}
-.promo-tabs > a.active {
-  background: var(--pale);
-  color: var(--red);
-  font-weight: 500;
 }
 .promo-content {
   min-width: 0;
@@ -802,8 +688,8 @@
 }
 .promo-exchange-card.selected {
   border-color: #eeada0;
-  box-shadow: 0 0 0 1px #ffe0d8;
-  background: #fffaf8;
+  box-shadow: 0 0 0 1px var(--brand-border);
+  background: var(--brand-soft-subtle);
 }
 .promo-exchange-image {
   width: 64px;
@@ -1290,37 +1176,6 @@
   .promo-page {
     padding-top: 21px;
   }
-  .promo-hero {
-    min-height: 188px;
-    padding: 29px 30px;
-    gap: 25px;
-  }
-  .promo-hero-copy h1 {
-    font-size: 28px;
-  }
-  .promo-hero-copy p {
-    font-size: 11px;
-  }
-  .promo-hero-art {
-    width: 116px;
-    height: 116px;
-    box-shadow:
-      0 0 0 16px #ffffff30,
-      0 0 0 32px #fff8f240;
-  }
-  .promo-hero-art > svg {
-    width: 53px;
-    height: 53px;
-  }
-  .promo-tabs {
-    margin: 20px 0 23px;
-    padding: 7px;
-  }
-  .promo-tabs > a {
-    font-size: 11px;
-    padding: 9px 11px;
-    gap: 5px;
-  }
   .promo-section-head h2 {
     font-size: 20px;
   }
@@ -1449,63 +1304,13 @@
     font-size: 8px;
   }
   .promo-page {
-    padding-top: 16px;
+    padding-top: 0;
     padding-bottom: 29px;
-  }
-  .promo-hero {
-    min-height: 175px;
-    padding: 24px 22px;
-    gap: 15px;
-    border-radius: 12px;
-  }
-  .promo-hero-copy h1 {
-    font-size: 24px;
-    letter-spacing: -0.7px;
-    margin-bottom: 7px;
-  }
-  .promo-hero-copy p {
-    font-size: 9px;
-    max-width: 230px;
-  }
-  .promo-hero-badge {
-    font-size: 8px;
-    padding: 2px 7px;
-    margin-bottom: 9px;
   }
   .promo-kicker {
     font-size: 7px;
     letter-spacing: 1.5px;
     margin-bottom: 6px;
-  }
-  .promo-hero-art {
-    position: absolute;
-    right: -15px;
-    bottom: -10px;
-    width: 104px;
-    height: 104px;
-    opacity: 0.35;
-    box-shadow:
-      0 0 0 15px #ffffff30,
-      0 0 0 30px #fff8f240;
-  }
-  .promo-hero-art > svg {
-    width: 48px;
-    height: 48px;
-  }
-  .promo-tabs {
-    gap: 4px;
-    padding: 5px;
-    margin: 17px 0 22px;
-    border-radius: 9px;
-  }
-  .promo-tabs > a {
-    font-size: 9px;
-    padding: 8px 5px;
-    gap: 4px;
-  }
-  .promo-tabs > a svg {
-    width: 12px;
-    height: 12px;
   }
   .promo-section-head {
     gap: 12px;
@@ -1802,8 +1607,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .promo-entry,
-  .promo-card-image img,
-  .promo-tabs > a {
+  .promo-card-image img {
     transition: none;
   }
 }
@@ -1825,20 +1629,6 @@
   font-size: 8px;
   letter-spacing: 1px;
   margin-bottom: 3px;
-}
-.promo-hero-art {
-  flex-direction: column;
-  gap: 10px;
-}
-.promo-hero-art > svg {
-  width: 49px;
-  height: 49px;
-}
-.promo-hero-art > span {
-  text-align: center;
-  font-size: 8px;
-  letter-spacing: 1.5px;
-  line-height: 1.7;
 }
 .promo-session-tabs {
   align-items: center;
@@ -2016,13 +1806,6 @@
   .promo-detail-price > small {
     font-size: 8px;
   }
-  .promo-hero-art > svg {
-    width: 43px;
-    height: 43px;
-  }
-  .promo-hero-art > span {
-    font-size: 7px;
-  }
 }
 @media (max-width: 540px) {
   .promo-session-tabs {
@@ -2094,10 +1877,6 @@
   .promo-checkout-note a {
     display: flex;
     margin: 5px 0 0;
-  }
-  .promo-hero-art > svg {
-    width: 40px;
-    height: 40px;
   }
 }
 /* Shared campaign choices: rules are previews; checkout uses the server quote. */
@@ -2180,20 +1959,6 @@
 .promo-campaign-option-icon.is-direct {
   background: #f0eff9;
   color: #9a8abb;
-}
-.promo-tabs {
-  overflow-x: auto;
-  scrollbar-width: none;
-  justify-content: flex-start;
-}
-.promo-tabs::-webkit-scrollbar {
-  display: none;
-}
-.promo-tabs > a {
-  flex: 0 0 auto;
-  white-space: nowrap;
-  min-width: 98px;
-  justify-content: center;
 }
 .promo-campaign-banner {
   display: flex;
@@ -2349,8 +2114,8 @@
 }
 .promo-campaign-option.selected {
   border-color: #f5b2a7;
-  background: #fff8f5;
-  box-shadow: 0 0 0 1px #ffe8df;
+  background: var(--pale);
+  box-shadow: 0 0 0 1px var(--brand-border);
 }
 .promo-campaign-option:hover:not(:disabled) {
   border-color: #f1c3b8;
@@ -2428,9 +2193,6 @@
   .promo-more-entry {
     padding: 14px;
   }
-  .promo-tabs > a {
-    min-width: 91px;
-  }
   .promo-campaign-banner {
     padding: 20px;
     gap: 15px;
@@ -2484,10 +2246,6 @@
   }
   .promo-more-entry > svg {
     display: none;
-  }
-  .promo-tabs > a {
-    min-width: 87px;
-    padding: 9px 10px;
   }
   .promo-campaign-banner {
     padding: 18px;
@@ -2562,5 +2320,320 @@
   .promo-more-entry,
   .promo-campaign-option {
     transition: none;
+  }
+}
+
+/* Activity listings use the catalogue's card proportions. Inline activity
+   selectors in product, cart and checkout views keep their existing layout. */
+.promo-page .promo-tabs {
+  margin: 0 0 18px;
+}
+.promo-page .promo-session-tabs {
+  margin-bottom: 0;
+}
+.promo-page .promo-results-head {
+  margin: 18px 0 16px;
+}
+.promo-page .promo-section-head {
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.promo-page .promo-section-head h2 {
+  font-size: 16px;
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+.promo-page .promo-section-head p {
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.8;
+}
+.promo-page .promo-grid,
+.promo-page .promo-exchange-grid,
+.promo-page .sk-product-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 16px;
+}
+.promo-page .promo-card,
+.promo-page .promo-exchange-card,
+.promo-page .sk-product {
+  border-color: var(--line);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: none;
+}
+.promo-page .promo-card-image,
+.promo-page .promo-exchange-image,
+.promo-page .sk-product > .sk-media {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+.promo-page .promo-card-image img,
+.promo-page .promo-exchange-image img {
+  width: 100%;
+  height: 100%;
+}
+.promo-page .promo-card-image img[src*='macbook-'] {
+  padding: 12px;
+}
+.promo-page .promo-card-body,
+.promo-page .sk-product-info {
+  padding: 13px 12px;
+}
+.promo-page .promo-card-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.6;
+  min-height: 3.2em;
+}
+.promo-page .promo-card-sub {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 10px;
+  line-height: 1.7;
+  margin-top: 4px;
+}
+.promo-page .promo-card-pricing {
+  gap: 5px;
+  margin: 9px 0 8px;
+}
+.promo-page .promo-card-price,
+.promo-page .promo-card-price .price,
+.promo-page .promo-campaign-product-price > span,
+.promo-page .promo-exchange-pricing > strong {
+  font-size: 20px;
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+.promo-page .promo-card-price > small {
+  margin-bottom: 3px;
+  font-size: 9px;
+}
+.promo-page .promo-card-label {
+  top: 10px;
+  left: 10px;
+  padding: 3px 7px;
+  font-size: 9px;
+}
+.promo-page .promo-stock {
+  margin: 5px 0 9px;
+}
+.promo-page .promo-stock-track {
+  height: 4px;
+}
+.promo-page .promo-card-meta {
+  gap: 4px 8px;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.promo-page .promo-card-cta,
+.promo-page .promo-exchange-choose {
+  min-height: 36px;
+  margin-top: auto;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 11px;
+}
+.promo-page .promo-card-cta {
+  margin-top: auto;
+}
+.promo-page .promo-card-meta + .promo-card-cta,
+.promo-page .promo-stock + .promo-card-cta,
+.promo-page .promo-exchange-hint + .promo-card-cta {
+  margin-top: 12px;
+}
+.promo-page .promo-group-row {
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+  padding-top: 9px;
+}
+.promo-page .promo-team-info {
+  flex-basis: calc(100% - 36px);
+}
+.promo-page .promo-group-row > button {
+  width: 100%;
+  margin-left: 0;
+}
+.promo-page .promo-campaign-banner,
+.promo-page .promo-exchange-box.in-page {
+  padding: 14px 16px;
+  margin: 0 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+.promo-page .promo-campaign-banner {
+  gap: 12px;
+}
+.promo-page .promo-campaign-banner > span {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--pale);
+  color: var(--red);
+}
+.promo-page .promo-campaign-banner > span svg {
+  width: 20px;
+  height: 20px;
+}
+.promo-page .promo-campaign-banner strong {
+  color: var(--red);
+  font-size: 17px;
+}
+.promo-page .promo-campaign-banner p {
+  margin-top: 3px;
+  color: #99a2ae;
+  font-size: 10px;
+}
+.promo-page .promo-campaign-product-price {
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 9px;
+}
+.promo-page .promo-campaign-rule {
+  font-size: 10px;
+  margin: 7px 0 12px;
+}
+.promo-page .promo-campaign-fineprint {
+  margin-top: 8px;
+}
+.promo-page .promo-exchange-box.in-page {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.promo-page .promo-exchange-head {
+  margin-bottom: 10px;
+}
+.promo-page .promo-exchange-head h2 {
+  font-size: 14px;
+}
+.promo-page .promo-exchange-head .promo-kicker {
+  display: none;
+}
+.promo-page .promo-exchange-head h2 > span {
+  font-size: 11px;
+}
+.promo-page .promo-exchange-status {
+  gap: 5px;
+}
+.promo-page .promo-exchange-card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.promo-page .promo-exchange-image {
+  border-radius: 0;
+}
+.promo-page .promo-exchange-info {
+  width: 100%;
+  padding: 13px 12px 9px;
+}
+.promo-page .promo-exchange-pricing {
+  gap: 5px;
+  margin-top: 8px;
+}
+.promo-page .promo-exchange-choose {
+  width: calc(100% - 24px);
+  margin: auto 12px 12px;
+}
+.promo-page .promo-empty {
+  border-radius: 12px;
+  border-color: var(--line);
+  min-height: 260px;
+}
+.promo-page .promo-my-groups {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.promo-page .promo-order-panel {
+  border-color: var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+@media (max-width: 1100px) {
+  .promo-page .promo-grid,
+  .promo-page .promo-exchange-grid,
+  .promo-page .sk-product-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .promo-page .promo-my-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 800px) {
+  .promo-page .promo-grid,
+  .promo-page .promo-exchange-grid,
+  .promo-page .sk-product-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .promo-page .promo-section-head {
+    gap: 10px;
+  }
+  .promo-page .promo-section-head h2 {
+    font-size: 15px;
+  }
+  .promo-page .promo-session-tabs {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 540px) {
+  .promo-page .promo-grid,
+  .promo-page .promo-exchange-grid,
+  .promo-page .sk-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .promo-page .promo-card-body,
+  .promo-page .sk-product-info,
+  .promo-page .promo-exchange-info {
+    padding: 11px 10px;
+  }
+  .promo-page .promo-card-title {
+    font-size: 12px;
+  }
+  .promo-page .promo-card-meta {
+    font-size: 9px;
+  }
+  .promo-page .promo-card-price,
+  .promo-page .promo-card-price .price,
+  .promo-page .promo-campaign-product-price > span,
+  .promo-page .promo-exchange-pricing > strong {
+    font-size: 18px;
+  }
+  .promo-page .promo-card-cta,
+  .promo-page .promo-exchange-choose {
+    min-height: 40px;
+    font-size: 10px;
+    gap: 4px;
+  }
+  .promo-page .promo-card-cta > svg {
+    width: 13px;
+    height: 13px;
+  }
+  .promo-page .promo-card-label {
+    top: 8px;
+    left: 8px;
+    font-size: 8px;
+  }
+  .promo-page .promo-campaign-banner {
+    flex-wrap: wrap;
+    padding: 12px;
+  }
+  .promo-page .promo-campaign-banner > .outline {
+    margin-left: 48px;
+  }
+  .promo-page .promo-my-groups {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

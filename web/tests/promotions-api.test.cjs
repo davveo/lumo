@@ -218,6 +218,7 @@ const context = vm.createContext({
   asset: (s) => s,
   productCard: (p) => p.name,
   header: () => '',
+  storefrontPageStart: () => '',
   footer: () => '',
 });
 require('./load-constants.cjs')(context, dir);

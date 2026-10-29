@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"github.com/davveo/lumo/internal/constants"
+	"github.com/davveo/lumo/services/recommendation/internal/repository"
 	"math"
 	"sort"
 	"strings"
@@ -117,10 +118,17 @@ func paidOrder(row map[string]any) bool {
 	}
 	return false
 }
-func buildProfile(rows signalRows, metadata map[string]product, now time.Time) preference {
+func buildProfile(rows signalRows, metadata map[string]product, now time.Time, policies ...repository.Policy) preference {
+	policy := repository.DefaultPolicy()
+	if len(policies) > 0 {
+		policy = policies[0]
+	}
 	p := preference{purchased: map[string]bool{}}
 	interests := map[string]interest{}
 	add := func(id, kind string, weight float64, at time.Time) {
+		if weight <= 0 {
+			return
+		}
 		v, ok := metadata[id]
 		if !ok {
 			return
@@ -140,9 +148,9 @@ func buildProfile(rows signalRows, metadata map[string]product, now time.Time) p
 		kind   string
 		weight float64
 	}{
-		{rows.Favorite, constants.RecommendationSignalFavorite, 8},
-		{rows.Compare, constants.RecommendationSignalCompare, 5},
-		{rows.History, constants.RecommendationSignalHistory, 3},
+		{rows.Favorite, constants.RecommendationSignalFavorite, policy.FavoriteWeight},
+		{rows.Compare, constants.RecommendationSignalCompare, policy.CompareWeight},
+		{rows.History, constants.RecommendationSignalHistory, policy.HistoryWeight},
 	} {
 		for _, row := range signal.rows {
 			add(platform.Text(row, "sku_id"), signal.kind, signal.weight, signalTime(row))
@@ -151,7 +159,7 @@ func buildProfile(rows signalRows, metadata map[string]product, now time.Time) p
 	for _, row := range rows.Search {
 		query := strings.TrimSpace(platform.Text(row, "query"))
 		if validInterest(query, 80) && len(p.queries) < 20 {
-			p.queries = append(p.queries, queryInterest{query, 4 * decay(now, signalTime(row), 14)})
+			p.queries = append(p.queries, queryInterest{query, policy.SearchWeight * decay(now, signalTime(row), 14)})
 			p.count++
 		}
 	}
@@ -168,7 +176,7 @@ func buildProfile(rows signalRows, metadata map[string]product, now time.Time) p
 			if v, ok := metadata[id]; ok {
 				p.purchased[v.id] = true
 			}
-			add(id, constants.RecommendationSignalPurchase, 12, signalTime(row))
+			add(id, constants.RecommendationSignalPurchase, policy.PurchaseWeight, signalTime(row))
 		}
 	}
 	for _, signal := range interests {
@@ -337,7 +345,12 @@ func rankProducts(
 	scene string,
 	limit int,
 	now time.Time,
+	policies ...repository.Policy,
 ) []platform.Result {
+	policy := repository.DefaultPolicy()
+	if len(policies) > 0 {
+		policy = policies[0]
+	}
 	ranked := []scoredProduct{}
 	anchors := []product{}
 	for _, line := range rowsOf(order["items"]) {
@@ -348,7 +361,7 @@ func rankProducts(
 	for index, p := range products {
 		// Popularity and freshness are modest exploration factors; the stable
 		// source position only breaks otherwise identical cold-start candidates.
-		score := .18*math.Log1p(math.Max(0, p.sales)) + .35*decay(now, p.created, 45) + .001/float64(index+1)
+		score := policy.PopularityWeight*math.Log1p(math.Max(0, p.sales)) + policy.FreshnessWeight*decay(now, p.created, 45) + .001/float64(index+1)
 		reason := "精选在售好物"
 		reasons := []string{constants.RecommendationReasonCatalogDiscovery}
 		bestWeight := 0.
@@ -365,7 +378,7 @@ func rankProducts(
 		}
 		if total > 0 {
 			personal := weights / total * math.Min(1, total/8)
-			score += personal * 6
+			score += personal * policy.PersonalWeight
 			if personal > .15 {
 				reasons = append(reasons, constants.RecommendationReasonPreferenceAffinity)
 				reason = map[string]string{
@@ -387,7 +400,7 @@ func rankProducts(
 		}
 		if contextProduct != nil {
 			similar := similarity(p, *contextProduct)
-			score += similar * 9
+			score += similar * policy.SimilarWeight
 			if similar > .2 {
 				reasons = append(reasons, constants.RecommendationReasonSimilarProduct)
 				reason = "与你正在看的商品相似"
@@ -406,6 +419,15 @@ func rankProducts(
 		}
 		if reason == "" {
 			reason = "精选在售好物"
+		}
+		if scene == constants.RecommendationSceneHome {
+			for i, id := range policy.PinnedIDs {
+				if id == p.id || id == p.rawID {
+					score += 1000000 - float64(i)
+					reason = "商城精选推荐"
+					break
+				}
+			}
 		}
 		ranked = append(ranked, scoredProduct{p, score, reason, reasons})
 	}

@@ -10,7 +10,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type Service struct{ Repo *repository.Repository }
+type Service struct {
+	Repo *repository.Repository
+	RPC  platform.Caller
+}
 
 func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "points.usecase.Get")
@@ -20,7 +23,16 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 	if err := platform.RequireUser(c); err != nil {
 		return nil, err
 	}
-	return s.Repo.Get(ctx, c)
+	value, e := s.Repo.Get(ctx, c)
+	if e != nil {
+		return nil, e
+	}
+	policy, e := s.Repo.Policy(ctx)
+	if e != nil {
+		return nil, e
+	}
+	value["policy"] = policy
+	return value, nil
 }
 func (s *Service) Checkin(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "points.usecase.Checkin")
@@ -113,7 +125,7 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
 	}
 	if e.Type == constants.EventOrderCompleted {
 		amount := platform.Int(e.Data, "reward_points")
-		if amount == 0 {
+		if _, snapshotted := e.Data["reward_points"]; !snapshotted {
 			amount = platform.Int(e.Data, "payable_cents") / 100
 		}
 		_, err := s.Reward(

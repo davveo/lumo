@@ -1,0 +1,111 @@
+.pd-product {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-3);
+  min-width: 190px;
+}
+.pd-product > img,
+.pd-product > i {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  object-fit: contain;
+  background: var(--admin-surface-subtle);
+  border-radius: var(--admin-radius-control);
+  border: 1px solid var(--admin-line);
+}
+.pd-product > div {
+  min-width: 0;
+}
+.pd-product strong {
+  font-size: var(--admin-font-small);
+}
+.pd-table td:first-child {
+  width: 39%;
+}
+.pd-table td:nth-child(2) {
+  width: 22%;
+}
+.pd-table td:nth-child(2) > span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--admin-subtle);
+  font-size: var(--admin-font-help);
+}
+.pd-editor-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(240px, 0.75fr);
+  gap: var(--admin-space-5);
+  align-items: start;
+}
+.pd-editor-grid > aside {
+  min-width: 0;
+}
+.pd-editor-grid .field small {
+  font-size: 10px;
+  color: var(--admin-subtle);
+}
+.pd-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--admin-muted);
+  font-size: var(--admin-font-small);
+}
+.pd-check input {
+  accent-color: var(--admin-accent);
+  width: 15px;
+  height: 15px;
+}
+.pd-image-preview {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  background: var(--admin-surface-subtle);
+  border: 1px solid #eef0f5;
+  border-radius: 9px;
+  overflow: hidden;
+  color: var(--admin-subtle);
+  font-size: var(--admin-font-small);
+}
+.pd-image-preview > img {
+  object-fit: contain;
+}
+.pd-specs {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr);
+  gap: var(--admin-space-3);
+  font-size: var(--admin-font-help);
+  margin: 20px 0;
+}
+.pd-specs dt {
+  color: var(--admin-subtle);
+}
+.pd-specs dd {
+  margin: 0;
+  color: var(--admin-text);
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1100px) {
+  .pd-editor-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .pd-editor-grid > aside {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: var(--admin-space-4);
+  }
+  .pd-image-preview {
+    max-height: 240px;
+  }
+}
+@media (max-width: 600px) {
+  .pd-editor-grid > aside {
+    display: block;
+  }
+  .pd-image-preview {
+    max-width: 240px;
+    margin: auto;
+  }
+}

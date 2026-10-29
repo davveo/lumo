@@ -21,20 +21,34 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	EngagementService_Clear_FullMethodName  = "/mall.v1.EngagementService/Clear"
-	EngagementService_Delete_FullMethodName = "/mall.v1.EngagementService/Delete"
-	EngagementService_List_FullMethodName   = "/mall.v1.EngagementService/List"
-	EngagementService_Put_FullMethodName    = "/mall.v1.EngagementService/Put"
+	EngagementService_AdminCancel_FullMethodName   = "/mall.v1.EngagementService/AdminCancel"
+	EngagementService_AdminList_FullMethodName     = "/mall.v1.EngagementService/AdminList"
+	EngagementService_Clear_FullMethodName         = "/mall.v1.EngagementService/Clear"
+	EngagementService_Delete_FullMethodName        = "/mall.v1.EngagementService/Delete"
+	EngagementService_List_FullMethodName          = "/mall.v1.EngagementService/List"
+	EngagementService_PolicyGet_FullMethodName     = "/mall.v1.EngagementService/PolicyGet"
+	EngagementService_PolicyUpsert_FullMethodName  = "/mall.v1.EngagementService/PolicyUpsert"
+	EngagementService_Put_FullMethodName           = "/mall.v1.EngagementService/Put"
+	EngagementService_Subscribe_FullMethodName     = "/mall.v1.EngagementService/Subscribe"
+	EngagementService_Subscriptions_FullMethodName = "/mall.v1.EngagementService/Subscriptions"
+	EngagementService_Unsubscribe_FullMethodName   = "/mall.v1.EngagementService/Unsubscribe"
 )
 
 // EngagementServiceClient is the client API for EngagementService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type EngagementServiceClient interface {
+	AdminCancel(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Clear(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Delete(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	List(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PolicyGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PolicyUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Put(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Subscribe(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Subscriptions(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Unsubscribe(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type engagementServiceClient struct {
@@ -43,6 +57,24 @@ type engagementServiceClient struct {
 
 func NewEngagementServiceClient(cc grpc.ClientConnInterface) EngagementServiceClient {
 	return &engagementServiceClient{cc}
+}
+
+func (c *engagementServiceClient) AdminCancel(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, EngagementService_AdminCancel_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *engagementServiceClient) AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, EngagementService_AdminList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *engagementServiceClient) Clear(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
@@ -72,9 +104,54 @@ func (c *engagementServiceClient) List(ctx context.Context, in *ServiceRequest, 
 	return out, nil
 }
 
+func (c *engagementServiceClient) PolicyGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, EngagementService_PolicyGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *engagementServiceClient) PolicyUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, EngagementService_PolicyUpsert_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *engagementServiceClient) Put(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
 	out := new(ServiceResponse)
 	err := c.cc.Invoke(ctx, EngagementService_Put_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *engagementServiceClient) Subscribe(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, EngagementService_Subscribe_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *engagementServiceClient) Subscriptions(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, EngagementService_Subscriptions_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *engagementServiceClient) Unsubscribe(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, EngagementService_Unsubscribe_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -85,10 +162,17 @@ func (c *engagementServiceClient) Put(ctx context.Context, in *ServiceRequest, o
 // All implementations must embed UnimplementedEngagementServiceServer
 // for forward compatibility
 type EngagementServiceServer interface {
+	AdminCancel(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Clear(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Delete(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	List(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PolicyGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Put(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Subscribe(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Subscriptions(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Unsubscribe(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedEngagementServiceServer()
 }
 
@@ -96,6 +180,12 @@ type EngagementServiceServer interface {
 type UnimplementedEngagementServiceServer struct {
 }
 
+func (UnimplementedEngagementServiceServer) AdminCancel(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminCancel not implemented")
+}
+func (UnimplementedEngagementServiceServer) AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminList not implemented")
+}
 func (UnimplementedEngagementServiceServer) Clear(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Clear not implemented")
 }
@@ -105,8 +195,23 @@ func (UnimplementedEngagementServiceServer) Delete(context.Context, *ServiceRequ
 func (UnimplementedEngagementServiceServer) List(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
+func (UnimplementedEngagementServiceServer) PolicyGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PolicyGet not implemented")
+}
+func (UnimplementedEngagementServiceServer) PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PolicyUpsert not implemented")
+}
 func (UnimplementedEngagementServiceServer) Put(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Put not implemented")
+}
+func (UnimplementedEngagementServiceServer) Subscribe(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
+}
+func (UnimplementedEngagementServiceServer) Subscriptions(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Subscriptions not implemented")
+}
+func (UnimplementedEngagementServiceServer) Unsubscribe(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Unsubscribe not implemented")
 }
 func (UnimplementedEngagementServiceServer) mustEmbedUnimplementedEngagementServiceServer() {}
 
@@ -119,6 +224,42 @@ type UnsafeEngagementServiceServer interface {
 
 func RegisterEngagementServiceServer(s grpc.ServiceRegistrar, srv EngagementServiceServer) {
 	s.RegisterService(&EngagementService_ServiceDesc, srv)
+}
+
+func _EngagementService_AdminCancel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EngagementServiceServer).AdminCancel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EngagementService_AdminCancel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EngagementServiceServer).AdminCancel(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EngagementService_AdminList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EngagementServiceServer).AdminList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EngagementService_AdminList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EngagementServiceServer).AdminList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _EngagementService_Clear_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -175,6 +316,42 @@ func _EngagementService_List_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EngagementService_PolicyGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EngagementServiceServer).PolicyGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EngagementService_PolicyGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EngagementServiceServer).PolicyGet(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EngagementService_PolicyUpsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EngagementServiceServer).PolicyUpsert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EngagementService_PolicyUpsert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EngagementServiceServer).PolicyUpsert(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _EngagementService_Put_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ServiceRequest)
 	if err := dec(in); err != nil {
@@ -193,6 +370,60 @@ func _EngagementService_Put_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EngagementService_Subscribe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EngagementServiceServer).Subscribe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EngagementService_Subscribe_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EngagementServiceServer).Subscribe(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EngagementService_Subscriptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EngagementServiceServer).Subscriptions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EngagementService_Subscriptions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EngagementServiceServer).Subscriptions(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EngagementService_Unsubscribe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EngagementServiceServer).Unsubscribe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EngagementService_Unsubscribe_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EngagementServiceServer).Unsubscribe(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // EngagementService_ServiceDesc is the grpc.ServiceDesc for EngagementService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -200,6 +431,14 @@ var EngagementService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "mall.v1.EngagementService",
 	HandlerType: (*EngagementServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "AdminCancel",
+			Handler:    _EngagementService_AdminCancel_Handler,
+		},
+		{
+			MethodName: "AdminList",
+			Handler:    _EngagementService_AdminList_Handler,
+		},
 		{
 			MethodName: "Clear",
 			Handler:    _EngagementService_Clear_Handler,
@@ -213,8 +452,28 @@ var EngagementService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _EngagementService_List_Handler,
 		},
 		{
+			MethodName: "PolicyGet",
+			Handler:    _EngagementService_PolicyGet_Handler,
+		},
+		{
+			MethodName: "PolicyUpsert",
+			Handler:    _EngagementService_PolicyUpsert_Handler,
+		},
+		{
 			MethodName: "Put",
 			Handler:    _EngagementService_Put_Handler,
+		},
+		{
+			MethodName: "Subscribe",
+			Handler:    _EngagementService_Subscribe_Handler,
+		},
+		{
+			MethodName: "Subscriptions",
+			Handler:    _EngagementService_Subscriptions_Handler,
+		},
+		{
+			MethodName: "Unsubscribe",
+			Handler:    _EngagementService_Unsubscribe_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

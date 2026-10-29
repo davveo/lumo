@@ -26,7 +26,7 @@ var File_api_mall_v1_content_proto protoreflect.FileDescriptor
 
 const file_api_mall_v1_content_proto_rawDesc = "" +
 	"\n" +
-	"\x19api/mall/v1/content.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xcd\x04\n" +
+	"\x19api/mall/v1/content.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xcf\x05\n" +
 	"\x0eContentService\x128\n" +
 	"\x03Get\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x129\n" +
 	"\x04List\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12?\n" +
@@ -38,36 +38,42 @@ const file_api_mall_v1_content_proto_rawDesc = "" +
 	"PopupEvent\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
 	"\tPopupList\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12@\n" +
 	"\vPopupUpsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
-	"\x06Upsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
+	"\x06Upsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tAdminList\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12@\n" +
+	"\vAdminUpsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
 
 var file_api_mall_v1_content_proto_goTypes = []any{
 	(*ServiceRequest)(nil),  // 0: mall.v1.ServiceRequest
 	(*ServiceResponse)(nil), // 1: mall.v1.ServiceResponse
 }
 var file_api_mall_v1_content_proto_depIdxs = []int32{
-	0, // 0: mall.v1.ContentService.Get:input_type -> mall.v1.ServiceRequest
-	0, // 1: mall.v1.ContentService.List:input_type -> mall.v1.ServiceRequest
-	0, // 2: mall.v1.ContentService.PopupClaim:input_type -> mall.v1.ServiceRequest
-	0, // 3: mall.v1.ContentService.PopupConfigure:input_type -> mall.v1.ServiceRequest
-	0, // 4: mall.v1.ContentService.PopupDecide:input_type -> mall.v1.ServiceRequest
-	0, // 5: mall.v1.ContentService.PopupEvent:input_type -> mall.v1.ServiceRequest
-	0, // 6: mall.v1.ContentService.PopupList:input_type -> mall.v1.ServiceRequest
-	0, // 7: mall.v1.ContentService.PopupUpsert:input_type -> mall.v1.ServiceRequest
-	0, // 8: mall.v1.ContentService.Upsert:input_type -> mall.v1.ServiceRequest
-	1, // 9: mall.v1.ContentService.Get:output_type -> mall.v1.ServiceResponse
-	1, // 10: mall.v1.ContentService.List:output_type -> mall.v1.ServiceResponse
-	1, // 11: mall.v1.ContentService.PopupClaim:output_type -> mall.v1.ServiceResponse
-	1, // 12: mall.v1.ContentService.PopupConfigure:output_type -> mall.v1.ServiceResponse
-	1, // 13: mall.v1.ContentService.PopupDecide:output_type -> mall.v1.ServiceResponse
-	1, // 14: mall.v1.ContentService.PopupEvent:output_type -> mall.v1.ServiceResponse
-	1, // 15: mall.v1.ContentService.PopupList:output_type -> mall.v1.ServiceResponse
-	1, // 16: mall.v1.ContentService.PopupUpsert:output_type -> mall.v1.ServiceResponse
-	1, // 17: mall.v1.ContentService.Upsert:output_type -> mall.v1.ServiceResponse
-	9, // [9:18] is the sub-list for method output_type
-	0, // [0:9] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0,  // 0: mall.v1.ContentService.Get:input_type -> mall.v1.ServiceRequest
+	0,  // 1: mall.v1.ContentService.List:input_type -> mall.v1.ServiceRequest
+	0,  // 2: mall.v1.ContentService.PopupClaim:input_type -> mall.v1.ServiceRequest
+	0,  // 3: mall.v1.ContentService.PopupConfigure:input_type -> mall.v1.ServiceRequest
+	0,  // 4: mall.v1.ContentService.PopupDecide:input_type -> mall.v1.ServiceRequest
+	0,  // 5: mall.v1.ContentService.PopupEvent:input_type -> mall.v1.ServiceRequest
+	0,  // 6: mall.v1.ContentService.PopupList:input_type -> mall.v1.ServiceRequest
+	0,  // 7: mall.v1.ContentService.PopupUpsert:input_type -> mall.v1.ServiceRequest
+	0,  // 8: mall.v1.ContentService.Upsert:input_type -> mall.v1.ServiceRequest
+	0,  // 9: mall.v1.ContentService.AdminList:input_type -> mall.v1.ServiceRequest
+	0,  // 10: mall.v1.ContentService.AdminUpsert:input_type -> mall.v1.ServiceRequest
+	1,  // 11: mall.v1.ContentService.Get:output_type -> mall.v1.ServiceResponse
+	1,  // 12: mall.v1.ContentService.List:output_type -> mall.v1.ServiceResponse
+	1,  // 13: mall.v1.ContentService.PopupClaim:output_type -> mall.v1.ServiceResponse
+	1,  // 14: mall.v1.ContentService.PopupConfigure:output_type -> mall.v1.ServiceResponse
+	1,  // 15: mall.v1.ContentService.PopupDecide:output_type -> mall.v1.ServiceResponse
+	1,  // 16: mall.v1.ContentService.PopupEvent:output_type -> mall.v1.ServiceResponse
+	1,  // 17: mall.v1.ContentService.PopupList:output_type -> mall.v1.ServiceResponse
+	1,  // 18: mall.v1.ContentService.PopupUpsert:output_type -> mall.v1.ServiceResponse
+	1,  // 19: mall.v1.ContentService.Upsert:output_type -> mall.v1.ServiceResponse
+	1,  // 20: mall.v1.ContentService.AdminList:output_type -> mall.v1.ServiceResponse
+	1,  // 21: mall.v1.ContentService.AdminUpsert:output_type -> mall.v1.ServiceResponse
+	11, // [11:22] is the sub-list for method output_type
+	0,  // [0:11] is the sub-list for method input_type
+	0,  // [0:0] is the sub-list for extension type_name
+	0,  // [0:0] is the sub-list for extension extendee
+	0,  // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_api_mall_v1_content_proto_init() }

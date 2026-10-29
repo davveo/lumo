@@ -19,4 +19,6 @@ service AftersaleService {
   rpc Refund(ServiceRequest) returns (ServiceResponse);
   rpc Reject(ServiceRequest) returns (ServiceResponse);
   rpc Return(ServiceRequest) returns (ServiceResponse);
+  rpc AdminList(ServiceRequest) returns (ServiceResponse);
+  rpc AdminSummary(ServiceRequest) returns (ServiceResponse);
 }

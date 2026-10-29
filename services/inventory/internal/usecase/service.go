@@ -153,3 +153,14 @@ func (s *Service) Restock(ctx context.Context, c platform.Request) (traceResult 
 
 	return s.Repo.Restock(ctx, c)
 }
+
+func (s *Service) Adjustments(ctx context.Context, c platform.Request) (result platform.Result, err error) {
+	ctx, span := platform.Start(ctx, "inventory.usecase.Adjustments")
+	defer span.End()
+	platform.TraceRequest(ctx, c)
+	defer func() { platform.TraceResponse(ctx, result, err) }()
+	if err = platform.RequireAdmin(c); err != nil {
+		return nil, err
+	}
+	return s.Repo.Adjustments(ctx, c)
+}

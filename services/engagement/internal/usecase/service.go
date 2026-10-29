@@ -4,8 +4,6 @@ import (
 	"context"
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
@@ -58,23 +56,6 @@ func (s *Service) Put(ctx context.Context, c platform.Request) (traceResult plat
 			return nil, e
 		}
 	}
-	if kind == constants.EngagementKindCompare {
-		vs, e := s.repo.List(ctx, c.UserID, kind, "", 100, 0)
-		if e != nil {
-			return nil, e
-		}
-		if len(vs) >= 3 {
-			found := false
-			for _, v := range vs {
-				if v.ID == stable(c.UserID, kind, target) {
-					found = true
-				}
-			}
-			if !found {
-				return nil, status.Error(codes.ResourceExhausted, "compare list limited to three products")
-			}
-		}
-	}
 	r := record(
 		stable(c.UserID, kind, target),
 		c.UserID,
@@ -82,8 +63,14 @@ func (s *Service) Put(ctx context.Context, c platform.Request) (traceResult plat
 		constants.EngagementStatusActive,
 		map[string]any{"sku_id": target, "query": target},
 	)
-	if e := s.repo.Save(ctx, &r, nil); e != nil {
-		return nil, e
+	var err error
+	if kind == constants.EngagementKindCompare {
+		err = s.repo.SaveComparison(ctx, &r)
+	} else {
+		err = s.repo.Save(ctx, &r, nil)
+	}
+	if err != nil {
+		return nil, err
 	}
 	return view(r), nil
 }

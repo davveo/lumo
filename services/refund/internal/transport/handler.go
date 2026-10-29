@@ -10,10 +10,12 @@ import (
 
 func New(s *usecase.Service) *platform.MethodHandler {
 	return platform.NewMethodHandler(constants.ServiceRefund, map[string]platform.Operation{
-		constants.ActionGet:         s.Get,
-		constants.ActionList:        s.List,
-		constants.ActionCreate:      s.Create,
-		constants.ActionConfirmDemo: s.ConfirmDemo,
+		constants.ActionAdminList:    s.AdminList,
+		constants.ActionAdminSummary: s.AdminSummary,
+		constants.ActionGet:          s.Get,
+		constants.ActionList:         s.List,
+		constants.ActionCreate:       s.Create,
+		constants.ActionConfirmDemo:  s.ConfirmDemo,
 	}, func(c platform.Request) error {
 		if len(c.ID) > 160 || len(c.IdempotencyKey) > 160 {
 			return status.Error(codes.InvalidArgument, "identifier too long")

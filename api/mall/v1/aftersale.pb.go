@@ -26,7 +26,7 @@ var File_api_mall_v1_aftersale_proto protoreflect.FileDescriptor
 
 const file_api_mall_v1_aftersale_proto_rawDesc = "" +
 	"\n" +
-	"\x1bapi/mall/v1/aftersale.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xf3\x04\n" +
+	"\x1bapi/mall/v1/aftersale.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xf6\x05\n" +
 	"\x10AftersaleService\x12<\n" +
 	"\aApprove\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
 	"\x06Cancel\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
@@ -37,7 +37,9 @@ const file_api_mall_v1_aftersale_proto_rawDesc = "" +
 	"\x04List\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
 	"\x06Refund\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
 	"\x06Reject\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
-	"\x06Return\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
+	"\x06Return\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
+	"\tAdminList\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12A\n" +
+	"\fAdminSummary\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
 
 var file_api_mall_v1_aftersale_proto_goTypes = []any{
 	(*ServiceRequest)(nil),  // 0: mall.v1.ServiceRequest
@@ -54,18 +56,22 @@ var file_api_mall_v1_aftersale_proto_depIdxs = []int32{
 	0,  // 7: mall.v1.AftersaleService.Refund:input_type -> mall.v1.ServiceRequest
 	0,  // 8: mall.v1.AftersaleService.Reject:input_type -> mall.v1.ServiceRequest
 	0,  // 9: mall.v1.AftersaleService.Return:input_type -> mall.v1.ServiceRequest
-	1,  // 10: mall.v1.AftersaleService.Approve:output_type -> mall.v1.ServiceResponse
-	1,  // 11: mall.v1.AftersaleService.Cancel:output_type -> mall.v1.ServiceResponse
-	1,  // 12: mall.v1.AftersaleService.Create:output_type -> mall.v1.ServiceResponse
-	1,  // 13: mall.v1.AftersaleService.Exchange:output_type -> mall.v1.ServiceResponse
-	1,  // 14: mall.v1.AftersaleService.Get:output_type -> mall.v1.ServiceResponse
-	1,  // 15: mall.v1.AftersaleService.Inspect:output_type -> mall.v1.ServiceResponse
-	1,  // 16: mall.v1.AftersaleService.List:output_type -> mall.v1.ServiceResponse
-	1,  // 17: mall.v1.AftersaleService.Refund:output_type -> mall.v1.ServiceResponse
-	1,  // 18: mall.v1.AftersaleService.Reject:output_type -> mall.v1.ServiceResponse
-	1,  // 19: mall.v1.AftersaleService.Return:output_type -> mall.v1.ServiceResponse
-	10, // [10:20] is the sub-list for method output_type
-	0,  // [0:10] is the sub-list for method input_type
+	0,  // 10: mall.v1.AftersaleService.AdminList:input_type -> mall.v1.ServiceRequest
+	0,  // 11: mall.v1.AftersaleService.AdminSummary:input_type -> mall.v1.ServiceRequest
+	1,  // 12: mall.v1.AftersaleService.Approve:output_type -> mall.v1.ServiceResponse
+	1,  // 13: mall.v1.AftersaleService.Cancel:output_type -> mall.v1.ServiceResponse
+	1,  // 14: mall.v1.AftersaleService.Create:output_type -> mall.v1.ServiceResponse
+	1,  // 15: mall.v1.AftersaleService.Exchange:output_type -> mall.v1.ServiceResponse
+	1,  // 16: mall.v1.AftersaleService.Get:output_type -> mall.v1.ServiceResponse
+	1,  // 17: mall.v1.AftersaleService.Inspect:output_type -> mall.v1.ServiceResponse
+	1,  // 18: mall.v1.AftersaleService.List:output_type -> mall.v1.ServiceResponse
+	1,  // 19: mall.v1.AftersaleService.Refund:output_type -> mall.v1.ServiceResponse
+	1,  // 20: mall.v1.AftersaleService.Reject:output_type -> mall.v1.ServiceResponse
+	1,  // 21: mall.v1.AftersaleService.Return:output_type -> mall.v1.ServiceResponse
+	1,  // 22: mall.v1.AftersaleService.AdminList:output_type -> mall.v1.ServiceResponse
+	1,  // 23: mall.v1.AftersaleService.AdminSummary:output_type -> mall.v1.ServiceResponse
+	12, // [12:24] is the sub-list for method output_type
+	0,  // [0:12] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name

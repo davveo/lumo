@@ -20,6 +20,7 @@ environment = {
     'CONSUL_HTTP_ADDR': 'http://consul:8500',
     'CONSUL_HTTP_TOKEN': '${CONSUL_HTTP_TOKEN:-}',
     'DEMO_MODE': '${DEMO_MODE:-true}',
+    'SNOWFLAKE_NODE_ID': '${SNOWFLAKE_NODE_ID:-}',
     'APP_ENV': 'development',
 }
 deps = {k: {'condition': 'service_healthy'} for k in ['mysql', 'redis', 'rabbitmq', 'consul']}
@@ -177,6 +178,9 @@ for n in names:
         'stop_grace_period': '20s',
         'restart': 'unless-stopped',
     }
+    if n == 'iam':
+        for key in ['IAM_OTP_HASH_KEY', 'SMS_WEBHOOK_URL', 'SMS_WEBHOOK_TOKEN', 'WECHAT_LOGIN_APP_ID', 'WECHAT_LOGIN_APP_SECRET', 'WECHAT_LOGIN_REDIRECT_URI', 'QQ_LOGIN_APP_ID', 'QQ_LOGIN_APP_SECRET', 'QQ_LOGIN_REDIRECT_URI']:
+            env[key] = '${' + key + ':-}'
     if n == 'media':
         env.update(
             {

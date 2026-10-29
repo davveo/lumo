@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"github.com/davveo/lumo/internal/adminconfig"
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/points/internal/domain"
@@ -17,6 +18,12 @@ import (
 type Repository struct{ DB *gorm.DB }
 
 func (r *Repository) Migrate(ctx context.Context) error {
+	if e := platform.MigrateBusinessIDs(ctx, r.DB); e != nil {
+		return e
+	}
+	if e := adminconfig.Migrate(ctx, r.DB); e != nil {
+		return e
+	}
 	return r.DB.WithContext(ctx).
 		AutoMigrate(&domain.Account{}, &domain.Hold{}, &domain.Ledger{}, &domain.Reward{}, &domain.RefundProgress{})
 }
@@ -189,7 +196,11 @@ func (r *Repository) credit(ctx context.Context, c platform.Request, checkin boo
 	kind := constants.PointsLedgerKindReward
 	order := c.ID
 	if checkin {
-		n = 20
+		policy, e := r.Policy(ctx)
+		if e != nil {
+			return nil, e
+		}
+		n = policy.CheckinPoints
 		id = "checkin:" + c.UserID + ":" + time.Now().UTC().Format("2006-01-02")
 		kind = constants.PointsLedgerKindCheckin
 		order = ""

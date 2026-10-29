@@ -16,3 +16,11 @@ type Record struct {
 }
 
 func (Record) TableName() string { return "engagement_records" }
+
+// CompareOwner serializes bounded-list additions across service replicas. It is
+// not an engagement record and cannot appear in favorites/history or counters.
+type CompareOwner struct {
+	UserID string `gorm:"primaryKey;size:128"`
+}
+
+func (CompareOwner) TableName() string { return "engagement_compare_owners" }

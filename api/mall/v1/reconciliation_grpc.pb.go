@@ -21,8 +21,11 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	ReconciliationService_List_FullMethodName = "/mall.v1.ReconciliationService/List"
-	ReconciliationService_Run_FullMethodName  = "/mall.v1.ReconciliationService/Run"
+	ReconciliationService_List_FullMethodName      = "/mall.v1.ReconciliationService/List"
+	ReconciliationService_Run_FullMethodName       = "/mall.v1.ReconciliationService/Run"
+	ReconciliationService_AdminList_FullMethodName = "/mall.v1.ReconciliationService/AdminList"
+	ReconciliationService_Get_FullMethodName       = "/mall.v1.ReconciliationService/Get"
+	ReconciliationService_Note_FullMethodName      = "/mall.v1.ReconciliationService/Note"
 )
 
 // ReconciliationServiceClient is the client API for ReconciliationService service.
@@ -31,6 +34,9 @@ const (
 type ReconciliationServiceClient interface {
 	List(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Run(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Get(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Note(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type reconciliationServiceClient struct {
@@ -59,12 +65,42 @@ func (c *reconciliationServiceClient) Run(ctx context.Context, in *ServiceReques
 	return out, nil
 }
 
+func (c *reconciliationServiceClient) AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, ReconciliationService_AdminList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *reconciliationServiceClient) Get(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, ReconciliationService_Get_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *reconciliationServiceClient) Note(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, ReconciliationService_Note_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ReconciliationServiceServer is the server API for ReconciliationService service.
 // All implementations must embed UnimplementedReconciliationServiceServer
 // for forward compatibility
 type ReconciliationServiceServer interface {
 	List(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Run(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Get(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Note(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedReconciliationServiceServer()
 }
 
@@ -77,6 +113,15 @@ func (UnimplementedReconciliationServiceServer) List(context.Context, *ServiceRe
 }
 func (UnimplementedReconciliationServiceServer) Run(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Run not implemented")
+}
+func (UnimplementedReconciliationServiceServer) AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminList not implemented")
+}
+func (UnimplementedReconciliationServiceServer) Get(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
+}
+func (UnimplementedReconciliationServiceServer) Note(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Note not implemented")
 }
 func (UnimplementedReconciliationServiceServer) mustEmbedUnimplementedReconciliationServiceServer() {}
 
@@ -127,6 +172,60 @@ func _ReconciliationService_Run_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ReconciliationService_AdminList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReconciliationServiceServer).AdminList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ReconciliationService_AdminList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReconciliationServiceServer).AdminList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ReconciliationService_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReconciliationServiceServer).Get(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ReconciliationService_Get_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReconciliationServiceServer).Get(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ReconciliationService_Note_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReconciliationServiceServer).Note(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ReconciliationService_Note_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReconciliationServiceServer).Note(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ReconciliationService_ServiceDesc is the grpc.ServiceDesc for ReconciliationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -141,6 +240,18 @@ var ReconciliationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Run",
 			Handler:    _ReconciliationService_Run_Handler,
+		},
+		{
+			MethodName: "AdminList",
+			Handler:    _ReconciliationService_AdminList_Handler,
+		},
+		{
+			MethodName: "Get",
+			Handler:    _ReconciliationService_Get_Handler,
+		},
+		{
+			MethodName: "Note",
+			Handler:    _ReconciliationService_Note_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

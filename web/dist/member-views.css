@@ -511,7 +511,7 @@
   min-width: 0;
 }
 .mem-status-item:hover {
-  background: #fff8f5;
+  background: var(--pale);
   color: var(--red);
 }
 .mem-status-item > span:first-child {
@@ -531,9 +531,9 @@
   position: absolute;
   right: -5px;
   top: -4px;
-  background: #fff1ef;
+  background: var(--pale);
   color: var(--red);
-  border: 1px solid #ffd9d5;
+  border: 1px solid var(--brand-border);
   min-width: 15px;
   height: 15px;
   font-size: 8px;
@@ -1039,9 +1039,9 @@
 }
 .mem-address-card.active,
 .mem-address-card.is-default {
-  border-color: #f4b5a9;
-  background: linear-gradient(145deg, #fffafa, #fff);
-  box-shadow: 0 3px 12px #f59d7d05;
+  border-color: var(--brand-border);
+  background: linear-gradient(145deg, var(--brand-soft-subtle), #fff);
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--red) 2%, transparent);
 }
 .mem-address-head {
   display: flex;
@@ -1620,8 +1620,8 @@
   color: #7d8b9c;
 }
 .mem-choice-address.active {
-  border-color: #f0ada1;
-  background: #fff9f6;
+  border-color: var(--brand-border-strong);
+  background: var(--pale);
 }
 .mem-choice-address > svg {
   width: 17px;
@@ -1813,9 +1813,9 @@
   height: 15px;
   border-radius: 10px;
   padding: 0 4px;
-  background: #fff1ef;
+  background: var(--pale);
   color: var(--red);
-  border: 1px solid #ffded7;
+  border: 1px solid var(--brand-border);
   font-size: 8px;
   line-height: 13px;
   font-style: normal;
@@ -2052,7 +2052,7 @@
   padding: 0 3px;
 }
 .mem-tabs > a.active > span {
-  background: #fff0ec;
+  background: var(--pale);
   color: var(--red);
 }
 .mem-order-head > span {
@@ -3762,5 +3762,64 @@
   }
   .mem-table td > small {
     font-size: 7px;
+  }
+}
+
+/* Small screens keep the same controls, with readable labels and touch areas. */
+@media (max-width: 680px) {
+  .mem-primary,
+  .mem-outline,
+  .mem-text-button,
+  .mem-address-actions button,
+  .mem-recent-action button,
+  .mem-recent-action a,
+  .mem-hero-edit,
+  .mem-section-head > a,
+  .mem-section-head > button {
+    min-height: 44px;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .mem-address-head strong,
+  .mem-address-body strong {
+    font-size: 13px;
+  }
+  .mem-address-head > span,
+  .mem-address-body p,
+  .mem-setting-row p,
+  .mem-info-grid dt,
+  .mem-info-grid dd,
+  .mem-help-grid p {
+    font-size: 12px;
+  }
+  .mem-toggle {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    background: transparent;
+  }
+  .mem-toggle::before {
+    content: '';
+    position: absolute;
+    width: 34px;
+    height: 20px;
+    left: 5px;
+    top: 12px;
+    border-radius: 12px;
+    background: #dfe3e9;
+    transition: background 0.2s;
+  }
+  .mem-toggle.on {
+    background: transparent;
+  }
+  .mem-toggle.on::before {
+    background: var(--red);
+  }
+  .mem-toggle i {
+    position: absolute;
+    left: 7px;
+    top: 14px;
   }
 }

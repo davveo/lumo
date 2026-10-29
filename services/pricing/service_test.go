@@ -6,6 +6,7 @@ import (
 	pricingmod "github.com/davveo/lumo/services/pricing"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"math"
 	"path/filepath"
 	"testing"
 )
@@ -16,6 +17,18 @@ type catalog struct {
 }
 
 func (c *catalog) Call(ctx context.Context, name string, in platform.Command) (platform.Result, error) {
+	if name == "member" && in.Action == "policy_get" {
+		return platform.Result{"config": map[string]any{"gold_growth": 1000, "growth_spend_cents": 10000}}, nil
+	}
+	if name == "points" && in.Action == "policy_get" {
+		return platform.Result{"config": map[string]any{"checkin_points": 20, "deduction_bps": 1000, "reward_per_yuan": 1}}, nil
+	}
+	if name == "logistics" {
+		return platform.Result{"shipping_cents": int64(0), "serviceable": true}, nil
+	}
+	if name == "flash" && in.Action == "session_get" {
+		return platform.Result{"open": true, "sku_id": "sku-a"}, nil
+	}
 	switch name {
 	case "catalog":
 		row := func(id string) platform.Result {
@@ -131,5 +144,19 @@ func TestNegativeQuantityAndExcessPointsRejected(t *testing.T) {
 		); e == nil {
 			t.Fatalf("invalid quote accepted: %v", data)
 		}
+	}
+}
+
+func TestDuplicateSKUQuantityCannotOverflowTheTenUnitLimit(t *testing.T) {
+	m, _ := setup(t)
+	_, err := m.Handle(context.Background(), platform.Command{
+		Action: "quote", UserID: "demo", Role: "user",
+		Data: map[string]any{"items": []any{
+			map[string]any{"sku_id": "sku-test", "quantity": int64(2)},
+			map[string]any{"sku_id": "sku-test", "quantity": int64(math.MaxInt64)},
+		}},
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("overflowing duplicate SKU quantity created a quote: %v", err)
 	}
 }

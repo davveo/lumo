@@ -23,3 +23,14 @@ type Session struct {
 }
 
 func (Session) TableName() string { return "iam_sessions" }
+
+// AccountChange records reversible administrative account availability changes.
+// Credentials and session digests never enter the audit record.
+type AccountChange struct {
+	ID        string    `gorm:"primaryKey;size:128" json:"id"`
+	UserID    string    `gorm:"index;size:128" json:"user_id"`
+	ActorID   string    `gorm:"size:128" json:"actor_id"`
+	Active    bool      `json:"active"`
+	Reason    string    `gorm:"size:240" json:"reason"`
+	CreatedAt time.Time `json:"created_at"`
+}

@@ -6,7 +6,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math"
 	"net"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -24,7 +26,7 @@ func InitTelemetry(ctx context.Context, service, endpoint string) (func(context.
 	ratio := 1.0
 	if raw := os.Getenv("OTEL_TRACES_SAMPLER_ARG"); raw != "" {
 		v, err := strconv.ParseFloat(raw, 64)
-		if err != nil || v < 0 || v > 1 {
+		if err != nil || math.IsNaN(v) || v < 0 || v > 1 {
 			return nil, fmt.Errorf("invalid OTEL_TRACES_SAMPLER_ARG")
 		}
 		ratio = v
@@ -43,11 +45,11 @@ func InitTelemetry(ctx context.Context, service, endpoint string) (func(context.
 		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(ratio))),
 	}
 	if endpoint != "" {
-		exporter, err := otlptracegrpc.New(
-			ctx,
-			otlptracegrpc.WithEndpoint(strings.TrimPrefix(strings.TrimPrefix(endpoint, "http://"), "https://")),
-			otlptracegrpc.WithInsecure(),
-		)
+		exporterOptions, err := traceExporterOptions(endpoint)
+		if err != nil {
+			return nil, err
+		}
+		exporter, err := otlptracegrpc.New(ctx, exporterOptions...)
 		if err != nil {
 			return nil, fmt.Errorf("create OTLP exporter: %w", err)
 		}
@@ -61,6 +63,26 @@ func InitTelemetry(ctx context.Context, service, endpoint string) (func(context.
 			With("service", service, "instance_id", instanceID),
 	)
 	return tp.Shutdown, nil
+}
+
+func traceExporterOptions(endpoint string) ([]otlptracegrpc.Option, error) {
+	endpoint = strings.TrimSpace(endpoint)
+	if strings.Contains(endpoint, "://") {
+		parsed, err := url.Parse(endpoint)
+		if err != nil || parsed.Hostname() == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") ||
+			parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
+			return nil, fmt.Errorf("invalid OTLP endpoint URL")
+		}
+		// WithEndpointURL retains the explicit HTTPS transport and the SDK's
+		// configured CA/client certificates. Do not downgrade it to WithInsecure.
+		return []otlptracegrpc.Option{otlptracegrpc.WithEndpointURL(endpoint)}, nil
+	}
+	host, port, err := net.SplitHostPort(endpoint)
+	if err != nil || host == "" || port == "" {
+		return nil, fmt.Errorf("OTLP endpoint must be an HTTP(S) URL or host:port")
+	}
+	// The deployment's unprefixed collector:4317 endpoint remains plaintext.
+	return []otlptracegrpc.Option{otlptracegrpc.WithEndpoint(endpoint), otlptracegrpc.WithInsecure()}, nil
 }
 
 // Use the same identity as registration so traces and logs can distinguish

@@ -3,6 +3,9 @@ package usecase
 import (
 	"context"
 	"encoding/json"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"strings"
 
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
@@ -18,7 +21,7 @@ type Service struct {
 func New(r *repository.Repository, rpc platform.Caller) *Service { return &Service{r, rpc} }
 func (s *Service) Topics() []string                              { return nil }
 func (s *Service) OnEvent(context.Context, platform.Event) error { return nil }
-func (s *Service) Tick(context.Context) error                    { return nil }
+func (s *Service) Tick(ctx context.Context) error                { return s.process(ctx) }
 func (s *Service) List(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
 	ctx, sp := platform.Start(ctx, "reconciliation.usecase.list")
 	defer sp.End()
@@ -46,6 +49,18 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 func (s *Service) Run(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
 	ctx, sp := platform.Start(ctx, "reconciliation.usecase.run")
 	defer sp.End()
+	if retry, _ := c.Data["retry"].(bool); retry {
+		if e := platform.RequireAdmin(c); e != nil {
+			return nil, e
+		}
+		if strings.TrimSpace(platform.Text(c.Data, "reason")) == "" || len([]rune(platform.Text(c.Data, "reason"))) > 240 || c.ID == "" || c.IdempotencyKey == "" || len(c.IdempotencyKey) > 120 {
+			return nil, status.Error(codes.InvalidArgument, "resume reason and idempotency key required")
+		}
+		return s.r.Resume(ctx, c)
+	}
+	if async, _ := c.Data["async"].(bool); async || platform.Text(c.Data, "from") != "" {
+		return s.start(ctx, c)
+	}
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	if err := platform.RequireAdmin(c); err != nil {
@@ -114,7 +129,11 @@ func (s *Service) Run(ctx context.Context, c platform.Request) (traceResult plat
 	if len(diffs) > 0 {
 		state = constants.ReconciliationStatusDifferences
 	}
-	run := domain.Run{ID: platform.ID("recon"), Status: state, Details: string(raw)}
+	id, err := s.r.BusinessID(ctx, "recon", "", "")
+	if err != nil {
+		return nil, err
+	}
+	run := domain.Run{ID: id, Status: state, Details: string(raw)}
 	if err = s.r.Create(ctx, &run); err != nil {
 		return nil, err
 	}

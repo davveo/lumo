@@ -29,6 +29,13 @@ func own(c platform.Request, r domain.Refund) error {
 	}
 	return nil
 }
+func refundCapacity(cap domain.Cap) (int64, error) {
+	if cap.Paid <= 0 || cap.Reserved < 0 || cap.Completed < 0 || cap.Reserved > cap.Paid ||
+		cap.Completed > cap.Paid-cap.Reserved {
+		return 0, status.Error(codes.Internal, "refund cap ledger inconsistent")
+	}
+	return cap.Paid - cap.Reserved - cap.Completed, nil
+}
 func (s *Service) ConfirmDemo(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
 	ctx, sp := platform.Start(ctx, "refund.usecase.confirm_demo")
 	defer sp.End()
@@ -48,10 +55,14 @@ func (s *Service) ConfirmDemo(ctx context.Context, c platform.Request) (traceRes
 	if err != nil {
 		return nil, err
 	}
+	c.ID = r.ID
 	var out platform.Result
 	err = s.r.Transaction(ctx, func(tx *repository.Tx) error {
 		cap, err := tx.Cap(r.PaymentID, 0)
 		if err != nil {
+			return err
+		}
+		if _, err = refundCapacity(cap); err != nil {
 			return err
 		}
 		current, err := tx.Get(c.ID)
@@ -65,7 +76,7 @@ func (s *Service) ConfirmDemo(ctx context.Context, c platform.Request) (traceRes
 		if current.Status != constants.RefundStatusProcessing {
 			return status.Error(codes.FailedPrecondition, "refund not processing")
 		}
-		if cap.Reserved < current.Amount {
+		if current.Amount <= 0 || cap.Reserved < current.Amount {
 			return status.Error(codes.Internal, "refund cap ledger inconsistent")
 		}
 		cap.Reserved -= current.Amount
@@ -174,12 +185,17 @@ func (s *Service) create(ctx context.Context, c platform.Request) (platform.Resu
 	if err != nil {
 		return nil, err
 	}
-	if platform.Text(p, "status") != constants.RefundStatusSucceeded || platform.Text(p, "order_id") != oid {
+	if platform.Text(p, "status") != constants.PaymentStatusSucceeded || platform.Text(p, "order_id") != oid {
 		return nil, status.Error(codes.FailedPrecondition, "original payment not captured or wrong order")
 	}
 	if c.Role != constants.RoleAdmin && platform.Text(p, "user_id") != c.UserID {
 		return nil, status.Error(codes.PermissionDenied, "refund payment owner mismatch")
 	}
+	number, err := s.r.BusinessID(ctx, "refund", c.ID, c.ID)
+	if err != nil {
+		return nil, err
+	}
+	c.ID = number
 	var out platform.Result
 	err = s.r.Transaction(ctx, func(tx *repository.Tx) error {
 		cap, err := tx.Cap(pid, platform.Int(p, "amount_cents"))
@@ -197,7 +213,11 @@ func (s *Service) create(ctx context.Context, c platform.Request) (platform.Resu
 		if !errors.Is(e, gorm.ErrRecordNotFound) {
 			return e
 		}
-		if cap.Reserved+cap.Completed+amount > cap.Paid {
+		remaining, err := refundCapacity(cap)
+		if err != nil {
+			return err
+		}
+		if amount > remaining {
 			return status.Error(codes.FailedPrecondition, "refund amount exceeds unrefunded capture")
 		}
 		cap.Reserved += amount

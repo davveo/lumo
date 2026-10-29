@@ -25,8 +25,22 @@ func TestAllAccountCatalogServicesExposeDistinctOperations(t *testing.T) {
 		module  platform.Module
 		actions []string
 	}{
-		{"iam", iam.New(platform.Dependencies{}), []string{"login", "validate", "refresh", "logout", "logout_all"}},
-		{"member", member.New(platform.Dependencies{}), []string{"get", "update"}},
+		{
+			"iam",
+			iam.New(platform.Dependencies{}),
+			[]string{
+				"login",
+				"validate",
+				"refresh",
+				"logout",
+				"logout_all",
+				"admin_list",
+				"admin_summary",
+				"set_active", "audit_list", "admin_get",
+				"login_methods", "otp_send", "otp_login", "oauth_start", "oauth_callback", "policy_get", "policy_upsert",
+			},
+		},
+		{"member", member.New(platform.Dependencies{}), []string{"get", "update", "policy_get", "policy_upsert"}},
 		{
 			"address",
 			address.New(platform.Dependencies{}),
@@ -35,7 +49,7 @@ func TestAllAccountCatalogServicesExposeDistinctOperations(t *testing.T) {
 		{
 			"catalog",
 			catalog.New(platform.Dependencies{}),
-			[]string{"search_products", "recommendation_candidates", "batch_get", "list", "get", "upsert"},
+			[]string{"search_products", "recommendation_candidates", "batch_get", "list", "get", "upsert", "admin_list"},
 		},
 		{"media", media.NewWithStore(platform.Dependencies{}, nil), []string{"create", "get", "download", "complete"}},
 		{
@@ -43,9 +57,9 @@ func TestAllAccountCatalogServicesExposeDistinctOperations(t *testing.T) {
 			interaction.New(platform.Dependencies{}),
 			[]string{"list", "create", "moderate", "answer", "like"},
 		},
-		{"engagement", engagement.New(platform.Dependencies{}), []string{"list", "put", "delete", "clear"}},
-		{"search", search.New(platform.Dependencies{}), []string{"query", "suggest"}},
-		{"recommendation", recommendation.New(platform.Dependencies{}), []string{"list", "rank_bootstrap"}},
+		{"engagement", engagement.New(platform.Dependencies{}), []string{"list", "put", "delete", "clear", "subscribe", "subscriptions", "unsubscribe", "policy_get", "policy_upsert", "admin_list", "admin_cancel"}},
+		{"search", search.New(platform.Dependencies{}), []string{"query", "suggest", "policy_get", "policy_upsert"}},
+		{"recommendation", recommendation.New(platform.Dependencies{}), []string{"list", "rank_bootstrap", "policy_get", "policy_upsert"}},
 		{
 			"content",
 			content.New(platform.Dependencies{}),
@@ -58,7 +72,7 @@ func TestAllAccountCatalogServicesExposeDistinctOperations(t *testing.T) {
 				"popup_configure",
 				"popup_decide",
 				"popup_event",
-				"popup_claim",
+				"popup_claim", "admin_list", "admin_upsert",
 			},
 		},
 	}

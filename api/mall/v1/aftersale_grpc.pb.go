@@ -21,16 +21,18 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	AftersaleService_Approve_FullMethodName  = "/mall.v1.AftersaleService/Approve"
-	AftersaleService_Cancel_FullMethodName   = "/mall.v1.AftersaleService/Cancel"
-	AftersaleService_Create_FullMethodName   = "/mall.v1.AftersaleService/Create"
-	AftersaleService_Exchange_FullMethodName = "/mall.v1.AftersaleService/Exchange"
-	AftersaleService_Get_FullMethodName      = "/mall.v1.AftersaleService/Get"
-	AftersaleService_Inspect_FullMethodName  = "/mall.v1.AftersaleService/Inspect"
-	AftersaleService_List_FullMethodName     = "/mall.v1.AftersaleService/List"
-	AftersaleService_Refund_FullMethodName   = "/mall.v1.AftersaleService/Refund"
-	AftersaleService_Reject_FullMethodName   = "/mall.v1.AftersaleService/Reject"
-	AftersaleService_Return_FullMethodName   = "/mall.v1.AftersaleService/Return"
+	AftersaleService_Approve_FullMethodName      = "/mall.v1.AftersaleService/Approve"
+	AftersaleService_Cancel_FullMethodName       = "/mall.v1.AftersaleService/Cancel"
+	AftersaleService_Create_FullMethodName       = "/mall.v1.AftersaleService/Create"
+	AftersaleService_Exchange_FullMethodName     = "/mall.v1.AftersaleService/Exchange"
+	AftersaleService_Get_FullMethodName          = "/mall.v1.AftersaleService/Get"
+	AftersaleService_Inspect_FullMethodName      = "/mall.v1.AftersaleService/Inspect"
+	AftersaleService_List_FullMethodName         = "/mall.v1.AftersaleService/List"
+	AftersaleService_Refund_FullMethodName       = "/mall.v1.AftersaleService/Refund"
+	AftersaleService_Reject_FullMethodName       = "/mall.v1.AftersaleService/Reject"
+	AftersaleService_Return_FullMethodName       = "/mall.v1.AftersaleService/Return"
+	AftersaleService_AdminList_FullMethodName    = "/mall.v1.AftersaleService/AdminList"
+	AftersaleService_AdminSummary_FullMethodName = "/mall.v1.AftersaleService/AdminSummary"
 )
 
 // AftersaleServiceClient is the client API for AftersaleService service.
@@ -47,6 +49,8 @@ type AftersaleServiceClient interface {
 	Refund(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Reject(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Return(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	AdminSummary(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type aftersaleServiceClient struct {
@@ -147,6 +151,24 @@ func (c *aftersaleServiceClient) Return(ctx context.Context, in *ServiceRequest,
 	return out, nil
 }
 
+func (c *aftersaleServiceClient) AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, AftersaleService_AdminList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aftersaleServiceClient) AdminSummary(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, AftersaleService_AdminSummary_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AftersaleServiceServer is the server API for AftersaleService service.
 // All implementations must embed UnimplementedAftersaleServiceServer
 // for forward compatibility
@@ -161,6 +183,8 @@ type AftersaleServiceServer interface {
 	Refund(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Reject(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Return(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	AdminSummary(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedAftersaleServiceServer()
 }
 
@@ -197,6 +221,12 @@ func (UnimplementedAftersaleServiceServer) Reject(context.Context, *ServiceReque
 }
 func (UnimplementedAftersaleServiceServer) Return(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Return not implemented")
+}
+func (UnimplementedAftersaleServiceServer) AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminList not implemented")
+}
+func (UnimplementedAftersaleServiceServer) AdminSummary(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminSummary not implemented")
 }
 func (UnimplementedAftersaleServiceServer) mustEmbedUnimplementedAftersaleServiceServer() {}
 
@@ -391,6 +421,42 @@ func _AftersaleService_Return_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AftersaleService_AdminList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AftersaleServiceServer).AdminList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AftersaleService_AdminList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AftersaleServiceServer).AdminList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AftersaleService_AdminSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AftersaleServiceServer).AdminSummary(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AftersaleService_AdminSummary_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AftersaleServiceServer).AdminSummary(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AftersaleService_ServiceDesc is the grpc.ServiceDesc for AftersaleService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -437,6 +503,14 @@ var AftersaleService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Return",
 			Handler:    _AftersaleService_Return_Handler,
+		},
+		{
+			MethodName: "AdminList",
+			Handler:    _AftersaleService_AdminList_Handler,
+		},
+		{
+			MethodName: "AdminSummary",
+			Handler:    _AftersaleService_AdminSummary_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

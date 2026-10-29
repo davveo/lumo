@@ -21,9 +21,13 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	FlashService_Get_FullMethodName     = "/mall.v1.FlashService/Get"
-	FlashService_List_FullMethodName    = "/mall.v1.FlashService/List"
-	FlashService_Request_FullMethodName = "/mall.v1.FlashService/Request"
+	FlashService_Get_FullMethodName           = "/mall.v1.FlashService/Get"
+	FlashService_List_FullMethodName          = "/mall.v1.FlashService/List"
+	FlashService_Request_FullMethodName       = "/mall.v1.FlashService/Request"
+	FlashService_AdminList_FullMethodName     = "/mall.v1.FlashService/AdminList"
+	FlashService_Upsert_FullMethodName        = "/mall.v1.FlashService/Upsert"
+	FlashService_SessionGet_FullMethodName    = "/mall.v1.FlashService/SessionGet"
+	FlashService_RequestsAdmin_FullMethodName = "/mall.v1.FlashService/RequestsAdmin"
 )
 
 // FlashServiceClient is the client API for FlashService service.
@@ -33,6 +37,10 @@ type FlashServiceClient interface {
 	Get(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	List(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Request(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Upsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	SessionGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	RequestsAdmin(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type flashServiceClient struct {
@@ -70,6 +78,42 @@ func (c *flashServiceClient) Request(ctx context.Context, in *ServiceRequest, op
 	return out, nil
 }
 
+func (c *flashServiceClient) AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, FlashService_AdminList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *flashServiceClient) Upsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, FlashService_Upsert_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *flashServiceClient) SessionGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, FlashService_SessionGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *flashServiceClient) RequestsAdmin(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, FlashService_RequestsAdmin_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // FlashServiceServer is the server API for FlashService service.
 // All implementations must embed UnimplementedFlashServiceServer
 // for forward compatibility
@@ -77,6 +121,10 @@ type FlashServiceServer interface {
 	Get(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	List(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Request(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Upsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	SessionGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	RequestsAdmin(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedFlashServiceServer()
 }
 
@@ -92,6 +140,18 @@ func (UnimplementedFlashServiceServer) List(context.Context, *ServiceRequest) (*
 }
 func (UnimplementedFlashServiceServer) Request(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Request not implemented")
+}
+func (UnimplementedFlashServiceServer) AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminList not implemented")
+}
+func (UnimplementedFlashServiceServer) Upsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Upsert not implemented")
+}
+func (UnimplementedFlashServiceServer) SessionGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SessionGet not implemented")
+}
+func (UnimplementedFlashServiceServer) RequestsAdmin(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RequestsAdmin not implemented")
 }
 func (UnimplementedFlashServiceServer) mustEmbedUnimplementedFlashServiceServer() {}
 
@@ -160,6 +220,78 @@ func _FlashService_Request_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FlashService_AdminList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FlashServiceServer).AdminList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FlashService_AdminList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FlashServiceServer).AdminList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FlashService_Upsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FlashServiceServer).Upsert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FlashService_Upsert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FlashServiceServer).Upsert(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FlashService_SessionGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FlashServiceServer).SessionGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FlashService_SessionGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FlashServiceServer).SessionGet(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FlashService_RequestsAdmin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FlashServiceServer).RequestsAdmin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FlashService_RequestsAdmin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FlashServiceServer).RequestsAdmin(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // FlashService_ServiceDesc is the grpc.ServiceDesc for FlashService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -178,6 +310,22 @@ var FlashService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Request",
 			Handler:    _FlashService_Request_Handler,
+		},
+		{
+			MethodName: "AdminList",
+			Handler:    _FlashService_AdminList_Handler,
+		},
+		{
+			MethodName: "Upsert",
+			Handler:    _FlashService_Upsert_Handler,
+		},
+		{
+			MethodName: "SessionGet",
+			Handler:    _FlashService_SessionGet_Handler,
+		},
+		{
+			MethodName: "RequestsAdmin",
+			Handler:    _FlashService_RequestsAdmin_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

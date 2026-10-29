@@ -26,31 +26,41 @@ var File_api_mall_v1_campaign_proto protoreflect.FileDescriptor
 
 const file_api_mall_v1_campaign_proto_rawDesc = "" +
 	"\n" +
-	"\x1aapi/mall/v1/campaign.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xc4\x02\n" +
-	"\x0fCampaignService\x12;\n" +
+	"\x1aapi/mall/v1/campaign.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\x82\x04\n" +
+	"\x0fCampaignService\x12>\n" +
+	"\tAdminList\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
 	"\x06Cancel\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12<\n" +
 	"\aConfirm\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12=\n" +
 	"\bEvaluate\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x129\n" +
 	"\x04List\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12<\n" +
-	"\aReserve\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
+	"\aReserve\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
+	"\x06Upsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12?\n" +
+	"\n" +
+	"RuleUpsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
 
 var file_api_mall_v1_campaign_proto_goTypes = []any{
 	(*ServiceRequest)(nil),  // 0: mall.v1.ServiceRequest
 	(*ServiceResponse)(nil), // 1: mall.v1.ServiceResponse
 }
 var file_api_mall_v1_campaign_proto_depIdxs = []int32{
-	0, // 0: mall.v1.CampaignService.Cancel:input_type -> mall.v1.ServiceRequest
-	0, // 1: mall.v1.CampaignService.Confirm:input_type -> mall.v1.ServiceRequest
-	0, // 2: mall.v1.CampaignService.Evaluate:input_type -> mall.v1.ServiceRequest
-	0, // 3: mall.v1.CampaignService.List:input_type -> mall.v1.ServiceRequest
-	0, // 4: mall.v1.CampaignService.Reserve:input_type -> mall.v1.ServiceRequest
-	1, // 5: mall.v1.CampaignService.Cancel:output_type -> mall.v1.ServiceResponse
-	1, // 6: mall.v1.CampaignService.Confirm:output_type -> mall.v1.ServiceResponse
-	1, // 7: mall.v1.CampaignService.Evaluate:output_type -> mall.v1.ServiceResponse
-	1, // 8: mall.v1.CampaignService.List:output_type -> mall.v1.ServiceResponse
-	1, // 9: mall.v1.CampaignService.Reserve:output_type -> mall.v1.ServiceResponse
-	5, // [5:10] is the sub-list for method output_type
-	0, // [0:5] is the sub-list for method input_type
+	0, // 0: mall.v1.CampaignService.AdminList:input_type -> mall.v1.ServiceRequest
+	0, // 1: mall.v1.CampaignService.Cancel:input_type -> mall.v1.ServiceRequest
+	0, // 2: mall.v1.CampaignService.Confirm:input_type -> mall.v1.ServiceRequest
+	0, // 3: mall.v1.CampaignService.Evaluate:input_type -> mall.v1.ServiceRequest
+	0, // 4: mall.v1.CampaignService.List:input_type -> mall.v1.ServiceRequest
+	0, // 5: mall.v1.CampaignService.Reserve:input_type -> mall.v1.ServiceRequest
+	0, // 6: mall.v1.CampaignService.Upsert:input_type -> mall.v1.ServiceRequest
+	0, // 7: mall.v1.CampaignService.RuleUpsert:input_type -> mall.v1.ServiceRequest
+	1, // 8: mall.v1.CampaignService.AdminList:output_type -> mall.v1.ServiceResponse
+	1, // 9: mall.v1.CampaignService.Cancel:output_type -> mall.v1.ServiceResponse
+	1, // 10: mall.v1.CampaignService.Confirm:output_type -> mall.v1.ServiceResponse
+	1, // 11: mall.v1.CampaignService.Evaluate:output_type -> mall.v1.ServiceResponse
+	1, // 12: mall.v1.CampaignService.List:output_type -> mall.v1.ServiceResponse
+	1, // 13: mall.v1.CampaignService.Reserve:output_type -> mall.v1.ServiceResponse
+	1, // 14: mall.v1.CampaignService.Upsert:output_type -> mall.v1.ServiceResponse
+	1, // 15: mall.v1.CampaignService.RuleUpsert:output_type -> mall.v1.ServiceResponse
+	8, // [8:16] is the sub-list for method output_type
+	0, // [0:8] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

@@ -87,7 +87,7 @@ func TestMediaUploadCompletionAndOwnership(t *testing.T) {
 		t.Fatalf("bad upload registration %+v", r)
 	}
 	if strings.Contains(f.uploadKey, "..") || strings.Contains(f.uploadKey, "private.jpg") ||
-		!strings.HasPrefix(f.uploadKey, "private/file_") {
+		!strings.HasPrefix(f.uploadKey, "private/MED_") {
 		t.Fatalf("untrusted object key: %s", f.uploadKey)
 	}
 	if _, e = m.Handle(ctx, platform.Command{Action: "complete", ID: id, UserID: "other"}); status.Code(
@@ -141,6 +141,43 @@ func TestMediaRejectsSizeAndMIME(t *testing.T) {
 		) != codes.InvalidArgument {
 			t.Fatalf("invalid upload accepted: %+v %v", d, e)
 		}
+	}
+}
+
+func TestCompletedMediaRejectsSameSizeContentReplacement(t *testing.T) {
+	for _, action := range []string{"get", "download", "complete"} {
+		t.Run(action, func(t *testing.T) {
+			f := &fakeStore{objects: map[string]domain.StoredObject{}}
+			m := module(t, f)
+			ctx := context.Background()
+			created, err := m.Handle(ctx, platform.Command{Action: "create", UserID: "owner", Data: map[string]any{
+				"file_name": "receipt.png", "content_type": "image/png", "size": 4,
+			}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			id := platform.Text(created, "file_id")
+			f.objects[f.uploadKey] = domain.StoredObject{Size: 4, ContentType: "image/png", ETag: "verified-content"}
+			if _, err = m.Handle(ctx, platform.Command{Action: "complete", UserID: "owner", ID: id}); err != nil {
+				t.Fatal(err)
+			}
+			before := f.downloads
+			// An unexpired POST grant replaces the bytes without changing policy metadata.
+			f.objects[f.uploadKey] = domain.StoredObject{Size: 4, ContentType: "image/png", ETag: "replacement-content"}
+			if _, err = m.Handle(ctx, platform.Command{Action: action, UserID: "owner", ID: id}); status.Code(
+				err,
+			) != codes.FailedPrecondition {
+				t.Fatalf("%s signed a replaced completed object: %v", action, err)
+			}
+			if f.downloads != before {
+				t.Fatal("replacement generated a fresh download capability")
+			}
+			if _, err = m.Handle(ctx, platform.Command{Action: "complete", UserID: "owner", ID: id}); status.Code(
+				err,
+			) != codes.FailedPrecondition {
+				t.Fatalf("rejected content was re-completed: %v", err)
+			}
+		})
 	}
 }
 func TestMediaWrongObjectMIMECannotComplete(t *testing.T) {

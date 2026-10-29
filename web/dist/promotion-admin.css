@@ -1,0 +1,64 @@
+.pm-admin {
+  min-width: 0;
+}
+.pm-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-2);
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.pm-tabs button {
+  padding: 9px 17px;
+  border-radius: var(--admin-radius-control);
+  background: #eaf0f5;
+  color: var(--admin-muted);
+  font-size: var(--admin-font-small);
+}
+.pm-tabs button.active {
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent);
+  font-weight: 600;
+}
+.pm-note {
+  font-size: var(--admin-font-small);
+  color: var(--admin-muted);
+  line-height: 1.8;
+  margin: 0 0 20px;
+}
+.pm-admin .field > small {
+  font-size: var(--admin-font-help);
+  font-weight: 400;
+  color: var(--admin-subtle);
+  line-height: 1.7;
+}
+.pm-admin .admin-table td:first-child {
+  width: 24%;
+}
+.pm-admin .admin-table td:nth-child(2) {
+  width: 27%;
+}
+.pm-admin .admin-table td:last-child {
+  min-width: 100px;
+}
+.pm-admin .admin-table-wrap .outline {
+  min-height: var(--admin-action-compact-height);
+}
+.pm-admin .admin-form-footer {
+  margin-top: 24px;
+}
+.pm-admin .field textarea {
+  min-height: 88px;
+}
+@media (max-width: 600px) {
+  .pm-admin .admin-title {
+    flex-direction: column;
+  }
+  .pm-admin .admin-title-actions {
+    justify-content: flex-start;
+  }
+  .pm-admin .admin-list-toolbar .admin-status-filter {
+    flex: 1;
+    min-width: 120px;
+  }
+}

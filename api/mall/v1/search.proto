@@ -11,4 +11,6 @@ import "api/mall/v1/service_request.proto";
 service SearchService {
   rpc Query(ServiceRequest) returns (ServiceResponse);
   rpc Suggest(ServiceRequest) returns (ServiceResponse);
+  rpc PolicyGet(ServiceRequest) returns (ServiceResponse);
+  rpc PolicyUpsert(ServiceRequest) returns (ServiceResponse);
 }

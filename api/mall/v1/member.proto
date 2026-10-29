@@ -11,4 +11,6 @@ import "api/mall/v1/service_request.proto";
 service MemberService {
   rpc Get(ServiceRequest) returns (ServiceResponse);
   rpc Update(ServiceRequest) returns (ServiceResponse);
+  rpc PolicyGet(ServiceRequest) returns (ServiceResponse);
+  rpc PolicyUpsert(ServiceRequest) returns (ServiceResponse);
 }

@@ -21,10 +21,12 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	RefundService_ConfirmDemo_FullMethodName = "/mall.v1.RefundService/ConfirmDemo"
-	RefundService_Create_FullMethodName      = "/mall.v1.RefundService/Create"
-	RefundService_Get_FullMethodName         = "/mall.v1.RefundService/Get"
-	RefundService_List_FullMethodName        = "/mall.v1.RefundService/List"
+	RefundService_ConfirmDemo_FullMethodName  = "/mall.v1.RefundService/ConfirmDemo"
+	RefundService_Create_FullMethodName       = "/mall.v1.RefundService/Create"
+	RefundService_Get_FullMethodName          = "/mall.v1.RefundService/Get"
+	RefundService_List_FullMethodName         = "/mall.v1.RefundService/List"
+	RefundService_AdminList_FullMethodName    = "/mall.v1.RefundService/AdminList"
+	RefundService_AdminSummary_FullMethodName = "/mall.v1.RefundService/AdminSummary"
 )
 
 // RefundServiceClient is the client API for RefundService service.
@@ -35,6 +37,8 @@ type RefundServiceClient interface {
 	Create(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Get(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	List(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	AdminSummary(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type refundServiceClient struct {
@@ -81,6 +85,24 @@ func (c *refundServiceClient) List(ctx context.Context, in *ServiceRequest, opts
 	return out, nil
 }
 
+func (c *refundServiceClient) AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, RefundService_AdminList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *refundServiceClient) AdminSummary(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, RefundService_AdminSummary_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RefundServiceServer is the server API for RefundService service.
 // All implementations must embed UnimplementedRefundServiceServer
 // for forward compatibility
@@ -89,6 +111,8 @@ type RefundServiceServer interface {
 	Create(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Get(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	List(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	AdminSummary(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedRefundServiceServer()
 }
 
@@ -107,6 +131,12 @@ func (UnimplementedRefundServiceServer) Get(context.Context, *ServiceRequest) (*
 }
 func (UnimplementedRefundServiceServer) List(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
+}
+func (UnimplementedRefundServiceServer) AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminList not implemented")
+}
+func (UnimplementedRefundServiceServer) AdminSummary(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminSummary not implemented")
 }
 func (UnimplementedRefundServiceServer) mustEmbedUnimplementedRefundServiceServer() {}
 
@@ -193,6 +223,42 @@ func _RefundService_List_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RefundService_AdminList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RefundServiceServer).AdminList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RefundService_AdminList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RefundServiceServer).AdminList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RefundService_AdminSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RefundServiceServer).AdminSummary(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RefundService_AdminSummary_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RefundServiceServer).AdminSummary(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RefundService_ServiceDesc is the grpc.ServiceDesc for RefundService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -215,6 +281,14 @@ var RefundService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "List",
 			Handler:    _RefundService_List_Handler,
+		},
+		{
+			MethodName: "AdminList",
+			Handler:    _RefundService_AdminList_Handler,
+		},
+		{
+			MethodName: "AdminSummary",
+			Handler:    _RefundService_AdminSummary_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

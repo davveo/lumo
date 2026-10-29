@@ -55,7 +55,11 @@ const defaultShopSettings = {
   sectionTitle: '今日推荐',
   sectionSubtitle: '精选好物，为你而来',
 };
-const shop = () => ({ ...defaultShopSettings, ...(window.LumoStudio?.settings || {}) });
+const shop = () => ({
+  ...defaultShopSettings,
+  ...(window.LumoStorefrontLayout?.defaults || {}),
+  ...(window.LumoStudio?.settings || {}),
+});
 const asset = (src) => {
   src = String(src || '');
   if (/^https:\/\//i.test(src) || /^data:image\/(png|jpeg|webp);base64,/i.test(src)) return src;
@@ -325,7 +329,7 @@ let ui = {
   detailTab: 0,
 };
 let detail = { id: 'iphone', color: '黑色钛金属', option: '256GB', qty: 1, thumb: 0 };
-let selectedMethod = 'alipay',
+let selectedMethod = CommerceEnums.PaymentProvider.Demo,
   countdownTimer,
   toastTimer,
   checkoutMode = state.checkout?.mode || 'cart';
@@ -372,7 +376,7 @@ const couponValue = (items) => {
         : 0;
 };
 const totals = (items) => {
-  const q = commerceQuoteFor(items);
+  const q = commerceDisplayQuote(items);
   if (q) return normalizeTotals(q);
   const sub = subtotal(items);
   return { sub, original: sub, activitySavings: 0, coupon: 0, points: 0, shipping: 0, total: sub, estimated: true };
@@ -424,7 +428,7 @@ function canManageStore() {
 }
 function header(showNav = false) {
   const cartDisplay = displayCartCount();
-  return `<div class="utility"><div class="container"><span>品质生活，好物相伴</span><div class="utility-links"><a href="#/coupons">领券中心</a>${window.LumoAuthView?.headerUtility() || `<span>欢迎来到 ${esc(shop().brand)} ${esc(shop().brandSuffix)}</span><a href="#/member">个人中心</a>`}<button data-action="orders">我的订单</button><button data-action="help">帮助中心</button></div></div></div><header class="header"><div class="container header-main"><a class="brand" href="#/" aria-label="LUMO Mall 首页"><b>${esc(shop().brand)}</b><span>${esc(shop().brandSuffix)}</span><small>CURATED FOR EVERYDAY</small></a><form class="search" id="search-form" role="search"><span class="disc-search-kind">商品</span><input id="search-input" name="query" aria-label="搜索商品" placeholder="搜索商品，发现好物" value="${esc(ui.query)}" autocomplete="off"><button class="disc-search-submit" type="submit" aria-label="搜索">搜索</button></form><div class="header-actions">${canManageStore() ? `<a class="text-button" href="admin.html">运营台</a><a class="edit-store-button" href="#/editor" aria-label="编辑商城">${icon('edit')}<span>编辑商城</span></a>` : ''}<a class="icon-button mall-messages-action" href="#/member/messages" aria-label="消息中心">${icon('bell')}${window.LumoAuth?.isLoggedIn() && window.LumoServices?.unreadCount() ? `<span class="badge">${window.LumoServices.unreadCount()}</span>` : ''}</a><button class="icon-button favorites-action" data-action="favorites" aria-label="我的收藏">${icon('heart')}${state.favorites.length ? `<span class="badge">${state.favorites.length}</span>` : ''}</button><a class="icon-button cart-action" href="#/cart" aria-label="${cartDisplay == null ? '购物车' : `购物车 ${cartDisplay} 件商品`}">${icon('cart')}${cartDisplay > 0 ? `<span class="badge">${cartDisplay}</span>` : ''}<span class="header-label">购物车</span></a>${window.LumoAuthView?.headerAccount() || `<a class="icon-button member-action" href="#/member" aria-label="个人中心">${icon('user')}<span class="header-label">我的</span></a>`}</div></div>${showNav ? primaryNavigation() : ''}</header>`;
+  return `<div class="utility"><div class="container"><span>${esc(shop().headerSlogan || '品质生活，好物相伴')}</span><div class="utility-links"><a href="#/coupons">领券中心</a>${window.LumoAuthView?.headerUtility() || `<span>欢迎来到 ${esc(shop().brand)} ${esc(shop().brandSuffix)}</span><a href="#/member">个人中心</a>`}<button data-action="orders">我的订单</button><button data-action="help">帮助中心</button></div></div></div>${shop().announcement ? `<div class="store-announcement"><a href="${esc(shop().announcementLink || '#/coupons')}">${esc(shop().announcement)} →</a></div>` : ''}<header class="header"><div class="container header-main"><a class="brand" href="#/" aria-label="${esc(shop().brand + ' ' + shop().brandSuffix + ' 首页')}"><b>${esc(shop().brand)}</b><span>${esc(shop().brandSuffix)}</span><small>${esc(shop().brandTagline || 'CURATED FOR EVERYDAY')}</small></a><form class="search" id="search-form" role="search"><span class="disc-search-kind">商品</span><input id="search-input" name="query" aria-label="搜索商品" placeholder="${esc(shop().searchPlaceholder || '搜索商品，发现好物')}" value="${esc(ui.query)}" autocomplete="off"><button class="disc-search-submit" type="submit" aria-label="搜索">搜索</button></form><div class="header-actions">${canManageStore() ? `<a class="text-button" href="admin.html">运营台</a><a class="edit-store-button" href="#/editor" aria-label="编辑商城">${icon('edit')}<span>编辑商城</span></a>` : ''}<a class="icon-button mall-messages-action" href="#/member/messages" aria-label="消息中心">${icon('bell')}${window.LumoAuth?.isLoggedIn() && window.LumoServices?.unreadCount() ? `<span class="badge">${window.LumoServices.unreadCount()}</span>` : ''}</a><button class="icon-button favorites-action" data-action="favorites" aria-label="我的收藏">${icon('heart')}${state.favorites.length ? `<span class="badge">${state.favorites.length}</span>` : ''}</button><a class="icon-button cart-action" href="#/cart" aria-label="${cartDisplay == null ? '购物车' : `购物车 ${cartDisplay} 件商品`}">${icon('cart')}${cartDisplay > 0 ? `<span class="badge">${cartDisplay}</span>` : ''}<span class="header-label">购物车</span></a>${window.LumoAuthView?.headerAccount() || `<a class="icon-button member-action" href="#/member" aria-label="个人中心">${icon('user')}<span class="header-label">我的</span></a>`}</div></div>${showNav ? primaryNavigation() : ''}</header>`;
 }
 function footer() {
   return `<section class="service-strip"><div class="container services">${[
@@ -436,7 +440,7 @@ function footer() {
     .map(([i, t]) => `<div class="service">${icon(i)}<span>${t}</span></div>`)
     .join(
       '',
-    )}</div></section><footer class="container footer"><a class="brand" href="#/"><b>${esc(shop().brand)}</b><span>${esc(shop().brandSuffix)}</span></a><span>© 2026 LUMO Mall · 订单与资产由服务端保存 · 演示支付渠道</span><div class="footer-links">${canManageStore() ? '<a href="admin.html">商城管理</a>' : ''}<a href="#/member/support">客服中心</a><button data-action="help">购物帮助</button><button data-action="about">关于我们</button><button data-action="privacy">隐私说明</button></div></footer>`;
+    )}</div></section><footer class="container footer"><a class="brand" href="#/"><b>${esc(shop().brand)}</b><span>${esc(shop().brandSuffix)}</span></a><span>${esc(shop().footerText || '© 2026 LUMO Mall · 订单与资产由服务端保存 · 演示支付渠道')}${shop().contactPhone ? `<small class="store-contact">客服 ${esc(shop().contactPhone)} ${esc(shop().contactHours || '')}</small>` : ''}</span><div class="footer-links">${canManageStore() ? '<a href="admin.html">商城管理</a>' : ''}<a href="#/member/support">客服中心</a><button data-action="help">购物帮助</button><button data-action="about">关于我们</button><button data-action="privacy">隐私说明</button></div></footer>`;
 }
 function productCard(p) {
   return `<article class="product-card"><a class="product-image ${['iphone', 'macbook'].includes(p.id) ? 'official-image' : ''}" href="#/product/${esc(p.id)}" aria-label="查看${esc(p.name)}"><img src="${esc(asset(p.image))}" alt="${esc(p.name)}" loading="lazy">${p.label ? `<span class="product-label">${esc(p.label)}</span>` : ''}</a>${window.LumoDiscovery?.compareButton(p) || ''}<button class="favorite-button ${state.favorites.includes(p.id) ? 'saved' : ''}" data-action="favorite" data-id="${esc(p.id)}" aria-label="${state.favorites.includes(p.id) ? '取消收藏' : '收藏'}${esc(p.name)}" aria-pressed="${state.favorites.includes(p.id)}">${icon('heart')}</button><div class="product-info"><a class="product-title" href="#/product/${esc(p.id)}">${esc(p.name)}</a><p class="product-sub">${esc(p.sub)}</p><div class="price-line">${price(p.price)}<span class="old-price">¥${money(p.old)}</span><button class="card-cart" data-action="quick-add" data-id="${esc(p.id)}" aria-label="将${esc(p.name)}加入购物车" ${p.visible === false || (window.LumoInventory && window.LumoInventory.stockFor(p) <= 0) ? 'disabled' : ''}>${icon('cart')}</button></div></div></article>`;
@@ -499,10 +503,13 @@ function homeLanding(list, busy, error, recommendation) {
       : featured.length
         ? `<div class="home-picks-grid">${featured.map((product) => `<a class="home-pick" href="#/product/${esc(product.id)}"><img src="${esc(asset(product.image))}" alt="${esc(product.name)}" loading="lazy"><strong>${esc(product.name)}</strong><span>¥${money(product.price)}</span></a>`).join('')}</div>`
         : `<div class="home-picks-empty"><span>${error ? '精选商品暂未加载' : '新好物正在上架'}</span><button data-action="${error ? 'commerce-refresh' : 'explore'}">${error ? '重新加载' : '探索全部好物'} ${icon('arrow')}</button></div>`;
-  return `<section class="home-category-layout" aria-label="商城精选与分类">${directory}<div class="home-feature-area"><div class="home-feature-top"><section class="hero" aria-label="智享生活精选"><div class="hero-copy"><span class="eyebrow">${esc(shop().heroEyebrow)}</span><h1>${esc(shop().heroTitle).replace(/\n/g, '<br>')}</h1><p>${esc(shop().heroSubtitle)}</p><button class="primary" data-action="explore">立即探索 ${icon('arrow')}</button></div><img class="hero-image" src="${esc(asset(shop().heroImage))}" alt="品质生活精选"><span class="home-hero-label">LUMO · 每日灵感</span></section><section class="home-picks" aria-label="精选好物"><div class="home-card-heading"><h2>${recommendation.personalized ? '为你精选' : '发现好物'}</h2><button data-action="explore">去逛逛 ${icon('chevron')}</button></div>${picks}</section></div>${homeActivityCards()}</div><aside class="home-benefits" aria-label="会员与领券">${homeMemberBenefits()}${window.LumoCouponCenter?.home({ limit: 2 }) || `<section class="home-coupons-pending"><h2>${icon('ticket')}领券中心</h2>${commerceSkeleton('coupons', { count: 2, label: '正在加载好券', className: 'sk-coupons-compact' })}</section>`}</aside></section>`;
+  return `<section class="home-category-layout${shop().showCategories === false ? ' without-directory' : ''}${shop().showMember === false && shop().showCoupons === false ? ' without-benefits' : ''}" aria-label="商城精选与分类">${shop().showCategories === false ? '' : directory}<div class="home-feature-area${shop().showActivities === false ? ' without-activities' : ''}"><div class="home-feature-top${shop().showPicks === false ? ' without-picks' : ''}">${window.LumoStorefrontLayout?.hero(shop()) || `<section class="hero" aria-label="智享生活精选"><div class="hero-copy"><span class="eyebrow">${esc(shop().heroEyebrow)}</span><h1>${esc(shop().heroTitle).replace(/\n/g, '<br>')}</h1><p>${esc(shop().heroSubtitle)}</p><button class="primary" data-action="explore">立即探索 ${icon('arrow')}</button></div><img class="hero-image" src="${esc(asset(shop().heroImage))}" alt="品质生活精选"><span class="home-hero-label">LUMO · 每日灵感</span></section>`}<section class="home-picks" aria-label="精选好物" ${shop().showPicks === false ? 'hidden' : ''}><div class="home-card-heading"><h2>${recommendation.personalized ? '为你精选' : '发现好物'}</h2><button data-action="explore">去逛逛 ${icon('chevron')}</button></div>${picks}</section></div>${shop().showActivities === false ? '' : homeActivityCards()}</div><aside class="home-benefits" aria-label="会员与领券" ${shop().showMember === false && shop().showCoupons === false ? 'hidden' : ''}>${shop().showMember === false ? '' : homeMemberBenefits()}${shop().showCoupons === false ? '' : window.LumoCouponCenter?.home({ limit: 2 }) || `<section class="home-coupons-pending"><h2>${icon('ticket')}领券中心</h2>${commerceSkeleton('coupons', { count: 2, label: '正在加载好券', className: 'sk-coupons-compact' })}</section>`}</aside></section>`;
 }
-function homeDiscoveryBar() {
+function storefrontNavigation() {
   return `<div class="home-discovery-bar">${primaryNavigation().replace('container nav', 'nav home-category-nav')}<div class="home-entry-links"><a href="#/member">${icon('user')}会员权益</a></div></div>`;
+}
+function storefrontPageStart(pageClass) {
+  return `${header()}<main id="main" class="container storefront-page ${esc(pageClass)}">${storefrontNavigation()}`;
 }
 function catalog() {
   let list = products.filter(
@@ -546,7 +553,7 @@ function catalog() {
   const catalogError =
     searchRead?.error || commerceState.catalogError || (ui.onlyFavorites && commerceReadState('favorites').error);
   const catalogCount = catalogBusy ? '加载中' : list.length + ' 件好物';
-  return `${header()}<main id="main" class="container catalog-page${!filtered ? ' home-page' : ''}">${homeDiscoveryBar()}${!filtered ? homeLanding(list, catalogBusy, catalogError, homeRecommendation) : ''}<section class="catalog" id="catalog"><div class="section-head"><div><h2>${ui.onlyFavorites ? '我的收藏' : ui.categoryLabel ? esc(ui.categoryLabel) : ui.query ? '搜索结果' : ui.category === '全部好物' ? (recommendationMode ? (shop().sectionTitle !== defaultShopSettings.sectionTitle ? esc(shop().sectionTitle) : homeRecommendation.personalized ? '为你推荐' : '精选推荐') : esc(shop().sectionTitle)) : esc(ui.category)}</h2><p>${ui.onlyFavorites ? '每一次心动，都值得收藏' : recommendationMode ? (homeRecommendation.personalized ? '根据你的浏览、收藏、搜索和购买偏好挑选' : '精选当前可售好物，发现新的心动') : esc(shop().sectionSubtitle)}</p></div><span class="subtle">好设计，让日常多一点美好 ${icon('sparkles')}</span></div>${filtered ? `<div class="result-summary">${ui.query ? `“${esc(ui.query)}” · ` : ''}${catalogBusy ? '正在加载商品' : (ui.category !== '全部好物' ? '当前展示' : '共找到') + ' ' + list.length + ' 件好物'}<button data-action="reset-filters">查看全部好物</button></div>` : ''}${window.LumoDiscovery?.controls() || ''}<div class="filter-bar">${['综合', '销量', '价格', '新品'].map((s) => `<button data-action="sort" data-value="${s}" class="filter-tab ${ui.sort.startsWith(s) ? 'active' : ''}">${s}${s === '价格' ? icon(ui.sort === '价格高' ? 'sort' : 'chevron') : ''}</button>`).join('')}<div class="filter-end"><span>${catalogCount}</span><button class="filter-btn" data-action="filters" aria-expanded="${ui.filters}">筛选 ${icon('filter')}</button></div></div><form class="filter-panel" id="price-form" ${ui.filters ? '' : 'hidden'}><span>价格区间</span><input type="number" min="0" name="min" aria-label="最低价格" placeholder="最低价" value="${esc(ui.min)}"><span>—</span><input type="number" min="0" name="max" aria-label="最高价格" placeholder="最高价" value="${esc(ui.max)}"><button class="primary">确定</button><button class="outline" type="button" data-action="reset-price">重置</button></form>${catalogBusy ? commerceSkeleton('products', { count: 6, label: '正在加载商品' }) : list.length ? `<div class="product-grid">${pageList.map((p) => (recommendationMode ? window.LumoRecommendations.homeCard(p) : productCard(p))).join('')}</div>${window.LumoDiscovery?.pagination(list.length) || ''}` : empty(catalogError ? '商品加载失败' : '没有找到合适的好物', esc(catalogError || '') || '试试其他关键词，或看看全部商品。', catalogError ? (searchRead?.error ? 'commerce-search-retry' : 'commerce-refresh') : 'reset-filters', catalogError ? '重新加载' : '浏览全部好物', 'search')}</section>${!filtered ? `<section class="about-strip"><div><h2>生活的美好，藏在用心的选择里。</h2><p>数码灵感、日常所需与心动好物，都在这里。</p></div><a class="outline" href="#/coupons">去领好券 ${icon('arrow')}</a></section>` : ''}</main>${footer()}`;
+  return `${storefrontPageStart(`catalog-page${!filtered ? ' home-page' : ''}`)}${!filtered ? homeLanding(list, catalogBusy, catalogError, homeRecommendation) : ''}<section class="catalog" id="catalog" ${!filtered && shop().showRecommendations === false ? 'hidden' : ''}><div class="section-head"><div><h2>${ui.onlyFavorites ? '我的收藏' : ui.categoryLabel ? esc(ui.categoryLabel) : ui.query ? '搜索结果' : ui.category === '全部好物' ? (recommendationMode ? (shop().sectionTitle !== defaultShopSettings.sectionTitle ? esc(shop().sectionTitle) : homeRecommendation.personalized ? '为你推荐' : '精选推荐') : esc(shop().sectionTitle)) : esc(ui.category)}</h2><p>${ui.onlyFavorites ? '每一次心动，都值得收藏' : recommendationMode ? (homeRecommendation.personalized ? '根据你的浏览、收藏、搜索和购买偏好挑选' : '精选当前可售好物，发现新的心动') : esc(shop().sectionSubtitle)}</p></div><span class="subtle">好设计，让日常多一点美好 ${icon('sparkles')}</span></div>${filtered ? `<div class="result-summary">${ui.query ? `“${esc(ui.query)}” · ` : ''}${catalogBusy ? '正在加载商品' : (ui.category !== '全部好物' ? '当前展示' : '共找到') + ' ' + list.length + ' 件好物'}<button data-action="reset-filters">查看全部好物</button></div>` : ''}${window.LumoDiscovery?.controls() || ''}<div class="filter-bar">${['综合', '销量', '价格', '新品'].map((s) => `<button data-action="sort" data-value="${s}" class="filter-tab ${ui.sort.startsWith(s) ? 'active' : ''}">${s}${s === '价格' ? icon(ui.sort === '价格高' ? 'sort' : 'chevron') : ''}</button>`).join('')}<div class="filter-end"><span>${catalogCount}</span><button class="filter-btn" data-action="filters" aria-expanded="${ui.filters}">筛选 ${icon('filter')}</button></div></div><form class="filter-panel" id="price-form" ${ui.filters ? '' : 'hidden'}><span>价格区间</span><input type="number" min="0" name="min" aria-label="最低价格" placeholder="最低价" value="${esc(ui.min)}"><span>—</span><input type="number" min="0" name="max" aria-label="最高价格" placeholder="最高价" value="${esc(ui.max)}"><button class="primary">确定</button><button class="outline" type="button" data-action="reset-price">重置</button></form>${catalogBusy ? commerceSkeleton('products', { count: 6, label: '正在加载商品' }) : list.length ? `<div class="product-grid">${pageList.map((p) => (recommendationMode ? window.LumoRecommendations.homeCard(p) : productCard(p))).join('')}</div>${window.LumoDiscovery?.pagination(list.length) || ''}` : empty(catalogError ? '商品加载失败' : '没有找到合适的好物', esc(catalogError || '') || '试试其他关键词，或看看全部商品。', catalogError ? (searchRead?.error ? 'commerce-search-retry' : 'commerce-refresh') : 'reset-filters', catalogError ? '重新加载' : '浏览全部好物', 'search')}</section>${!filtered ? `<section class="about-strip"><div><h2>生活的美好，藏在用心的选择里。</h2><p>数码灵感、日常所需与心动好物，都在这里。</p></div><a class="outline" href="#/coupons">去领好券 ${icon('arrow')}</a></section>` : ''}</main>${footer()}`;
 }
 let detailPageProduct = '';
 function detailMedia(product, selectedImage) {
@@ -646,7 +653,7 @@ function detailPage(id) {
   const activityPanel = promotions
     ? `<details class="pdp-promotions"><summary><span>商品活动</span><small>查看当前规格可参与的优惠</small>${icon('chevron')}</summary><div>${promotions}</div></details>`
     : '';
-  return `${header()}<main class="container pdp-page" id="main"><div class="breadcrumb"><a href="#/">首页</a>${icon('chevron')}<button data-action="category" data-value="${esc(p.category)}">${esc(p.category)}</button>${icon('chevron')}<span>${esc(p.name)}</span></div><div class="pdp-layout"><div class="pdp-main"><section class="pdp-gallery" aria-label="商品图片与视频"><div class="pdp-thumbnails" aria-label="选择商品媒体">${media.map((item, index) => `<button type="button" class="pdp-thumbnail ${detail.thumb === index ? 'active' : ''}" data-action="thumb" data-value="${index}" aria-label="${item.type === 'video' ? '播放商品视频' : '查看商品图片 ' + (index + 1)}" aria-pressed="${detail.thumb === index}"><img src="${esc(asset(item.type === 'video' ? currentImage : item.src))}" alt="">${item.type === 'video' ? '<span class="pdp-video-mark" aria-hidden="true">▶</span>' : ''}</button>`).join('')}</div><div class="pdp-media">${selected?.type === 'video' ? `<video src="${esc(selected.src)}" poster="${esc(asset(currentImage))}" controls playsinline preload="metadata" aria-label="${esc(p.name)}商品视频"></video>` : `<img src="${esc(asset(selected?.src || currentImage))}" alt="${esc(p.name)} · ${esc(detail.color)}" fetchpriority="high">`}<span class="pdp-media-index">${detail.thumb + 1} / ${media.length}</span></div></section><section class="details-bottom pdp-details"><nav class="detail-tabs pdp-tabs" aria-label="商品详情内容">${tabs.map(([value, label]) => `<button class="${ui.detailTab === value ? 'active' : ''}" data-action="detail-tab" data-value="${value}" aria-pressed="${ui.detailTab === value}">${label}${value === 2 || value === 3 ? `<span>${read && !read.loaded && !read.error ? '加载中' : value === 2 ? reviews : questions}</span>` : ''}</button>`).join('')}</nav><div class="pdp-tab-content">${tabContent}</div></section></div><aside class="pdp-purchase" aria-label="商品选购"><div class="pdp-purchase-heading"><span>${esc(p.brand || p.category)}</span><a href="#/member/support">${icon('support')}在线客服</a></div><div class="pdp-product-heading"><h1>${p.label ? `<span class="pdp-product-label">${esc(p.label)}</span>` : ''}${esc(p.name)}</h1>${p.sub ? `<p>${esc(p.sub)}</p>` : ''}</div><section class="pdp-price" aria-label="商品价格"><div><span class="pdp-price-caption">商品价格</span><div>${price(currentPrice)}${Number(p.old) > currentPrice ? `<span class="old-price">¥${money(p.old)}</span>` : ''}</div></div><div class="pdp-price-meta">${p.sales > 0 ? `<span>已售 ${money(p.sales)} 件</span>` : ''}<button type="button" data-action="detail-tab" data-value="2">${reviews} 条评价 ${icon('chevron')}</button></div></section>${activityPanel}<div class="pdp-benefit-row"><span>优惠</span><button type="button" data-action="coupons">${icon('ticket')}查看可用优惠券 ${icon('chevron')}</button></div><div class="pdp-delivery"><span>配送</span><div><button type="button" data-action="address">${icon('pin')}${address ? esc([address.region, address.detail].filter(Boolean).join(' ')) : '选择收货地址'}${icon('chevron')}</button><small>运费与配送范围将在结算时确认</small></div></div><div class="pdp-selections"><div class="pdp-option-row"><h2>颜色</h2><div class="pdp-options">${p.colors.map((color) => `<button type="button" class="pdp-option ${color === detail.color ? 'active' : ''}" data-action="color" data-value="${esc(color)}" aria-pressed="${color === detail.color}">${esc(color)}</button>`).join('')}</div></div><div class="pdp-option-row"><h2>规格</h2><div class="pdp-options">${p.options.map((option) => `<button type="button" class="pdp-option ${option === detail.option ? 'active' : ''}" data-action="option" data-value="${esc(option)}" aria-pressed="${option === detail.option}" ${variants.length && !variants.some((variant) => variant.color === detail.color && variant.option === option) ? 'disabled' : ''}>${esc(option)}</button>`).join('')}</div></div><div class="pdp-selected"><span>已选</span><p>${esc(detail.color)} · ${esc(detail.option)}<small>商品编号：${esc(selectedVariant?.sku_id || p.skuId || p.id)}</small></p></div><div class="pdp-stock">${window.LumoInventory?.badge(detail) || '<span>库存信息将在选择规格后确认</span>'}</div></div><div class="pdp-buybar"><div class="pdp-quantity"><span>数量</span>${quantity(detail.qty, 'detail')}</div><div class="detail-ctas pdp-ctas"><button type="button" class="secondary" data-action="detail-add" ${disabled ? 'disabled' : ''}>${icon('cart')}加入购物车</button><button type="button" class="primary" data-action="buy-now" ${disabled ? 'disabled' : ''}>立即购买</button></div></div>${window.LumoProductExtras?.detailActions(p) || ''}<div class="pdp-safe-note">${icon('shield')}价格及库存由服务端确认</div></aside></div></main>${footer()}`;
+  return `${header()}<main class="container pdp-page" id="main"><div class="breadcrumb"><a href="#/">首页</a>${icon('chevron')}<button data-action="category" data-value="${esc(p.category)}">${esc(p.category)}</button>${icon('chevron')}<span>${esc(p.name)}</span></div><div class="pdp-layout"><div class="pdp-main"><section class="pdp-gallery" aria-label="商品图片与视频"><div class="pdp-thumbnails" aria-label="选择商品媒体">${media.map((item, index) => `<button type="button" class="pdp-thumbnail ${detail.thumb === index ? 'active' : ''}" data-action="thumb" data-value="${index}" aria-label="${item.type === 'video' ? '播放商品视频' : '查看商品图片 ' + (index + 1)}" aria-pressed="${detail.thumb === index}"><img src="${esc(asset(item.type === 'video' ? currentImage : item.src))}" alt="">${item.type === 'video' ? '<span class="pdp-video-mark" aria-hidden="true">▶</span>' : ''}</button>`).join('')}</div><div class="pdp-media">${selected?.type === 'video' ? `<video src="${esc(selected.src)}" poster="${esc(asset(currentImage))}" controls playsinline preload="metadata" aria-label="${esc(p.name)}商品视频"></video>` : `<img src="${esc(asset(selected?.src || currentImage))}" alt="${esc(p.name)} · ${esc(detail.color)}" fetchpriority="high">`}<span class="pdp-media-index">${detail.thumb + 1} / ${media.length}</span></div></section><section class="details-bottom pdp-details"><nav class="detail-tabs pdp-tabs" aria-label="商品详情内容">${tabs.map(([value, label]) => `<button class="${ui.detailTab === value ? 'active' : ''}" data-action="detail-tab" data-value="${value}" aria-pressed="${ui.detailTab === value}">${label}${value === 2 || value === 3 ? `<span>${read && !read.loaded && !read.error ? '加载中' : value === 2 ? reviews : questions}</span>` : ''}</button>`).join('')}</nav><div class="pdp-tab-content">${tabContent}</div></section></div><aside class="pdp-purchase" aria-label="商品选购"><div class="pdp-purchase-heading"><span>${esc(p.brand || p.category)}</span><a href="#/member/support">${icon('support')}在线客服</a></div><div class="pdp-product-heading"><h1>${p.label ? `<span class="pdp-product-label">${esc(p.label)}</span>` : ''}${esc(p.name)}</h1>${p.sub ? `<p>${esc(p.sub)}</p>` : ''}</div><section class="pdp-price" aria-label="商品价格"><div><span class="pdp-price-caption">商品价格</span><div>${price(currentPrice)}${Number(p.old) > currentPrice ? `<span class="old-price">¥${money(p.old)}</span>` : ''}</div></div><div class="pdp-price-meta">${p.sales > 0 ? `<span>已售 ${money(p.sales)} 件</span>` : ''}<button type="button" data-action="detail-tab" data-value="2">${reviews} 条评价 ${icon('chevron')}</button></div></section>${activityPanel}<div class="pdp-benefit-row"><span>优惠</span><button type="button" data-action="coupons">${icon('ticket')}查看可用优惠券 ${icon('chevron')}</button></div><div class="pdp-delivery"><span>配送</span><div><button type="button" data-action="address">${icon('pin')}${address ? esc([address.region, address.detail].filter(Boolean).join(' ')) : '选择收货地址'}${icon('chevron')}</button><small>运费与配送范围将在结算时确认</small></div></div><div class="pdp-selections"><div class="pdp-option-row"><h2>颜色</h2><div class="pdp-options">${p.colors.map((color) => `<button type="button" class="pdp-option ${color === detail.color ? 'active' : ''}" data-action="color" data-value="${esc(color)}" aria-pressed="${color === detail.color}">${esc(color)}</button>`).join('')}</div></div><div class="pdp-option-row"><h2>规格</h2><div class="pdp-options">${p.options.map((option) => `<button type="button" class="pdp-option ${option === detail.option ? 'active' : ''}" data-action="option" data-value="${esc(option)}" aria-pressed="${option === detail.option}" ${variants.length && !variants.some((variant) => variant.color === detail.color && variant.option === option) ? 'disabled' : ''}>${esc(option)}</button>`).join('')}</div></div><div class="pdp-selected"><span>已选</span><p>${esc(detail.color)} · ${esc(detail.option)}<small>商品编号：${esc(selectedVariant?.sku_id || p.skuId || p.id)}</small></p></div><div class="pdp-stock">${window.LumoInventory?.badge(detail) || '<span>库存信息将在选择规格后确认</span>'}</div></div><div class="pdp-buybar"><div class="pdp-quantity"><span>数量</span>${quantity(detail.qty, 'detail')}</div><div class="detail-ctas pdp-ctas"><button type="button" class="secondary" data-action="detail-add" ${disabled ? 'disabled' : ''}>${icon('cart')}加入购物车</button><button type="button" class="primary" data-action="buy-now" ${disabled ? 'disabled' : ''}>立即购买</button></div></div>${window.LumoProductExtras?.detailActions(p) || ''}${window.LumoProductAlerts?.actions(p) || ''}<div class="pdp-safe-note">${icon('shield')}价格及库存由服务端确认</div></aside></div></main>${footer()}`;
 }
 function quantity(q, scope, index = '') {
   const item = scope === 'detail' ? detail : state.cart[Number(index)],
@@ -751,7 +758,7 @@ function checkoutPage() {
     pointsRead = window.LumoMember?.readState?.('points');
   const addressPending = addressRead && !addressRead.loaded && !addressRead.error,
     pointsPending = pointsRead && !pointsRead.loaded && !pointsRead.error;
-  return `${header()}<main id="main" class="container">${steps(0)}<div class="checkout-heading"><h1>确认订单</h1><a href="#/cart">${icon('back')} 返回购物车</a></div>${commerceAttemptNotice()}<div class="checkout-layout"><section class="panel checkout-panel"><div class="checkout-section"><h2>收货地址</h2>${addressPending ? commerceSkeleton('form', { label: '正在加载收货地址' }) : addressRead?.error && !a ? `<p class="api-config-error">${esc(addressRead.error)} <button class="text-button" data-action="commerce-member-retry">重试</button></p>` : a ? `<div class="address-card">${icon('pin')}<div><strong>${esc(a.name)}<span>${esc(String(a.phone || '').slice(0, 3) + '****' + String(a.phone || '').slice(-4))}</span></strong><p>${esc([a.region, a.detail].filter(Boolean).join(' '))}</p></div><span class="default-tag">${a.isDefault ? '默认' : '本次收货'}</span><button class="address-edit" data-action="address">编辑</button></div>` : ''}${!addressPending && !addressRead?.error ? `<button class="add-address" data-action="choose-address">${icon('plus')}${a ? '使用其他地址' : '添加收货地址'}</button>` : ''}</div><div class="checkout-section"><h2>配送方式</h2><div class="shipping-options"><button class="shipping-option active" type="button"><span class="radio-dot"></span>标准配送<small>${commerceState.shippingQuote ? (commerceState.shippingQuote.serviceable ? '服务端配送报价 · ' + (Number(commerceState.shippingQuote.shipping_cents) ? '¥' + money(Number(commerceState.shippingQuote.shipping_cents) / 100) : '免运费') : '当前地址暂不可配送') : '正在查询配送范围和运费'}</small></button></div></div><div class="checkout-section"><h2>支付优惠</h2><button class="benefit-row" data-action="coupons">${icon('ticket')}优惠券<span>${t.coupon ? '− ¥' + money(t.coupon) : '选择优惠券'}</span>${icon('chevron', 'arrow-icon')}</button>${pointsPending ? commerceSkeleton('rows', { count: 1, label: '正在加载可用积分' }) : pointsRead?.error && !pointsRead.loaded ? `<p class="api-config-error">${esc(pointsRead.error)} <button class="text-button" data-action="commerce-member-retry">重试</button></p>` : `<button class="benefit-row" data-action="points" role="switch" aria-checked="${!!state.points}" ${points <= 0 ? 'disabled' : ''}>${icon('coin', 'points')}积分（共 ${money(points)}）<span class="muted">100 积分抵 ¥1，最多抵商品金额的 10%</span><div class="toggle ${state.points ? 'on' : ''}"><i></i></div></button>`}</div>${window.LumoPromoView?.checkout(items) || ''}${window.LumoPromoView?.campaigns(items, 'checkout') || ''}${window.LumoPromoView?.exchange(window.LumoPromotions?.baseItems() || items, 'checkout') || ''}${window.LumoServices?.checkoutFields() || ''}<div class="checkout-section"><h2>订单备注</h2><textarea class="note-input" id="order-note" maxlength="150" rows="2" aria-label="订单备注" placeholder="选填：配送时间、特殊说明等">${esc(state.note || '')}</textarea></div></section><aside class="panel order-summary checkout-summary"><div class="checkout-summary-heading"><h2>订单商品 <span>(${items.reduce((n, x) => n + x.qty, 0)})</span></h2><small>${items.length} 款好物</small></div><div class="checkout-product-list" tabindex="0" role="region" aria-label="订单商品列表，共 ${items.length} 款">${orderItems(items)}</div>${items.length > 3 ? `<p class="checkout-scroll-hint">${icon('chevron')}上下滚动查看全部 ${items.length} 款商品</p>` : ''}${!commerceQuoteFor(items) && !commerceState.quoteError ? commerceSkeleton('summary', { label: '正在获取订单价格与优惠' }) : commerceQuoteFor(items) ? amountLines(t) : ''}<p class="secure-note" role="status">${esc(commerceState.quoteError || (commerceQuoteFor(items) ? '价格及优惠已由服务端确认' : ''))}</p><button class="primary" data-action="submit-order" ${commerceState.submitting ? 'disabled' : ''}>${commerceState.submitting ? '正在提交…' : readSubmitAttempt() ? '确认并重试提交' : '提交订单'}</button><p class="secure-note">${icon('shield')}订单和收货地址由服务端保存</p></aside></div></main>${footer()}`;
+  return `${header()}<main id="main" class="container">${steps(0)}<div class="checkout-heading"><h1>确认订单</h1><a href="#/cart">${icon('back')} 返回购物车</a></div>${commerceAttemptNotice()}<div class="checkout-layout"><section class="panel checkout-panel"><div class="checkout-section"><h2>收货地址</h2>${addressPending ? commerceSkeleton('form', { label: '正在加载收货地址' }) : addressRead?.error && !a ? `<p class="api-config-error">${esc(addressRead.error)} <button class="text-button" data-action="commerce-member-retry">重试</button></p>` : a ? `<div class="address-card">${icon('pin')}<div><strong>${esc(a.name)}<span>${esc(String(a.phone || '').slice(0, 3) + '****' + String(a.phone || '').slice(-4))}</span></strong><p>${esc([a.region, a.detail].filter(Boolean).join(' '))}</p></div><span class="default-tag">${a.isDefault ? '默认' : '本次收货'}</span><button class="address-edit" data-action="address">编辑</button></div>` : ''}${!addressPending && !addressRead?.error ? `<button class="add-address" data-action="choose-address">${icon('plus')}${a ? '使用其他地址' : '添加收货地址'}</button>` : ''}</div><div class="checkout-section"><h2>配送方式</h2><div class="shipping-options"><button class="shipping-option active" type="button"><span class="radio-dot"></span>${esc(commerceState.shippingQuote?.provider || '标准配送')}<small>${commerceState.shippingQuote ? (commerceState.shippingQuote.serviceable ? '配送费用 · ' + (Number(commerceState.shippingQuote.shipping_cents) ? '¥' + money(Number(commerceState.shippingQuote.shipping_cents) / 100) : '免运费') : '当前地址暂不可配送') : '正在查询配送范围和运费'}</small></button></div></div><div class="checkout-section"><h2>支付优惠</h2><button class="benefit-row" data-action="coupons">${icon('ticket')}优惠券<span>${t.coupon ? '− ¥' + money(t.coupon) : '选择优惠券'}</span>${icon('chevron', 'arrow-icon')}</button>${pointsPending ? commerceSkeleton('rows', { count: 1, label: '正在加载可用积分' }) : pointsRead?.error && !pointsRead.loaded ? `<p class="api-config-error">${esc(pointsRead.error)} <button class="text-button" data-action="commerce-member-retry">重试</button></p>` : `<button class="benefit-row" data-action="points" role="switch" aria-checked="${!!state.points}" ${points <= 0 ? 'disabled' : ''}>${icon('coin', 'points')}积分（共 ${money(points)}）<span class="muted">100 积分抵 ¥1，最多抵商品金额的 ${Number(window.LumoMember?.model()?.pointsPolicy?.deduction_bps ?? 1000) / 100}%</span><div class="toggle ${state.points ? 'on' : ''}"><i></i></div></button>`}</div>${window.LumoPromoView?.checkout(items) || ''}${window.LumoPromoView?.campaigns(items, 'checkout') || ''}${window.LumoPromoView?.exchange(window.LumoPromotions?.baseItems() || items, 'checkout') || ''}${window.LumoServices?.checkoutFields() || ''}<div class="checkout-section"><h2>订单备注</h2><textarea class="note-input" id="order-note" maxlength="150" rows="2" aria-label="订单备注" placeholder="选填：配送时间、特殊说明等">${esc(state.note || '')}</textarea></div></section><aside class="panel order-summary checkout-summary"><div class="checkout-summary-heading"><h2>订单商品 <span>(${items.reduce((n, x) => n + x.qty, 0)})</span></h2><small>${items.length} 款好物</small></div><div class="checkout-product-list" tabindex="0" role="region" aria-label="订单商品列表，共 ${items.length} 款">${orderItems(items)}</div>${items.length > 3 ? `<p class="checkout-scroll-hint">${icon('chevron')}上下滚动查看全部 ${items.length} 款商品</p>` : ''}${!commerceDisplayQuote(items) && !commerceState.quoteError ? commerceSkeleton('summary', { label: '正在获取订单价格与优惠' }) : commerceDisplayQuote(items) ? amountLines(t) : ''}<p class="secure-note" role="status">${esc(commerceState.quoteError || (commerceQuoteFor(items) ? '价格及优惠已确认' : commerceDisplayQuote(items) ? '正在更新价格，暂显示上次报价…' : ''))}</p><button class="primary" data-action="submit-order" ${commerceState.submitting || !commerceQuoteFor(items) ? 'disabled' : ''}>${commerceState.submitting ? '正在提交…' : readSubmitAttempt() ? '确认并重试提交' : '提交订单'}</button><p class="secure-note">${icon('shield')}订单和收货地址由服务端保存</p></aside></div></main>${footer()}`;
 }
 function paymentPage() {
   const order = state.pending;
@@ -772,7 +779,7 @@ function paymentPage() {
       : p
         ? '支付请求已创建，可提交模拟支付结果。'
         : '当前使用模拟支付渠道，不会产生真实扣款。';
-  return `${header()}<main id="main" class="container">${steps(1)}<div class="payment-wrap panel payment-panel"><h1>订单支付</h1><p class="payment-intro">${expired ? '支付期限已到，请刷新确认服务端订单状态' : `请在 <strong id="countdown">--:--</strong> 内完成支付`}</p><div class="payment-amount"><span>待付金额</span><div>${price(order.totals.total)}</div><p>订单编号：${esc(order.id)}</p></div><div class="payment-methods"><div class="payment-method active"><span class="method-icon" style="background:#ff443d">演</span>模拟支付渠道</div></div>${p ? `<p class="demo-note">支付单 ${esc(p.id)} · ${esc(p.status)}</p>` : ''}<p class="demo-note">${note}</p><div class="payment-actions"><button type="button" class="primary" data-action="${refreshOnly ? 'commerce-payment-refresh' : 'pay'}" ${commerceState.paying ? 'disabled' : ''}>${commerceState.paying ? '正在确认支付…' : refreshOnly ? '刷新支付结果' : p ? '模拟支付成功' : '模拟支付'}</button><button type="button" class="outline" data-action="commerce-cancel-order" data-id="${esc(order.id)}" ${commerceState.paying ? 'disabled' : ''}>取消订单</button></div><p class="secure-note" role="status">${esc(commerceState.paymentError || '支付结果由服务端确认后更新')}</p></div></main>${footer()}`;
+  return `${header()}<main id="main" class="container">${steps(1)}<div class="payment-wrap panel payment-panel"><h1>订单支付</h1><p class="payment-intro">${expired ? '支付期限已到，请刷新确认服务端订单状态' : `请在 <strong id="countdown">--:--</strong> 内完成支付`}</p><div class="payment-amount"><span>待付金额</span><div>${price(order.totals.total)}</div><p>订单编号：${esc(order.id)}</p></div><div class="payment-methods">${commerceState.paymentMethodsReady ? (commerceState.paymentMethods.length ? commerceState.paymentMethods.map((method) => `<button type="button" class="payment-method ${method.id === selectedMethod ? 'active' : ''}" data-action="payment-method" data-value="${esc(method.id)}" aria-pressed="${method.id === selectedMethod}"><span class="method-icon" style="background:var(--red)">${esc(method.name.slice(0, 1))}</span>${esc(method.name)}</button>`).join('') : '<p class="demo-note">商城暂未开放支付方式，请稍后再试或联系客服。</p>') : '<p class="demo-note">正在读取可用支付方式…</p>'}</div>${commerceState.paymentMethodsError ? `<p class="api-config-error">${esc(commerceState.paymentMethodsError)}</p>` : ''}${p ? `<p class="demo-note">支付单 ${esc(p.id)} · ${esc(p.status)}</p>` : ''}<p class="demo-note">${note}</p><div class="payment-actions"><button type="button" class="primary" data-action="${refreshOnly ? 'commerce-payment-refresh' : 'pay'}" ${commerceState.paying || (!refreshOnly && (!commerceState.paymentMethodsReady || !commerceState.paymentMethods.length)) ? 'disabled' : ''}>${commerceState.paying ? '正在确认支付…' : refreshOnly ? '刷新支付结果' : p ? '模拟支付成功' : '模拟支付'}</button><button type="button" class="outline" data-action="commerce-cancel-order" data-id="${esc(order.id)}" ${commerceState.paying ? 'disabled' : ''}>取消订单</button></div><p class="secure-note" role="status">${esc(commerceState.paymentError || '支付结果由服务端确认后更新')}</p></div></main>${footer()}`;
 }
 function successPage() {
   if (!commerceOrders.length && !commerceReadState('orders').loaded && !commerceReadState('orders').error)
@@ -798,7 +805,7 @@ function render() {
   let accent = shop().accent;
   if (!/^#[0-9a-f]{6}$/i.test(accent)) accent = '#ff443d';
   document.documentElement.style.setProperty('--red', accent);
-  document.documentElement.style.setProperty('--red-dark', accent);
+  document.documentElement.style.removeProperty?.('--red-dark');
   document.querySelector('meta[name=theme-color]')?.setAttribute('content', accent);
   let route = (location.hash || '#/').slice(2).split('/');
   const name = route[0] || '';
@@ -876,6 +883,7 @@ function render() {
   window.LumoDiscovery?.afterRender();
   window.LumoCategories?.afterRender();
   window.LumoProductExtras?.afterRender();
+  window.LumoProductAlerts?.afterRender();
   window.LumoServices?.afterRender();
   window.LumoCouponCenter?.afterRender();
   window.LumoSidebars?.afterRender();
@@ -912,15 +920,23 @@ async function addToCart(item) {
     commerceAdding.delete(sku);
   }
 }
+let modalReturnFocus = null;
+let modalFocusTimer = null;
 function modal(title, body) {
+  if (!$('#modal-root').innerHTML) modalReturnFocus = document.activeElement;
+  clearTimeout(modalFocusTimer);
   $('#modal-root').innerHTML =
     `<div class="modal-backdrop" data-backdrop="true"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-header"><h2 id="modal-title">${title}</h2><button class="icon-button" data-action="close-modal" aria-label="关闭">${icon('close')}</button></div>${body}</section></div>`;
   document.body.style.overflow = 'hidden';
-  setTimeout(() => $('.modal input, .modal button')?.focus(), 30);
+  modalFocusTimer = setTimeout(() => $('.modal input, .modal button')?.focus(), 30);
 }
 function closeModal() {
+  clearTimeout(modalFocusTimer);
   $('#modal-root').innerHTML = '';
   document.body.style.overflow = '';
+  const trigger = modalReturnFocus;
+  modalReturnFocus = null;
+  if (trigger?.isConnected) trigger.focus({ preventScroll: true });
 }
 function showCoupons() {
   window.LumoMember?.showCoupons();
@@ -952,7 +968,7 @@ function showOrder(id) {
   if (!o) return;
   modal(
     '订单详情',
-    `<p class="modal-desc">订单编号 ${esc(o.id)} · ${esc(window.LumoMember?.orderLabel(o) || window.LumoPromotions?.orderStatus(o) || '支付已确认')}</p>${orderItems(o.items)}${amountLines(o.totals)}${window.LumoPromoView?.order(o) || ''}<p class="modal-desc" style="margin:18px 0 0">收货人：${esc(o.address.name)} · ${esc(o.address.phone.slice(0, 3) + '****' + o.address.phone.slice(-4))}<br>收货地址：${esc(o.address.region + ' ' + o.address.detail)}<br>配送方式：${o.totals.shipping === 25 ? '京东快递' : o.totals.shipping === 10 ? '顺丰速运' : '普通快递'}<br>支付方式：${esc(o.methodLabel)}${o.note ? '<br>订单备注：' + esc(o.note) : ''}<br>订单以服务端记录为准；当前支付及物流采用演示适配器。</p>`,
+    `<p class="modal-desc">订单编号 ${esc(o.id)} · ${esc(window.LumoMember?.orderLabel(o) || window.LumoPromotions?.orderStatus(o) || '支付已确认')}</p>${orderItems(o.items)}${amountLines(o.totals)}${window.LumoPromoView?.order(o) || ''}<p class="modal-desc" style="margin:18px 0 0">收货人：${esc(o.address.name)} · ${esc(o.address.phone.slice(0, 3) + '****' + o.address.phone.slice(-4))}<br>收货地址：${esc(o.address.region + ' ' + o.address.detail)}<br>配送方式：${esc(o.shippingLabel || '标准配送')}<br>支付方式：${esc(o.methodLabel)}${o.note ? '<br>订单备注：' + esc(o.note) : ''}<br>订单以服务端记录为准；当前支付及物流采用演示适配器。</p>`,
   );
 }
 document.addEventListener('click', (e) => {
@@ -1332,6 +1348,7 @@ const commerceState = {
   quote: null,
   shippingQuote: null,
   quoteKey: '',
+  quoteCartKey: '',
   quoteError: '',
   quoteErrorKey: '',
   quoteLoadingKey: '',
@@ -1339,6 +1356,10 @@ const commerceState = {
   paying: false,
   payment: null,
   paymentError: '',
+  paymentMethods: [],
+  paymentMethodsReady: false,
+  paymentMethodsError: '',
+  paymentMethodsAt: 0,
   successOrderId: '',
   flashRequestId: '',
   lastPoll: 0,
@@ -1593,7 +1614,7 @@ function normalizeOrder(raw) {
           offerId: q.activity_id || 'group-demo',
         }),
     );
-  else if (q.activity_id === 'flash-demo')
+  else if (q.activity_kind === CommerceEnums.CampaignKind.Flash || q.activity_id === 'flash-demo')
     items.forEach((x) => (x.promotion = { type: CommerceEnums.PromotionType.Flash, offerId: q.activity_id }));
   if (q.addon_sku_id)
     items
@@ -1606,6 +1627,7 @@ function normalizeOrder(raw) {
     activityName: q.activity_name || raw.activity_name || '',
     backendStatus: status,
     id: raw.id || raw.order_id,
+    shippingLabel: q.shipping?.provider || q.shipping_policy?.name || '标准配送',
     createdAt,
     updatedAt,
     paidAt: paid ? Date.parse(raw.paid_at) || updatedAt : null,
@@ -1964,6 +1986,10 @@ function commerceQuoteData(items = selectedItems()) {
   return {
     items: [...grouped].map(([sku_id, quantity]) => ({ sku_id, quantity })),
     coupon_id: meta.couponId || meta.coupon_id || '',
+    coupon_mode: meta.couponMode || 'auto',
+    points_mode: state.points ? 'max' : '',
+    address_id: state.address?.id || '',
+    address: { region: state.address?.region || '' },
     points: state.points ? Number(meta.pointsUsed || meta.points || 0) : 0,
     ...promo,
   };
@@ -1985,9 +2011,22 @@ function commerceQuoteFor(items) {
     ? commerceState.quote
     : null;
 }
-function invalidateCommerceQuote() {
+function commerceCartKey(items) {
+  return JSON.stringify(
+    items.map((item) => [skuForItem(item), Number(item.qty)]).sort((a, b) => a[0].localeCompare(b[0])),
+  );
+}
+function commerceDisplayQuote(items) {
+  return (
+    commerceQuoteFor(items) || (commerceState.quoteCartKey === commerceCartKey(items) ? commerceState.quote : null)
+  );
+}
+function invalidateCommerceQuote(discard = false) {
   commerceQuoteSequence++;
-  commerceState.quote = null;
+  if (discard) {
+    commerceState.quote = null;
+    commerceState.quoteCartKey = '';
+  }
   commerceState.quoteKey = '';
   commerceState.quoteLoadingKey = '';
   commerceState.quoteError = '';
@@ -2003,28 +2042,16 @@ async function ensureCommerceQuote(force = false) {
   commerceState.quoteLoadingKey = key;
   commerceState.quoteError = '';
   try {
-    const [q, shipping] = await Promise.all([
-      commerceCall(CommerceEnums.Service.Checkout, CommerceEnums.Action.Quote, { data }),
-      commerceCall(
-        CommerceEnums.Service.Logistics,
-        CommerceEnums.Action.Quote,
-        {
-          data: {
-            address_id: state.address?.id,
-            address: state.address?.detail,
-            region: state.address?.region,
-            items: data.items,
-          },
-        },
-        { auth: false },
-      ),
-    ]);
+    const q = await commerceCall(CommerceEnums.Service.Coupon, CommerceEnums.Action.Calculate, { data });
+    const shipping = q.shipping || { shipping_cents: q.shipping_cents, serviceable: true };
     if (seq !== commerceQuoteSequence) return null;
     if (shipping.serviceable === false) throw new Error('当前地址暂不可配送，请更换收货地址');
     if (Number(shipping.shipping_cents || 0) !== Number(q.shipping_cents || 0))
       throw new Error('配送费用与订单报价不一致，请重新确认');
     commerceState.shippingQuote = shipping;
+    window.LumoMember?.applyCouponQuote?.(q);
     commerceState.quote = q;
+    commerceState.quoteCartKey = commerceCartKey(selectedItems());
     commerceState.quoteKey = key;
     return q;
   } catch (error) {
@@ -2202,6 +2229,8 @@ async function finishSubmittedOrder(id) {
   commerceState.payment = null;
   commerceState.paymentError = '';
   clearSubmitAttempt();
+  window.LumoMember?.resetCheckoutCoupon?.();
+  invalidateCommerceQuote(true);
   window.LumoPromotions?.clearCampaign?.();
   window.LumoPromotions?.clearExchange?.();
   if (order.backendStatus === CommerceEnums.OrderStatus.PendingPayment) go('payment');
@@ -2228,6 +2257,34 @@ async function pollFlashRequest(id) {
   toast('秒杀请求已入队，继续提交可查询同一请求');
   return result;
 }
+let paymentMethodsFlight = null;
+async function loadPaymentMethods(force = false) {
+  if (paymentMethodsFlight) return paymentMethodsFlight;
+  if (!force && Date.now() - commerceState.paymentMethodsAt < 15000) return commerceState.paymentMethods;
+  const owner = commerceOwner();
+  paymentMethodsFlight = (async () => {
+    try {
+      const value = await commerceCall(CommerceEnums.Service.Payment, CommerceEnums.Action.Methods, {});
+      if (owner !== commerceOwner()) return [];
+      commerceState.paymentMethods = value.items || [];
+      commerceState.paymentMethodsReady = true;
+      commerceState.paymentMethodsError = '';
+      if (!commerceState.paymentMethods.some((m) => m.id === selectedMethod))
+        selectedMethod = commerceState.paymentMethods[0]?.id || '';
+      return commerceState.paymentMethods;
+    } catch (error) {
+      if (owner === commerceOwner()) commerceState.paymentMethodsError = error.message;
+      return [];
+    } finally {
+      if (owner === commerceOwner()) {
+        commerceState.paymentMethodsAt = Date.now();
+        if (location.hash === '#/payment') renderKeepScroll();
+      }
+      paymentMethodsFlight = null;
+    }
+  })();
+  return paymentMethodsFlight;
+}
 async function createCommercePayment() {
   if (commerceState.paying || !state.pending || !window.LumoAuth?.requireLogin('#/payment')) return;
   const id = state.pending.id,
@@ -2237,7 +2294,10 @@ async function createCommercePayment() {
   commerceState.paymentError = '';
   renderKeepScroll();
   try {
-    const payment = await commerceCall(CommerceEnums.Service.Payment, CommerceEnums.Action.Create, { id });
+    const payment = await commerceCall(CommerceEnums.Service.Payment, CommerceEnums.Action.Create, {
+      id,
+      data: { provider: selectedMethod },
+    });
     if (!active()) return;
     commerceState.payment = payment;
     toast('支付请求已创建，可继续模拟支付');
@@ -2265,7 +2325,10 @@ async function submitCommerceDemoPayment() {
   try {
     let payment = commerceState.payment?.order_id === id ? commerceState.payment : null;
     if (!payment) {
-      payment = await commerceCall(CommerceEnums.Service.Payment, CommerceEnums.Action.Create, { id });
+      payment = await commerceCall(CommerceEnums.Service.Payment, CommerceEnums.Action.Create, {
+        id,
+        data: { provider: selectedMethod },
+      });
       if (!active()) return;
       commerceState.payment = payment;
     }
@@ -2413,6 +2476,7 @@ function commerceAfterRender(name) {
       void ensureCommerceQuote().catch(() => {});
   }
   clearTimeout(commercePollTimer);
+  if (name === 'payment' && window.LumoAuth?.isLoggedIn()) void loadPaymentMethods();
   if (name === 'payment' && state.pending && !commerceState.paying && window.LumoAuth?.isLoggedIn())
     commercePollTimer = setTimeout(
       () =>
@@ -2475,10 +2539,14 @@ window.LumoCommerce = {
     state.favoriteSKUs = [];
     state.address = null;
     commerceState.payment = null;
+    commerceState.paymentMethods = [];
+    commerceState.paymentMethodsReady = false;
+    commerceState.paymentMethodsAt = 0;
+    commerceState.paymentMethodsError = '';
     commerceState.paymentError = '';
     commerceState.paying = false;
     commerceState.successOrderId = '';
-    invalidateCommerceQuote();
+    invalidateCommerceQuote(true);
   },
 };
 window.addEventListener('lumo:logout', () => window.LumoCommerce.reset());

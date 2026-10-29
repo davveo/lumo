@@ -19,6 +19,9 @@ type Repository struct{ db *gorm.DB }
 
 func New(db *gorm.DB) *Repository { return &Repository{db: db} }
 func (r *Repository) Migrate(ctx context.Context) error {
+	if e := platform.MigrateBusinessIDs(ctx, r.db); e != nil {
+		return e
+	}
 	ctx, s := platform.Start(ctx, "cart.repository.Migrate")
 	defer s.End()
 	return r.db.WithContext(ctx).AutoMigrate(&domain.Record{})
@@ -179,7 +182,11 @@ func (r *Repository) Mutate(
 func (r *Repository) Delete(ctx context.Context, id, owner string) error {
 	ctx, s := platform.Start(ctx, "cart.repository.Delete")
 	defer s.End()
-	res := r.db.WithContext(ctx).Where("id = ? AND user_id = ?", id, owner).Delete(&domain.Record{})
+	// Public line removal must not delete paid-order receipts in this table;
+	// those records protect later cart additions from duplicate event delivery.
+	res := r.db.WithContext(ctx).
+		Where("id = ? AND user_id = ? AND kind = ?", id, owner, constants.CartRecordKindCartItem).
+		Delete(&domain.Record{})
 	if res.Error != nil {
 		return res.Error
 	}

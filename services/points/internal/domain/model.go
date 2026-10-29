@@ -18,6 +18,8 @@ type Hold struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 type Ledger struct {
+	ActorID   string    `gorm:"size:128" json:"actor_id,omitempty"`
+	Reason    string    `gorm:"size:240" json:"reason,omitempty"`
 	ID        string    `gorm:"primaryKey;size:160" json:"id"`
 	UserID    string    `gorm:"size:80;index"       json:"user_id"`
 	OrderID   string    `gorm:"size:120;index"      json:"order_id"`

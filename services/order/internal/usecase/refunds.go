@@ -23,12 +23,18 @@ func (s *Service) Refunded(ctx context.Context, request RecordRefundRequest) (do
 			if request.RefundID == "" || request.AmountCents <= 0 {
 				return transition{}, status.Error(codes.InvalidArgument, "refund receipt required")
 			}
-			if _, err := tx.Receipt(request.RefundID); err == nil {
+			if receipt, err := tx.Receipt(request.RefundID); err == nil {
+				if receipt.OrderID != order.ID || receipt.Amount != request.AmountCents {
+					return transition{}, status.Error(codes.AlreadyExists, "refund receipt differs")
+				}
 				return transition{unchanged: true}, nil
 			} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 				return transition{}, err
 			}
-			if order.Refunded+request.AmountCents > order.Payable {
+			if order.Refunded < 0 || order.Payable <= 0 || order.Refunded > order.Payable {
+				return transition{}, status.Error(codes.Internal, "order refund ledger inconsistent")
+			}
+			if request.AmountCents > order.Payable-order.Refunded {
 				return transition{}, status.Error(codes.FailedPrecondition, "refund exceeds captured amount")
 			}
 			order.Refunded += request.AmountCents

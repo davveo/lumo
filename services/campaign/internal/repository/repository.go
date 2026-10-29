@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"github.com/davveo/lumo/internal/adminconfig"
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/campaign/internal/domain"
@@ -15,7 +16,18 @@ import (
 type Repository struct{ DB *gorm.DB }
 
 func (r *Repository) Migrate(ctx context.Context) error {
-	return r.DB.WithContext(ctx).AutoMigrate(&domain.Activity{}, &domain.Hold{})
+	if e := platform.MigrateBusinessIDs(ctx, r.DB); e != nil {
+		return e
+	}
+	if e := adminconfig.Migrate(ctx, r.DB); e != nil {
+		return e
+	}
+	if err := r.DB.WithContext(ctx).AutoMigrate(&domain.Activity{}, &domain.Hold{}); err != nil {
+		return err
+	}
+	// Version zero is exclusively the new-rule precondition. Existing rules
+	// must not be mistaken for a create request after an additive migration.
+	return r.DB.WithContext(ctx).Model(&domain.Activity{}).Where("version = ?", 0).Update("version", 1).Error
 }
 func (r *Repository) Seed(ctx context.Context) error {
 	for _, a := range []domain.Activity{

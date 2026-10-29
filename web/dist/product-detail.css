@@ -117,7 +117,7 @@
   margin: 0 -22px 18px;
   padding: 13px 22px;
   color: #fff;
-  background: linear-gradient(110deg, #ff443d, #ff8c45);
+  background: var(--brand-gradient);
   border-radius: 12px 12px 0 0;
   font-size: 13px;
   font-weight: 650;
@@ -172,14 +172,14 @@
   gap: 12px;
   margin: 16px -8px 0;
   padding: 15px 12px;
-  background: linear-gradient(110deg, #fff2ef, #fff9f4);
+  background: var(--brand-surface-gradient);
   border-radius: 9px;
 }
 .pdp-price-caption {
   display: block;
   margin-bottom: 4px;
   font-size: 11px;
-  color: #dc5548;
+  color: var(--red);
 }
 .pdp-price .price {
   font-size: 34px;
@@ -240,7 +240,7 @@
   padding: 5px 8px;
   border-radius: 4px;
   color: var(--red);
-  background: #fff1ef;
+  background: var(--pale);
 }
 .pdp-delivery {
   padding-bottom: 19px;
@@ -286,7 +286,7 @@
 .pdp-option.active {
   color: var(--red);
   border-color: var(--red);
-  background: #fff7f5;
+  background: var(--pale);
   font-weight: 600;
 }
 .pdp-option:disabled {
@@ -358,8 +358,8 @@
   height: 19px;
 }
 .pdp-ctas .secondary {
-  border: 1px solid #ffd3cb;
-  background: #fff0eb;
+  border: 1px solid var(--brand-border);
+  background: var(--pale);
   color: var(--red);
 }
 .pdp-purchase .pex-detail-actions {
@@ -693,4 +693,16 @@
 }
 .pdp-promotions .promo-detail {
   margin-top: 0;
+}
+
+@media (max-width: 760px) {
+  .pdp-quantity .quantity,
+  .pdp-option,
+  .pdp-benefit-row button,
+  .pdp-delivery button {
+    min-height: 44px;
+  }
+  .pdp-quantity .quantity {
+    height: 44px;
+  }
 }

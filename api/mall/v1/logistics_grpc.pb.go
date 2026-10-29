@@ -21,11 +21,13 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	LogisticsService_Create_FullMethodName  = "/mall.v1.LogisticsService/Create"
-	LogisticsService_Deliver_FullMethodName = "/mall.v1.LogisticsService/Deliver"
-	LogisticsService_Get_FullMethodName     = "/mall.v1.LogisticsService/Get"
-	LogisticsService_List_FullMethodName    = "/mall.v1.LogisticsService/List"
-	LogisticsService_Quote_FullMethodName   = "/mall.v1.LogisticsService/Quote"
+	LogisticsService_Create_FullMethodName       = "/mall.v1.LogisticsService/Create"
+	LogisticsService_Deliver_FullMethodName      = "/mall.v1.LogisticsService/Deliver"
+	LogisticsService_Get_FullMethodName          = "/mall.v1.LogisticsService/Get"
+	LogisticsService_List_FullMethodName         = "/mall.v1.LogisticsService/List"
+	LogisticsService_Quote_FullMethodName        = "/mall.v1.LogisticsService/Quote"
+	LogisticsService_PolicyGet_FullMethodName    = "/mall.v1.LogisticsService/PolicyGet"
+	LogisticsService_PolicyUpsert_FullMethodName = "/mall.v1.LogisticsService/PolicyUpsert"
 )
 
 // LogisticsServiceClient is the client API for LogisticsService service.
@@ -37,6 +39,8 @@ type LogisticsServiceClient interface {
 	Get(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	List(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Quote(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PolicyGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PolicyUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type logisticsServiceClient struct {
@@ -92,6 +96,24 @@ func (c *logisticsServiceClient) Quote(ctx context.Context, in *ServiceRequest, 
 	return out, nil
 }
 
+func (c *logisticsServiceClient) PolicyGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, LogisticsService_PolicyGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *logisticsServiceClient) PolicyUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, LogisticsService_PolicyUpsert_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LogisticsServiceServer is the server API for LogisticsService service.
 // All implementations must embed UnimplementedLogisticsServiceServer
 // for forward compatibility
@@ -101,6 +123,8 @@ type LogisticsServiceServer interface {
 	Get(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	List(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Quote(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PolicyGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedLogisticsServiceServer()
 }
 
@@ -122,6 +146,12 @@ func (UnimplementedLogisticsServiceServer) List(context.Context, *ServiceRequest
 }
 func (UnimplementedLogisticsServiceServer) Quote(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Quote not implemented")
+}
+func (UnimplementedLogisticsServiceServer) PolicyGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PolicyGet not implemented")
+}
+func (UnimplementedLogisticsServiceServer) PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PolicyUpsert not implemented")
 }
 func (UnimplementedLogisticsServiceServer) mustEmbedUnimplementedLogisticsServiceServer() {}
 
@@ -226,6 +256,42 @@ func _LogisticsService_Quote_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LogisticsService_PolicyGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LogisticsServiceServer).PolicyGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LogisticsService_PolicyGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LogisticsServiceServer).PolicyGet(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LogisticsService_PolicyUpsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LogisticsServiceServer).PolicyUpsert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LogisticsService_PolicyUpsert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LogisticsServiceServer).PolicyUpsert(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // LogisticsService_ServiceDesc is the grpc.ServiceDesc for LogisticsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -252,6 +318,14 @@ var LogisticsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Quote",
 			Handler:    _LogisticsService_Quote_Handler,
+		},
+		{
+			MethodName: "PolicyGet",
+			Handler:    _LogisticsService_PolicyGet_Handler,
+		},
+		{
+			MethodName: "PolicyUpsert",
+			Handler:    _LogisticsService_PolicyUpsert_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

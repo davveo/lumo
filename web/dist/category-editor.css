@@ -1,30 +1,31 @@
 .ce-editor {
   --ce-accent: var(--red, #ff443d);
   color: #202a36;
-  font-size: 14px;
+  font-size: 13px;
+  container: category-editor / inline-size;
 }
 .ce-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 24px;
+  gap: 20px;
+  margin-bottom: 22px;
 }
 .ce-eyebrow {
-  font-size: 10px;
-  letter-spacing: 2px;
-  color: #9ba3af;
-  font-weight: 700;
+  display: none;
 }
 .ce-heading h1 {
-  font-size: 30px;
-  line-height: 1.3;
-  margin: 8px 0;
+  font-size: 24px;
+  font-weight: 650;
+  line-height: 1.4;
+  letter-spacing: -0.4px;
+  margin: 0 0 7px;
 }
 .ce-heading p,
 .ce-help {
   margin: 0;
-  color: #8a95a5;
+  color: #7c8493;
+  font-size: 13px;
   line-height: 1.7;
 }
 .ce-heading-actions,
@@ -41,6 +42,7 @@
   color: #536172;
   border-radius: 9px;
   padding: 9px 14px;
+  min-height: 40px;
   font: inherit;
   font-size: 13px;
   font-weight: 600;
@@ -67,9 +69,9 @@
   gap: 24px;
   border: 1px solid #e9edf1;
   background: white;
-  border-radius: 13px;
-  padding: 17px 20px;
-  color: #8c97a5;
+  border-radius: 12px;
+  padding: 16px 20px;
+  color: #7c8493;
   margin-bottom: 20px;
 }
 .ce-summary strong {
@@ -90,15 +92,15 @@
 }
 .ce-layout {
   display: grid;
-  grid-template-columns: 250px minmax(0, 1fr);
-  gap: 20px;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 16px;
   align-items: start;
 }
 .ce-card {
   background: #fff;
   border: 1px solid #e7ebef;
-  border-radius: 14px;
-  padding: 22px;
+  border-radius: 12px;
+  padding: 20px;
   min-width: 0;
 }
 .ce-card-heading {
@@ -106,7 +108,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 .ce-card-heading h2 {
   font-size: 16px;
@@ -122,24 +124,28 @@
 .ce-card-heading .ce-actions .ce-button,
 .ce-row .ce-button {
   padding: 6px 9px;
+  min-height: 32px;
   font-size: 12px;
 }
 .ce-details {
   display: grid;
-  gap: 18px;
+  gap: 16px;
   min-width: 0;
 }
 .ce-groups {
   padding: 18px 12px;
   position: sticky;
-  top: 20px;
+  top: 88px;
 }
 .ce-groups > .ce-card-heading {
   padding: 0 8px;
 }
 .ce-group-list {
-  max-height: 700px;
+  max-height: min(680px, calc(100dvh - 180px));
   overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #dce1e8 transparent;
+  overscroll-behavior: contain;
 }
 .ce-group {
   display: flex;
@@ -150,8 +156,8 @@
   text-align: left;
   border: 0;
   background: transparent;
-  padding: 12px;
-  border-radius: 9px;
+  padding: 11px 12px;
+  border-radius: 8px;
   cursor: pointer;
   color: #4b5868;
   font: inherit;
@@ -181,6 +187,9 @@
   color: #a3adba;
   flex-shrink: 0;
 }
+.ce-group:hover {
+  background: #f7f8fa;
+}
 .ce-group.is-active {
   background: #fff1ef;
   color: var(--ce-accent, #ff443d);
@@ -188,12 +197,13 @@
 .ce-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: 16px;
 }
 .ce-field {
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 8px;
+  min-width: 0;
   font-size: 13px;
   color: #6b7788;
 }
@@ -205,8 +215,10 @@
   border: 1px solid #e0e5eb;
   border-radius: 9px;
   background: #fff;
-  padding: 11px 12px;
-  min-height: 42px;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  height: 40px;
+  min-height: 40px;
   color: #334155;
   font: inherit;
   outline: none;
@@ -259,7 +271,7 @@
 }
 .ce-row {
   padding: 16px 0;
-  border-top: 1px solid #f0f2f5;
+  border-top: 1px solid #eef0f4;
 }
 .ce-row:first-child {
   border-top: 0;
@@ -307,7 +319,7 @@
   max-height: 90vh;
   overflow: hidden;
   background: #fff;
-  border-radius: 18px;
+  border-radius: 12px;
   box-shadow: 0 25px 100px #1821312b;
   color: #253040;
   font-size: 14px;
@@ -318,7 +330,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24px 28px;
+  padding: 20px 24px;
   border-bottom: 1px solid #edf0f3;
 }
 .ce-dialog h2 {
@@ -331,7 +343,7 @@
   min-height: 0;
 }
 .ce-dialog-content {
-  padding: 24px 28px;
+  padding: 20px 24px;
   overflow: auto;
   min-height: 0;
 }
@@ -370,7 +382,7 @@
 }
 .ce-dialog footer {
   border-top: 1px solid #edf0f3;
-  padding: 18px 28px;
+  padding: 16px 24px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -397,13 +409,13 @@
   outline: 2px solid #ff8f88;
   outline-offset: 3px;
 }
-@media (max-width: 1050px) {
+@container category-editor (max-width: 980px) {
   .ce-layout {
     grid-template-columns: 210px minmax(0, 1fr);
   }
   .ce-heading {
     align-items: flex-start;
-    flex-direction: column;
+    flex-wrap: wrap;
     gap: 14px;
   }
   .ce-card-heading {
@@ -420,21 +432,33 @@
     padding: 6px 7px;
   }
 }
-@media (max-width: 700px) {
+@container category-editor (max-width: 720px) {
   .ce-layout {
     grid-template-columns: 1fr;
   }
   .ce-groups {
     position: static;
+    padding: 16px 12px;
   }
   .ce-group-list {
-    max-height: 220px;
+    max-height: 240px;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 4px;
   }
-  .ce-fields {
-    grid-template-columns: 1fr;
+  .ce-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .ce-heading-actions {
+    width: 100%;
+    gap: 6px;
+  }
+  .ce-heading-actions .ce-button {
+    flex: 1;
+    padding: 10px 8px;
+    font-size: 12px;
   }
   .ce-summary {
     gap: 10px;
@@ -449,24 +473,32 @@
   .ce-card {
     padding: 17px;
   }
+  .ce-groups {
+    padding: 16px 12px;
+  }
+  .ce-row-heading {
+    flex-wrap: wrap;
+  }
+  .ce-group {
+    padding: 10px;
+  }
+}
+@container category-editor (max-width: 460px) {
+  .ce-fields {
+    grid-template-columns: 1fr;
+  }
   .ce-heading h1 {
-    font-size: 25px;
+    font-size: 22px;
   }
-  .ce-heading-actions {
-    width: 100%;
-    gap: 6px;
+  .ce-card-heading {
+    align-items: flex-start;
   }
-  .ce-heading-actions .ce-button {
-    flex: 1;
-    padding: 10px 8px;
-    font-size: 12px;
-  }
+}
+@media (max-width: 700px) {
   .ce-backdrop {
     padding: 12px;
   }
-  .ce-dialog > header {
-    padding: 18px;
-  }
+  .ce-dialog > header,
   .ce-dialog-content {
     padding: 18px;
   }
@@ -476,6 +508,9 @@
   }
   .ce-dialog footer > span {
     width: 100%;
+  }
+  .ce-dialog .ce-fields {
+    grid-template-columns: 1fr;
   }
   .ce-link-head {
     display: none;
@@ -491,15 +526,6 @@
     justify-content: flex-end;
   }
   .ce-dialog {
-    max-height: 94vh;
-  }
-  .ce-row-heading {
-    flex-wrap: wrap;
-  }
-  .ce-group {
-    padding: 10px;
-  }
-  .ce-editor {
-    font-size: 13px;
+    max-height: 94dvh;
   }
 }

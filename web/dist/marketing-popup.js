@@ -51,7 +51,7 @@
     ]);
   const safeTarget = (value) =>
     typeof value === 'string' &&
-    /^#\/(?:coupons|member\/coupons|promotions(?:\/(?:flash|group|exchange|reduction|discount|quantity_discount|direct)(?:\/[A-Za-z0-9_-]+)?)?|product\/(?:[A-Za-z0-9_.:-]|%[A-Fa-f0-9]{2}){1,180})?$/.test(
+    /^#\/(?:coupons|member(?:\/(?:coupons|points|growth))?|promotions(?:\/(?:flash|group|exchange|reduction|discount|quantity_discount|direct)(?:\/[A-Za-z0-9_-]+)?)?|product\/(?:[A-Za-z0-9_.:-]|%[A-Fa-f0-9]{2}){1,180})?$/.test(
       value,
     )
       ? value
@@ -272,6 +272,18 @@
       theme = [C.PopupTheme.Red, C.PopupTheme.Peach, C.PopupTheme.Plum].includes(content.theme)
         ? content.theme
         : C.PopupTheme.Red;
+    const layout = Object.values(C.PopupLayout || {}).includes(content.layout)
+      ? content.layout
+      : row
+        ? C.PopupLayout?.Coupon
+        : C.PopupLayout?.Announcement;
+    const image =
+      typeof content.image_url === 'string' &&
+      (/^(?:assets\/)?(?:[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp)|demo-[a-z0-9-]+\.svg)$/.test(content.image_url) ||
+        /^https:\/\/[^\s]+$/.test(content.image_url))
+        ? content.image_url
+        : '';
+    const imageSrc = image && !/^https:|^assets\//.test(image) ? 'assets/' + image : image;
     const end = claimed?.expires_at || candidate.coupon?.expires_at;
     const validity =
       hasClaimed() && date(end)
@@ -281,7 +293,7 @@
           : '';
     const min = number(row?.min_cents),
       amount = number(row?.amount_cents);
-    root.innerHTML = `<div class="mp-shell"><section class="mp-card mp-theme-${theme}" role="dialog" aria-modal="true" aria-labelledby="mp-title" aria-describedby="mp-description"><span class="mp-confetti mp-confetti-one" aria-hidden="true">✦</span><span class="mp-confetti mp-confetti-two" aria-hidden="true">✧</span><div class="mp-heading"><span class="mp-eyebrow">LUMO · 为你准备的好礼</span><h2 id="mp-title">${esc(text(content.title, 80) || '送你一份专属好礼')}</h2>${content.subtitle ? `<p>${esc(text(content.subtitle, 160))}</p>` : ''}</div>${row ? `<div class="mp-ticket"><div class="mp-value"><small>¥</small><strong>${yuan(amount)}</strong></div><div class="mp-ticket-info"><strong>${min ? `满 ¥${yuan(min)} 可用` : '无使用门槛'}</strong><span>${esc(text(row.name, 80) || '品质生活优惠券')}</span><small>普通商品可用 · 每人限领一次</small></div><span class="mp-ticket-seal">${hasClaimed() ? '已领取' : '专享礼券'}</span></div>` : '<div class="mp-gift" aria-hidden="true"><span>礼</span><i></i></div>'}<div class="mp-details"><p id="mp-description">${esc(text(content.body, 400) || (hasClaimed() ? '优惠券已放入你的账户，去挑选心动好物吧。' : '好券搭配好物，让这一次心动更划算。'))}</p>${failure ? `<p class="mp-error" role="alert">${esc(failure)}</p>` : hasClaimed() ? '<p class="mp-success" role="status">领取成功，已放入我的优惠券</p>' : ''}<button type="button" class="mp-primary" data-popup-action="primary" ${busy ? 'disabled aria-busy="true"' : ''}>${esc(label())}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button>${validity ? `<p class="mp-validity">${esc(validity)}</p>` : ''}<span class="mp-rule">领取与使用条件以优惠券规则为准</span></div></section><button type="button" class="mp-close" data-popup-action="close" aria-label="关闭优惠券弹窗"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><p class="mp-countdown" data-popup-countdown aria-live="off"></p></div>`;
+    root.innerHTML = `<div class="mp-shell"><section class="mp-card mp-theme-${theme} mp-layout-${esc(layout || 'announcement')}" role="dialog" aria-modal="true" aria-labelledby="mp-title" aria-describedby="mp-description"><span class="mp-confetti mp-confetti-one" aria-hidden="true">✦</span><span class="mp-confetti mp-confetti-two" aria-hidden="true">✧</span>${imageSrc ? `<img class="mp-poster" src="${esc(imageSrc)}" alt="${esc(text(content.title, 80))}">` : ''}<div class="mp-heading"><span class="mp-eyebrow">${esc(text(content.badge, 24) || 'LUMO · 为你准备的好礼')}</span><h2 id="mp-title">${esc(text(content.title, 80) || '送你一份专属好礼')}</h2>${content.subtitle ? `<p>${esc(text(content.subtitle, 160))}</p>` : ''}</div>${row ? `<div class="mp-ticket"><div class="mp-value"><strong>${esc(window.LumoCouponBenefits?.face(row) || '¥' + yuan(amount))}</strong></div><div class="mp-ticket-info"><strong>${min ? `满 ¥${yuan(min)} 可用` : '无使用门槛'}</strong><span>${esc(text(row.name, 80) || '品质生活优惠券')}</span><small>${esc(window.LumoCouponBenefits?.scope(row) || '普通商品可用')} · 每人限领一次</small></div><span class="mp-ticket-seal">${hasClaimed() ? '已领取' : '专享礼券'}</span></div>` : '<div class="mp-gift" aria-hidden="true"><span>礼</span><i></i></div>'}<div class="mp-details"><p id="mp-description">${esc(text(content.body, 400) || (hasClaimed() ? '优惠券已放入你的账户，去挑选心动好物吧。' : '好券搭配好物，让这一次心动更划算。'))}</p>${failure ? `<p class="mp-error" role="alert">${esc(failure)}</p>` : hasClaimed() ? '<p class="mp-success" role="status">领取成功，已放入我的优惠券</p>' : ''}<button type="button" class="mp-primary" data-popup-action="primary" ${busy ? 'disabled aria-busy="true"' : ''}>${esc(label())}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button>${validity ? `<p class="mp-validity">${esc(validity)}</p>` : ''}<span class="mp-rule">领取与使用条件以优惠券规则为准</span></div></section><button type="button" class="mp-close" data-popup-action="close" aria-label="关闭优惠券弹窗"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><p class="mp-countdown" data-popup-countdown aria-live="off"></p></div>`;
     updateClock();
   }
   function updateClock() {

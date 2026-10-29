@@ -308,7 +308,7 @@
 }
 .svc-pick-order:hover {
   border-color: var(--red);
-  background: #fffbfa;
+  background: var(--brand-soft-subtle);
 }
 .svc-pick-order > span {
   width: 35px;
@@ -354,7 +354,7 @@
 }
 .svc-kind-options button.active {
   border-color: var(--red);
-  background: #fff3f0;
+  background: var(--pale);
   color: var(--red);
 }
 .svc-invoice-switch {
@@ -444,8 +444,8 @@
 }
 .svc-support-nav a.active {
   color: var(--red);
-  border-color: #ffd6cf;
-  background: #fff5f2;
+  border-color: var(--brand-border);
+  background: var(--pale);
 }
 .svc-support-nav a > span {
   font-size: 10px;
@@ -576,7 +576,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background: #fff0ed;
+  background: var(--pale);
   color: var(--red);
   flex-shrink: 0;
 }
@@ -649,11 +649,11 @@
   flex-direction: row-reverse;
 }
 .svc-chat-message.user > span {
-  background: #fff1ed;
+  background: var(--pale);
   color: #ce9680;
 }
 .svc-chat-message.user p {
-  background: #fff1ed;
+  background: var(--pale);
   color: #aa7c6a;
   border-radius: 9px 0 9px 9px;
 }
@@ -728,7 +728,7 @@
   color: #9ba3ae;
 }
 .svc-local-tabs button.active {
-  background: #fff1ed;
+  background: var(--pale);
   color: var(--red);
 }
 .svc-ticket-list {
@@ -842,7 +842,7 @@
   height: 21px;
 }
 .svc-support-launcher:hover {
-  border-color: #ffd4cc;
+  border-color: var(--brand-border);
   color: var(--red);
 }
 .services-message-button {

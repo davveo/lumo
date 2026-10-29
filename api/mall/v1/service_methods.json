@@ -77,6 +77,14 @@
         {
           "action": "ActionReturn",
           "method": "Return"
+        },
+        {
+          "action": "ActionAdminList",
+          "method": "AdminList"
+        },
+        {
+          "action": "ActionAdminSummary",
+          "method": "AdminSummary"
         }
       ]
     },
@@ -103,6 +111,10 @@
       "existing_contract": false,
       "methods": [
         {
+          "action": "ActionAdminList",
+          "method": "AdminList"
+        },
+        {
           "action": "ActionCancel",
           "method": "Cancel"
         },
@@ -121,6 +133,14 @@
         {
           "action": "ActionReserve",
           "method": "Reserve"
+        },
+        {
+          "action": "ActionUpsert",
+          "method": "Upsert"
+        },
+        {
+          "action": "ActionRuleUpsert",
+          "method": "RuleUpsert"
         }
       ]
     },
@@ -185,6 +205,10 @@
         {
           "action": "ActionUpsert",
           "method": "Upsert"
+        },
+        {
+          "action": "ActionAdminList",
+          "method": "AdminList"
         }
       ]
     },
@@ -257,6 +281,14 @@
         {
           "action": "ActionUpsert",
           "method": "Upsert"
+        },
+        {
+          "action": "ActionAdminList",
+          "method": "AdminList"
+        },
+        {
+          "action": "ActionAdminUpsert",
+          "method": "AdminUpsert"
         }
       ]
     },
@@ -291,8 +323,16 @@
           "method": "Reserve"
         },
         {
+          "action": "ActionTemplateUpsert",
+          "method": "TemplateUpsert"
+        },
+        {
           "action": "ActionTemplates",
           "method": "Templates"
+        },
+        {
+          "action": "ActionTemplatesAdmin",
+          "method": "TemplatesAdmin"
         },
         {
           "action": "ActionTemplatesByIds",
@@ -301,6 +341,10 @@
         {
           "action": "ActionTemplatesSnapshot",
           "method": "TemplatesSnapshot"
+        },
+        {
+          "action": "ActionCalculate",
+          "method": "Calculate"
         }
       ]
     },
@@ -310,6 +354,14 @@
       "name": "Engagement",
       "existing_contract": false,
       "methods": [
+        {
+          "action": "ActionAdminCancel",
+          "method": "AdminCancel"
+        },
+        {
+          "action": "ActionAdminList",
+          "method": "AdminList"
+        },
         {
           "action": "ActionClear",
           "method": "Clear"
@@ -323,8 +375,28 @@
           "method": "List"
         },
         {
+          "action": "ActionPolicyGet",
+          "method": "PolicyGet"
+        },
+        {
+          "action": "ActionPolicyUpsert",
+          "method": "PolicyUpsert"
+        },
+        {
           "action": "ActionPut",
           "method": "Put"
+        },
+        {
+          "action": "ActionSubscribe",
+          "method": "Subscribe"
+        },
+        {
+          "action": "ActionSubscriptions",
+          "method": "Subscriptions"
+        },
+        {
+          "action": "ActionUnsubscribe",
+          "method": "Unsubscribe"
         }
       ]
     },
@@ -345,6 +417,22 @@
         {
           "action": "ActionRequest",
           "method": "Request"
+        },
+        {
+          "action": "ActionAdminList",
+          "method": "AdminList"
+        },
+        {
+          "action": "ActionUpsert",
+          "method": "Upsert"
+        },
+        {
+          "action": "ActionSessionGet",
+          "method": "SessionGet"
+        },
+        {
+          "action": "ActionRequestsAdmin",
+          "method": "RequestsAdmin"
         }
       ]
     },
@@ -377,6 +465,14 @@
         {
           "action": "ActionList",
           "method": "List"
+        },
+        {
+          "action": "ActionAdminList",
+          "method": "AdminList"
+        },
+        {
+          "action": "ActionAdminSummary",
+          "method": "AdminSummary"
         }
       ]
     },
@@ -413,6 +509,22 @@
         {
           "action": "ActionReserve",
           "method": "Reserve"
+        },
+        {
+          "action": "ActionAdminList",
+          "method": "AdminList"
+        },
+        {
+          "action": "ActionRules",
+          "method": "Rules"
+        },
+        {
+          "action": "ActionRulesAdmin",
+          "method": "RulesAdmin"
+        },
+        {
+          "action": "ActionRuleUpsert",
+          "method": "RuleUpsert"
         }
       ]
     },
@@ -473,6 +585,54 @@
         {
           "action": "ActionValidate",
           "method": "Validate"
+        },
+        {
+          "action": "ActionAdminList",
+          "method": "AdminList"
+        },
+        {
+          "action": "ActionAdminSummary",
+          "method": "AdminSummary"
+        },
+        {
+          "action": "ActionSetActive",
+          "method": "SetActive"
+        },
+        {
+          "action": "ActionAuditList",
+          "method": "AuditList"
+        },
+        {
+          "action": "ActionAdminGet",
+          "method": "AdminGet"
+        },
+        {
+          "action": "ActionPolicyGet",
+          "method": "PolicyGet"
+        },
+        {
+          "action": "ActionPolicyUpsert",
+          "method": "PolicyUpsert"
+        },
+        {
+          "action": "ActionLoginMethods",
+          "method": "LoginMethods"
+        },
+        {
+          "action": "ActionOtpSend",
+          "method": "OtpSend"
+        },
+        {
+          "action": "ActionOtpLogin",
+          "method": "OtpLogin"
+        },
+        {
+          "action": "ActionOAuthStart",
+          "method": "OAuthStart"
+        },
+        {
+          "action": "ActionOAuthCallback",
+          "method": "OAuthCallback"
         }
       ]
     },
@@ -541,6 +701,22 @@
         {
           "action": "ActionRestock",
           "method": "Restock"
+        },
+        {
+          "action": "ActionAdjustments",
+          "method": "Adjustments"
+        },
+        {
+          "action": "ActionAdminList",
+          "method": "AdminList"
+        },
+        {
+          "action": "ActionThreshold",
+          "method": "Threshold"
+        },
+        {
+          "action": "ActionLedger",
+          "method": "Ledger"
         }
       ]
     },
@@ -573,6 +749,14 @@
         {
           "action": "ActionReversals",
           "method": "Reversals"
+        },
+        {
+          "action": "ActionAdminList",
+          "method": "AdminList"
+        },
+        {
+          "action": "ActionAdminSummary",
+          "method": "AdminSummary"
         }
       ]
     },
@@ -601,6 +785,14 @@
         {
           "action": "ActionQuote",
           "method": "Quote"
+        },
+        {
+          "action": "ActionPolicyGet",
+          "method": "PolicyGet"
+        },
+        {
+          "action": "ActionPolicyUpsert",
+          "method": "PolicyUpsert"
         }
       ]
     },
@@ -641,6 +833,14 @@
         {
           "action": "ActionUpdate",
           "method": "Update"
+        },
+        {
+          "action": "ActionPolicyGet",
+          "method": "PolicyGet"
+        },
+        {
+          "action": "ActionPolicyUpsert",
+          "method": "PolicyUpsert"
         }
       ]
     },
@@ -661,6 +861,14 @@
         {
           "action": "ActionReadAll",
           "method": "ReadAll"
+        },
+        {
+          "action": "ActionTemplatesAdmin",
+          "method": "TemplatesAdmin"
+        },
+        {
+          "action": "ActionTemplateUpsert",
+          "method": "TemplateUpsert"
         }
       ]
     },
@@ -729,6 +937,14 @@
         {
           "action": "ActionWaitGroup",
           "method": "WaitGroup"
+        },
+        {
+          "action": "ActionAdminList",
+          "method": "AdminList"
+        },
+        {
+          "action": "ActionAdminSummary",
+          "method": "AdminSummary"
         }
       ]
     },
@@ -761,6 +977,26 @@
         {
           "action": "ActionSubmitDemo",
           "method": "SubmitDemo"
+        },
+        {
+          "action": "ActionAdminList",
+          "method": "AdminList"
+        },
+        {
+          "action": "ActionAdminSummary",
+          "method": "AdminSummary"
+        },
+        {
+          "action": "ActionMethods",
+          "method": "Methods"
+        },
+        {
+          "action": "ActionPolicyGet",
+          "method": "PolicyGet"
+        },
+        {
+          "action": "ActionPolicyUpsert",
+          "method": "PolicyUpsert"
         }
       ]
     },
@@ -797,6 +1033,26 @@
         {
           "action": "ActionReward",
           "method": "Reward"
+        },
+        {
+          "action": "ActionPolicyGet",
+          "method": "PolicyGet"
+        },
+        {
+          "action": "ActionPolicyUpsert",
+          "method": "PolicyUpsert"
+        },
+        {
+          "action": "ActionAdminGet",
+          "method": "AdminGet"
+        },
+        {
+          "action": "ActionAdjust",
+          "method": "Adjust"
+        },
+        {
+          "action": "ActionLedger",
+          "method": "Ledger"
         }
       ]
     },
@@ -829,6 +1085,14 @@
         {
           "action": "ActionRankBootstrap",
           "method": "RankBootstrap"
+        },
+        {
+          "action": "ActionPolicyGet",
+          "method": "PolicyGet"
+        },
+        {
+          "action": "ActionPolicyUpsert",
+          "method": "PolicyUpsert"
         }
       ]
     },
@@ -845,6 +1109,18 @@
         {
           "action": "ActionRun",
           "method": "Run"
+        },
+        {
+          "action": "ActionAdminList",
+          "method": "AdminList"
+        },
+        {
+          "action": "ActionGet",
+          "method": "Get"
+        },
+        {
+          "action": "ActionNote",
+          "method": "Note"
         }
       ]
     },
@@ -869,6 +1145,14 @@
         {
           "action": "ActionList",
           "method": "List"
+        },
+        {
+          "action": "ActionAdminList",
+          "method": "AdminList"
+        },
+        {
+          "action": "ActionAdminSummary",
+          "method": "AdminSummary"
         }
       ]
     },
@@ -885,6 +1169,14 @@
         {
           "action": "ActionSuggest",
           "method": "Suggest"
+        },
+        {
+          "action": "ActionPolicyGet",
+          "method": "PolicyGet"
+        },
+        {
+          "action": "ActionPolicyUpsert",
+          "method": "PolicyUpsert"
         }
       ]
     }

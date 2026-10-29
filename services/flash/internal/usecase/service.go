@@ -58,6 +58,13 @@ func (s *Service) Request(ctx context.Context, c platform.Request) (traceResult 
 		return nil, e
 	}
 	if old != nil {
+		// session_id is server-owned enrichment, so restore it before comparing
+		// the caller's payload with the durable idempotency snapshot.
+		if old.SessionID != "" {
+			c.Data["session_id"] = old.SessionID
+		} else {
+			delete(c.Data, "session_id")
+		}
 		return s.Repo.Create(ctx, c)
 	}
 	if s.RPC == nil {
@@ -76,16 +83,21 @@ func (s *Service) Request(ctx context.Context, c platform.Request) (traceResult 
 	if e != nil {
 		return nil, e
 	}
-	if platform.Text(q, "activity_id") != "flash-demo" {
-		return nil, status.Error(codes.InvalidArgument, "quote must reference flash-demo activity")
+	activity := platform.Text(q, "activity_id")
+	if activity == "" {
+		return nil, status.Error(codes.InvalidArgument, "flash activity required")
 	}
-	session, e := s.Repo.Session(ctx, "flash-demo")
+	session, e := s.Repo.SessionForActivity(ctx, activity)
 	if e != nil {
 		return nil, e
 	}
-	if !session.Active {
-		return nil, status.Error(codes.FailedPrecondition, "flash session inactive")
+	if !openSession(session) {
+		return nil, status.Error(codes.FailedPrecondition, "flash session is outside its active time window")
 	}
+	if c.Data == nil {
+		c.Data = map[string]any{}
+	}
+	c.Data["session_id"] = session.ID
 	var quote struct {
 		Items []struct {
 			SKUID    string `json:"sku_id"`

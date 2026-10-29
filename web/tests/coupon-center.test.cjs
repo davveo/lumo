@@ -119,7 +119,8 @@ function setup() {
     esc,
     money: (value) => Number(value).toLocaleString('zh-CN', { maximumFractionDigits: 2 }),
     icon: (name) => `<svg data-icon="${name}"></svg>`,
-    header: () => '<header></header>',
+    storefrontPageStart: (pageClass) =>
+      `<header></header><main class="container storefront-page ${pageClass}" id="main"><nav aria-label="商品分类"></nav>`,
     footer: () => '<footer></footer>',
     renderKeepScroll: () => {
       env.renders++;
@@ -164,6 +165,12 @@ function setup() {
   await guest.center.refresh();
   assert.equal(guest.calls[0].options.auth, false, 'guest browsing must not require authentication');
   const firstGuestPage = guest.center.page();
+  assert.match(firstGuestPage, /class="container storefront-page cc-page"/);
+  assert.equal((firstGuestPage.match(/aria-label="商品分类"/g) || []).length, 1);
+  assert.match(firstGuestPage, /class="storefront-section-head section-head cc-heading"/);
+  assert.match(firstGuestPage, /class="storefront-section-action cc-wallet"/);
+  assert.match(firstGuestPage, /class="cc-filters storefront-tabs"/);
+  assert.doesNotMatch(firstGuestPage, /cc-hero|cc-breadcrumb|LUMO COUPON COLLECTION/);
   assert.equal((firstGuestPage.match(/class="cc-pagination is-bottom"/g) || []).length, 1);
   assert(!firstGuestPage.includes('cc-pagination is-top'));
   await guest.click({ ccAction: 'page', value: '2' });

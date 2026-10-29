@@ -11,4 +11,7 @@ import "api/mall/v1/service_request.proto";
 service ReconciliationService {
   rpc List(ServiceRequest) returns (ServiceResponse);
   rpc Run(ServiceRequest) returns (ServiceResponse);
+  rpc AdminList(ServiceRequest) returns (ServiceResponse);
+  rpc Get(ServiceRequest) returns (ServiceResponse);
+  rpc Note(ServiceRequest) returns (ServiceResponse);
 }

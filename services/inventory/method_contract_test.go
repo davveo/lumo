@@ -28,15 +28,15 @@ func TestIndependentOperationsKeepWireContractsAndAuthorization(t *testing.T) {
 		factory                  func(platform.Dependencies) platform.Module
 		denied                   codes.Code
 	}{
-		{"inventory", "get batch_get reserve confirm cancel dispatch restock adjust", "reserve", inventory.New, codes.Unauthenticated},
-		{"fulfillment", "list get create_exchange dispatch cancel inspect_return", "dispatch", fulfillment.New, codes.PermissionDenied},
-		{"logistics", "quote list create get deliver", "create", logistics.New, codes.PermissionDenied},
-		{"aftersale", "create get list approve reject cancel return inspect refund exchange", "create", aftersale.New, codes.Unauthenticated},
-		{"payment", "get list create submit_demo confirm_demo close", "create", payment.New, codes.Unauthenticated},
-		{"refund", "get list create confirm_demo", "create", refund.New, codes.Unauthenticated},
-		{"invoice", "list create get reversals issue_demo adjust_demo", "create", invoice.New, codes.Unauthenticated},
-		{"reconciliation", "list run", "list", reconciliation.New, codes.Unauthenticated},
-		{"notification", "list read read_all", "list", notification.New, codes.Unauthenticated},
+		{"inventory", "get batch_get reserve confirm cancel dispatch restock adjust adjustments admin_list threshold ledger", "reserve", inventory.New, codes.Unauthenticated},
+		{"fulfillment", "list get create_exchange dispatch cancel inspect_return admin_list admin_summary", "dispatch", fulfillment.New, codes.PermissionDenied},
+		{"logistics", "quote list create get deliver policy_get policy_upsert", "create", logistics.New, codes.PermissionDenied},
+		{"aftersale", "create get list approve reject cancel return inspect refund exchange admin_list admin_summary", "create", aftersale.New, codes.Unauthenticated},
+		{"payment", "get list create submit_demo confirm_demo close admin_list admin_summary methods policy_get policy_upsert", "create", payment.New, codes.Unauthenticated},
+		{"refund", "get list create confirm_demo admin_list admin_summary", "create", refund.New, codes.Unauthenticated},
+		{"invoice", "list create get reversals issue_demo adjust_demo admin_list admin_summary", "create", invoice.New, codes.Unauthenticated},
+		{"reconciliation", "list run admin_list get note", "list", reconciliation.New, codes.Unauthenticated},
+		{"notification", "list read read_all templates_admin template_upsert", "list", notification.New, codes.Unauthenticated},
 		{"helpdesk", "faq list get create reply close", "create", helpdesk.New, codes.Unauthenticated},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

@@ -2,8 +2,8 @@ package usecase
 
 import (
 	"context"
-	"crypto/sha256"
-	"fmt"
+
+	"github.com/davveo/lumo/internal/commercepolicy"
 	"os"
 
 	"github.com/davveo/lumo/internal/constants"
@@ -53,14 +53,17 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 	if kind == "" {
 		kind = constants.FulfillmentKindOrder
 	}
-	hash := sha256.Sum256([]byte(c.ID))
+	number, err := s.Repo.BusinessID(ctx, "tracking", c.ID, "")
+	if err != nil {
+		return nil, err
+	}
 	r := &domain.Record{
 		ID:         c.ID,
 		OrderID:    orderID,
 		UserID:     c.UserID,
 		Kind:       kind,
 		Status:     constants.LogisticsStatusCreated,
-		TrackingID: fmt.Sprintf("DEMO-%X", hash[:10]),
+		TrackingID: number,
 		Provider:   constants.LogisticsProviderLocalDemoCarrier,
 	}
 	if err := s.Repo.Create(ctx, r); err != nil {
@@ -157,9 +160,26 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 		c.Data = map[string]any{}
 	}
 
-	return platform.Result{
-		"shipping_cents": int64(0),
-		"provider":       constants.LogisticsProviderDemoFreeShipping,
-		"serviceable":    true,
-	}, nil
+	policy, e := s.Repo.Policy(ctx)
+	if e != nil {
+		return nil, e
+	}
+	var in struct {
+		Address  map[string]any `json:"address"`
+		Region   string         `json:"region"`
+		Subtotal int64          `json:"subtotal_cents"`
+		Quantity int64          `json:"quantity"`
+	}
+	if e = platform.Decode(c.Data, &in); e != nil {
+		return nil, e
+	}
+	if in.Address == nil {
+		in.Address = map[string]any{"region": in.Region}
+	}
+	region := commercepolicy.Region(in.Address)
+	if in.Subtotal < 0 || in.Subtotal > 10000000000000 || in.Quantity < 0 || in.Quantity > 500 {
+		return nil, status.Error(codes.InvalidArgument, "invalid shipping subtotal or quantity")
+	}
+	fee, allowed := policy.Quote(region, in.Subtotal, in.Quantity)
+	return platform.Result{"shipping_cents": fee, "provider": policy.Name, "serviceable": allowed, "region": region, "policy_version": policy.Version, "policy": policy}, nil
 }

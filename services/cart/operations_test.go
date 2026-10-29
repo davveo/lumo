@@ -38,21 +38,21 @@ func TestIndependentOperationsKeepAuthorization(t *testing.T) {
 		{constants.ServiceCheckout, checkoutmod.New, 5, []string{
 			constants.ActionQuote, constants.ActionSubmit, constants.ActionGet, constants.ActionPaid, constants.ActionCancel,
 		}},
-		{constants.ServiceCampaign, campaignmod.New, 5, []string{
+		{constants.ServiceCampaign, campaignmod.New, 8, []string{
 			constants.ActionReserve, constants.ActionConfirm, constants.ActionCancel,
 		}},
-		{constants.ServiceCoupon, couponmod.New, 9, []string{
-			constants.ActionList, constants.ActionClaim, constants.ActionReserve,
+		{constants.ServiceCoupon, couponmod.New, 12, []string{
+			constants.ActionList, constants.ActionClaim, constants.ActionCalculate, constants.ActionReserve,
 			constants.ActionConfirm, constants.ActionCancel, constants.ActionRefund,
 		}},
-		{constants.ServicePoints, pointsmod.New, 7, []string{
+		{constants.ServicePoints, pointsmod.New, 12, []string{
 			constants.ActionGet, constants.ActionCheckin, constants.ActionReserve, constants.ActionConfirm,
 			constants.ActionCancel, constants.ActionRefund, constants.ActionReward,
 		}},
-		{constants.ServiceGroup, groupmod.New, 7, []string{
+		{constants.ServiceGroup, groupmod.New, 11, []string{
 			constants.ActionCreate, constants.ActionReserve, constants.ActionPaid, constants.ActionCancel, constants.ActionExpire,
 		}},
-		{constants.ServiceFlash, flashmod.New, 3, []string{constants.ActionGet, constants.ActionRequest}},
+		{constants.ServiceFlash, flashmod.New, 7, []string{constants.ActionGet, constants.ActionRequest}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			m := tc.build(platform.Dependencies{})

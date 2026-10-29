@@ -12,7 +12,7 @@
 `mall.v1.InventoryService/Reserve`、`mall.v1.CatalogService/BatchGet`。请求类型 `ServiceRequest` 只有对象ID、
 可信主体、幂等键和JSON业务载荷，不含action；返回 `ServiceResponse.payload_json` 保留现有业务字段及整数精度。
 方法直接绑定独立Go用例，业务层不再接收 `Command` 或按action分发。订单使用上述强类型专属消息；
-29个服务的业务载荷仍为JSON，字段校验在各自用例完成。当前30服务共162个RPC，完整清单在
+29个服务的业务载荷仍为JSON，字段校验在各自用例完成。当前30服务共235个领域RPC，另有2个每服务共用的事件管理RPC，完整清单在
 `api/mall/v1/service_methods.json` 维护，新增与扩展步骤见 [独立RPC方法说明](rpc-methods.md)。
 
 生产调用优先独立方法，只有服务端明确缺少专属服务/方法时才允许回退旧Execute；业务错误、鉴权失败、
@@ -99,8 +99,8 @@ curl -s http://localhost:8080/api/v1/iam/logout \
 | 服务 | 用户/公开动作 | 管理员动作 |
 | --- | --- | --- |
 | storefront | shell/products/activities；bootstrap（shell兼容别名）；account_summary（登录）；recent（可选登录，最多6个真实不同父商品）；popup/popup_event；popup_claim（登录） | 无通用batch入口 |
-| catalog | list/get/batch_get | upsert |
-| search/recommendation/content | query/list/list | content.upsert/popup_list/popup_upsert/popup_configure |
+| catalog | list/get/batch_get | admin_list/upsert |
+| search/recommendation/content | query/list/list | 各自policy_get/policy_upsert；content.admin_list/admin_upsert/upsert/popup_list/popup_upsert/popup_configure |
 | member/address | get/update；list/create/update/delete/default | 按服务业务权限 |
 | cart | list/add/remove/clear/merge | 无 |
 | engagement | list/put/delete（favorite/compare/history） | 无 |
@@ -109,14 +109,14 @@ curl -s http://localhost:8080/api/v1/iam/logout \
 | analytics | record | 无 |
 | pricing/checkout | quote/get；quote/submit/cancel | 无 |
 | order/payment | list/get/complete；create/get/submit_demo（仅演示模式、本人支付单） | payment.confirm_demo |
-| inventory/campaign | get/batch_get；list/evaluate | inventory.adjust |
-| coupon/points | list/templates/templates_snapshot/claim；get/checkin | 无 |
-| group/flash | list/get/create；list/request/get | 按活动业务政策 |
+| inventory/campaign | get/batch_get；list/evaluate | inventory.admin_list/adjust/adjustments/threshold/ledger；campaign.admin_list/upsert/rule_upsert |
+| coupon/points | list/templates/templates_snapshot/claim；get/checkin/policy_get | coupon.templates_admin/template_upsert；points.admin_get/adjust/ledger/policy_upsert |
+| group/flash | list/get/create/rules；list/request/get/session_get | group.admin_list/rules_admin/rule_upsert；flash.admin_list/upsert/requests_admin |
 | fulfillment/logistics | get；get/quote | list/dispatch/cancel/inspect_return；deliver |
 | aftersale | list/get/create/return | approve/reject/inspect/refund/exchange |
 | refund/invoice | get；list/get/create | confirm_demo；issue_demo/adjust_demo |
-| reconciliation | 无 | list/run |
-| notification/helpdesk | list/read/read_all；list/get/create/reply/close | 受工单服务权限约束 |
+| reconciliation | 无 | list/run/admin_list/get/note |
+| notification/helpdesk | list/read/read_all；list/get/create/reply/close | notification.templates_admin/template_upsert；工单按服务业务权限 |
 
 此表描述网关允许的业务入口。字段精确定义、状态前提及生产适配边界请结合各服务 transport/usecase 和 `DEVELOPMENT-CONTRACT.md`，不可将HTTP动作允许理解成绕过业务状态校验。
 
@@ -124,7 +124,7 @@ curl -s http://localhost:8080/api/v1/iam/logout \
 
 `POST /api/v1/search/query` 可传 `query`（最多120字）、`category`、`brand`（各最多80字）、`sort`、`in_stock`、`limit` 和 `offset`。类目、品牌与关键词是联合约束；关键词在商品名称、品牌和类目中匹配，`%`、`_` 等字符按字面处理。支持 `price_asc`、`price_desc`、`sales` 和 `newest` 排序。
 
-搜索先在完整目录应用条件和排序，再读取最多100个可见、启用的父商品；库存仅做一次批量查询。响应的 `items` 为完整商品，`inventory_items` 为实际返回商品的实时库存，`candidate_limit:100` 表示本次有界候选窗口，`total` 是窗口内经库存筛选后的数量，并非全站精确匹配数。`in_stock` 在权威库存读取后过滤，不按浏览器缓存判定。
+搜索先在完整目录应用条件和排序，再读取最多100个可见、启用的父商品；库存仅做一次批量查询。响应的 `items` 为完整商品，`inventory_items` 为实际返回商品的实时库存，`candidate_limit`（默认100，可配置1至100）表示本次有界候选窗口，`total` 是窗口内经库存筛选后的数量，并非全站精确匹配数。`in_stock` 在权威库存读取后过滤，不按浏览器缓存判定。
 
 首页细分入口复用该接口，按一级类目与关键词或品牌查询；悬停展开类目面板不请求接口。内部 `catalog/search_products` 仅允许系统调用，不提供HTTP入口；MySQL按派生自JSON的只读类目列建立索引，以支持已有大目录和无商品的新类目，现有商品分类与载荷不变。
 
@@ -204,3 +204,75 @@ HTTP 400 参数错误，401 未登录/会话失效，403 权限或未公开动�
 登录后向 `/api/v1/coupon/claim` 发送 `{"data":{"template_id":"welcome-100"}}`。服务端查询积分及会员服务验证本人资格，在事务内校验时间并扣减名额；浏览器提交的积分、成长值或身份不能绕过校验。同一用户同一模板只能领取一次，重复请求返回原优惠券且不再扣名额。领取后通过 `coupon/list` 查询，在原有报价、下单、支付与退款链路使用。券包条目包含服务端关联查询得到的 `template_name`，不依赖公开模板的当前分页或启用状态。
 
 文件上传：登录后向 `/api/v1/media/create` 发送 `{"data":{"file_name":"receipt.txt","content_type":"text/plain","size":5}}`。响应提供私有对象登记和短时上传授权；按返回的 `upload_method`、`upload_url`、`upload_fields` 上传真实文件（POST policy采用multipart表单）。完成后用文件ID调用 `/api/v1/media/complete`，服务端StatObject核验大小/类型。再调用 `/api/v1/media/download` 获取短时授权下载地址，其他账号不能访问。
+
+
+## 后台运营配置
+
+以下管理读写均要求真实管理员会话；`user_id`、`role` 由网关认证，伪造请求字段无效。新增独立RPC为 `CouponService/TemplatesAdmin`、`CouponService/TemplateUpsert`、`CampaignService/AdminList`、`CampaignService/Upsert`，普通顾客访问管理列表或写入均403。读请求可GET/POST，写入只接受POST。
+
+- `coupon/templates_admin`：`data.page/page_size`（默认1/10，最多100）、`keyword`、`active`（空/字符串true/false），返回含停用模板的 `items/total/page/page_size/has_more/server_time`；条目增加 `version/claimed_count`，领取次数按本页模板批量计数。
+- `coupon/template_upsert`：请求 `id`，`data` 中包含 `name/amount_cents/min_cents/valid_days/active/starts_at/expires_at/min_points/min_growth/version`。创建版本0并提交 `remaining` 初始配额；编辑必须提交实际版本及 `stock_delta` 增减量，不能回写旧的剩余配额。旧版本冲突拒绝；出现领取记录后面额、使用门槛、有效天数锁定，复制新模板才能改变权益。每人每种券固定限领1张；停用仅停止新领取，已领券快照继续生效。积分/成长值是领取资格，不在领取时扣除。
+- `campaign/admin_list`：`data.page/page_size/keyword/kind/active`，active为可选布尔值，返回含停用和系统规则的分页列表及total。
+- `campaign/upsert`：`id`及 `data.kind/name/description/threshold_cents/discount_cents/pay_rate_bps/min_quantity/quota/active/version`；支持 `reduction/discount/quantity_discount/direct` 四类运营规则。创建版本0，编辑携带当前版本；优惠金额以分计、支付比例用bps，quota不低于held+used。已有预占或使用后冻结优惠计算字段，允许名称、说明、额度及启停调整。held/used由交易流程维护，不能被运营请求覆盖。
+
+秒杀场次、拼团和换购目前与指定SKU、交易准入及补偿流程关联，后台只读展示，不提供通用创建按钮。库存预占/核销、积分奖励、会员等级、MQ补偿等内部命令不作为运营配置开放。
+
+商品后台复用 `catalog/list/get/upsert`；编辑与上下架先读取完整商品，保留规格、差价及展示元数据，不修改库存。新单规格商品默认下架，可进入库存管理单独设置库存。商城装修使用 `content/get/upsert` 的 `storefront-main` 文档，保存前读最新JSON并只合并管理员修改的字段。公告/FAQ使用 `content/list/get/upsert`；当前内容服务仅发布，不冒充提供删除或停用。
+
+### 工作台、交易与用户管理
+
+`management/dashboard` 是仅供后台工作台的只读聚合，`data.days` 只接受7或30。并行调用订单、支付、履约、售后、退款、发票和IAM各自的 `AdminSummary`，返回 `order/payment/fulfillment/aftersale/refund/invoice/users`，每项包括全量 `total/states` 和指定天数的 `daily`。每日键为北京时间 `YYYY-MM-DD`；金额趋势按单据创建日期汇总成功金额，不代表渠道结算日期。服务失败时用 `errors` 和 `degraded` 明确标记，前端显示不可用。该接口不返回业务列表或商城配置。
+
+上述七个服务新增独立 `AdminList` 和 `AdminSummary` RPC。HTTP的 `admin_list` 接受 `data.page/page_size/keyword/status/from/to`（默认1/20，最多100；日期含边界，业务时区UTC+8），返回精确 `total` 与本页 `items`。订单继续采用强类型protobuf请求和响应。各领域只查询自己的schema，关联订单详情通过独立订单RPC按需读取。业务列表与工作台均要求管理员，普通账号伪造role仍403。
+
+`iam/admin_list` 的 `data.status` 按账号角色筛选，每行返回active状态，不返回密码摘要、令牌或会话。`iam/set_active` 为POST：`id`指定普通账号，`data.active/expected_active/reason` 指定新状态、读取到的原状态和原因；并发状态冲突返回409，不能操作自身或管理员。停用账号与撤销其全部会话在同一事务完成，启用后必须重新登录；审计记录保存操作者、原因和目标状态。
+
+`inventory/adjust` 的 `id` 是实际SKU，`data.on_hand` 是盘点后的绝对在库数。新后台提交 `expected_on_hand/reason` 防止旧页面覆盖新库存，并禁止降低到预占加已分配数量以下。`inventory/adjustments` 读取指定SKU最近20条管理员调整，含before/after、actor_id、reason和created_at。目录与规格来自商品服务，库存一次 `batch_get`，不按规格逐个请求；名称搜索覆盖上架商品，未上架商品可按完整商品或SKU编号定位。
+
+### 多类型优惠券
+
+`template_upsert` 在既有字段上新增 `coupon_type/discount_bps/max_discount_cents/scope_type/scope_values`：
+
+- `reduction`：满减，`amount_cents` 和 `min_cents` 均为正数。
+- `cash`：无门槛代金券，`amount_cents` 为正数、`min_cents=0`。
+- `discount`：无门槛折扣券，`amount_cents/min_cents=0`，支付比例 `discount_bps=1..9999`，例如8500为8.5折。
+- `threshold_discount`：满额折扣券，`min_cents>0`，同样通过bps配置比例。
+
+折扣券可设置 `max_discount_cents` 封顶（0表示不限额）；固定金额券不能携带折扣比例或封顶。`scope_type` 为all/category/product；all的scope_values为空，category按实际一级类目、product按父商品ID匹配，最多50个去重值。门槛及优惠仅作用于适用主商品金额，排除换购。客户端提交的品类/父商品信息不会被信任，由报价服务查询商品后覆盖。
+
+领取时将完整权益复制到券实例；已领取模板的类型、比例、封顶、适用范围与金额/门槛/有效期同样冻结。旧券空类型按原门槛推导满减或代金券、空范围视为全场。报价和预占共同使用整数分规则，预占再计算并与订单报价核对，不只改变券面文案。
+
+### 装修与弹窗内容
+
+`content/upsert` 的 `storefront-main` 文档支持品牌及主题、主视觉文案/图片、页头标语、搜索提示、主视觉按钮和商城内链接；`heroSlides` 最多4张附加轮播（加主视觉共5张），每张包含title/subtitle/eyebrow/image/button/link，`heroInterval` 为0或3–30秒。`showCategories/showPicks/showMember/showCoupons/showActivities/showRecommendations` 为布尔模块开关。另支持announcement/announcementLink、footerText/contactPhone/contactHours。字段类型、长度、图片和链接由后端校验，保存保留其它编辑器拥有的配置。未建立文档时显示明确默认值，保存后发布；不自动覆盖实际商城配置。
+
+营销内容的 `content.layout` 支持coupon/announcement/image/welcome/member/campaign六类，`content.image_url/badge` 配置海报与角标。后台预设只辅助填充，可继续配置原有主题、人群、页面、优先级、时间和频控；模板类型不改变后端投放判定。图片使用安全商城素材或无凭据HTTPS地址，image布局要求图片。按钮只允许白名单商城内页面，会员类可指向会员/积分/成长页面，拒绝脚本或任意外链。
+
+
+## 后台扩展管理接口
+
+新增接口均通过原网关认证和归属服务校验。除 `flash/session_get`、`group/rules` 公开读取及登录用户 `points/policy_get`、`member/policy_get` 外，以下新能力均为管理员专用；不得将管理身份放入请求体冒充权限。
+
+- `flash/admin_list|upsert|requests_admin`；`group/admin_list|rules_admin|rule_upsert`；`campaign/rule_upsert`：场次、成团规则、专用配额及请求/团历史。场次与成团规则写入携带当前`version`（新建0）和`reason`；时间为RFC3339，配额计数由资源流程管理。
+- `catalog/admin_list`：`keyword/category/status/page/page_size`，全目录精确分页并可读停用商品。`inventory/admin_list`：`keyword`匹配SKU，`status=low|out|healthy`；`threshold`需`threshold/expected_threshold/reason`；`ledger`可用ID指定SKU，`adjustments`传`page/page_size`读取完整历史，不传页码兼容近期20条。
+- `points/admin_get|ledger`：ID为普通会员账号；`points/adjust`需稳定`idempotency_key`及`amount/expected_available/reason`，允许每次正负100万以内的非零积分，不得扣减冻结积分或使可用余额负数。`member/update`以ID指定其他会员时要求管理员及原因，支持受控昵称/头像编辑。
+- `points|member|logistics|recommendation|search` 的 `policy_get|policy_upsert`：读返回`{config,version}`；写`data={config,version,reason}`。积分字段为`checkin_points/deduction_bps/reward_per_yuan`；会员为`gold_growth/growth_spend_cents`。版本冲突返回409。
+- 运费配置：`name/enabled/mode=flat|per_item/base_fee_cents/additional_fee_cents/free_threshold_cents/allowed_regions/blocked_regions/regions`；地区费用项为`{region,base_fee_cents,additional_fee_cents,free_threshold_cents}`，先匹配生效。`pricing/quote`及`checkout/quote`接受`address_id`或地区地址，响应含`shipping_cents/shipping_policy/shipping_region`；提交沿用报价版本并验证目的地。
+- `notification/templates_admin|template_upsert`：ID为支持的业务事件，写`title/body/enabled/version/reason`，仅支持`{{business_id}}/{{event_type}}/{{amount}}`。`content/admin_list|admin_upsert`：公告与FAQ，`status=DRAFT|PUBLISHED|SCHEDULED|PAUSED`，支持`publish_at/unpublish_at`，版本及原因必填；`storefront-main`与`storefront-categories`仍走专门配置验证。
+- `reconciliation/run`新异步方式：稳定幂等键，`data={async:true,from:"YYYY-MM-DD",to:"YYYY-MM-DD",reason:"任务说明"}`，范围最长366天。`admin_list`分页查任务，`get`以ID查进度及分页`differences`，`note`需稳定幂等键及`data.body`；失败任务以原ID、稳定新键和`data={retry:true,reason}`继续检查点。按UTC+8日期核对内部支付与订单。
+- `iam/audit_list`：分页查询账号启停审计，ID可限定目标账号。
+- `management/tasks`：`data={service,kind:"outbox|inbox|recovery|audit",page,page_size,keyword,status}`；service只能为注册的30个服务。`management/retry`：原事件ID、稳定幂等键和`data={service,kind:"outbox|inbox",reason}`。共用`PlatformAdminService.Tasks/Retry`在归属服务自己的数据库查询和排队，不跨库直接修改业务状态；完成或有效租约中的消息不可重放，历史无信封Inbox只可查看。
+
+新管理列表返回`items/total/page/page_size`（通知模板为11项有界列表）。配置审计和原订单快照持久保存。推荐`config`接受9类`*_weight`、`pinned_ids`和`excluded_ids`，搜索接受`default_sort/max_results/excluded_ids/hidden_brands`，配置真实参与后续查询。详见 [后台能力与验证范围](frontend-api-coverage.md#后台管理扩展复查2026-10-28)。
+
+## 本轮新增接口
+
+- `coupon/calculate`（会员）：`data.items`、`coupon_mode: auto|manual|none`、手动模式 `coupon_id`、`points_mode: max`、配送地址与已有活动字段。返回不可变价格快照、`coupon_options`、所选券号、优惠明细和 `quote_id`；后续 checkout/submit 只提交报价号。
+- `payment/methods`（公开）返回可执行的启用渠道；`payment/policy_get`、`policy_upsert`（管理员）读取与保存开关。保存载荷为 `data:{config,version,reason}`。
+- `iam/login_methods`、`otp_send`、`otp_login`、`oauth_start`、`oauth_callback`（公开）；`iam/policy_get`、`policy_upsert`（管理员）。手机与授权载荷、凭据部署见 [登录渠道](login-providers.md)。
+- `engagement/policy_get`（公开）仅返回提醒规则；`policy_upsert`（管理员）载荷同上，配置含 `price_enabled,stock_enabled,ttl_days,max_per_user`。
+- `engagement/subscribe`（会员）：`data:{sku_id,kind:price|stock,target_cents}`；stock 不使用目标金额。重复有效订阅返回同一记录，改变目标需先取消。
+- `engagement/subscriptions`（会员）和 `admin_list`（管理员）：`data:{limit,offset,kind,status,sku_id}`；管理员可另筛选 `user_id`，会员始终只读本人。每页 1..100，返回 items/total/limit/offset。
+- `engagement/unsubscribe`（会员）传 `id`；`admin_cancel`（管理员）另传 `data.reason`，写入停用审计。
+
+新业务号见 [雪花编号规范](business-identifiers.md)。所有新增方法均在服务自身校验权限和归属，HTTP白名单不会开放内部资金或状态命令。

@@ -1,7 +1,21 @@
 :root {
   --red: #ff443d;
-  --red-dark: #e8322d;
-  --pale: #fff0ee;
+  --red-dark: color-mix(in srgb, var(--red) 88%, #17202b);
+  --pale: color-mix(in srgb, var(--red) 7%, white);
+  --brand-soft-subtle: color-mix(in srgb, var(--red) 2%, white);
+  --brand-soft-hover: color-mix(in srgb, var(--red) 12%, white);
+  --brand-border: color-mix(in srgb, var(--red) 24%, white);
+  --brand-border-strong: color-mix(in srgb, var(--red) 38%, white);
+  --brand-ring: color-mix(in srgb, var(--red) 9%, transparent);
+  --brand-fill: color-mix(in srgb, var(--red) 13%, transparent);
+  --brand-shadow: color-mix(in srgb, var(--red) 7%, transparent);
+  --brand-gradient: linear-gradient(110deg, color-mix(in srgb, var(--red) 96%, white), var(--red));
+  --brand-hero-gradient: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--red) 94%, #17202b),
+    color-mix(in srgb, var(--red) 95%, white)
+  );
+  --brand-surface-gradient: linear-gradient(110deg, var(--pale), var(--brand-soft-subtle));
   --ink: #17202b;
   --muted: #89919d;
   --line: #eceef1;
@@ -63,7 +77,7 @@ input:focus,
 textarea:focus,
 select:focus {
   border-color: var(--red) !important;
-  box-shadow: 0 0 0 3px #ff443d16;
+  box-shadow: 0 0 0 3px var(--brand-ring);
 }
 button:focus-visible,
 a:focus-visible {
@@ -490,8 +504,8 @@ svg {
   left: 13px;
   font-size: 9px;
   letter-spacing: 0.3px;
-  color: #fc5048;
-  background: #ffefeddd;
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 7%, #ffffffe6);
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -516,7 +530,7 @@ svg {
   color: var(--red);
 }
 .favorite-button.saved svg {
-  fill: #ff443d22;
+  fill: var(--brand-fill);
 }
 .product-info {
   padding: 16px 17px 15px;
@@ -745,11 +759,11 @@ svg {
   display: flex;
   align-items: center;
   gap: 9px;
-  color: #f46158;
+  color: var(--red);
   font-size: 10px;
 }
 .promotion span {
-  background: #ffe8e6;
+  background: var(--pale);
   padding: 2px 6px;
   border-radius: 3px;
 }
@@ -785,7 +799,7 @@ svg {
 }
 .swatch.active .swatch-pic {
   border-color: var(--red);
-  background: #fff5f3;
+  background: var(--pale);
 }
 .swatch-pic i {
   display: block;
@@ -812,9 +826,9 @@ svg {
   color: #7e8793;
 }
 .chip.active {
-  border-color: #ffb6b0;
+  border-color: var(--brand-border-strong);
   color: var(--red);
-  background: #fff4f2;
+  background: var(--pale);
 }
 .quantity {
   display: inline-flex;
@@ -866,8 +880,8 @@ svg {
 }
 .primary {
   color: white;
-  background: linear-gradient(110deg, #ff5046, #ff443d);
-  box-shadow: 0 5px 12px #ff443d0b;
+  background: var(--brand-gradient);
+  box-shadow: 0 5px 12px var(--brand-shadow);
 }
 .primary:hover {
   background: var(--red-dark);
@@ -877,11 +891,11 @@ svg {
   transform: scale(0.98);
 }
 .secondary {
-  background: #ffedeb;
+  background: var(--pale);
   color: var(--red);
 }
 .secondary:hover {
-  background: #ffe1dd;
+  background: var(--brand-soft-hover);
 }
 .outline {
   background: #fff;
@@ -941,7 +955,7 @@ svg {
 }
 .highlight svg {
   color: #b47f78;
-  background: #ffefed;
+  background: var(--pale);
   border-radius: 7px;
   padding: 6px;
   width: 37px;
@@ -1041,7 +1055,7 @@ svg {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #ffedeb;
+  background: var(--pale);
   color: #6f777f;
   padding: 14px 21px;
   border-radius: 10px;
@@ -1235,7 +1249,7 @@ svg {
   color: #fff;
 }
 .step.done i {
-  background: #ffe4e1;
+  background: var(--pale);
   color: var(--red);
 }
 .step-line {
@@ -1300,7 +1314,7 @@ svg {
 .default-tag {
   font-size: 8px;
   color: var(--red);
-  background: #ffe6e2;
+  background: var(--pale);
   padding: 1px 6px;
   border-radius: 3px;
   position: absolute;
@@ -1339,8 +1353,8 @@ svg {
   position: relative;
 }
 .shipping-option.active {
-  border-color: #ffb8b2;
-  background: #fffafa;
+  border-color: var(--brand-border-strong);
+  background: var(--brand-soft-subtle);
 }
 .radio-dot {
   width: 12px;
@@ -1594,8 +1608,8 @@ svg {
   font-size: 12px;
 }
 .payment-method.active {
-  background: #fff8f7;
-  border-color: #ffe5e2;
+  background: var(--pale);
+  border-color: var(--brand-border);
 }
 .method-icon {
   display: grid;
@@ -1839,7 +1853,7 @@ svg {
   min-height: 34px;
 }
 .about-strip {
-  background: linear-gradient(90deg, #fff0ed, #fff7f1);
+  background: var(--brand-surface-gradient);
   border-radius: 12px;
   padding: 22px 27px;
   margin: 30px 0;
@@ -1856,10 +1870,10 @@ svg {
   margin-top: 4px;
 }
 .about-strip .outline {
-  border-color: #ffd4cd;
+  border-color: var(--brand-border);
   color: var(--red);
   font-size: 11px;
-  background: #fff8f6;
+  background: var(--pale);
   min-height: 36px;
   padding: 7px 18px;
 }
@@ -3483,5 +3497,48 @@ svg {
     align-items: flex-start;
     flex-direction: column;
     gap: 5px;
+  }
+}
+
+/* Preserve desktop density while keeping primary phone interactions usable. */
+@media (max-width: 680px) {
+  .filter-tab,
+  .filter-btn,
+  .chip,
+  .primary,
+  .secondary,
+  .outline,
+  .check {
+    min-height: 44px;
+  }
+  .quantity,
+  .quantity button {
+    min-height: 44px;
+  }
+  .quantity {
+    height: 44px;
+  }
+  .quantity button {
+    flex: 0 0 44px;
+    width: 44px;
+    min-width: 44px;
+  }
+  .quantity output {
+    flex: 0 0 36px;
+    width: 36px;
+    font-size: 12px;
+  }
+  .modal label.field {
+    font-size: 12px;
+  }
+  .modal label.field input,
+  .modal label.field select,
+  .modal label.field textarea {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  .modal .icon-button {
+    min-width: 44px;
+    min-height: 44px;
   }
 }

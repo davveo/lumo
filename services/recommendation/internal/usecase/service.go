@@ -167,6 +167,10 @@ func (s *Service) rank(
 		}
 		contextOrder = map[string]any(result)
 	}
+	policy, policyVersion, err := s.repo.Policy(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
 	metadata := map[string]product{}
 	for _, row := range base {
 		p := productFrom(row)
@@ -175,7 +179,7 @@ func (s *Service) rank(
 			metadata[p.rawID] = p
 		}
 	}
-	seeds := seedIDs(signals, contextOrder, in.ProductID)
+	seeds := append(seedIDs(signals, contextOrder, in.ProductID), policy.PinnedIDs...)
 	missing := []string{}
 	for _, id := range seeds {
 		if _, ok := metadata[id]; !ok {
@@ -240,8 +244,11 @@ func (s *Service) rank(
 		}
 		contextProduct = &p
 	}
-	profile := buildProfile(signals, metadata, time.Now())
+	profile := buildProfile(signals, metadata, time.Now(), policy)
 	exclude := map[string]bool{}
+	for _, id := range policy.ExcludedIDs {
+		exclude[id] = true
+	}
 	for id := range profile.purchased {
 		exclude[id] = true
 	}
@@ -287,7 +294,13 @@ func (s *Service) rank(
 	}
 	// Targeted recall leads the bounded pool; the catalog supplies exploration.
 	candidates, unique := []product{}, map[string]bool{}
-	for _, source := range [][]map[string]any{recalled, base} {
+	pinnedRows := []map[string]any{}
+	for _, id := range policy.PinnedIDs {
+		if p, ok := metadata[id]; ok {
+			pinnedRows = append(pinnedRows, p.raw)
+		}
+	}
+	for _, source := range [][]map[string]any{pinnedRows, recalled, base} {
 		for _, row := range source {
 			p := productFrom(row)
 			if p.id == "" || !p.active || unique[p.id] || excludedProduct(p, exclude) {
@@ -346,7 +359,7 @@ func (s *Service) rank(
 	if ctx.Err() != nil {
 		return nil, nil, status.FromContextError(ctx.Err()).Err()
 	}
-	items := rankProducts(sellable, profile, contextProduct, contextOrder, metadata, in.Scene, in.Limit, time.Now())
+	items := rankProducts(sellable, profile, contextProduct, contextOrder, metadata, in.Scene, in.Limit, time.Now(), policy)
 	if ctx.Err() != nil {
 		return nil, nil, status.FromContextError(ctx.Err()).Err()
 	}
@@ -360,6 +373,7 @@ func (s *Service) rank(
 		"items":              items,
 		"inventory_items":    selectedStock,
 		"strategy":           strategy,
+		"policy_version":     policyVersion,
 		"personalized":       profile.count > 0,
 		"personalized_model": false,
 		"degraded":           degraded,
