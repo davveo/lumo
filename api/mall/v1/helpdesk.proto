@@ -9,6 +9,7 @@ option go_package = "github.com/davveo/lumo/api/mall/v1;mallv1";
 import "api/mall/v1/service_request.proto";
 
 service HelpdeskService {
+  rpc AdminList(ServiceRequest) returns (ServiceResponse);
   rpc Close(ServiceRequest) returns (ServiceResponse);
   rpc Create(ServiceRequest) returns (ServiceResponse);
   rpc Faq(ServiceRequest) returns (ServiceResponse);

@@ -16,13 +16,15 @@ const searchCategoryIndex = "idx_catalog_search_category_v1"
 // payload. Historical ordinary category/brand columns are deliberately unused.
 // The index backfills through MySQL's online DDL rather than application writes
 // or a cursor that could leave old products temporarily missing from search.
-func (r *Repository) migrateSearchCategory(ctx context.Context) error {
+func (r *Repository) migrateSearchCategory(ctx context.Context) (spanErr0 error) {
 	r.searchCategoryIndexed = false
 	if r.db.Dialector.Name() != "mysql" {
 		return nil
 	}
 	ctx, span := platform.Start(ctx, "catalog.repository.MigrateSearchCategory")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	type column struct {
 		DataType               string
 		CharacterMaximumLength int64

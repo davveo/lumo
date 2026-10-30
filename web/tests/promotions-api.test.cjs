@@ -375,7 +375,7 @@ async function checkReadAggregation() {
         x.command.data.scene === 'post_purchase',
     ),
   );
-  assert.match(window.LumoRecommendations.render(order), /与你购买的商品品牌相近/);
+  assert.match(window.LumoRecommendations.render(order), /Coffee/);
   // General campaign selection carries policy IDs, never a client-calculated final price.
   context.checkoutMode = 'cart';
   context.directItem = null;

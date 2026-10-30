@@ -63,7 +63,7 @@ func (s *Service) Login(ctx context.Context, c platform.Request) (traceResult pl
 	defer span.End()
 	platform.TraceRequest(ctx, c)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	username := strings.TrimSpace(platform.Text(c.Data, "username"))
+	username := strings.ToLower(strings.TrimSpace(platform.Text(c.Data, "username")))
 	password := platform.Text(c.Data, "password")
 	if username == "" || len(username) > 128 || password == "" || len(password) > 1024 {
 		return nil, status.Error(codes.InvalidArgument, "username and password required")

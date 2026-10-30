@@ -16,7 +16,7 @@ import (
 type Repository struct{ db *gorm.DB }
 
 func New(db *gorm.DB) *Repository { return &Repository{db: db} }
-func (r *Repository) Migrate(ctx context.Context) error {
+func (r *Repository) Migrate(ctx context.Context) (spanErr0 error) {
 	if e := adminconfig.Migrate(ctx, r.db); e != nil {
 		return e
 	}
@@ -25,42 +25,56 @@ func (r *Repository) Migrate(ctx context.Context) error {
 	}
 	ctx, s := platform.Start(ctx, "iam.repository.Migrate")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).AutoMigrate(&domain.Account{}, &domain.Session{}, &domain.AccountChange{}, &domain.Identity{}, &domain.AuthChallenge{}, &domain.AuthRate{})
 }
-func (r *Repository) ByUsername(ctx context.Context, name string) (domain.Account, error) {
+func (r *Repository) ByUsername(ctx context.Context, name string) (spanResult0 domain.Account, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "iam.repository.ByUsername")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var a domain.Account
 	err := r.db.WithContext(ctx).First(&a, "username = ?", name).Error
 	return a, err
 }
-func (r *Repository) ByID(ctx context.Context, id string) (domain.Account, error) {
+func (r *Repository) ByID(ctx context.Context, id string) (spanResult0 domain.Account, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "iam.repository.ByID")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var a domain.Account
 	err := r.db.WithContext(ctx).First(&a, "id = ?", id).Error
 	return a, err
 }
-func (r *Repository) Seed(ctx context.Context, a *domain.Account) error {
+func (r *Repository) Seed(ctx context.Context, a *domain.Account) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "iam.repository.Seed")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(a).Error
 }
-func (r *Repository) CreateSession(ctx context.Context, v *domain.Session) error {
+func (r *Repository) CreateSession(ctx context.Context, v *domain.Session) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "iam.repository.CreateSession")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Create(v).Error
 }
-func (r *Repository) Session(ctx context.Context, digest string) (domain.Session, error) {
+func (r *Repository) Session(ctx context.Context, digest string) (spanResult0 domain.Session, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "iam.repository.Session")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var v domain.Session
 	err := r.db.WithContext(ctx).First(&v, "digest = ?", digest).Error
 	return v, err
 }
-func (r *Repository) Revoke(ctx context.Context, digest, user string) error {
+func (r *Repository) Revoke(ctx context.Context, digest, user string) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "iam.repository.Revoke")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	now := time.Now()
 	q := r.db.WithContext(ctx).Model(&domain.Session{}).Where("revoked_at IS NULL")
 	if digest != "" {
@@ -70,9 +84,11 @@ func (r *Repository) Revoke(ctx context.Context, digest, user string) error {
 	}
 	return q.Update("revoked_at", now).Error
 }
-func (r *Repository) Rotate(ctx context.Context, oldDigest string, next *domain.Session) error {
+func (r *Repository) Rotate(ctx context.Context, oldDigest string, next *domain.Session) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "iam.repository.Rotate")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var old domain.Session
 		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(

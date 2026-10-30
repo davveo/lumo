@@ -14,17 +14,21 @@ import (
 
 type Repository struct{ DB *gorm.DB }
 
-func (r *Repository) Migrate(ctx context.Context) error {
+func (r *Repository) Migrate(ctx context.Context) (spanErr0 error) {
 	if e := platform.MigrateBusinessIDs(ctx, r.DB); e != nil {
 		return e
 	}
 	ctx, s := platform.Start(ctx, "repository.invoice.Migrate")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.DB.WithContext(ctx).AutoMigrate(&domain.Record{}, &domain.Reversal{})
 }
-func (r *Repository) Get(ctx context.Context, id string) (*domain.Record, error) {
+func (r *Repository) Get(ctx context.Context, id string) (spanResult0 *domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.invoice.Get")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var x domain.Record
 	err := r.DB.WithContext(ctx).First(&x, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -32,9 +36,11 @@ func (r *Repository) Get(ctx context.Context, id string) (*domain.Record, error)
 	}
 	return &x, err
 }
-func (r *Repository) List(ctx context.Context, user string) ([]domain.Record, error) {
+func (r *Repository) List(ctx context.Context, user string) (spanResult0 []domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.invoice.List")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	out := []domain.Record{}
 	q := r.DB.WithContext(ctx)
 	if user != "" {
@@ -43,9 +49,11 @@ func (r *Repository) List(ctx context.Context, user string) ([]domain.Record, er
 	err := q.Order("created_at desc").Limit(100).Find(&out).Error
 	return out, err
 }
-func (r *Repository) Create(ctx context.Context, x *domain.Record) error {
+func (r *Repository) Create(ctx context.Context, x *domain.Record) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.invoice.Create")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		result := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(x)
 		if result.Error != nil {
@@ -72,9 +80,11 @@ func (r *Repository) Transition(
 	next string,
 	fields map[string]any,
 	event *platform.Event,
-) (*domain.Record, error) {
+) (spanResult0 *domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.invoice.Transition")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var row domain.Record
 	err := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(

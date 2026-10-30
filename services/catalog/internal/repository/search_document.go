@@ -94,13 +94,15 @@ func searchDocumentColumns() []searchProjectionColumn {
 // atomically; no backfill job, trigger or eventually consistent mirror exists.
 // Short documents use only the covering index. Long documents retain a separate
 // exact JSON branch, so bounded index fields can never truncate search results.
-func (r *Repository) migrateSearchDocument(ctx context.Context) error {
+func (r *Repository) migrateSearchDocument(ctx context.Context) (spanErr0 error) {
 	r.searchDocumentIndexed = false
 	if r.db.Dialector.Name() != "mysql" {
 		return nil
 	}
 	ctx, span := platform.Start(ctx, "catalog.repository.MigrateSearchDocument")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	type column struct {
 		ColumnName             string
 		DataType               string

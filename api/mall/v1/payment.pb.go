@@ -26,50 +26,56 @@ var File_api_mall_v1_payment_proto protoreflect.FileDescriptor
 
 const file_api_mall_v1_payment_proto_rawDesc = "" +
 	"\n" +
-	"\x19api/mall/v1/payment.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xc5\x05\n" +
-	"\x0ePaymentService\x12:\n" +
+	"\x19api/mall/v1/payment.proto\x12\amall.v1\x1a!api/mall/v1/service_request.proto2\xcc\x06\n" +
+	"\x0ePaymentService\x12>\n" +
+	"\tAdminList\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12A\n" +
+	"\fAdminSummary\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12:\n" +
 	"\x05Close\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12@\n" +
 	"\vConfirmDemo\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12;\n" +
 	"\x06Create\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x128\n" +
 	"\x03Get\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x129\n" +
-	"\x04List\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12?\n" +
-	"\n" +
-	"SubmitDemo\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
-	"\tAdminList\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12A\n" +
-	"\fAdminSummary\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12<\n" +
+	"\x04List\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12<\n" +
 	"\aMethods\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12>\n" +
 	"\tPolicyGet\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12A\n" +
-	"\fPolicyUpsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
+	"\fPolicyUpsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12@\n" +
+	"\vProviderGet\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12C\n" +
+	"\x0eProviderUpsert\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponse\x12?\n" +
+	"\n" +
+	"SubmitDemo\x12\x17.mall.v1.ServiceRequest\x1a\x18.mall.v1.ServiceResponseB+Z)github.com/davveo/lumo/api/mall/v1;mallv1b\x06proto3"
 
 var file_api_mall_v1_payment_proto_goTypes = []any{
 	(*ServiceRequest)(nil),  // 0: mall.v1.ServiceRequest
 	(*ServiceResponse)(nil), // 1: mall.v1.ServiceResponse
 }
 var file_api_mall_v1_payment_proto_depIdxs = []int32{
-	0,  // 0: mall.v1.PaymentService.Close:input_type -> mall.v1.ServiceRequest
-	0,  // 1: mall.v1.PaymentService.ConfirmDemo:input_type -> mall.v1.ServiceRequest
-	0,  // 2: mall.v1.PaymentService.Create:input_type -> mall.v1.ServiceRequest
-	0,  // 3: mall.v1.PaymentService.Get:input_type -> mall.v1.ServiceRequest
-	0,  // 4: mall.v1.PaymentService.List:input_type -> mall.v1.ServiceRequest
-	0,  // 5: mall.v1.PaymentService.SubmitDemo:input_type -> mall.v1.ServiceRequest
-	0,  // 6: mall.v1.PaymentService.AdminList:input_type -> mall.v1.ServiceRequest
-	0,  // 7: mall.v1.PaymentService.AdminSummary:input_type -> mall.v1.ServiceRequest
-	0,  // 8: mall.v1.PaymentService.Methods:input_type -> mall.v1.ServiceRequest
-	0,  // 9: mall.v1.PaymentService.PolicyGet:input_type -> mall.v1.ServiceRequest
-	0,  // 10: mall.v1.PaymentService.PolicyUpsert:input_type -> mall.v1.ServiceRequest
-	1,  // 11: mall.v1.PaymentService.Close:output_type -> mall.v1.ServiceResponse
-	1,  // 12: mall.v1.PaymentService.ConfirmDemo:output_type -> mall.v1.ServiceResponse
-	1,  // 13: mall.v1.PaymentService.Create:output_type -> mall.v1.ServiceResponse
-	1,  // 14: mall.v1.PaymentService.Get:output_type -> mall.v1.ServiceResponse
-	1,  // 15: mall.v1.PaymentService.List:output_type -> mall.v1.ServiceResponse
-	1,  // 16: mall.v1.PaymentService.SubmitDemo:output_type -> mall.v1.ServiceResponse
-	1,  // 17: mall.v1.PaymentService.AdminList:output_type -> mall.v1.ServiceResponse
-	1,  // 18: mall.v1.PaymentService.AdminSummary:output_type -> mall.v1.ServiceResponse
-	1,  // 19: mall.v1.PaymentService.Methods:output_type -> mall.v1.ServiceResponse
-	1,  // 20: mall.v1.PaymentService.PolicyGet:output_type -> mall.v1.ServiceResponse
-	1,  // 21: mall.v1.PaymentService.PolicyUpsert:output_type -> mall.v1.ServiceResponse
-	11, // [11:22] is the sub-list for method output_type
-	0,  // [0:11] is the sub-list for method input_type
+	0,  // 0: mall.v1.PaymentService.AdminList:input_type -> mall.v1.ServiceRequest
+	0,  // 1: mall.v1.PaymentService.AdminSummary:input_type -> mall.v1.ServiceRequest
+	0,  // 2: mall.v1.PaymentService.Close:input_type -> mall.v1.ServiceRequest
+	0,  // 3: mall.v1.PaymentService.ConfirmDemo:input_type -> mall.v1.ServiceRequest
+	0,  // 4: mall.v1.PaymentService.Create:input_type -> mall.v1.ServiceRequest
+	0,  // 5: mall.v1.PaymentService.Get:input_type -> mall.v1.ServiceRequest
+	0,  // 6: mall.v1.PaymentService.List:input_type -> mall.v1.ServiceRequest
+	0,  // 7: mall.v1.PaymentService.Methods:input_type -> mall.v1.ServiceRequest
+	0,  // 8: mall.v1.PaymentService.PolicyGet:input_type -> mall.v1.ServiceRequest
+	0,  // 9: mall.v1.PaymentService.PolicyUpsert:input_type -> mall.v1.ServiceRequest
+	0,  // 10: mall.v1.PaymentService.ProviderGet:input_type -> mall.v1.ServiceRequest
+	0,  // 11: mall.v1.PaymentService.ProviderUpsert:input_type -> mall.v1.ServiceRequest
+	0,  // 12: mall.v1.PaymentService.SubmitDemo:input_type -> mall.v1.ServiceRequest
+	1,  // 13: mall.v1.PaymentService.AdminList:output_type -> mall.v1.ServiceResponse
+	1,  // 14: mall.v1.PaymentService.AdminSummary:output_type -> mall.v1.ServiceResponse
+	1,  // 15: mall.v1.PaymentService.Close:output_type -> mall.v1.ServiceResponse
+	1,  // 16: mall.v1.PaymentService.ConfirmDemo:output_type -> mall.v1.ServiceResponse
+	1,  // 17: mall.v1.PaymentService.Create:output_type -> mall.v1.ServiceResponse
+	1,  // 18: mall.v1.PaymentService.Get:output_type -> mall.v1.ServiceResponse
+	1,  // 19: mall.v1.PaymentService.List:output_type -> mall.v1.ServiceResponse
+	1,  // 20: mall.v1.PaymentService.Methods:output_type -> mall.v1.ServiceResponse
+	1,  // 21: mall.v1.PaymentService.PolicyGet:output_type -> mall.v1.ServiceResponse
+	1,  // 22: mall.v1.PaymentService.PolicyUpsert:output_type -> mall.v1.ServiceResponse
+	1,  // 23: mall.v1.PaymentService.ProviderGet:output_type -> mall.v1.ServiceResponse
+	1,  // 24: mall.v1.PaymentService.ProviderUpsert:output_type -> mall.v1.ServiceResponse
+	1,  // 25: mall.v1.PaymentService.SubmitDemo:output_type -> mall.v1.ServiceResponse
+	13, // [13:26] is the sub-list for method output_type
+	0,  // [0:13] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name

@@ -29,7 +29,7 @@
     typeof value === 'string' &&
     /^#\/(?:[a-zA-Z0-9_\/:-]|%[0-9a-fA-F]{2})*$/.test(value) &&
     value.length <= 300 &&
-    !value.startsWith('#/login')
+    !/^#\/(login|register)(?:\/|$)/.test(value)
       ? value
       : fallback;
   const privateRoute = (route) =>
@@ -238,7 +238,7 @@
       message('商城编辑需要管理员账号');
       return false;
     }
-    if (route[0] === 'login' && ensureSession()) {
+    if (['login', 'register'].includes(route[0]) && ensureSession()) {
       location.hash = safeHash(ui.returnTo);
       return false;
     }
@@ -309,7 +309,7 @@
       .finally(() => {
         ui.methodsLoading = false;
         methodsFlight = null;
-        if (location.hash === '#/login') redraw();
+        if (['#/login', '#/register'].includes(location.hash)) redraw();
       });
     return methodsFlight;
   }
@@ -462,6 +462,13 @@
           redraw();
           return;
         }
+        if (action === 'register-phone') {
+          ui.tab = 'phone';
+          ui.error = '';
+          location.hash = '#/login';
+          redraw();
+          return;
+        }
         if (action === 'send-otp') {
           void sendOTP();
           return;
@@ -566,6 +573,47 @@
   document.addEventListener(
     'submit',
     (event) => {
+      if (event.target.id === 'auth-register-form') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (ui.busy) return;
+        const fields = new FormData(event.target);
+        ui.registrationName = String(fields.get('username') || '')
+          .trim()
+          .toLowerCase();
+        const password = String(fields.get('password') || '');
+        if (password !== String(fields.get('confirm_password') || '')) {
+          ui.error = '两次输入的密码不一致';
+          redraw();
+          return;
+        }
+        ui.busy = true;
+        ui.error = '';
+        const button = event.target.querySelector('[type="submit"]');
+        if (button) {
+          button.disabled = true;
+          button.textContent = '正在注册…';
+        }
+        void window.LumoAPI.call(
+          C.Service.IAM,
+          C.Action.Register,
+          { data: { username: ui.registrationName, password } },
+          { auth: false },
+        )
+          .then(() => {
+            ui.tab = 'password';
+            location.hash = '#/login';
+            message('注册成功，请登录');
+          })
+          .catch((error) => {
+            ui.error = error.message;
+          })
+          .finally(() => {
+            ui.busy = false;
+            redraw();
+          });
+        return;
+      }
       if (event.target.id !== 'auth-login-form') {
         const privateForm =
           /^(?:member-|studio-|service-)/.test(String(event.target.id || '')) || event.target.id === 'address-form';
@@ -666,7 +714,12 @@
     gate,
     ensureSession,
     afterRender: () => {
-      if (location.hash === '#/login' && !ui.methodsLoaded && !ui.methodsLoading && !ui.methodsFailed)
+      if (
+        ['#/login', '#/register'].includes(location.hash) &&
+        !ui.methodsLoaded &&
+        !ui.methodsLoading &&
+        !ui.methodsFailed
+      )
         void loadMethods().catch(() => {});
       void oauthReturn();
     },

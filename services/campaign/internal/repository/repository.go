@@ -89,16 +89,20 @@ func (r *Repository) Seed(ctx context.Context) error {
 	}
 	return nil
 }
-func (r *Repository) List(ctx context.Context) (platform.Result, error) {
+func (r *Repository) List(ctx context.Context) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.campaign.List")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var a []domain.Activity
 	e := r.DB.WithContext(ctx).Where("active = ?", true).Order("id").Find(&a).Error
 	return platform.Result{"items": a}, e
 }
-func (r *Repository) Evaluate(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Evaluate(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.campaign.Evaluate")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	sub := platform.Int(c.Data, "subtotal_cents")
 	quantity := platform.Int(c.Data, "quantity")
 	addon := platform.Text(c.Data, "addon_sku_id")
@@ -117,6 +121,8 @@ func (r *Repository) Evaluate(ctx context.Context, c platform.Request) (platform
 	}
 	var a domain.Activity
 	if e := r.DB.WithContext(ctx).First(&a, "id = ?", id).Error; e != nil {
+		platform.TraceError(ctx, e)
+
 		return nil, status.Error(codes.NotFound, "activity not found")
 	}
 	discount, reason, policy := evaluate(a, sub, quantity)
@@ -183,9 +189,11 @@ func evaluate(a domain.Activity, subtotal, quantity int64) (int64, string, strin
 	}
 	return discount, "", policy
 }
-func (r *Repository) Reserve(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Reserve(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.campaign.Reserve")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	id := platform.Text(c.Data, "activity_id")
 	qty := platform.Int(c.Data, "quantity")
 	if qty == 0 {
@@ -267,9 +275,11 @@ func (r *Repository) Confirm(ctx context.Context, c platform.Request) (platform.
 func (r *Repository) Cancel(ctx context.Context, c platform.Request) (platform.Result, error) {
 	return r.transition(ctx, c, constants.CampaignHoldStateCancelled)
 }
-func (r *Repository) transition(ctx context.Context, c platform.Request, target string) (platform.Result, error) {
+func (r *Repository) transition(ctx context.Context, c platform.Request, target string) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.campaign.transition."+target)
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if c.ID == "" {
 		return nil, status.Error(codes.InvalidArgument, "order ID required")
 	}

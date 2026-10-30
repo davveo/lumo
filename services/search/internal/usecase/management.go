@@ -8,18 +8,22 @@ import (
 	"strings"
 )
 
-func (s *Service) PolicyGet(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) PolicyGet(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "search.usecase.PolicyGet")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
 	p, v, e := s.repo.Policy(ctx)
 	return platform.Result{"config": p, "version": v}, e
 }
-func (s *Service) PolicyUpsert(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) PolicyUpsert(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "search.usecase.PolicyUpsert")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}

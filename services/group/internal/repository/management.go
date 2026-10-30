@@ -15,15 +15,19 @@ import (
 	"time"
 )
 
-func (r *Repository) AdminList(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) AdminList(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "group.repository.AdminList")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	rows, total, f, e := adminquery.Page[domain.Team](ctx, r.DB, c.Data, adminquery.Spec{State: "state", Search: []string{"id", "sku_id", "creator_id", "rule_id", "activity_id"}})
 	return adminquery.Result(rows, total, f), e
 }
-func (r *Repository) RulesAdmin(ctx context.Context, c platform.Request, public bool) (platform.Result, error) {
+func (r *Repository) RulesAdmin(ctx context.Context, c platform.Request, public bool) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "group.repository.RulesAdmin")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	db := r.DB.WithContext(ctx)
 	if public {
 		db = db.Where("active = ?", true)
@@ -31,9 +35,11 @@ func (r *Repository) RulesAdmin(ctx context.Context, c platform.Request, public 
 	rows, total, f, e := adminquery.Page[domain.Rule](ctx, db, c.Data, adminquery.Spec{State: "active", Search: []string{"id", "name", "sku_id", "activity_id"}})
 	return adminquery.Result(rows, total, f), e
 }
-func (r *Repository) Rule(ctx context.Context, id string) (domain.Rule, error) {
+func (r *Repository) Rule(ctx context.Context, id string) (spanResult0 domain.Rule, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "group.repository.Rule")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var v domain.Rule
 	e := r.DB.WithContext(ctx).First(&v, "id = ?", id).Error
 	if errors.Is(e, gorm.ErrRecordNotFound) {
@@ -41,9 +47,11 @@ func (r *Repository) Rule(ctx context.Context, id string) (domain.Rule, error) {
 	}
 	return v, e
 }
-func (r *Repository) RuleUpsert(ctx context.Context, next domain.Rule, actor, reason string) (platform.Result, error) {
+func (r *Repository) RuleUpsert(ctx context.Context, next domain.Rule, actor, reason string) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "group.repository.RuleUpsert")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	e := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var old domain.Rule
 		e := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&old, "id = ?", next.ID).Error
@@ -81,9 +89,11 @@ func (r *Repository) RuleUpsert(ctx context.Context, next domain.Rule, actor, re
 	return platform.Map(next), e
 }
 
-func (r *Repository) PublicRules(ctx context.Context) ([]domain.Rule, error) {
+func (r *Repository) PublicRules(ctx context.Context) (spanResult0 []domain.Rule, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "group.repository.PublicRules")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	rows := []domain.Rule{}
 	e := r.DB.WithContext(ctx).Where("active = ?", true).Order("id").Find(&rows).Error
 	return rows, e

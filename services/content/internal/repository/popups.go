@@ -14,9 +14,11 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func (r *Repository) PopupSettings(ctx context.Context) (domain.PopupSettings, error) {
+func (r *Repository) PopupSettings(ctx context.Context) (spanResult0 domain.PopupSettings, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "content.repository.PopupSettings")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	v := domain.PopupSettings{ID: "global", Enabled: true, MaxPerSession: 1, MinGapSeconds: 60}
 	if err := r.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&v).Error; err != nil {
 		return v, err
@@ -24,9 +26,11 @@ func (r *Repository) PopupSettings(ctx context.Context) (domain.PopupSettings, e
 	err := r.db.WithContext(ctx).First(&v, "id = ?", "global").Error
 	return v, err
 }
-func (r *Repository) SavePopupSettings(ctx context.Context, v domain.PopupSettings) error {
+func (r *Repository) SavePopupSettings(ctx context.Context, v domain.PopupSettings) (spanErr0 error) {
 	ctx, span := platform.Start(ctx, "content.repository.SavePopupSettings")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	v.ID = "global"
 	return r.db.WithContext(ctx).
 		Model(&domain.PopupSettings{}).
@@ -41,9 +45,11 @@ func (r *Repository) SavePopupSettings(ctx context.Context, v domain.PopupSettin
 		).
 		Error
 }
-func (r *Repository) PopupCampaigns(ctx context.Context, published bool) ([]domain.PopupCampaign, error) {
+func (r *Repository) PopupCampaigns(ctx context.Context, published bool) (spanResult0 []domain.PopupCampaign, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "content.repository.PopupCampaigns")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	rows := []domain.PopupCampaign{}
 	q := r.db.WithContext(ctx)
 	if published {
@@ -52,9 +58,11 @@ func (r *Repository) PopupCampaigns(ctx context.Context, published bool) ([]doma
 	err := q.Order("priority DESC, id ASC").Find(&rows).Error
 	return rows, err
 }
-func (r *Repository) PopupCampaign(ctx context.Context, id string) (domain.PopupCampaign, error) {
+func (r *Repository) PopupCampaign(ctx context.Context, id string) (spanResult0 domain.PopupCampaign, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "content.repository.PopupCampaign")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var v domain.PopupCampaign
 	err := r.db.WithContext(ctx).First(&v, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -62,9 +70,11 @@ func (r *Repository) PopupCampaign(ctx context.Context, id string) (domain.Popup
 	}
 	return v, err
 }
-func (r *Repository) SavePopupCampaign(ctx context.Context, v *domain.PopupCampaign, insertOnly bool) error {
+func (r *Repository) SavePopupCampaign(ctx context.Context, v *domain.PopupCampaign, insertOnly bool) (spanErr0 error) {
 	ctx, span := platform.Start(ctx, "content.repository.SavePopupCampaign")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		seed := *v
 		seed.Version = 1
@@ -95,9 +105,11 @@ func (r *Repository) SavePopupCampaign(ctx context.Context, v *domain.PopupCampa
 		return nil
 	})
 }
-func (r *Repository) PopupVisitor(ctx context.Context, id, session string) (domain.PopupVisitor, error) {
+func (r *Repository) PopupVisitor(ctx context.Context, id, session string) (spanResult0 domain.PopupVisitor, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "content.repository.PopupVisitor")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	v := domain.PopupVisitor{ID: id, FirstSession: session}
 	if err := r.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&v).Error; err != nil {
 		return v, err
@@ -105,14 +117,18 @@ func (r *Repository) PopupVisitor(ctx context.Context, id, session string) (doma
 	err := r.db.WithContext(ctx).First(&v, "id = ?", id).Error
 	return v, err
 }
-func (r *Repository) CreatePopupDelivery(ctx context.Context, v *domain.PopupDelivery) error {
+func (r *Repository) CreatePopupDelivery(ctx context.Context, v *domain.PopupDelivery) (spanErr0 error) {
 	ctx, span := platform.Start(ctx, "content.repository.CreatePopupDelivery")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Create(v).Error
 }
-func (r *Repository) PopupDelivery(ctx context.Context, id string) (domain.PopupDelivery, error) {
+func (r *Repository) PopupDelivery(ctx context.Context, id string) (spanResult0 domain.PopupDelivery, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "content.repository.PopupDelivery")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var v domain.PopupDelivery
 	err := r.db.WithContext(ctx).First(&v, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -120,9 +136,11 @@ func (r *Repository) PopupDelivery(ctx context.Context, id string) (domain.Popup
 	}
 	return v, err
 }
-func (r *Repository) PopupCounter(ctx context.Context, id string) (domain.PopupCounter, error) {
+func (r *Repository) PopupCounter(ctx context.Context, id string) (spanResult0 domain.PopupCounter, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "content.repository.PopupCounter")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	v := domain.PopupCounter{ID: id}
 	err := r.db.WithContext(ctx).First(&v, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -130,9 +148,11 @@ func (r *Repository) PopupCounter(ctx context.Context, id string) (domain.PopupC
 	}
 	return v, err
 }
-func (r *Repository) PopupSubject(ctx context.Context, id string) (domain.PopupSubject, error) {
+func (r *Repository) PopupSubject(ctx context.Context, id string) (spanResult0 domain.PopupSubject, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "content.repository.PopupSubject")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	v := domain.PopupSubject{ID: id}
 	err := r.db.WithContext(ctx).First(&v, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -148,9 +168,11 @@ func (r *Repository) PopupTransaction(
 	ctx context.Context,
 	subject, campaign, delivery string,
 	fn func(*PopupTx, *domain.PopupSubject, *domain.PopupCampaign, *domain.PopupDelivery) error,
-) error {
+) (spanErr0 error) {
 	ctx, span := platform.Start(ctx, "content.repository.PopupTransaction")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		u := domain.PopupSubject{ID: subject}
 		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&u).Error; err != nil {

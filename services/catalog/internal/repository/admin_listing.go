@@ -12,9 +12,10 @@ const adminListingIndex = "idx_catalog_admin_page"
 // Public pages fix a status; admin pages include every status. Their ordering
 // needs a separate index, with no status column between the filter and sort.
 // Keep this out of AutoMigrate so existing MySQL tables use online DDL.
-func (r *Repository) migrateAdminListing(ctx context.Context) error {
+func (r *Repository) migrateAdminListing(ctx context.Context) (spanErr0 error) {
 	ctx, span := platform.Start(ctx, "catalog.repository.MigrateAdminListing")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
 
 	expected := []string{"kind", "parent_id", "created_at", "id"}
 	if r.db.Dialector.Name() == "sqlite" {

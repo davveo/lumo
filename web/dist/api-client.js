@@ -88,7 +88,7 @@
     [C.Service.Flash]: [C.Action.List, C.Action.AdminList, C.Action.SessionGet, C.Action.RequestsAdmin],
     [C.Service.Interaction]: [C.Action.List],
     [C.Service.Logistics]: [C.Action.Get, C.Action.PolicyGet],
-    [C.Service.Helpdesk]: [C.Action.Faq, C.Action.List, C.Action.Get],
+    [C.Service.Helpdesk]: [C.Action.Faq, C.Action.List, C.Action.Get, C.Action.AdminList],
     [C.Service.Member]: [C.Action.Get, C.Action.PolicyGet],
     [C.Service.Address]: [C.Action.List, C.Action.Get],
     [C.Service.Cart]: [C.Action.List],
@@ -105,17 +105,19 @@
       C.Action.AdminList,
       C.Action.AdminSummary,
       C.Action.Methods,
+      C.Action.ProviderGet,
       C.Action.PolicyGet,
     ],
     [C.Service.Refund]: [C.Action.List, C.Action.AdminList, C.Action.AdminSummary],
     [C.Service.Reconciliation]: [C.Action.List, C.Action.AdminList, C.Action.Get],
-    [C.Service.Analytics]: [C.Action.List],
+    [C.Service.Analytics]: [C.Action.List, C.Action.AdminList],
     [C.Service.IAM]: [
       C.Action.AdminList,
       C.Action.AdminGet,
       C.Action.AdminSummary,
       C.Action.AuditList,
       C.Action.LoginMethods,
+      C.Action.ProviderGet,
       C.Action.PolicyGet,
     ],
     [C.Service.Management]: [C.Action.Dashboard, C.Action.Tasks],
@@ -124,6 +126,7 @@
   // These operations must observe each call's current state and stay outside the
   // read batch. Quotes may reserve/write state even though their names look like reads.
   const directReads = new Set([
+    C.Service.Coupon + '/' + C.Action.Calculate,
     C.Service.IAM + '/' + C.Action.Current,
     C.Service.IAM + '/' + C.Action.Validate,
     C.Service.Pricing + '/' + C.Action.Get,

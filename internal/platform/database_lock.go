@@ -29,8 +29,10 @@ func WithServiceStartupLock(
 // same service's scheduled work. Business row locks and idempotency still apply
 // to work initiated through RPC or messages.
 func runServiceTick(ctx context.Context, db *gorm.DB, service string, tick func(context.Context) error) error {
-	_, err := withServiceDatabaseLock(ctx, db, service, "tick", 0, tick)
-	return err
+	return traceBackgroundPoll(ctx, service+".worker.tick", func(ctx context.Context) error {
+		_, err := withServiceDatabaseLock(ctx, db, service, "tick", 0, tick)
+		return err
+	})
 }
 
 func databaseLockName(namespace, service, purpose string) string {

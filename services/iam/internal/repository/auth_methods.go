@@ -34,9 +34,11 @@ func (r *Repository) SaveLoginPolicy(ctx context.Context, c platform.Request, p 
 	return adminconfig.Save(ctx, r.db, "login-methods", p, platform.Int(c.Data, "version"), c.UserID, platform.Text(c.Data, "reason"))
 }
 func authKey(text string) string { h := sha256.Sum256([]byte(text)); return hex.EncodeToString(h[:]) }
-func (r *Repository) NewOTP(ctx context.Context, row domain.AuthChallenge, ip string, cooldown int64) error {
+func (r *Repository) NewOTP(ctx context.Context, row domain.AuthChallenge, ip string, cooldown int64) (spanErr0 error) {
 	ctx, span := platform.Start(ctx, "iam.repository.NewOTP")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		keys := []struct {
 			Key string
@@ -74,9 +76,11 @@ func (r *Repository) NewOTP(ctx context.Context, row domain.AuthChallenge, ip st
 func (r *Repository) Delivered(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Model(&domain.AuthChallenge{}).Where("id = ? AND consumed_at IS NULL", id).Update("delivered", true).Error
 }
-func (r *Repository) NewOAuth(ctx context.Context, row domain.AuthChallenge, ip string) error {
+func (r *Repository) NewOAuth(ctx context.Context, row domain.AuthChallenge, ip string) (spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "iam.repository.NewOAuth")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		rate := domain.AuthRate{ID: authKey("oauth:" + ip)}
 		if e := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&rate).Error; e != nil {
@@ -102,12 +106,16 @@ func (r *Repository) NewOAuth(ctx context.Context, row domain.AuthChallenge, ip 
 		return tx.WithContext(ctx).Create(&row).Error
 	})
 }
-func (r *Repository) ConsumeOAuth(ctx context.Context, id, provider, binding string) error {
+func (r *Repository) ConsumeOAuth(ctx context.Context, id, provider, binding string) (spanErr0 error) {
 	ctx, span := platform.Start(ctx, "iam.repository.ConsumeOAuth")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var row domain.AuthChallenge
 		if e := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&row, "id = ?", id).Error; e != nil {
+			platform.TraceError(ctx, e)
+
 			return status.Error(codes.Unauthenticated, "登录授权已失效，请重新发起")
 		}
 		if row.Provider != provider || row.ConsumedAt != nil || !time.Now().Before(row.ExpiresAt) || subtle.ConstantTimeCompare([]byte(row.Binding), []byte(binding)) != 1 {
@@ -160,9 +168,11 @@ func (r *Repository) IdentityAccount(ctx context.Context, provider, subject stri
 	})
 	return account, e
 }
-func (r *Repository) ConsumeOTP(ctx context.Context, id, phone, digest string, register bool) (domain.Account, error) {
+func (r *Repository) ConsumeOTP(ctx context.Context, id, phone, digest string, register bool) (spanResult0 domain.Account, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "iam.repository.ConsumeOTP")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var account domain.Account
 	var rejected error
 	e := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {

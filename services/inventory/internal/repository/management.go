@@ -14,9 +14,11 @@ import (
 	"strings"
 )
 
-func (r *Repository) AdminList(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) AdminList(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "inventory.repository.AdminList")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var f adminquery.Filters
 	if e := platform.Decode(c.Data, &f); e != nil {
 		return nil, e
@@ -62,9 +64,11 @@ func (r *Repository) AdminList(ctx context.Context, c platform.Request) (platfor
 	}
 	return adminquery.Result(items, total, f), nil
 }
-func (r *Repository) Threshold(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Threshold(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "inventory.repository.Threshold")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var in struct {
 		Threshold int64  `json:"threshold"`
 		Expected  *int64 `json:"expected_threshold"`
@@ -100,9 +104,11 @@ func (r *Repository) Threshold(ctx context.Context, c platform.Request) (platfor
 
 	return r.Get(ctx, c.ID)
 }
-func (r *Repository) Ledger(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Ledger(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "inventory.repository.Ledger")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	db := r.DB.WithContext(ctx)
 	if c.ID != "" {
 		db = db.Where("sku_id = ?", c.ID)

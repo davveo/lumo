@@ -92,9 +92,11 @@ func New(c Config) (*MinIO, error) {
 	}
 	return &MinIO{internal: ic, public: pc, bucket: c.Bucket}, nil
 }
-func (s *MinIO) EnsureBucket(ctx context.Context) error {
+func (s *MinIO) EnsureBucket(ctx context.Context) (spanErr0 error) {
 	ctx, span := platform.Start(ctx, "media.storage.EnsureBucket")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	exists, e := s.internal.BucketExists(ctx, s.bucket)
 	if e != nil {
 		return fmt.Errorf("check private media bucket: %w", e)
@@ -120,9 +122,11 @@ func (s *MinIO) SignUpload(
 	key, contentType string,
 	size int64,
 	ttl time.Duration,
-) (domain.SignedUpload, error) {
+) (spanResult0 domain.SignedUpload, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "media.storage.SignUpload")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	p := minio.NewPostPolicy()
 	for _, e := range []error{
 		p.SetBucket(s.bucket),
@@ -141,18 +145,22 @@ func (s *MinIO) SignUpload(
 	}
 	return domain.SignedUpload{URL: u.String(), Method: "POST", Fields: fields}, nil
 }
-func (s *MinIO) Stat(ctx context.Context, key string) (domain.StoredObject, error) {
+func (s *MinIO) Stat(ctx context.Context, key string) (spanResult0 domain.StoredObject, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "media.storage.StatObject")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	v, e := s.internal.StatObject(ctx, s.bucket, key, minio.StatObjectOptions{})
 	if e != nil {
 		return domain.StoredObject{}, e
 	}
 	return domain.StoredObject{Size: v.Size, ContentType: v.ContentType, ETag: v.ETag}, nil
 }
-func (s *MinIO) SignDownload(ctx context.Context, key string, ttl time.Duration) (string, error) {
+func (s *MinIO) SignDownload(ctx context.Context, key string, ttl time.Duration) (spanResult0 string, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "media.storage.SignDownload")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	u, e := s.public.PresignedGetObject(
 		ctx,
 		s.bucket,

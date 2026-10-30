@@ -11,7 +11,7 @@
     ]);
   const loggedIn = () => window.LumoAuth?.isLoggedIn() === true;
   const route = () => (location.hash || '#/').slice(2).split('/')[0];
-  const allowed = () => !['login', 'editor', 'payment', 'checkout'].includes(route());
+  const allowed = () => !['login', 'register', 'editor', 'payment', 'checkout'].includes(route());
   let owner = scope(),
     revision = 0,
     rows = [],

@@ -97,6 +97,8 @@ services = {
     'jaeger': {
         'image': 'lumo-jaeger:2.12.0',
         'build': {'context': '.', 'dockerfile': 'deploy/observability.Dockerfile', 'target': 'jaeger'},
+        'mem_limit': '2g',
+        'environment': {'GOMEMLIMIT': '1024MiB'},
         'healthcheck': {
             'test': ['CMD', '/lumo-healthprobe', 'http://127.0.0.1:13133/status'],
             'interval': '5s',
@@ -137,6 +139,8 @@ services = {
     'otel-collector': {
         'image': 'lumo-otel-collector:0.124.1',
         'build': {'context': '.', 'dockerfile': 'deploy/observability.Dockerfile', 'target': 'collector'},
+        'mem_limit': '512m',
+        'environment': {'GOMEMLIMIT': '256MiB'},
         'healthcheck': {
             'test': ['CMD', '/lumo-healthprobe', 'http://127.0.0.1:13133/'],
             'interval': '5s',
@@ -178,6 +182,8 @@ for n in names:
         'stop_grace_period': '20s',
         'restart': 'unless-stopped',
     }
+    if n in ['iam', 'payment']:
+        env['CHANNEL_CONFIG_ENCRYPTION_KEY'] = '${CHANNEL_CONFIG_ENCRYPTION_KEY:-}'
     if n == 'iam':
         for key in ['IAM_OTP_HASH_KEY', 'SMS_WEBHOOK_URL', 'SMS_WEBHOOK_TOKEN', 'WECHAT_LOGIN_APP_ID', 'WECHAT_LOGIN_APP_SECRET', 'WECHAT_LOGIN_REDIRECT_URI', 'QQ_LOGIN_APP_ID', 'QQ_LOGIN_APP_SECRET', 'QQ_LOGIN_REDIRECT_URI']:
             env[key] = '${' + key + ':-}'

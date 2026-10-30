@@ -9,18 +9,22 @@ import (
 	"strings"
 )
 
-func (s *Service) PolicyGet(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) PolicyGet(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "logistics.usecase.PolicyGet")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if !privileged(c) {
 		return nil, status.Error(codes.PermissionDenied, "administrator or service required")
 	}
 	p, e := s.Repo.Policy(ctx)
 	return platform.Result{"config": p, "version": p.Version}, e
 }
-func (s *Service) PolicyUpsert(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) PolicyUpsert(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "logistics.usecase.PolicyUpsert")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}

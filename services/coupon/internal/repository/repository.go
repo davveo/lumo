@@ -125,9 +125,11 @@ func (r *Repository) TemplateSnapshot(ctx context.Context, c platform.Request) (
 	return r.templates(ctx, c, 5000)
 }
 
-func (r *Repository) templates(ctx context.Context, c platform.Request, maxSize int64) (platform.Result, error) {
+func (r *Repository) templates(ctx context.Context, c platform.Request, maxSize int64) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.coupon.Templates")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	page, size := platform.Int(c.Data, "page"), platform.Int(c.Data, "page_size")
 	if page == 0 {
 		page = 1
@@ -226,9 +228,11 @@ func (r *Repository) Claim(
 	ctx context.Context,
 	c platform.Request,
 	eligible func(context.Context, domain.Template) error,
-) (platform.Result, error) {
+) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.coupon.Claim")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	id := platform.Text(c.Data, "template_id")
 	if id == "" {
 		id = c.ID
@@ -318,9 +322,11 @@ func (r *Repository) Claim(
 	m["already_claimed"] = reused
 	return m, e
 }
-func (r *Repository) List(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) List(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.coupon.List")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	// Resolve names together with owned coupons so wallet labels do not depend
 	// on a public template page or whether a template is still enabled.
 	v := []struct {
@@ -333,9 +339,11 @@ func (r *Repository) List(ctx context.Context, c platform.Request) (platform.Res
 		Where("coupons.user_id = ?", c.UserID).Order("coupons.id").Scan(&v).Error
 	return platform.Result{"items": v}, e
 }
-func (r *Repository) Reserve(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Reserve(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.coupon.Reserve")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	id := platform.Text(c.Data, "coupon_id")
 	sub := platform.Int(c.Data, "subtotal_cents")
 	if c.ID == "" || id == "" || sub < 1 {
@@ -381,6 +389,8 @@ func (r *Repository) Reserve(ctx context.Context, c platform.Request) (platform.
 		}
 		value, err := couponrules.Discount(cp.Rule, cp.Amount, cp.Minimum, sub, input.Items)
 		if err != nil {
+			platform.TraceError(ctx, err)
+
 			return status.Error(codes.FailedPrecondition, err.Error())
 		}
 		out = domain.Hold{
@@ -413,9 +423,11 @@ func (r *Repository) Confirm(ctx context.Context, c platform.Request) (platform.
 func (r *Repository) Cancel(ctx context.Context, c platform.Request) (platform.Result, error) {
 	return r.transition(ctx, c, constants.CouponHoldStateCancelled)
 }
-func (r *Repository) transition(ctx context.Context, c platform.Request, target string) (platform.Result, error) {
+func (r *Repository) transition(ctx context.Context, c platform.Request, target string) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.coupon.transition."+target)
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if c.ID == "" {
 		return nil, status.Error(codes.InvalidArgument, "order ID required")
 	}
@@ -468,9 +480,11 @@ func (r *Repository) transition(ctx context.Context, c platform.Request, target 
 	})
 	return platform.Map(out), e
 }
-func (r *Repository) Refund(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Refund(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.coupon.Refund")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	order := platform.Text(c.Data, "order_id")
 	if c.ID == "" || order == "" {
 		return nil, status.Error(codes.InvalidArgument, "refund and order required")

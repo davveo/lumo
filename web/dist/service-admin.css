@@ -1,0 +1,332 @@
+.admin-readable-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 22px;
+  margin: 16px 0;
+}
+.admin-readable-fields > div {
+  min-width: 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--admin-line);
+}
+.admin-readable-fields dt {
+  font-size: 11px;
+  color: var(--admin-muted);
+  margin-bottom: 7px;
+}
+.admin-readable-fields dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.admin-readable-fields .admin-readable-fields {
+  grid-template-columns: 1fr;
+}
+.admin-readable-text {
+  white-space: pre-wrap;
+}
+.admin-readable-list {
+  padding-left: 20px;
+}
+.admin-readable-list > li {
+  padding: 10px 0;
+}
+.behavior-explainer summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+}
+.behavior-explainer p {
+  line-height: 1.8;
+  color: var(--admin-muted);
+  font-size: 13px;
+}
+.svc-admin-table {
+  min-width: 820px;
+  table-layout: fixed;
+}
+.svc-admin-table td {
+  overflow-wrap: anywhere;
+}
+.svc-admin-table td:last-child {
+  min-width: 0;
+}
+.svc-admin-table th:nth-child(2) {
+  width: 36%;
+}
+.svc-admin-table button {
+  white-space: nowrap;
+}
+.svc-admin-preview {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+}
+.svc-admin-identifiers {
+  font-size: 11px;
+  color: var(--admin-muted);
+  margin-top: 10px;
+}
+.svc-admin-identifiers summary {
+  cursor: pointer;
+}
+.svc-admin-identifiers p {
+  overflow-wrap: anywhere;
+}
+.svc-conversation-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+.svc-conversation-heading h2 {
+  margin: 0 0 10px;
+}
+.svc-conversation-heading small {
+  font-size: 11px;
+  overflow-wrap: anywhere;
+  color: var(--admin-muted);
+}
+.svc-conversation-heading p {
+  font-size: 13px;
+  color: var(--admin-muted);
+}
+.svc-conversation-heading > button {
+  align-self: flex-start;
+  white-space: nowrap;
+}
+.svc-conversation-messages {
+  list-style: none;
+  padding: 16px;
+  background: var(--admin-surface-subtle, #f7f8fa);
+  border-radius: 12px;
+  max-height: 520px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.svc-conversation-messages li {
+  max-width: 85%;
+  background: #fff;
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  padding: 14px 18px;
+  align-self: flex-start;
+  min-width: 160px;
+}
+.svc-conversation-messages .is-staff {
+  align-self: flex-end;
+  background: var(--admin-accent-soft, #fff2f0);
+}
+.svc-conversation-messages li > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  font-size: 11px;
+}
+.svc-conversation-messages time {
+  color: var(--admin-muted);
+  font-size: 10px;
+}
+.svc-conversation-messages p {
+  font-size: 13px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 8px 0 0;
+}
+.svc-close-confirm {
+  padding: 16px;
+  margin-top: 16px;
+  background: var(--admin-surface-subtle);
+}
+.svc-conversation-closed {
+  font-size: 13px;
+  color: var(--admin-muted);
+  padding: 16px;
+}
+.svc-conversation textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+.channel-profile-list {
+  display: grid;
+  gap: 14px;
+}
+.channel-profile {
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  padding: 20px;
+}
+.channel-profile-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.channel-profile-heading h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+.channel-profile-heading p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--admin-muted);
+  line-height: 1.7;
+}
+.channel-profile-heading button {
+  white-space: nowrap;
+}
+.channel-profile form {
+  margin-top: 22px;
+}
+.channel-profile textarea {
+  min-height: 110px;
+  font-family: inherit;
+  white-space: pre-wrap;
+}
+.channel-profile .field small {
+  font-size: 11px;
+  color: var(--admin-muted);
+  line-height: 1.7;
+}
+.channel-secret-clear {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0;
+  font-size: 11px;
+  color: var(--admin-muted);
+}
+.channel-secret-clear input {
+  width: auto !important;
+}
+.channel-form-note {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--admin-muted);
+  margin-bottom: 20px;
+}
+@media (max-width: 600px) {
+  .admin-readable-fields {
+    grid-template-columns: 1fr;
+  }
+  .svc-conversation-heading {
+    flex-direction: column;
+  }
+  .svc-conversation-messages {
+    padding: 10px;
+  }
+  .svc-conversation-messages li {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .svc-conversation-messages li > div {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .channel-profile {
+    padding: 16px;
+  }
+  .channel-profile-heading {
+    align-items: flex-start;
+  }
+  .svc-conversation-heading > button {
+    align-self: flex-end;
+  }
+}
+
+.svc-conversation-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 104;
+  background: #1622354d;
+  border: 0;
+  border-radius: 0;
+  cursor: default;
+  width: 100%;
+  height: 100%;
+}
+.svc-conversation {
+  position: fixed;
+  z-index: 105;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(740px, 100vw);
+  box-sizing: border-box;
+  border-radius: 0;
+  margin: 0;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: auto;
+  box-shadow: -12px 0 40px #14213326;
+}
+.svc-conversation-heading {
+  flex: none;
+}
+.svc-conversation-heading h2 {
+  font-size: 19px;
+}
+.svc-conversation-messages {
+  flex: 1;
+  min-height: 120px;
+  max-height: none;
+  margin: 0;
+}
+.svc-conversation > .admin-pagination {
+  flex: none;
+  padding: 8px 0;
+  margin: 0;
+  gap: 8px;
+}
+.svc-conversation form {
+  flex: none;
+}
+.svc-conversation .admin-form-footer {
+  padding: 12px 0 0;
+  margin: 0;
+}
+.svc-conversation textarea {
+  min-height: 86px;
+}
+@media (max-width: 600px) {
+  .svc-conversation {
+    padding: 18px;
+    gap: 12px;
+  }
+  .svc-conversation-heading {
+    gap: 10px;
+  }
+  .svc-conversation-heading h2 {
+    font-size: 17px;
+  }
+  .svc-conversation-heading > button {
+    position: absolute;
+    right: 14px;
+    top: 12px;
+  }
+  .svc-conversation-heading > div {
+    padding-top: 32px;
+  }
+  .svc-conversation-messages {
+    min-height: 130px;
+  }
+  .svc-conversation .admin-pagination {
+    font-size: 10px;
+  }
+  .svc-conversation .admin-pagination button {
+    padding: 8px;
+  }
+}
+
+.admin-body .svc-conversation .field textarea {
+  height: 90px;
+  min-height: 90px;
+  max-height: 150px;
+  resize: vertical;
+}

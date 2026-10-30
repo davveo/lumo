@@ -16,17 +16,21 @@ type Tx struct {
 }
 
 func New(db *gorm.DB) *Repository { return &Repository{db} }
-func (r *Repository) Migrate(ctx context.Context) error {
+func (r *Repository) Migrate(ctx context.Context) (spanErr0 error) {
 	if e := platform.MigrateBusinessIDs(ctx, r.db); e != nil {
 		return e
 	}
 	ctx, s := platform.Start(ctx, "order.repository.Migrate")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).AutoMigrate(&domain.Order{}, &domain.RefundReceipt{})
 }
-func (r *Repository) Transaction(ctx context.Context, fn func(*Tx) error) error {
+func (r *Repository) Transaction(ctx context.Context, fn func(*Tx) error) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "order.repository.Transaction")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Transaction(func(db *gorm.DB) error { return fn(&Tx{db, ctx}) })
 }
 func (t *Tx) Get(id string) (domain.Order, error) {
@@ -45,16 +49,20 @@ func (t *Tx) Receipt(id string) (domain.RefundReceipt, error) {
 func (t *Tx) AddReceipt(r domain.RefundReceipt) error {
 	return t.db.WithContext(t.ctx).Create(&r).Error
 }
-func (r *Repository) Get(ctx context.Context, id string) (domain.Order, error) {
+func (r *Repository) Get(ctx context.Context, id string) (spanResult0 domain.Order, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "order.repository.Get")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var o domain.Order
 	err := r.db.WithContext(ctx).First(&o, "id = ?", id).Error
 	return o, err
 }
-func (r *Repository) List(ctx context.Context, user string, all bool) ([]domain.Order, error) {
+func (r *Repository) List(ctx context.Context, user string, all bool) (spanResult0 []domain.Order, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "order.repository.List")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var rows []domain.Order
 	q := r.db.WithContext(ctx)
 	if !all {
@@ -63,9 +71,11 @@ func (r *Repository) List(ctx context.Context, user string, all bool) ([]domain.
 	err := q.Order("created_at desc").Limit(100).Find(&rows).Error
 	return rows, err
 }
-func (r *Repository) Expired(ctx context.Context) ([]domain.Order, error) {
+func (r *Repository) Expired(ctx context.Context) (spanResult0 []domain.Order, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "order.repository.Expired")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var rows []domain.Order
 	err := r.db.WithContext(ctx).
 		Where(

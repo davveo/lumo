@@ -13,17 +13,21 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (s *Service) PolicyGet(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) PolicyGet(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "engagement.usecase.PolicyGet")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	// Only public feature switches are returned. Administrative write metadata
 	// and per-user subscription records are never part of this endpoint.
 	p, v, e := s.repo.AlertPolicy(ctx)
 	return platform.Result{"config": p, "version": v}, e
 }
-func (s *Service) PolicyUpsert(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) PolicyUpsert(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "engagement.usecase.PolicyUpsert")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
@@ -89,17 +93,21 @@ func (s *Service) Subscribe(ctx context.Context, c platform.Request) (result pla
 	}
 	return platform.Map(row), nil
 }
-func (s *Service) Subscriptions(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) Subscriptions(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "engagement.usecase.Subscriptions")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireUser(c); e != nil {
 		return nil, e
 	}
 	return s.subscriptionList(ctx, c, c.UserID)
 }
-func (s *Service) AdminList(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) AdminList(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "engagement.usecase.AdminList")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
@@ -123,9 +131,11 @@ func (s *Service) subscriptionList(ctx context.Context, c platform.Request, owne
 	rows, total, e := s.repo.Subscriptions(ctx, owner, sku, kind, state, limit, offset)
 	return platform.Result{"items": rows, "total": total, "limit": limit, "offset": offset}, e
 }
-func (s *Service) Unsubscribe(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) Unsubscribe(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "engagement.usecase.Unsubscribe")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireUser(c); e != nil {
 		return nil, e
 	}
@@ -135,9 +145,11 @@ func (s *Service) Unsubscribe(ctx context.Context, c platform.Request) (platform
 	}
 	return platform.Map(row), nil
 }
-func (s *Service) AdminCancel(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) AdminCancel(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "engagement.usecase.AdminCancel")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
@@ -153,9 +165,11 @@ func (s *Service) AdminCancel(ctx context.Context, c platform.Request) (platform
 
 // Tick checks at most 100 due rows with two bounded domain batch reads. Each
 // successful check is persisted with its event in one owner transaction.
-func (s *Service) Tick(ctx context.Context) error {
+func (s *Service) Tick(ctx context.Context) (spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "engagement.usecase.TickSubscriptions")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	now := time.Now().UTC()
 	rows, e := s.repo.DueSubscriptions(ctx, now)
 	if e != nil || len(rows) == 0 {

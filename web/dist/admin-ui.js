@@ -19,7 +19,7 @@
     `<div class="admin-empty"><strong>${esc(title)}</strong><span>${esc(note)}</span></div>`;
   const pair = (name, value) => `<div><dt>${esc(name)}</dt><dd>${esc(value ?? '—')}</dd></div>`;
   const heading = (name, note, actions = '') =>
-    `<div class="admin-title"><div><h1>${esc(name)}</h1><p>${esc(note)}</p></div><div class="admin-title-actions">${actions}</div></div>`;
+    `<div class="admin-title"><div><h1>${esc(name)}</h1></div><div class="admin-title-actions">${actions}</div></div>`;
   const pager = (total, page, size, prefix, busy = false) =>
     `<div class="admin-pagination"><span>共 ${Number(total).toLocaleString('zh-CN')} 条 · 每页 ${size} 条</span><div><button class="outline" data-${prefix}-page="${page - 1}" ${busy || page <= 1 ? 'disabled' : ''}>上一页</button><span>第 ${page} / ${Math.max(1, Math.ceil(total / size))} 页</span><button class="outline" data-${prefix}-page="${page + 1}" ${busy || page * size >= total ? 'disabled' : ''}>下一页</button></div></div>`;
   function controller(id, initial, fetch, view) {

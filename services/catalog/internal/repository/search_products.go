@@ -20,11 +20,13 @@ type ProductSearch struct {
 // so older matching products are not lost behind the default catalog listing.
 // It reads one service-owned table, without COUNT, cross-service stock joins or
 // offset walks. Query values remain parameters and LIKE metacharacters literal.
-func (r *Repository) SearchProducts(ctx context.Context, input ProductSearch) ([]domain.Record, error) {
+func (r *Repository) SearchProducts(ctx context.Context, input ProductSearch) (spanResult0 []domain.Record, spanErr0 error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	ctx, span := platform.Start(ctx, "catalog.repository.SearchProducts")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if r.searchDocumentIndexed {
 		rows, err := r.searchProjectedProducts(ctx, input)
 		if ctx.Err() != nil {

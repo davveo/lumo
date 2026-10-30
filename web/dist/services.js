@@ -322,7 +322,7 @@
     });
   }
   function heading(title, subtitle, action = '') {
-    return `<div class="mem-pagehead svc-heading"><div><span class="mem-kicker">LUMO MEMBER SERVICES</span><h1>${esc(title)}</h1><p>${esc(subtitle)}</p></div>${action}</div>`;
+    return `<div class="mem-pagehead svc-heading"><div><h1>${esc(title)}</h1></div>${action}</div>`;
   }
   const button = (label, action, id = '', primary = false, extra = '') =>
     `<button class="${primary ? 'mem-primary' : 'mem-outline'}" data-service-action="${esc(action)}" ${id ? `data-id="${esc(id)}"` : ''} ${extra}>${esc(label)}</button>`;
@@ -509,11 +509,27 @@
         const row = mapInvoice(record);
         modal(
           '电子发票详情',
-          `<div class="svc-invoice-preview"><span class="svc-invoice-preview-label">${esc(row.provider)} · 票据记录</span><h3>电子普通发票</h3><dl><dt>状态</dt><dd>${esc(row.backendStatus)}</dd><dt>关联订单</dt><dd>${esc(row.orderId)}</dd><dt>抬头</dt><dd>${esc(row.title)}</dd><dt>原票金额</dt><dd>¥${money(row.amount)}</dd><dt>已退款金额</dt><dd>¥${money(row.refundedAmount)}</dd><dt>发票号码</dt><dd>${esc(row.number || '尚未开具')}</dd><dt>申请时间</dt><dd>${date(row.createdAt)}</dd></dl>${(reversal.items || []).length ? `<h4>红冲 / 调整记录</h4>${reversal.items.map((r) => `<p>原票 ${esc(r.original_number)} · ¥${money(Number(r.amount_cents || 0) / 100)} · ${esc(r.status)}</p>`).join('')}` : ''}<p>退款后保留原票并记录调整。DEMO 渠道记录不具备税务或报销效力。</p></div><div class="svc-modal-actions">${button('导出票据记录', 'download-invoice', row.id)}</div>`,
+          `<div class="svc-invoice-preview"><span class="svc-invoice-preview-label">${esc(row.provider)} · 票据记录</span><h3>电子普通发票</h3><dl><dt>状态</dt><dd>${esc(invoiceStatusText(row.backendStatus))}</dd><dt>关联订单</dt><dd>${esc(row.orderId)}</dd><dt>抬头</dt><dd>${esc(row.title)}</dd><dt>原票金额</dt><dd>¥${money(row.amount)}</dd><dt>已退款金额</dt><dd>¥${money(row.refundedAmount)}</dd><dt>发票号码</dt><dd>${esc(row.number || '尚未开具')}</dd><dt>申请时间</dt><dd>${date(row.createdAt)}</dd></dl>${(reversal.items || []).length ? `<h4>红冲 / 调整记录</h4>${reversal.items.map((r) => `<p>原票 ${esc(r.original_number)} · ¥${money(Number(r.amount_cents || 0) / 100)} · ${esc(invoiceStatusText(r.status))}</p>`).join('')}` : ''}<p>退款后保留原票并记录调整。DEMO 渠道记录不具备税务或报销效力。</p></div><div class="svc-modal-actions">${button('导出票据记录', 'download-invoice', row.id)}</div>`,
         );
       },
       'view-invoice',
       id,
+    );
+  }
+  function invoiceStatusText(value) {
+    return (
+      {
+        [C.InvoiceStatus.Requested]: '待开票',
+        [C.InvoiceStatus.Issued]: '已开票',
+        [C.InvoiceStatus.ReversalPending]: '退款调整待处理',
+        [C.InvoiceStatus.Cancelled]: '已取消',
+        [C.InvoiceStatus.AdjustedRequest]: '申请金额已调整',
+        [C.InvoiceStatus.Adjusted]: '已调整',
+        [C.InvoiceStatus.Void]: '已作废',
+        [C.InvoiceReversalStatus.CancelledUnissued]: '未开票申请已调整',
+        [C.InvoiceReversalStatus.PendingExternalAdjustment]: '待开票渠道调整',
+        [C.InvoiceReversalStatus.DemoAdjusted]: '演示调整已完成',
+      }[value] || '处理中'
     );
   }
   async function downloadInvoice(id) {
@@ -521,17 +537,24 @@
       call(C.Service.Invoice, C.Action.Get, { id }),
       call(C.Service.Invoice, C.Action.Reversals, { id }),
     ]);
-    const url = URL.createObjectURL(
-      new Blob([JSON.stringify({ invoice: row, reversals: reversal.items || [] }, null, 2)], {
-        type: 'application/json',
-      }),
-    );
+    const fields = [
+      ['订单编号', row.order_id],
+      ['申请编号', row.id],
+      ['抬头', row.title],
+      ['状态', invoiceStatusText(row.status)],
+      ['发票号码', row.number || '尚未开具'],
+      ['原票金额', '¥' + money(Number(row.amount_cents || 0) / 100)],
+      ['已退款金额', '¥' + money(Number(row.refunded_cents || 0) / 100)],
+      ['申请时间', fullDate(at(row.created_at))],
+    ];
+    const html = `<!doctype html><html lang="zh-CN"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LUMO 票据记录</title><style>body{font-family:system-ui,sans-serif;color:#202a36;max-width:900px;margin:40px auto;padding:24px;line-height:1.8}h1{font-size:26px}table{width:100%;border-collapse:collapse;margin:24px 0}th,td{padding:12px;text-align:left;border:1px solid #ddd;overflow-wrap:anywhere}th{background:#f6f7f9}p{color:#666;font-size:13px}@media print{body{margin:0}}</style><h1>LUMO 票据记录</h1><p>此为账户票据记录导出，演示记录不具备税务或报销效力。</p><table><tbody>${fields.map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v || '—')}</td></tr>`).join('')}</tbody></table><h2>红冲 / 调整记录</h2>${(reversal.items || []).length ? `<table><thead><tr><th>调整编号</th><th>原发票</th><th>金额</th><th>状态</th></tr></thead><tbody>${reversal.items.map((r) => `<tr><td>${esc(r.id)}</td><td>${esc(r.original_number || '未开票')}</td><td>¥${money(Number(r.amount_cents || 0) / 100)}</td><td>${esc(invoiceStatusText(r.status))}</td></tr>`).join('')}</tbody></table>` : '<p>暂无调整记录</p>'}<p>可使用浏览器打印功能保存此记录。</p></html>`;
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'LUMO-invoice-record-' + row.order_id + '.json';
+    link.download = 'LUMO-invoice-record-' + row.order_id + '.html';
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    toast('票据记录已导出');
+    toast('可阅读的票据记录已导出');
   }
   function checkoutFields() {
     const draft = data().checkout;

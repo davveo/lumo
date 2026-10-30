@@ -18,7 +18,6 @@ import (
 	mallv1 "github.com/davveo/lumo/api/mall/v1"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel/attribute"
-	otelcodes "go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -109,9 +108,6 @@ func (c *rpcCaller) Call(ctx context.Context, service string, command Command) (
 	TraceRequest(ctx, command)
 	defer func() {
 		TraceResponse(ctx, out, err)
-		if err != nil {
-			span.SetStatus(otelcodes.Error, status.Code(err).String())
-		}
 	}()
 	if c.token == "" {
 		return nil, status.Error(codes.Unauthenticated, "internal RPC credential is not configured")
@@ -122,6 +118,7 @@ func (c *rpcCaller) Call(ctx context.Context, service string, command Command) (
 	}
 	payload, err := json.Marshal(command.Data)
 	if err != nil {
+		TraceError(ctx, err)
 		return nil, status.Error(codes.InvalidArgument, "invalid command payload")
 	}
 	// Child RPCs inherit an earlier parent deadline, bounding fan-out chains.
@@ -138,16 +135,13 @@ func (c *rpcCaller) Call(ctx context.Context, service string, command Command) (
 		} else {
 			response, err = client.Retry(ctx, request)
 		}
-		return decodeServiceResponse(response, err)
+		return decodeServiceResponse(ctx, response, err)
 	}
 	if service == constants.ServiceOrder {
 		out, handled, typedErr := callTypedOrder(ctx, conn, command)
 		// A rolling upgrade may reach an order instance that only has Execute.
 		// Business errors never retry through a different transport method.
 		if handled && !missingOrderRPC(typedErr) {
-			if typedErr != nil {
-				span.SetStatus(otelcodes.Error, status.Code(typedErr).String())
-			}
 			return out, typedErr
 		}
 	}
@@ -167,12 +161,12 @@ func (c *rpcCaller) Call(ctx context.Context, service string, command Command) (
 			},
 		)
 	if err != nil {
-		span.SetStatus(otelcodes.Error, status.Code(err).String())
 		return nil, err
 	}
 	decoder := json.NewDecoder(bytes.NewReader(result.GetPayloadJson()))
 	decoder.UseNumber()
 	if err = decoder.Decode(&out); err != nil {
+		TraceError(ctx, err)
 		return nil, status.Error(codes.Internal, "invalid RPC response")
 	}
 	return out, nil
@@ -231,6 +225,7 @@ func (s *domainServer) Execute(ctx context.Context, in *mallv1.Command) (out *ma
 		decoder := json.NewDecoder(bytes.NewReader(in.GetPayloadJson()))
 		decoder.UseNumber()
 		if err := decoder.Decode(&data); err != nil {
+			TraceError(ctx, err)
 			return nil, status.Error(codes.InvalidArgument, "invalid JSON payload")
 		}
 	}
@@ -245,9 +240,9 @@ func (s *domainServer) Execute(ctx context.Context, in *mallv1.Command) (out *ma
 	started := time.Now()
 	result, err := s.module.Handle(ctx, command)
 	if err != nil {
+		TraceError(ctx, err)
 		err = rpcError(err)
 		code := status.Code(err)
-		span.SetStatus(otelcodes.Error, code.String())
 		Log(
 			ctx,
 			slog.LevelWarn,
@@ -263,6 +258,7 @@ func (s *domainServer) Execute(ctx context.Context, in *mallv1.Command) (out *ma
 	}
 	b, err := json.Marshal(result)
 	if err != nil {
+		TraceError(ctx, err)
 		return nil, status.Error(codes.Internal, "response serialization failed")
 	}
 	Log(
@@ -349,12 +345,14 @@ func NewRPCServer(token string, module Module) (*grpc.Server, error) {
 			TraceRequest(ctx, req)
 			started := time.Now()
 			result, err := handler(ctx, req)
+			if err != nil {
+				TraceError(ctx, err)
+			}
 			err = rpcError(err)
 			TraceResponse(ctx, result, err)
 			level, message := slog.LevelInfo, "rpc operation completed"
 			if err != nil {
 				level, message = slog.LevelWarn, "rpc operation failed"
-				span.SetStatus(otelcodes.Error, status.Code(err).String())
 			}
 			Log(
 				ctx,
@@ -423,6 +421,9 @@ type rpcPayloadStatsHandler struct {
 }
 
 func (h *rpcPayloadStatsHandler) TagRPC(ctx context.Context, info *stats.RPCTagInfo) context.Context {
+	if !h.client {
+		ctx = NewTraceErrorContext(ctx)
+	}
 	ctx = h.Handler.TagRPC(ctx, info)
 	if h.client {
 		if request, ok := ctx.Value(rpcTraceRequestKey{}).(rpcTraceRequest); ok {
@@ -457,7 +458,8 @@ func (h *rpcPayloadStatsHandler) HandleRPC(ctx context.Context, event stats.RPCS
 				code = codes.DeadlineExceeded
 			}
 			safe := *message
-			safe.Error = status.Error(code, code.String())
+			message, _, _ := safeTraceErrorText(ctx, errorText(message.Error))
+			safe.Error = status.Error(code, message)
 			event = &safe
 		}
 	}

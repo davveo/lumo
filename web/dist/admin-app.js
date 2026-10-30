@@ -210,6 +210,8 @@
     }
   }
   const editors = {
+    analytics: window.LumoServiceAdmin?.create('analytics'),
+    tickets: window.LumoServiceAdmin?.create('tickets'),
     productAlerts: window.LumoAlertsAdmin,
     paymentSettings: window.LumoAccessAdmin?.create('paymentSettings'),
     loginSettings: window.LumoAccessAdmin?.create('loginSettings'),
@@ -287,7 +289,7 @@
           )
           .join('') +
         `<div class="admin-nav-bottom"><a class="admin-nav-btn" href="index.html#/editor">${icon('content')}<span>商品与页面编辑 ↗</span></a><a class="admin-nav-btn" href="index.html">${icon('arrow')}<span>返回商城</span></a></div>`
-      : '<div class="admin-nav-intro">让日常经营<br>更清晰、更有序。<small>商品 · 交易 · 运营 · 服务</small></div>';
+      : '';
   }
   function login() {
     snapshots.clear();
@@ -302,7 +304,7 @@
       `<div class="admin-login"><div class="admin-login-mark">L</div><span class="admin-eyebrow">LUMO 商城管理</span><h1>登录商城管理</h1><p class="admin-note">使用管理员账号处理支付、履约和售后。管理会话与商城顾客会话分别保存。</p><form id="admin-login"><label class="field">账号<input name="username" autocomplete="username" required></label><label class="field">密码<input type="password" name="password" autocomplete="current-password" required></label><button class="primary" type="submit">登录</button></form><div id="admin-error"></div></div>`;
   }
   function title(text, extra = '') {
-    return `<div class="admin-title"><div><h1>${esc(text)}</h1><p>${esc(descriptions[tab] || '')}</p></div><div class="admin-title-actions">${extra}<button class="outline" data-action="reload">${icon('refresh')}刷新</button></div></div>`;
+    return `<div class="admin-title"><div><h1>${esc(text)}</h1></div><div class="admin-title-actions">${extra}<button class="outline" data-action="reload">${icon('refresh')}刷新</button></div></div>`;
   }
   const button = (action, id, label) => `<button data-operation="${action}" data-id="${esc(id)}">${label}</button>`;
   function copyPreview(value) {
@@ -436,7 +438,7 @@
       );
     return (
       summary +
-      `<div class="admin-table-wrap" tabindex="0" role="region" aria-label="可滚动数据列表"><table class="admin-table"><thead><tr><th scope="col">业务对象</th><th scope="col">内容 / 金额</th><th scope="col">状态</th><th scope="col">操作</th></tr></thead><tbody>${visible.map((row) => `<tr><td><strong>${esc(row.title || row.name || row.kind || row.type || '业务记录')}</strong><small>${esc(row.id)}</small><small>${row.order_id ? '订单 ' + esc(row.order_id) : esc(row.user_id || '')}</small></td><td>${row.amount_cents != null ? `<strong class="admin-amount">${currency(row.amount_cents)}</strong>` : ''}${copyPreview(row.body || row.reason || row.tracking_id || row.number)}${row.details ? `<details class="admin-record-details"><summary>查看明细</summary><pre>${esc(JSON.stringify(row.details, null, 2))}</pre></details>` : ''}${row.answer ? `<div class="admin-answer">回复：${copyPreview(row.answer)}</div>` : ''}</td><td>${stateBadge(row.status)}</td><td><div class="admin-actions">${rowActions(row) || '<span class="admin-muted">—</span>'}</div></td></tr>`).join('')}</tbody></table></div><div class="admin-pagination"><span>第 ${(state.page - 1) * pageSize + 1}–${Math.min(state.page * pageSize, filtered.length)} 条，共 ${filtered.length} 条</span><div><button class="outline" data-list-page="${state.page - 1}" ${state.page === 1 ? 'disabled' : ''}>上一页</button><span>${state.page} / ${pages}</span><button class="outline" data-list-page="${state.page + 1}" ${state.page === pages ? 'disabled' : ''}>下一页</button></div></div>`
+      `<div class="admin-table-wrap" tabindex="0" role="region" aria-label="可滚动数据列表"><table class="admin-table"><thead><tr><th scope="col">业务对象</th><th scope="col">内容 / 金额</th><th scope="col">状态</th><th scope="col">操作</th></tr></thead><tbody>${visible.map((row) => `<tr><td><strong>${esc(row.title || row.name || row.kind || row.type || '业务记录')}</strong><small>${esc(row.id)}</small><small>${row.order_id ? '订单 ' + esc(row.order_id) : esc(row.user_id || '')}</small></td><td>${row.amount_cents != null ? `<strong class="admin-amount">${currency(row.amount_cents)}</strong>` : ''}${copyPreview(row.body || row.reason || row.tracking_id || row.number)}${row.details ? `<details class="admin-record-details"><summary>查看明细</summary>${window.LumoAdminDetails?.render(row.details) || '明细暂不可用'}</details>` : ''}${row.answer ? `<div class="admin-answer">回复：${copyPreview(row.answer)}</div>` : ''}</td><td>${stateBadge(row.status)}</td><td><div class="admin-actions">${rowActions(row) || '<span class="admin-muted">—</span>'}</div></td></tr>`).join('')}</tbody></table></div><div class="admin-pagination"><span>第 ${(state.page - 1) * pageSize + 1}–${Math.min(state.page * pageSize, filtered.length)} 条，共 ${filtered.length} 条</span><div><button class="outline" data-list-page="${state.page - 1}" ${state.page === 1 ? 'disabled' : ''}>上一页</button><span>${state.page} / ${pages}</span><button class="outline" data-list-page="${state.page + 1}" ${state.page === pages ? 'disabled' : ''}>下一页</button></div></div>`
     );
   }
   function listPage(name) {
@@ -490,7 +492,7 @@
         )
         .join(
           '',
-        )}</div><div class="admin-dashboard-grid"><section class="admin-section"><div class="admin-panel-heading"><h2>常用管理</h2><span>日常工作，一步直达</span></div><div class="admin-shortcuts">${[
+        )}</div><div class="admin-dashboard-grid"><section class="admin-section"><div class="admin-panel-heading"><h2>常用管理</h2></div><div class="admin-shortcuts">${[
         ['coupons', '优惠券管理', '创建优惠券与领取条件'],
         ['activities', '活动管理', '配置满减、折扣与额度'],
         ['products', '商品管理', '维护商品信息与上下架'],
@@ -516,7 +518,7 @@
         )
         .join(
           '',
-        )}</ol></section></div><section class="admin-section admin-recent"><div class="admin-panel-heading"><h2>近期订单</h2><span>服务端实时记录 · 仅展示最近 5 条</span></div>${
+        )}</ol></section></div><section class="admin-section admin-recent"><div class="admin-panel-heading"><h2>近期订单</h2><span>最近 5 条</span></div>${
         orders.length
           ? `<div class="admin-table-wrap" tabindex="0" role="region" aria-label="可滚动数据列表"><table class="admin-table"><thead><tr><th>订单编号</th><th>用户</th><th>应付金额</th><th>状态</th></tr></thead><tbody>${orders
               .slice(0, 5)
@@ -616,7 +618,7 @@
   function showResult(result) {
     const target = $('#operation-result') || $('#admin-result');
     if (target)
-      target.innerHTML = `<section class="admin-section"><h2>处理结果</h2><pre>${esc(JSON.stringify(result, null, 2))}</pre><div class="admin-trace">链路编号：${esc(lastTrace)}</div></section>`;
+      target.innerHTML = `<section class="admin-section">${window.LumoAdminDetails?.render(result, { title: '处理结果' }) || '操作已完成'}<div class="admin-trace">链路编号：${esc(lastTrace)}</div></section>`;
   }
   document.addEventListener('click', async (event) => {
     const target = event.target.closest('[data-tab],[data-action],[data-operation],[data-list-page]');

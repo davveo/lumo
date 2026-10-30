@@ -10,7 +10,6 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
@@ -122,8 +121,7 @@ func (p *SQLTracing) after(tx *gorm.DB) {
 		attribute.Int64("db.response.returned_rows", tx.RowsAffected),
 	)
 	if tx.Error != nil && !errors.Is(tx.Error, gorm.ErrRecordNotFound) {
-		q.span.SetStatus(codes.Error, "database operation failed")
-		q.span.SetAttributes(attribute.String("error.type", fmt.Sprintf("%T", tx.Error)))
+		TraceError(trace.ContextWithSpan(q.parent, q.span), tx.Error)
 	}
 	q.span.End()
 	tx.Statement.Context = q.parent

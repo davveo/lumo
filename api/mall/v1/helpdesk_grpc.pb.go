@@ -21,18 +21,20 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	HelpdeskService_Close_FullMethodName  = "/mall.v1.HelpdeskService/Close"
-	HelpdeskService_Create_FullMethodName = "/mall.v1.HelpdeskService/Create"
-	HelpdeskService_Faq_FullMethodName    = "/mall.v1.HelpdeskService/Faq"
-	HelpdeskService_Get_FullMethodName    = "/mall.v1.HelpdeskService/Get"
-	HelpdeskService_List_FullMethodName   = "/mall.v1.HelpdeskService/List"
-	HelpdeskService_Reply_FullMethodName  = "/mall.v1.HelpdeskService/Reply"
+	HelpdeskService_AdminList_FullMethodName = "/mall.v1.HelpdeskService/AdminList"
+	HelpdeskService_Close_FullMethodName     = "/mall.v1.HelpdeskService/Close"
+	HelpdeskService_Create_FullMethodName    = "/mall.v1.HelpdeskService/Create"
+	HelpdeskService_Faq_FullMethodName       = "/mall.v1.HelpdeskService/Faq"
+	HelpdeskService_Get_FullMethodName       = "/mall.v1.HelpdeskService/Get"
+	HelpdeskService_List_FullMethodName      = "/mall.v1.HelpdeskService/List"
+	HelpdeskService_Reply_FullMethodName     = "/mall.v1.HelpdeskService/Reply"
 )
 
 // HelpdeskServiceClient is the client API for HelpdeskService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type HelpdeskServiceClient interface {
+	AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Close(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Create(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Faq(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
@@ -47,6 +49,15 @@ type helpdeskServiceClient struct {
 
 func NewHelpdeskServiceClient(cc grpc.ClientConnInterface) HelpdeskServiceClient {
 	return &helpdeskServiceClient{cc}
+}
+
+func (c *helpdeskServiceClient) AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, HelpdeskService_AdminList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *helpdeskServiceClient) Close(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
@@ -107,6 +118,7 @@ func (c *helpdeskServiceClient) Reply(ctx context.Context, in *ServiceRequest, o
 // All implementations must embed UnimplementedHelpdeskServiceServer
 // for forward compatibility
 type HelpdeskServiceServer interface {
+	AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Close(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Create(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Faq(context.Context, *ServiceRequest) (*ServiceResponse, error)
@@ -120,6 +132,9 @@ type HelpdeskServiceServer interface {
 type UnimplementedHelpdeskServiceServer struct {
 }
 
+func (UnimplementedHelpdeskServiceServer) AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminList not implemented")
+}
 func (UnimplementedHelpdeskServiceServer) Close(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Close not implemented")
 }
@@ -149,6 +164,24 @@ type UnsafeHelpdeskServiceServer interface {
 
 func RegisterHelpdeskServiceServer(s grpc.ServiceRegistrar, srv HelpdeskServiceServer) {
 	s.RegisterService(&HelpdeskService_ServiceDesc, srv)
+}
+
+func _HelpdeskService_AdminList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HelpdeskServiceServer).AdminList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HelpdeskService_AdminList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HelpdeskServiceServer).AdminList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _HelpdeskService_Close_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -266,6 +299,10 @@ var HelpdeskService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "mall.v1.HelpdeskService",
 	HandlerType: (*HelpdeskServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "AdminList",
+			Handler:    _HelpdeskService_AdminList_Handler,
+		},
 		{
 			MethodName: "Close",
 			Handler:    _HelpdeskService_Close_Handler,

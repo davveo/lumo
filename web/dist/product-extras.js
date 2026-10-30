@@ -282,7 +282,7 @@
       return `<section class="pex-related"><h2>相似好物</h2><div class="pex-empty" role="alert"><p>${esc(failure)}</p><button class="outline" data-product-extra-action="retry" data-product="${esc(product.id)}">重新加载</button></div></section>`;
     window.LumoRecommendations?.restoreItems?.(C.RecommendationScene.Similar, rows);
     return rows.length
-      ? `<section class="pex-related"><div class="section-head"><div><h2>相似好物</h2><p>结合当前商品特征，为你精选。</p></div><a class="text-button" href="#/">浏览全部${icon('chevron')}</a></div>${failure ? `<p role="alert">${esc(failure)}</p>` : ''}<div class="product-grid">${rows.map((row) => `<div class="home-recommendation-card">${productCard(row.product)}<div class="purchase-recommendation-reason">${icon('sparkles')}<span>${esc(row.reason)}</span></div></div>`).join('')}</div></section>`
+      ? `<section class="pex-related"><div class="section-head"><div><h2>相似好物</h2></div><a class="text-button" href="#/">浏览全部${icon('chevron')}</a></div>${failure ? `<p role="alert">${esc(failure)}</p>` : ''}<div class="product-grid">${rows.map((row) => productCard(row.product)).join('')}</div></section>`
       : '';
   }
   async function share(productId) {
@@ -315,7 +315,7 @@
       const key = 'product-view-' + (crypto.randomUUID?.() || Date.now().toString(36));
       window.LumoAPI.call(C.Service.Analytics, C.Action.Record, {
         idempotency_key: key,
-        data: { type: C.AnalyticsBehavior.View, sku_id: route[1] },
+        data: { type: C.AnalyticsBehavior.View, sku_id: route[1], page: location.hash, source: 'product_detail' },
       }).catch(() => {});
     }
     const current = cache.get(route[1]);

@@ -14,9 +14,11 @@ import (
 // variants; a restart must not add obsolete options back to an edited product.
 // Bounded transactions avoid one commit per seeded SKU without holding the
 // whole demonstration catalog in a single database transaction.
-func (r *Repository) InsertSeedProducts(ctx context.Context, products [][]domain.Record) error {
+func (r *Repository) InsertSeedProducts(ctx context.Context, products [][]domain.Record) (spanErr0 error) {
 	ctx, span := platform.Start(ctx, "catalog.repository.InsertSeedProducts")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	const batchSize = 100
 	for first := 0; first < len(products); first += batchSize {
 		last := min(first+batchSize, len(products))

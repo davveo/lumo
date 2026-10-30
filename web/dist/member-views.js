@@ -147,7 +147,7 @@
     return `<aside class="mem-sidebar"><a class="mem-sidebar-user" href="#/member/overview">${identity}</a><nav class="mem-side-nav" aria-label="个人中心导航">${groups.map(([label, links]) => `<div class="mem-nav-group"><span>${label}</span>${links.map(([id, symbol, title]) => `<a href="#/member/${id}" class="${tab === id ? 'active' : ''}" ${tab === id ? 'aria-current="page"' : ''}>${icon(symbol)}${title}${['coupons', 'favorites'].includes(id) && counts[id] ? `<small class="mem-count">${counts[id]}</small>` : ''}</a>`).join('')}</div>`).join('')}</nav><a class="mem-sidebar-shop" href="#/">${icon('arrow')}继续发现好物</a></aside>`;
   }
   function pageHead(title, description, action = '') {
-    return `<div class="mem-pagehead"><div><span class="mem-kicker">MY LUMO, MY EVERYDAY</span><h1>${esc(title)}</h1><p>${esc(description)}</p></div>${action}</div>`;
+    return `<div class="mem-pagehead"><div><h1>${esc(title)}</h1></div>${action}</div>`;
   }
   function miniProducts(ids, limit = 4) {
     return `<div class="mem-preview-grid">${ids
@@ -189,7 +189,7 @@
       [C.OrderViewStatus.Group, 'layers', '待成团'],
       ['aftersale', 'return', '退款 / 售后'],
     ];
-    return `<section class="mem-hero"><div class="mem-hero-profile"><span class="mem-avatar">${esc(initials(data.profile.nickname))}</span><div><span class="mem-kicker">WELCOME TO YOUR EVERYDAY</span><h1>${greeting}，${esc(data.profile.nickname)}</h1><p>把喜欢的日常，慢慢装进生活里。</p><button class="mem-hero-edit" data-member-action="edit-profile">编辑个人资料${icon('edit')}</button></div></div><div class="mem-hero-actions"><span class="mem-badge mem-gold-badge">${icon('sparkles')}${esc(data.profile.level || 'LUMO 生活会员')}</span><button class="mem-primary" data-member-action="signin" ${data.signedToday ? 'disabled' : ''}>${icon(data.signedToday ? 'check' : 'coin')}${data.signedToday ? '今日已签到' : '签到领 20 积分'}</button><small>最近签到 ${data.signInDays} 天</small></div></section>
+    return `<section class="mem-hero"><div class="mem-hero-profile"><span class="mem-avatar">${esc(initials(data.profile.nickname))}</span><div><span class="mem-kicker">WELCOME TO YOUR EVERYDAY</span><h1>${greeting}，${esc(data.profile.nickname)}</h1><button class="mem-hero-edit" data-member-action="edit-profile">编辑个人资料${icon('edit')}</button></div></div><div class="mem-hero-actions"><span class="mem-badge mem-gold-badge">${icon('sparkles')}${esc(data.profile.level || 'LUMO 生活会员')}</span><button class="mem-primary" data-member-action="signin" ${data.signedToday ? 'disabled' : ''}>${icon(data.signedToday ? 'check' : 'coin')}${data.signedToday ? '今日已签到' : '签到领 20 积分'}</button><small>最近签到 ${data.signInDays} 天</small></div></section>
       <section class="mem-panel mem-wallet" aria-label="我的资产">${[
         ['coupons', 'ticket', '可用优惠券', counts.coupons, '张好券，留给心动时刻'],
         ['points', 'coin', '可用积分', data.points, '100 积分可抵 ¥1'],
@@ -218,8 +218,8 @@
             `<button data-member-action="service-help" data-value="${value}">${icon(symbol)}<span>${label}</span></button>`,
         )
         .join('')}</div></section></div></div>
-      <section class="mem-panel"><div class="mem-section-head"><div><h2>心动收藏</h2><p>喜欢的好物，下次也能轻松找到。</p></div>${smallLink('#/member/favorites', '查看全部')}</div>${favorites.length ? miniProducts(favorites) : emptyState('把心动留在这里', '点击商品上的爱心，就能收藏喜欢的好物。', '#/', '去发现心动', 'heart', true)}</section>
-      <section class="mem-panel"><div class="mem-section-head"><div><h2>最近浏览</h2><p>好物不必错过，随时回来看看。</p></div>${smallLink('#/member/history', '全部足迹')}</div>${history.length ? miniProducts(history.map((row) => row.id)) : emptyState('日常灵感，从这里开始', '浏览过的商品会出现在这里。', '#/', '探索好物', 'clock', true)}</section>`;
+      <section class="mem-panel"><div class="mem-section-head"><div><h2>心动收藏</h2></div>${smallLink('#/member/favorites', '查看全部')}</div>${favorites.length ? miniProducts(favorites) : emptyState('把心动留在这里', '点击商品上的爱心，就能收藏喜欢的好物。', '#/', '去发现心动', 'heart', true)}</section>
+      <section class="mem-panel"><div class="mem-section-head"><div><h2>最近浏览</h2></div>${smallLink('#/member/history', '全部足迹')}</div>${history.length ? miniProducts(history.map((row) => row.id)) : emptyState('日常灵感，从这里开始', '浏览过的商品会出现在这里。', '#/', '探索好物', 'clock', true)}</section>`;
   }
   function orderActions(order, code) {
     const id = order.id,

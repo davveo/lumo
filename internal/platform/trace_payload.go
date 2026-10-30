@@ -40,11 +40,10 @@ const (
 // TraceRequest records a bounded, detached preview. It never modifies the
 // business value, serializes request headers, or invokes custom JSON marshalers.
 func TraceRequest(ctx context.Context, value any) {
-	tracePayload(trace.SpanFromContext(ctx), "lumo.request", value)
+	tracePayload(trace.SpanFromContext(ctx), "lumo.request", value, errorContext(ctx))
 }
 
-// TraceResponse uses status codes for errors. Error text can contain user input,
-// database values or credentials and must not bypass the payload redactor.
+// TraceResponse retains specific sanitized diagnostics at each code boundary.
 func TraceResponse(ctx context.Context, value any, err error) {
 	span := trace.SpanFromContext(ctx)
 	if !span.IsRecording() {
@@ -53,20 +52,28 @@ func TraceResponse(ctx context.Context, value any, err error) {
 	code := codes.OK
 	if err != nil {
 		code = traceErrorCode(err)
-		span.SetStatus(otelcodes.Error, code.String())
+		TraceError(ctx, err)
+		if message := recordedTraceError(ctx); message != "" {
+			span.SetAttributes(attribute.String("lumo.error.code", code.String()))
+			span.SetStatus(otelcodes.Error, code.String()+": "+message)
+		}
 		if value == nil {
-			// This response contains only a locally constructed gRPC enum. User
-			// payloads still redact every code field (OTP and OAuth credentials).
-			encoded, _ := json.Marshal(map[string]any{"error": map[string]any{"code": code.String()}})
-			span.SetAttributes(attribute.String("lumo.error.code", code.String()),
+			message := recordedTraceError(ctx)
+			if message == "" {
+				message, _, _ = safeTraceErrorText(ctx, errorText(err))
+			}
+			encoded, _ := json.Marshal(map[string]any{"error": map[string]any{"code": code.String(), "message": message}})
+			span.SetAttributes(
 				attribute.String("lumo.response", string(encoded)),
-				attribute.Bool("lumo.response.redacted", false),
-				attribute.Bool("lumo.response.truncated", false))
+				attribute.Bool("lumo.response.redacted", strings.Contains(message, traceRedacted)),
+				attribute.Bool("lumo.response.truncated", strings.HasSuffix(message, "…")))
 			return
 		}
 	}
-	span.SetAttributes(attribute.String("lumo.error.code", code.String()))
-	tracePayload(span, "lumo.response", value)
+	if recordedTraceError(ctx) == "" {
+		span.SetAttributes(attribute.String("lumo.error.code", code.String()))
+	}
+	tracePayload(span, "lumo.response", value, errorContext(ctx))
 }
 
 func traceErrorCode(err error) codes.Code {
@@ -83,11 +90,14 @@ func traceErrorCode(err error) codes.Code {
 	return code
 }
 
-func tracePayload(span trace.Span, key string, value any) {
+func tracePayload(span trace.Span, key string, value any, secrets ...*traceErrorContext) {
 	if !span.IsRecording() {
 		return
 	}
 	preview := &payloadPreview{}
+	if len(secrets) > 0 {
+		preview.errorContext = secrets[0]
+	}
 	clean := preview.value(reflect.ValueOf(value), "", 0)
 	preview.redactIdentityIDs(clean)
 	encoded, err := json.Marshal(clean)
@@ -124,6 +134,7 @@ type payloadPreview struct {
 	nodes               int
 	truncated, redacted bool
 	identities          map[string]struct{}
+	errorContext        *traceErrorContext
 }
 
 func identityTraceKey(key string) bool {
@@ -225,6 +236,7 @@ func sensitiveTraceKey(key string) bool {
 		"cookie",
 		"signature",
 		"privatekey",
+		"apiv3key", "signingkey", "encryptionkey",
 		"accesskey",
 		"apikey",
 		"sessionid",
@@ -387,6 +399,8 @@ func traceJSONKey(key string) bool {
 
 func (p *payloadPreview) value(value reflect.Value, key string, depth int) any {
 	if sensitiveTraceKey(key) {
+		remaining := 128
+		p.errorContext.reflectValue(value, 0, &remaining)
 		p.redacted = true
 		p.rememberReflectIdentity(key, value)
 		return traceRedacted
@@ -599,6 +613,13 @@ func (p *payloadPreview) readJSON(decoder *json.Decoder, key string, depth int) 
 						p.rememberIdentity(key, identity)
 					}
 				}
+				if p.errorContext != nil && len(discarded) <= 8192 {
+					var secret any
+					if json.Unmarshal(discarded, &secret) == nil {
+						remaining := 128
+						p.errorContext.reflectValue(reflect.ValueOf(secret), 0, &remaining)
+					}
+				}
 				continue
 			}
 			value, err := p.readJSON(decoder, key, depth+1)
@@ -644,6 +665,7 @@ func (p *payloadPreview) message(message protoreflect.Message, depth int) any {
 			p.redacted = true
 			if !field.IsList() && !field.IsMap() && field.Kind() == protoreflect.StringKind {
 				p.rememberIdentity(name, value.String())
+				p.errorContext.remember(value.String())
 			}
 			result[name] = traceRedacted
 		} else if field.IsList() {

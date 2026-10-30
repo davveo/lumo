@@ -12,3 +12,6 @@ coverage.out
 .local
 node_modules
 web
+
+# Local Go module cache; application source under pkg remains available.
+pkg/mod

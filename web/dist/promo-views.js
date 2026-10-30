@@ -239,7 +239,7 @@
     return `<section class="promo-exchange-box in-${esc(placement)}" aria-label="满额加价换购"><div class="promo-exchange-head"><div><span class="promo-kicker">A LITTLE EXTRA JOY</span><h2>满额换购 <span>好物再加一件</span></h2></div>${ruleLink(C.PromotionType.Exchange)}</div><div class="promo-exchange-status">${restricted ? '<strong>本单为秒杀或拼团订单，暂不参加换购</strong>' : stateView.eligible ? `<strong>${icon('check')}已满足 ¥${money(stateView.threshold)} 换购门槛</strong><span>每单任选 1 件，换购金额不计入门槛</span>` : `<strong>再购 ¥${money(stateView.remaining)}，即可低价换购</strong><span>已选普通商品 ¥${money(stateView.baseAmount)} / ¥${money(stateView.threshold)}</span>`}</div><div class="promo-exchange-progress" aria-hidden="true"><i style="width:${restricted ? 0 : progress}%"></i></div>${placement === 'page' ? pagedList(offers, (offer) => exchangeCard(offer, { ...stateView, hasRestricted: restricted }, true), 'promo-exchange-grid') : `<div class="promo-exchange-grid">${offers.map((offer) => exchangeCard(offer, { ...stateView, hasRestricted: restricted }, true)).join('')}</div>`}${stateView.selectedId ? '<p class="promo-exchange-selected">换购商品已加入本次结算，可在上方移除或更换。</p>' : '<p class="promo-exchange-hint">主商品优惠前金额满足门槛后可加价换购，券和积分以服务端报价为准。</p>'}</section>`;
   }
   function pageHeading() {
-    return `<div class="section-head storefront-section-head"><div><h1>活动福利</h1><p>秒杀、拼团、满减与多件好价，找到适合你的优惠。</p></div><a class="storefront-section-action" href="#/coupons">领券中心 ${icon('arrow')}</a></div>`;
+    return `<div class="section-head storefront-section-head"><div><h1>活动福利</h1></div><a class="storefront-section-action" href="#/coupons">领券中心 ${icon('arrow')}</a></div>`;
   }
   function page(tab = C.PromotionType.Flash, session = C.PromotionSession.Today) {
     const P = engine();
@@ -268,7 +268,7 @@
     let content = '';
     if (tab === C.PromotionType.Flash) {
       const offers = P.flashOffers(session);
-      content = `<div class="promo-section-head"><div><h2>限时秒杀</h2><p>喜欢的好物，遇见心动的价格。</p></div>${ruleLink(C.PromotionType.Flash)}</div><div class="promo-session-tabs"><a class="${session === C.PromotionSession.Today ? 'active' : ''}" href="#/promotions/flash">当前场 <span>服务端活动</span></a><a class="${session === C.PromotionSession.Tomorrow ? 'active' : ''}" href="#/promotions/flash/tomorrow">未来场 <span>等待发布</span></a>${offers[0] && (offers[0].endAt > 0 || offers[0].startAt > 0) ? `<span class="promo-countdown">${icon('clock')}${session === C.PromotionSession.Today ? '距离结束' : '距离开抢'} ${countdown(session === C.PromotionSession.Today ? offers[0].endAt : offers[0].startAt)}</span>` : ''}</div>${pagedList(offers, flashCard, 'promo-grid', '本场好物暂未上架，稍后再来看看。')}`;
+      content = `<div class="promo-section-head"><div><h2>限时秒杀</h2></div>${ruleLink(C.PromotionType.Flash)}</div><div class="promo-session-tabs"><a class="${session === C.PromotionSession.Today ? 'active' : ''}" href="#/promotions/flash">当前场 <span>服务端活动</span></a><a class="${session === C.PromotionSession.Tomorrow ? 'active' : ''}" href="#/promotions/flash/tomorrow">未来场 <span>等待发布</span></a>${offers[0] && (offers[0].endAt > 0 || offers[0].startAt > 0) ? `<span class="promo-countdown">${icon('clock')}${session === C.PromotionSession.Today ? '距离结束' : '距离开抢'} ${countdown(session === C.PromotionSession.Today ? offers[0].endAt : offers[0].startAt)}</span>` : ''}</div>${pagedList(offers, flashCard, 'promo-grid', '本场好物暂未上架，稍后再来看看。')}`;
     } else if (tab === C.PromotionType.Group) {
       const offers = P.groupOffers();
       content = `<div class="promo-section-head"><div><h2>好物一起买</h2><p>2 人成团 · 30 分钟内邀请一位伙伴，共享拼团价。</p></div>${ruleLink(C.PromotionType.Group)}</div>${invitedTeam ? `<section class="promo-checkout-note"><strong>好友邀请你参团</strong>${groupPanel(invitedTeam)}${!invitedTeam.mine && invitedTeam.status === C.GroupViewStatus.Waiting ? `<button class="primary" data-promo-action="join-group" data-offer="${esc(invitedTeam.offerId)}" data-team="${esc(invitedTeam.id)}">加入这个拼团</button>` : ''}</section>` : ''}${pagedList(offers, groupCard, 'promo-grid', '当前暂无拼团商品。')}<div class="promo-checkout-note">${icon('info')}开团与参团后需完成服务端支付确认。两位不同用户支付成功，且订单资源确认后进入待发货。</div>`;
@@ -277,11 +277,11 @@
     } else if (campaignTypes.includes(tab)) {
       const activity = P.campaigns(tab)[0];
       content = activity
-        ? `<div class="promo-section-head"><div><h2>${esc(activity.name || labels[tab])}</h2><p>${esc(activity.description || '多一点喜欢，少一点花费。')}</p></div>${ruleLink(tab)}</div><section class="promo-campaign-banner is-${esc(tab)}"><span>${icon(campaignGlyphs[tab])}</span><div><strong>${esc(P.campaignRule(activity))}</strong><p>普通商品均可参加 · 每单任选一种活动 · 每人每活动限一次</p></div><a class="outline" href="#/cart">购物车使用 ${icon('arrow')}</a></section>${campaignProducts(activity)}`
+        ? `<div class="promo-section-head"><div><h2>${esc(activity.name || labels[tab])}</h2></div>${ruleLink(tab)}</div><section class="promo-campaign-banner is-${esc(tab)}"><span>${icon(campaignGlyphs[tab])}</span><div><strong>${esc(P.campaignRule(activity))}</strong><p>普通商品均可参加 · 每单任选一种活动 · 每人每活动限一次</p></div><a class="outline" href="#/cart">购物车使用 ${icon('arrow')}</a></section>${campaignProducts(activity)}`
         : '<div class="promo-empty">本活动暂未开放，请稍后再来。</div>';
     } else {
       const groups = P.myGroups();
-      content = `<div class="promo-section-head"><div><h2>我的拼团</h2><p>查看成团进度，和伙伴分享心动好物。</p></div><a class="outline" href="#/promotions/group">发现拼团好物 ${icon('arrow')}</a></div>${pagedList(groups, (team) => groupPanel(team), 'promo-my-groups', icon('user') + '<h3>还没有参与拼团</h3><p>挑一件喜欢的好物，和伙伴一起享好价。</p><a class="primary" href="#/promotions/group">去看看拼团商品</a>', true)}`;
+      content = `<div class="promo-section-head"><div><h2>我的拼团</h2></div><a class="outline" href="#/promotions/group">发现拼团好物 ${icon('arrow')}</a></div>${pagedList(groups, (team) => groupPanel(team), 'promo-my-groups', icon('user') + '<h3>还没有参与拼团</h3><a class="primary" href="#/promotions/group">去看看拼团商品</a>', true)}`;
     }
     const status = P.status?.();
     if (

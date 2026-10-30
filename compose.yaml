@@ -100,6 +100,9 @@ services:
       context: .
       dockerfile: deploy/observability.Dockerfile
       target: jaeger
+    mem_limit: 2g
+    environment:
+      GOMEMLIMIT: 1024MiB
     healthcheck:
       test:
       - CMD
@@ -158,6 +161,9 @@ services:
       context: .
       dockerfile: deploy/observability.Dockerfile
       target: collector
+    mem_limit: 512m
+    environment:
+      GOMEMLIMIT: 256MiB
     healthcheck:
       test:
       - CMD
@@ -203,6 +209,7 @@ services:
       QQ_LOGIN_APP_ID: ${QQ_LOGIN_APP_ID:-}
       QQ_LOGIN_APP_SECRET: ${QQ_LOGIN_APP_SECRET:-}
       QQ_LOGIN_REDIRECT_URI: ${QQ_LOGIN_REDIRECT_URI:-}
+      CHANNEL_CONFIG_ENCRYPTION_KEY: ${CHANNEL_CONFIG_ENCRYPTION_KEY:-}
     depends_on:
       mysql: &id001
         condition: service_healthy
@@ -1152,6 +1159,7 @@ services:
       APP_ENV: development
       SERVICE_NAME: payment
       DB_DSN: payment:${MALL_DB_PASSWORD:-lumo_db_local_2026}@tcp(mysql:3306)/lumo_payment?charset=utf8mb4&parseTime=True&loc=UTC&timeout=5s&readTimeout=10s&writeTimeout=10s
+      CHANNEL_CONFIG_ENCRYPTION_KEY: ${CHANNEL_CONFIG_ENCRYPTION_KEY:-}
     depends_on:
       mysql: *id001
       redis: *id002

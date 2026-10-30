@@ -65,8 +65,8 @@ async function main() {
     );
     check(
       boot.ids.get('app').innerHTML.includes('精选推荐') &&
-        boot.ids.get('app').innerHTML.includes('home-recommendation-card'),
-      'Guest homepage must render actual recommendation results and reasons',
+        boot.ids.get('app').innerHTML.includes('class="product-card"'),
+      'Guest homepage must render actual recommended products',
     );
     const railLinks = [...boot.ctx.LumoSidebars.render().matchAll(/<a class="interest-item" href="([^"]+)"/g)].map(
       (row) => row[1],

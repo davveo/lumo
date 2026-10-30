@@ -54,6 +54,31 @@ func assertHTTPPayloadPrivacy(t *testing.T, span tracetest.SpanStub) {
 	}
 }
 
+func TestHTTPErrorTraceRetainsSpecificReasonAtEveryGatewayBoundary(t *testing.T) {
+	exporter := httpPayloadExporter(t)
+	const reason = "catalog product does not exist for the requested SKU"
+	caller := traceTestCaller(func(context.Context, string, platform.Command) (platform.Result, error) {
+		return nil, status.Error(codes.NotFound, reason)
+	})
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/catalog/get", strings.NewReader(`{"id":"missing-sku","data":{"password":"private-input-password"}}`))
+	w := httptest.NewRecorder()
+	NewHandler(caller, true, t.TempDir()).ServeHTTP(w, request)
+	if w.Code != http.StatusNotFound || !strings.Contains(w.Body.String(), reason) {
+		t.Fatal("HTTP response changed", w.Code, w.Body.String())
+	}
+	spans := exporter.GetSpans()
+	if len(spans) < 2 {
+		t.Fatal("gateway boundaries missing")
+	}
+	for _, span := range spans {
+		attrs := payloadSpanAttributes(span)
+		if attrs["lumo.error.message"] != reason || attrs["lumo.error.code"] != "NotFound" || !strings.Contains(attrs["lumo.response"], reason) || len(span.Events) == 0 {
+			t.Fatalf("%s lost specific error: %v", span.Name, attrs)
+		}
+		assertHTTPPayloadPrivacy(t, span)
+	}
+}
+
 func TestHTTPTraceCapturesParsedRequestAndResponseAtEveryBoundary(t *testing.T) {
 	exporter := httpPayloadExporter(t)
 	called := false
@@ -155,7 +180,7 @@ func TestHTTPTraceErrorsKeepPayloadsAndDiscardRawErrorMessages(t *testing.T) {
 			caller := traceTestCaller(func(context.Context, string, platform.Command) (platform.Result, error) {
 				return nil, status.Error(
 					codes.FailedPrecondition,
-					"private-input-password private-user-id private-location 13521373352",
+					"inventory unavailable; password=private-input-password user_id=private-user-id address=private-location phone=13521373352",
 				)
 			})
 			req := httptest.NewRequest(http.MethodPost, test.path, strings.NewReader(test.body))

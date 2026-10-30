@@ -706,3 +706,29 @@
     height: 44px;
   }
 }
+
+.pdp-coupon-result {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+.pdp-coupon-result button {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 6px;
+  text-align: left;
+}
+.pdp-coupon-result small,
+.pdp-coupon-status {
+  font-size: 13px;
+  color: var(--muted);
+}
+.pdp-coupon-result a {
+  color: var(--red);
+  font-size: 14px;
+}
+
+.pdp-benefit-row {
+  min-height: 70px;
+}

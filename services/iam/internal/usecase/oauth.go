@@ -20,7 +20,8 @@ func (s *Service) oauthEnabled(ctx context.Context, provider string) (bool, erro
 	if e != nil {
 		return false, e
 	}
-	return providerReady(provider) && (provider == "wechat" && p.Wechat || provider == "qq" && p.QQ), nil
+	ready, e := s.providerReady(ctx, provider)
+	return ready && (provider == "wechat" && p.Wechat || provider == "qq" && p.QQ), e
 }
 func oauthSettings(provider string) (string, string, string) {
 	if provider == "wechat" {
@@ -28,9 +29,11 @@ func oauthSettings(provider string) (string, string, string) {
 	}
 	return os.Getenv("QQ_LOGIN_APP_ID"), os.Getenv("QQ_LOGIN_APP_SECRET"), os.Getenv("QQ_LOGIN_REDIRECT_URI")
 }
-func (s *Service) OAuthStart(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) OAuthStart(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "iam.usecase.OAuthStart")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	provider, proof := platform.Text(c.Data, "provider"), platform.Text(c.Data, "proof")
 	if provider != "wechat" && provider != "qq" || len(proof) < 32 || len(proof) > 128 {
 		return nil, status.Error(codes.InvalidArgument, "invalid OAuth provider or browser binding")
@@ -49,16 +52,20 @@ func (s *Service) OAuthStart(ctx context.Context, c platform.Request) (platform.
 	if e = s.repo.NewOAuth(ctx, domain.AuthChallenge{ID: hash(state), Provider: provider, Binding: hash(proof), ExpiresAt: time.Now().UTC().Add(5 * time.Minute)}, platform.Text(c.Data, "_client_ip")); e != nil {
 		return nil, e
 	}
-	app, _, redirect := oauthSettings(provider)
+	parameters, e := s.providerParameters(ctx, provider)
+	if e != nil {
+		return nil, e
+	}
+	app, redirect := parameters.Values["app_id"], parameters.Values["redirect_uri"]
 	values := url.Values{"response_type": {"code"}, "redirect_uri": {redirect}, "state": {state}}
 	endpoint := "https://graph.qq.com/oauth2.0/authorize"
 	if provider == "wechat" {
 		endpoint = "https://open.weixin.qq.com/connect/qrconnect"
 		values.Set("appid", app)
-		values.Set("scope", "snsapi_login")
+		values.Set("scope", parameters.Values["scope"])
 	} else {
 		values.Set("client_id", app)
-		values.Set("scope", "get_user_info")
+		values.Set("scope", parameters.Values["scope"])
 	}
 	target := endpoint + "?" + values.Encode()
 	if provider == "wechat" {
@@ -93,6 +100,9 @@ func oauthJSON(ctx context.Context, client *http.Client, endpoint string, values
 // OpenID, nickname, email or phone can bind or merge an existing account.
 func exchangeOAuth(ctx context.Context, client *http.Client, provider, code string) (string, error) {
 	app, secret, redirect := oauthSettings(provider)
+	return exchangeOAuthParameters(ctx, client, provider, code, app, secret, redirect)
+}
+func exchangeOAuthParameters(ctx context.Context, client *http.Client, provider, code, app, secret, redirect string) (string, error) {
 	values := url.Values{"grant_type": {"authorization_code"}, "code": {code}}
 	if provider == "wechat" {
 		values.Set("appid", app)
@@ -131,9 +141,11 @@ func exchangeOAuth(ctx context.Context, client *http.Client, provider, code stri
 	}
 	return platform.Text(identity, "openid"), nil
 }
-func (s *Service) OAuthCallback(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) OAuthCallback(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "iam.usecase.OAuthCallback")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	provider, state, proof, code := platform.Text(c.Data, "provider"), platform.Text(c.Data, "oauth_state"), platform.Text(c.Data, "proof"), platform.Text(c.Data, "code")
 	if provider != "wechat" && provider != "qq" || len(state) != 64 || len(proof) < 32 || len(proof) > 128 || len(code) < 1 || len(code) > 1024 || strings.TrimSpace(code) != code {
 		return nil, status.Error(codes.InvalidArgument, "授权回调参数无效")
@@ -152,7 +164,11 @@ func (s *Service) OAuthCallback(ctx context.Context, c platform.Request) (platfo
 	if client == nil {
 		client = authClient()
 	}
-	subject, e := exchangeOAuth(ctx, client, provider, code)
+	parameters, e := s.providerParameters(ctx, provider)
+	if e != nil {
+		return nil, e
+	}
+	subject, e := exchangeOAuthParameters(ctx, client, provider, code, parameters.Values["app_id"], parameters.Values["app_secret"], parameters.Values["redirect_uri"])
 	if e != nil {
 		return nil, e
 	}

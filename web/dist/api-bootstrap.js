@@ -114,11 +114,11 @@
     if (route[0] === 'product') tasks.push(() => invoke(window.LumoProductExtras, 'refresh', route[1]));
     if (route[0] === 'compare') tasks.push(() => invoke(window.LumoDiscovery, 'refresh'));
     if (route[0] === 'editor') tasks.push(() => invoke(window.LumoStudio, 'refresh'));
-    if (!['login', 'editor', 'payment', 'checkout'].includes(route[0]))
+    if (!['login', 'register', 'editor', 'payment', 'checkout'].includes(route[0]))
       if (force || !window.LumoSidebars?.model?.().loaded || window.LumoSidebars?.model?.().error)
         tasks.push(() => invoke(window.LumoSidebars, 'refresh'));
     if (loggedIn()) {
-      if (!['login', 'editor', 'payment', 'checkout'].includes(route[0])) tasks.push(() => account(force));
+      if (!['login', 'register', 'editor', 'payment', 'checkout'].includes(route[0])) tasks.push(() => account(force));
       if (['cart', 'checkout'].includes(route[0])) tasks.push(() => invoke(window.LumoCommerce, 'refreshCart'));
       if (
         ['orders', 'payment', 'success'].includes(route[0]) ||

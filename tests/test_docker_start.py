@@ -159,6 +159,9 @@ elif command in ('down','restart','start'):die('Unexpected broad lifecycle opera
 elif command=='wait':
     for n in tail:
         if n in state['containers']:print(state['containers'][n]['exit_code'])
+elif command=='logs':
+    for n in tail:
+        if n in services:print(state.get('logs',{}).get(n,''))
 '''
 
 
@@ -660,6 +663,38 @@ class DockerStartupTests(unittest.TestCase):
                     self.assertEqual(self.builds(), [])
                     self.assertEqual(self.actual_ups(), [])
                     self.assertEqual(self.read_runtime(), state)
+
+    def test_observability_disk_full_explains_root_cause_before_any_build_or_restart(self):
+        self.establish_baseline()
+        state = self.read_runtime()
+        state["containers"]["jaeger"].update(status="restarting", health="unhealthy")
+        state["logs"] = {
+            "jaeger": 'Cannot write pid file /var/jaeger/keys/LOCK: no space left on device',
+            "otel-collector": 'data refused due to high memory usage',
+        }
+        self.write_runtime(state)
+        result = self.run_start("order")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Docker磁盘已满", result.stderr)
+        self.assertIn("docker builder prune --filter until=24h", result.stderr)
+        self.assertIn("不要删除mysql-data、jaeger-data", result.stderr)
+        self.assertEqual(self.builds(), [])
+        self.assertEqual(self.actual_ups(), [])
+        self.assertEqual(self.read_runtime(), state)
+
+    def test_observability_memory_refusal_explains_dependencies_without_modifying_data(self):
+        self.establish_baseline()
+        state = self.read_runtime()
+        state["containers"]["otel-collector"]["health"] = "unhealthy"
+        state["logs"] = {"otel-collector": 'data refused due to high memory usage'}
+        self.write_runtime(state)
+        result = self.run_start()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("追踪收集器内存拒收", result.stderr)
+        self.assertIn("Jaeger健康状态", result.stderr)
+        self.assertEqual(self.builds(), [])
+        self.assertEqual(self.actual_ups(), [])
+        self.assertEqual(self.read_runtime(), state)
 
     def test_no_build_requires_missing_observability_image_to_be_built_explicitly(self):
         self.establish_baseline()

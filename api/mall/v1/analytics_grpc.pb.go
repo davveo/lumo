@@ -21,14 +21,16 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	AnalyticsService_List_FullMethodName   = "/mall.v1.AnalyticsService/List"
-	AnalyticsService_Record_FullMethodName = "/mall.v1.AnalyticsService/Record"
+	AnalyticsService_AdminList_FullMethodName = "/mall.v1.AnalyticsService/AdminList"
+	AnalyticsService_List_FullMethodName      = "/mall.v1.AnalyticsService/List"
+	AnalyticsService_Record_FullMethodName    = "/mall.v1.AnalyticsService/Record"
 )
 
 // AnalyticsServiceClient is the client API for AnalyticsService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AnalyticsServiceClient interface {
+	AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	List(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Record(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
@@ -39,6 +41,15 @@ type analyticsServiceClient struct {
 
 func NewAnalyticsServiceClient(cc grpc.ClientConnInterface) AnalyticsServiceClient {
 	return &analyticsServiceClient{cc}
+}
+
+func (c *analyticsServiceClient) AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, AnalyticsService_AdminList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *analyticsServiceClient) List(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
@@ -63,6 +74,7 @@ func (c *analyticsServiceClient) Record(ctx context.Context, in *ServiceRequest,
 // All implementations must embed UnimplementedAnalyticsServiceServer
 // for forward compatibility
 type AnalyticsServiceServer interface {
+	AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	List(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Record(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedAnalyticsServiceServer()
@@ -72,6 +84,9 @@ type AnalyticsServiceServer interface {
 type UnimplementedAnalyticsServiceServer struct {
 }
 
+func (UnimplementedAnalyticsServiceServer) AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminList not implemented")
+}
 func (UnimplementedAnalyticsServiceServer) List(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
@@ -89,6 +104,24 @@ type UnsafeAnalyticsServiceServer interface {
 
 func RegisterAnalyticsServiceServer(s grpc.ServiceRegistrar, srv AnalyticsServiceServer) {
 	s.RegisterService(&AnalyticsService_ServiceDesc, srv)
+}
+
+func _AnalyticsService_AdminList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AnalyticsServiceServer).AdminList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AnalyticsService_AdminList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AnalyticsServiceServer).AdminList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _AnalyticsService_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -134,6 +167,10 @@ var AnalyticsService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "mall.v1.AnalyticsService",
 	HandlerType: (*AnalyticsServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "AdminList",
+			Handler:    _AnalyticsService_AdminList_Handler,
+		},
 		{
 			MethodName: "List",
 			Handler:    _AnalyticsService_List_Handler,

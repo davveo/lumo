@@ -24,9 +24,11 @@ func defaultTemplate(id string) repository.Template {
 	}
 	return repository.Template{Title: notificationTitles[id], Body: "业务编号 {{business_id}}", Enabled: true}
 }
-func (s *Service) TemplatesAdmin(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) TemplatesAdmin(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "notification.usecase.TemplatesAdmin")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
@@ -47,9 +49,11 @@ func (s *Service) TemplatesAdmin(ctx context.Context, c platform.Request) (platf
 	}
 	return platform.Result{"items": items, "total": len(items)}, nil
 }
-func (s *Service) TemplateUpsert(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) TemplateUpsert(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "notification.usecase.TemplateUpsert")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}

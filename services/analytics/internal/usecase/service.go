@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
+	"unicode/utf8"
 )
 
 func (s *Service) Record(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
@@ -20,8 +21,17 @@ func (s *Service) Record(ctx context.Context, c platform.Request) (traceResult p
 		kind != constants.AnalyticsBehaviorSearch {
 		return nil, bad("unsupported behavior type")
 	}
+	if utf8.RuneCountInString(platform.Text(c.Data, "query")) > 200 || len(platform.Text(c.Data, "sku_id")) > 150 || len(platform.Text(c.Data, "page")) > 240 || len(platform.Text(c.Data, "source")) > 40 {
+		return nil, bad("behavior metadata too long")
+	}
 	if c.IdempotencyKey == "" {
 		return nil, bad("event idempotency_key required")
+	}
+	productName := ""
+	if sku := platform.Text(c.Data, "sku_id"); sku != "" && s.rpc != nil {
+		if product, e := platform.NewClients(s.rpc).Catalog.Get(ctx, platform.Request{ID: sku, UserID: c.UserID, Role: c.Role}); e == nil {
+			productName = platform.Text(product, "name")
+		}
 	}
 	r := record(
 		stable(c.UserID, c.IdempotencyKey),
@@ -29,9 +39,10 @@ func (s *Service) Record(ctx context.Context, c platform.Request) (traceResult p
 		constants.AnalyticsKindBehavior,
 		constants.AnalyticsStatusAccepted,
 		map[string]any{
-			"type":   kind,
+			"type": kind, "product_name": productName,
 			"sku_id": platform.Text(c.Data, "sku_id"),
 			"query":  platform.Text(c.Data, "query"),
+			"page":   platform.Text(c.Data, "page"), "source": platform.Text(c.Data, "source"),
 		},
 	)
 	evt := platform.Event{
@@ -66,12 +77,20 @@ func (s *Service) event(ctx context.Context, e platform.Event) error {
 	if e.UserID == "" {
 		return nil
 	}
+	data := map[string]any{"type": e.Type, "business_id": e.AggregateID}
+	if e.Type == constants.EventRefundSucceeded {
+		data["refund_id"] = e.AggregateID
+		data["order_id"] = platform.Text(e.Data, "order_id")
+		data["amount_cents"] = platform.Int(e.Data, "amount_cents")
+	} else {
+		data["order_id"] = e.AggregateID
+	}
 	r := record(
 		stable(e.ID, e.UserID),
 		e.UserID,
 		constants.AnalyticsKindPurchaseEvent,
 		constants.AnalyticsStatusAccepted,
-		map[string]any{"type": e.Type, "order_id": e.AggregateID},
+		data,
 	)
 	_, err := s.repo.InsertOnce(ctx, &r, nil)
 	return err

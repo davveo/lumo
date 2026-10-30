@@ -95,6 +95,10 @@
       "existing_contract": false,
       "methods": [
         {
+          "action": "ActionAdminList",
+          "method": "AdminList"
+        },
+        {
           "action": "ActionList",
           "method": "List"
         },
@@ -535,6 +539,10 @@
       "existing_contract": false,
       "methods": [
         {
+          "action": "ActionAdminList",
+          "method": "AdminList"
+        },
+        {
           "action": "ActionClose",
           "method": "Close"
         },
@@ -567,24 +575,8 @@
       "existing_contract": false,
       "methods": [
         {
-          "action": "ActionLogin",
-          "method": "Login"
-        },
-        {
-          "action": "ActionLogout",
-          "method": "Logout"
-        },
-        {
-          "action": "ActionLogoutAll",
-          "method": "LogoutAll"
-        },
-        {
-          "action": "ActionRefresh",
-          "method": "Refresh"
-        },
-        {
-          "action": "ActionValidate",
-          "method": "Validate"
+          "action": "ActionAdminGet",
+          "method": "AdminGet"
         },
         {
           "action": "ActionAdminList",
@@ -595,16 +587,40 @@
           "method": "AdminSummary"
         },
         {
-          "action": "ActionSetActive",
-          "method": "SetActive"
-        },
-        {
           "action": "ActionAuditList",
           "method": "AuditList"
         },
         {
-          "action": "ActionAdminGet",
-          "method": "AdminGet"
+          "action": "ActionLogin",
+          "method": "Login"
+        },
+        {
+          "action": "ActionLoginMethods",
+          "method": "LoginMethods"
+        },
+        {
+          "action": "ActionLogout",
+          "method": "Logout"
+        },
+        {
+          "action": "ActionLogoutAll",
+          "method": "LogoutAll"
+        },
+        {
+          "action": "ActionOAuthCallback",
+          "method": "OAuthCallback"
+        },
+        {
+          "action": "ActionOAuthStart",
+          "method": "OAuthStart"
+        },
+        {
+          "action": "ActionOtpLogin",
+          "method": "OtpLogin"
+        },
+        {
+          "action": "ActionOtpSend",
+          "method": "OtpSend"
         },
         {
           "action": "ActionPolicyGet",
@@ -615,24 +631,28 @@
           "method": "PolicyUpsert"
         },
         {
-          "action": "ActionLoginMethods",
-          "method": "LoginMethods"
+          "action": "ActionProviderGet",
+          "method": "ProviderGet"
         },
         {
-          "action": "ActionOtpSend",
-          "method": "OtpSend"
+          "action": "ActionProviderUpsert",
+          "method": "ProviderUpsert"
         },
         {
-          "action": "ActionOtpLogin",
-          "method": "OtpLogin"
+          "action": "ActionRefresh",
+          "method": "Refresh"
         },
         {
-          "action": "ActionOAuthStart",
-          "method": "OAuthStart"
+          "action": "ActionRegister",
+          "method": "Register"
         },
         {
-          "action": "ActionOAuthCallback",
-          "method": "OAuthCallback"
+          "action": "ActionSetActive",
+          "method": "SetActive"
+        },
+        {
+          "action": "ActionValidate",
+          "method": "Validate"
         }
       ]
     },
@@ -955,6 +975,14 @@
       "existing_contract": false,
       "methods": [
         {
+          "action": "ActionAdminList",
+          "method": "AdminList"
+        },
+        {
+          "action": "ActionAdminSummary",
+          "method": "AdminSummary"
+        },
+        {
           "action": "ActionClose",
           "method": "Close"
         },
@@ -975,18 +1003,6 @@
           "method": "List"
         },
         {
-          "action": "ActionSubmitDemo",
-          "method": "SubmitDemo"
-        },
-        {
-          "action": "ActionAdminList",
-          "method": "AdminList"
-        },
-        {
-          "action": "ActionAdminSummary",
-          "method": "AdminSummary"
-        },
-        {
           "action": "ActionMethods",
           "method": "Methods"
         },
@@ -997,6 +1013,18 @@
         {
           "action": "ActionPolicyUpsert",
           "method": "PolicyUpsert"
+        },
+        {
+          "action": "ActionProviderGet",
+          "method": "ProviderGet"
+        },
+        {
+          "action": "ActionProviderUpsert",
+          "method": "ProviderUpsert"
+        },
+        {
+          "action": "ActionSubmitDemo",
+          "method": "SubmitDemo"
         }
       ]
     },

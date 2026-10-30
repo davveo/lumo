@@ -159,7 +159,7 @@ func TestRPCPayloadTraceRecordsErrorsAndRejectsSensitiveStatusText(t *testing.T)
 					if rejection {
 						t.Error("rejected credential reached business handler")
 					}
-					return nil, status.Error(codes.InvalidArgument, "business-sensitive-error-private")
+					return nil, status.Error(codes.InvalidArgument, "stock unavailable; password=request-secret-private")
 				}},
 			)
 			token, expectedCode, count := "trace-internal-token", codes.InvalidArgument, 4
@@ -176,11 +176,11 @@ func TestRPCPayloadTraceRecordsErrorsAndRejectsSensitiveStatusText(t *testing.T)
 			if status.Code(err) != expectedCode {
 				t.Fatalf("RPC result changed: %v", err)
 			}
-			if !rejection && status.Convert(err).Message() != "business-sensitive-error-private" {
+			if !rejection && status.Convert(err).Message() != "stock unavailable; password=request-secret-private" {
 				t.Fatal("telemetry changed the caller's business error")
 			}
 			assertRPCPayloadSpans(t, awaitRPCTraceSpans(t, exporter, count), "order-visible", "", expectedCode.String(),
-				token, "request-secret-private", "business-sensitive-error-private")
+				token, "request-secret-private")
 		})
 	}
 }

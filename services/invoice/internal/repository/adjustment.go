@@ -13,9 +13,11 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func (r *Repository) ApplyRefund(ctx context.Context, orderID, refundID, userID string, amount, total int64) error {
+func (r *Repository) ApplyRefund(ctx context.Context, orderID, refundID, userID string, amount, total int64) (spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.invoice.ApplyRefund")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var row domain.Record
 		err := tx.WithContext(ctx).
@@ -81,9 +83,11 @@ func (r *Repository) ApplyRefund(ctx context.Context, orderID, refundID, userID 
 	})
 }
 
-func (r *Repository) IssueDemo(ctx context.Context, id, number string) (*domain.Record, error) {
+func (r *Repository) IssueDemo(ctx context.Context, id, number string) (spanResult0 *domain.Record, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.invoice.IssueDemo")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var row domain.Record
 	err := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(
@@ -128,16 +132,20 @@ func (r *Repository) IssueDemo(ctx context.Context, id, number string) (*domain.
 	})
 	return &row, err
 }
-func (r *Repository) Reversals(ctx context.Context, id string) ([]domain.Reversal, error) {
+func (r *Repository) Reversals(ctx context.Context, id string) (spanResult0 []domain.Reversal, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.invoice.Reversals")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	rows := []domain.Reversal{}
 	err := r.DB.WithContext(ctx).Where("invoice_id = ?", id).Order("created_at asc").Find(&rows).Error
 	return rows, err
 }
-func (r *Repository) CompleteDemoAdjustments(ctx context.Context, id string) (*domain.Record, error) {
+func (r *Repository) CompleteDemoAdjustments(ctx context.Context, id string) (spanResult0 *domain.Record, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.invoice.CompleteDemoAdjustments")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var row domain.Record
 	err := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(

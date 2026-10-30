@@ -19,12 +19,14 @@ type Repository struct {
 }
 
 func New(db *gorm.DB) *Repository { return &Repository{db: db} }
-func (r *Repository) Migrate(ctx context.Context) error {
+func (r *Repository) Migrate(ctx context.Context) (spanErr0 error) {
 	if e := platform.MigrateBusinessIDs(ctx, r.db); e != nil {
 		return e
 	}
 	ctx, s := platform.Start(ctx, "catalog.repository.Migrate")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if err := r.db.WithContext(ctx).AutoMigrate(&domain.Record{}); err != nil {
 		return err
 	}
@@ -36,9 +38,11 @@ func (r *Repository) Migrate(ctx context.Context) error {
 	}
 	return r.migrateSearchDocument(ctx)
 }
-func (r *Repository) Get(ctx context.Context, id string) (domain.Record, error) {
+func (r *Repository) Get(ctx context.Context, id string) (spanResult0 domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "catalog.repository.Get")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var v domain.Record
 	err := r.db.WithContext(ctx).First(&v, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -46,9 +50,11 @@ func (r *Repository) Get(ctx context.Context, id string) (domain.Record, error) 
 	}
 	return v, err
 }
-func (r *Repository) GetMany(ctx context.Context, ids []string, includeDisabled bool) ([]domain.Record, error) {
+func (r *Repository) GetMany(ctx context.Context, ids []string, includeDisabled bool) (spanResult0 []domain.Record, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "catalog.repository.GetMany")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	rows := []domain.Record{}
 	query := r.db.WithContext(ctx).Where("id IN ?", ids)
 	if !includeDisabled {
@@ -57,9 +63,11 @@ func (r *Repository) GetMany(ctx context.Context, ids []string, includeDisabled 
 	err := query.Find(&rows).Error
 	return rows, err
 }
-func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, offset int) ([]domain.Record, error) {
+func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, offset int) (spanResult0 []domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "catalog.repository.List")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	q := r.db.WithContext(ctx).Model(&domain.Record{})
 	if owner != "" {
 		q = q.Where("user_id = ?", owner)
@@ -80,9 +88,11 @@ func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, of
 	err := q.Order("created_at DESC, id DESC").Limit(limit).Offset(offset).Find(&vs).Error
 	return vs, err
 }
-func (r *Repository) Save(ctx context.Context, v *domain.Record, event *platform.Event) error {
+func (r *Repository) Save(ctx context.Context, v *domain.Record, event *platform.Event) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "catalog.repository.Save")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Upsert mutable columns while preserving the original creation time.
 		// A newly assembled aggregate must not write a zero datetime on update.
@@ -107,9 +117,11 @@ func (r *Repository) Save(ctx context.Context, v *domain.Record, event *platform
 		return nil
 	})
 }
-func (r *Repository) InsertOnce(ctx context.Context, v *domain.Record, event *platform.Event) (bool, error) {
+func (r *Repository) InsertOnce(ctx context.Context, v *domain.Record, event *platform.Event) (spanResult0 bool, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "catalog.repository.InsertOnce")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	inserted := false
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		res := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(v)
@@ -132,9 +144,11 @@ func (r *Repository) Mutate(
 	seed domain.Record,
 	create bool,
 	fn func(*domain.Record) ([]domain.Record, *platform.Event, error),
-) (domain.Record, error) {
+) (spanResult0 domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "catalog.repository.Mutate")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var got domain.Record
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if create {
@@ -173,9 +187,11 @@ func (r *Repository) Mutate(
 	})
 	return got, err
 }
-func (r *Repository) Delete(ctx context.Context, id, owner string) error {
+func (r *Repository) Delete(ctx context.Context, id, owner string) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "catalog.repository.Delete")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	res := r.db.WithContext(ctx).Where("id = ? AND user_id = ?", id, owner).Delete(&domain.Record{})
 	if res.Error != nil {
 		return res.Error
@@ -185,9 +201,11 @@ func (r *Repository) Delete(ctx context.Context, id, owner string) error {
 	}
 	return nil
 }
-func (r *Repository) DeleteKind(ctx context.Context, owner, kind string) error {
+func (r *Repository) DeleteKind(ctx context.Context, owner, kind string) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "catalog.repository.DeleteKind")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Where("user_id = ? AND kind = ?", owner, kind).Delete(&domain.Record{}).Error
 }
 
@@ -196,9 +214,11 @@ func (r *Repository) ListProducts(
 	ctx context.Context,
 	state string,
 	limit, offset int,
-) ([]domain.Record, int64, error) {
+) (spanResult0 []domain.Record, spanResult1 int64, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "catalog.repository.ListProducts")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	q := r.db.WithContext(ctx).Model(&domain.Record{}).Where("parent_id = ? AND kind = ?", "", constants.CatalogKindSku)
 	if state != "" {
 		q = q.Where("status = ?", state)
@@ -246,9 +266,11 @@ func (r *Repository) SaveProduct(
 	productID string,
 	rows []domain.Record,
 	event *platform.Event,
-) error {
+) (spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "catalog.repository.SaveProduct")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if e := tx.WithContext(ctx).Model(&domain.Record{}).Where(
 			"parent_id = ? AND kind = ?",

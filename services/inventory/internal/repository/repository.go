@@ -45,11 +45,15 @@ func (r *Repository) Seed(ctx context.Context) error {
 	// reservations, allocations and movement history from the demo purchase flow.
 	return r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).CreateInBatches(stocks, 100).Error
 }
-func (r *Repository) Get(ctx context.Context, id string) (platform.Result, error) {
+func (r *Repository) Get(ctx context.Context, id string) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.inventory.Get")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var v domain.Stock
 	if e := r.DB.WithContext(ctx).First(&v, "sku_id = ?", id).Error; e != nil {
+		platform.TraceError(ctx, e)
+
 		return nil, status.Error(codes.NotFound, "stock not found")
 	}
 	return platform.Result{
@@ -61,9 +65,11 @@ func (r *Repository) Get(ctx context.Context, id string) (platform.Result, error
 		"threshold": v.Threshold,
 	}, nil
 }
-func (r *Repository) GetMany(ctx context.Context, ids []string) (platform.Result, error) {
+func (r *Repository) GetMany(ctx context.Context, ids []string) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.inventory.GetMany")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	rows := []domain.Stock{}
 	if err := r.DB.WithContext(ctx).Where("sku_id IN ?", ids).Find(&rows).Error; err != nil {
 		return nil, err
@@ -119,9 +125,11 @@ func (r *Repository) Reserve(
 	c platform.Request,
 	order string,
 	lines []domain.Line,
-) (platform.Result, error) {
+) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.inventory.Reserve")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if c.ID == "" || order == "" {
 		return nil, status.Error(codes.InvalidArgument, "reservation and order IDs required")
 	}
@@ -191,9 +199,11 @@ func (r *Repository) Dispatch(ctx context.Context, c platform.Request) (platform
 	return r.transition(ctx, c, constants.InventoryReservationStateDispatched)
 }
 
-func (r *Repository) transition(ctx context.Context, c platform.Request, target string) (platform.Result, error) {
+func (r *Repository) transition(ctx context.Context, c platform.Request, target string) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.inventory.transition."+target)
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if c.ID == "" {
 		return nil, status.Error(codes.InvalidArgument, "reservation ID required")
 	}
@@ -271,9 +281,11 @@ func (r *Repository) transition(ctx context.Context, c platform.Request, target 
 	})
 	return platform.Map(out), e
 }
-func (r *Repository) Restock(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Restock(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.inventory.Restock")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	sku := platform.Text(c.Data, "sku_id")
 	qty := platform.Int(c.Data, "quantity")
 	condition := platform.Text(c.Data, "condition")

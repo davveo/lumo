@@ -13,32 +13,40 @@ import (
 type Repository struct{ db *gorm.DB }
 
 func New(db *gorm.DB) *Repository { return &Repository{db} }
-func (r *Repository) Migrate(ctx context.Context) error {
+func (r *Repository) Migrate(ctx context.Context) (spanErr0 error) {
 	if e := platform.MigrateBusinessIDs(ctx, r.db); e != nil {
 		return e
 	}
 	ctx, s := platform.Start(ctx, "checkout.repository.Migrate")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).AutoMigrate(&domain.Saga{})
 }
-func (r *Repository) Get(ctx context.Context, id string) (domain.Saga, error) {
+func (r *Repository) Get(ctx context.Context, id string) (spanResult0 domain.Saga, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "checkout.repository.Get")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var a domain.Saga
 	err := r.db.WithContext(ctx).First(&a, "id = ?", id).Error
 	return a, err
 }
-func (r *Repository) Ensure(ctx context.Context, a *domain.Saga) error {
+func (r *Repository) Ensure(ctx context.Context, a *domain.Saga) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "checkout.repository.Ensure")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if err := r.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(a).Error; err != nil {
 		return err
 	}
 	return r.db.WithContext(ctx).First(a, "request_key = ?", a.RequestKey).Error
 }
-func (r *Repository) Claim(ctx context.Context, id, owner string) (bool, error) {
+func (r *Repository) Claim(ctx context.Context, id, owner string) (spanResult0 bool, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "checkout.repository.Claim")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	now := time.Now().UTC()
 	x := r.db.WithContext(ctx).
 		Model(&domain.Saga{}).
@@ -46,18 +54,22 @@ func (r *Repository) Claim(ctx context.Context, id, owner string) (bool, error) 
 		Updates(map[string]any{"lease_owner": owner, "lease_until": now.Add(2 * time.Minute)})
 	return x.RowsAffected == 1, x.Error
 }
-func (r *Repository) Release(ctx context.Context, id, owner string) error {
+func (r *Repository) Release(ctx context.Context, id, owner string) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "checkout.repository.Release")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).
 		Model(&domain.Saga{}).
 		Where("id = ? AND lease_owner = ?", id, owner).
 		Updates(map[string]any{"lease_owner": "", "lease_until": time.Now().UTC()}).
 		Error
 }
-func (r *Repository) Save(ctx context.Context, a *domain.Saga, owner string) error {
+func (r *Repository) Save(ctx context.Context, a *domain.Saga, owner string) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "checkout.repository.Save")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	x := r.db.WithContext(ctx).
 		Model(&domain.Saga{}).
 		Where("id = ? AND lease_owner = ?", a.ID, owner).
@@ -70,9 +82,11 @@ func (r *Repository) Save(ctx context.Context, a *domain.Saga, owner string) err
 	}
 	return nil
 }
-func (r *Repository) Pending(ctx context.Context) ([]domain.Saga, error) {
+func (r *Repository) Pending(ctx context.Context) (spanResult0 []domain.Saga, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "checkout.repository.Pending")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var rows []domain.Saga
 	err := r.db.WithContext(ctx).
 		Where(
@@ -91,9 +105,11 @@ func (r *Repository) Pending(ctx context.Context) ([]domain.Saga, error) {
 	return rows, err
 }
 
-func (r *Repository) ByRequestKey(ctx context.Context, key string) (domain.Saga, error) {
+func (r *Repository) ByRequestKey(ctx context.Context, key string) (spanResult0 domain.Saga, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "checkout.repository.ByRequestKey")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var row domain.Saga
 	e := r.db.WithContext(ctx).First(&row, "request_key = ?", key).Error
 	return row, e

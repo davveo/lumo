@@ -11,30 +11,38 @@ import (
 	"time"
 )
 
-func (s *Service) AdminList(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) AdminList(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "group.usecase.AdminList")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
 	return s.Repo.AdminList(ctx, c)
 }
-func (s *Service) Rules(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) Rules(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "group.usecase.Rules")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return s.Repo.RulesAdmin(ctx, c, true)
 }
-func (s *Service) RulesAdmin(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) RulesAdmin(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "group.usecase.RulesAdmin")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
 	return s.Repo.RulesAdmin(ctx, c, false)
 }
-func (s *Service) RuleUpsert(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) RuleUpsert(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "group.usecase.RuleUpsert")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
@@ -71,9 +79,11 @@ func (s *Service) RuleUpsert(ctx context.Context, c platform.Request) (platform.
 	}
 	return s.Repo.RuleUpsert(ctx, row, c.UserID, reason)
 }
-func (s *Service) applyRule(ctx context.Context, c platform.Request) (platform.Request, error) {
+func (s *Service) applyRule(ctx context.Context, c platform.Request) (spanResult0 platform.Request, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "group.usecase.applyRule")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	id := platform.Text(c.Data, "rule_id")
 	if id == "" {
 		id = "group-default"

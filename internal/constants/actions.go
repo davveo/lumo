@@ -2,6 +2,9 @@ package constants
 
 // enum:Action
 const (
+	ActionRegister                 = "register"
+	ActionProviderGet              = "provider_get"
+	ActionProviderUpsert           = "provider_upsert"
 	ActionSubscribe                = "subscribe"
 	ActionSubscriptions            = "subscriptions"
 	ActionUnsubscribe              = "unsubscribe"

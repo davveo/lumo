@@ -119,9 +119,25 @@ container() {
 }
 ready() { [ "$SERVICE_STATUS" = running ] && [ "$SERVICE_HEALTH" = healthy ]; }
 image_id() { docker image inspect "$1" --format '{{.Id}}' 2>/dev/null; }
+diagnose_observability() {
+  diagnostic_logs=$(compose logs --no-color --since=5m --tail=40 jaeger otel-collector 2>/dev/null || true)
+  case "$diagnostic_logs" in
+    *'no space left on device'* | *'No space left on device'*)
+      printf '\n检测到Docker磁盘已满：Jaeger无法写入链路存储，收集器积压后会出现 high memory usage。\n' >&2
+      printf '请先执行 docker system df -v 检查占用；可用 docker builder prune --filter until=24h 清理闲置构建缓存，再执行 sh start.sh。\n' >&2
+      printf '不要删除mysql-data、jaeger-data等数据卷。启动脚本不会自动清理缓存或数据。\n' >&2
+      return 1
+      ;;
+    *'data refused due to high memory usage'*)
+      printf '\n检测到追踪收集器内存拒收：请同时检查Jaeger健康状态、Docker磁盘空间和收集器队列配置。\n' >&2
+      ;;
+  esac
+  return 0
+}
 failure() {
   printf '\n启动/更新未完成，已保留容器和数据卷。未成功的更新不写入部署基线。\n' >&2
   compose ps --all >&2 || true
+  diagnose_observability || true
   printf '\n如为MySQL 1045认证失败，请按docs/mysql-auth-recovery.md核对业务账号与当前密码；不要通过删除数据卷修复。\n' >&2
   fail '请检查 docker compose logs --tail=80，修复后重新执行 sh start.sh'
 }
@@ -166,6 +182,13 @@ INFRA_BUILD=''
 MISSING_INFRA_IMAGES=''
 for service in $INFRA_SERVICES; do
   container "$service"
+  case "$service" in
+    jaeger | otel-collector)
+      if ! ready; then
+        diagnose_observability || fail "${service}无法就绪；请先释放Docker磁盘空间，修复后重新执行sh start.sh"
+      fi
+      ;;
+  esac
   if [ "$UPDATE_INFRA" -eq 1 ] || [ "$SERVICE_STATUS" != running ]; then
     INFRA_START="$INFRA_START $service"
     case "$service" in minio | jaeger) NEED_STORAGE_INIT=1 ;; esac

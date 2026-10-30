@@ -64,7 +64,7 @@ func callServiceMethod(
 	if missingServiceMethod(err, definition.fullMethod) {
 		return nil, false, nil
 	}
-	result, err := decodeServiceResponse(response, err)
+	result, err := decodeServiceResponse(ctx, response, err)
 	return result, true, err
 }
 
@@ -84,9 +84,11 @@ func serveMethod(
 		decoder := json.NewDecoder(bytes.NewReader(wire.GetPayloadJson()))
 		decoder.UseNumber()
 		if err := decoder.Decode(&data); err != nil {
+			TraceError(ctx, err)
 			return nil, status.Error(codes.InvalidArgument, "invalid JSON payload")
 		}
 		if err := decoder.Decode(new(any)); err != io.EOF {
+			TraceError(ctx, err)
 			return nil, status.Error(codes.InvalidArgument, "invalid trailing JSON payload")
 		}
 	}
@@ -95,16 +97,18 @@ func serveMethod(
 		IdempotencyKey: wire.GetIdempotencyKey(), Data: data,
 	})
 	if err != nil {
+		TraceError(ctx, err)
 		return nil, rpcError(err)
 	}
 	payload, err := json.Marshal(result)
 	if err != nil {
+		TraceError(ctx, err)
 		return nil, status.Error(codes.Internal, "response serialization failed")
 	}
 	return &mallv1.ServiceResponse{PayloadJson: payload}, nil
 }
 
-func decodeServiceResponse(response *mallv1.ServiceResponse, err error) (Result, error) {
+func decodeServiceResponse(ctx context.Context, response *mallv1.ServiceResponse, err error) (Result, error) {
 	if err != nil {
 		return nil, err
 	}
@@ -115,6 +119,7 @@ func decodeServiceResponse(response *mallv1.ServiceResponse, err error) (Result,
 	decoder := json.NewDecoder(bytes.NewReader(response.GetPayloadJson()))
 	decoder.UseNumber()
 	if err := decoder.Decode(&result); err != nil {
+		TraceError(ctx, err)
 		return nil, status.Error(codes.Internal, "invalid RPC response")
 	}
 	return result, nil

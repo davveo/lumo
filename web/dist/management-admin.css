@@ -85,3 +85,82 @@
   overflow-wrap: anywhere;
   line-height: 1.8;
 }
+
+.mg-task-table {
+  min-width: 760px;
+  table-layout: fixed;
+}
+.mg-task-table th:nth-child(1) {
+  width: 20%;
+}
+.mg-task-table th:nth-child(2) {
+  width: 23%;
+}
+.mg-task-table th:nth-child(3) {
+  width: 25%;
+}
+.mg-task-table th:nth-child(4) {
+  width: 19%;
+}
+.mg-task-table td {
+  vertical-align: top;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.mg-task-reference {
+  display: block;
+  margin-bottom: 6px;
+}
+.mg-task-reference code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.mg-task-failure {
+  color: #a84b27;
+}
+.mg-task-technical summary {
+  cursor: pointer;
+  color: var(--admin-accent, #6045ff);
+  font-size: 13px;
+}
+.mg-task-panel {
+  margin-top: 16px;
+}
+.mg-task-panel .mg-task-definition {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 28px;
+}
+.mg-task-panel .op-definition dd {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.mg-task-panel .op-definition > div {
+  min-width: 0;
+}
+.mg-task-panel > .admin-actions {
+  margin-top: 20px;
+}
+@media (max-width: 680px) {
+  .mg-task-panel .mg-task-definition {
+    grid-template-columns: 1fr;
+  }
+}
+.mg-task-technical {
+  border-top: 1px solid #ececf2;
+  padding-top: 12px;
+  margin-top: 12px;
+}
+.mg-task-business {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.mg-task-reference small {
+  display: block;
+  color: #7c8391;
+  margin-bottom: 3px;
+}
+.mg-task-panel .mg-task-business {
+  padding-top: 12px;
+}

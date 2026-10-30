@@ -12,9 +12,11 @@ import (
 	"time"
 )
 
-func (s *Service) chooseCoupon(ctx context.Context, c platform.Request, mode, id string, subtotal, remaining int64, lines []couponrules.Line) (string, int64, []platform.Result, error) {
+func (s *Service) chooseCoupon(ctx context.Context, c platform.Request, mode, id string, subtotal, remaining int64, lines []couponrules.Line) (spanResult0 string, spanResult1 int64, spanResult2 []platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "pricing.usecase.ChooseCoupon")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	options := []platform.Result{}
 	if mode != "" && mode != "auto" && mode != "manual" && mode != "none" {
 		return "", 0, nil, status.Error(codes.InvalidArgument, "invalid coupon selection mode")

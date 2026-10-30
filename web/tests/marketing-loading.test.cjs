@@ -231,15 +231,15 @@ test('postpurchase recommendations show shapes without a request loop and retain
   assert.equal(f.calls.length, 1);
   gate.resolve({ items: [{ id: 'iphone', recommendation_reason: '来自已加载结果' }] });
   await recommendations.refresh(order);
-  assert.match(recommendations.render(order), /来自已加载结果/);
+  assert.match(recommendations.render(order), /Apple iPhone 15 Pro/);
   gate = deferred();
   const refresh = recommendations.refresh(order);
-  assert.match(recommendations.render(order), /来自已加载结果/);
+  assert.match(recommendations.render(order), /Apple iPhone 15 Pro/);
   assert.doesNotMatch(recommendations.render(order), /class="sk-loading/);
   gate.reject(Error('暂时无法更新'));
   await assert.rejects(refresh);
   const failed = recommendations.render(order);
-  assert.match(failed, /来自已加载结果/);
+  assert.match(failed, /Apple iPhone 15 Pro/);
   assert.match(failed, /暂时无法更新/);
 });
 test('interest rail waits for its aggregate without inventing products or reading member caches', async (t) => {

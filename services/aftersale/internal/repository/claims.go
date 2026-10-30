@@ -16,9 +16,11 @@ import (
 
 // Claim serializes all aftersale applications for one order in the owning schema.
 // Pending and completed applications consume quantity; rejected/cancelled ones do not.
-func (r *Repository) Claim(ctx context.Context, row *domain.Record, purchased map[string]int64, payable int64) error {
+func (r *Repository) Claim(ctx context.Context, row *domain.Record, purchased map[string]int64, payable int64) (spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.aftersale.ClaimQuantity")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		guard := domain.OrderGuard{OrderID: row.OrderID}
 		if err := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&guard).Error; err != nil {
@@ -108,9 +110,11 @@ func (r *Repository) Claim(ctx context.Context, row *domain.Record, purchased ma
 			Error
 	})
 }
-func (r *Repository) ByReplacement(ctx context.Context, id string) (*domain.Record, error) {
+func (r *Repository) ByReplacement(ctx context.Context, id string) (spanResult0 *domain.Record, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.aftersale.ByReplacement")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var row domain.Record
 	err := r.DB.WithContext(ctx).First(&row, "replacement_id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {

@@ -147,3 +147,9 @@ LUMO_TEST_WEB_IMAGE=lumo-web-proxy-test python3 tests/test_web_proxy.py
 `product-alerts.js` 在商品页提供降价提醒和缺货到货提醒，`#/member/alerts` 每页10条管理本人订阅。`alerts-admin.js` 提供后台规则、开关、精确筛选分页和停用；检查任务从持久化数据恢复，每次触发投递一次站内消息。
 
 详细能力、后续优先级与渠道边界见 [商城完善记录](../docs/commerce-improvements.md)。
+
+## 后台行为与客服界面
+
+`service-admin.js` 接入行为和工单独立管理页：行为记录显示中文动作、商品/搜索词、会员与时间，工单在右侧对话窗显示顾客/客服消息并直接回复，列表与消息均分页。`admin-details.js` 统一通用详情与处理结果，避免直接渲染JSON。票据记录导出使用可打印HTML；JSON仅用于装修技术备份。
+
+`access-admin.js` 在开关下提供各渠道参数编辑，调用管理员 provider_get/provider_upsert，字段由服务端注册。私密字段不回显，留空保留，显式勾选可清除；渠道参数和开关各有独立版本。详见 `docs/login-providers.md`、`docs/payment-providers.md`。

@@ -9,9 +9,11 @@ import (
 	"strings"
 )
 
-func (r *Repository) AdminList(ctx context.Context, c platform.Request) ([]domain.Record, int64, adminquery.Filters, error) {
+func (r *Repository) AdminList(ctx context.Context, c platform.Request) (spanResult0 []domain.Record, spanResult1 int64, spanResult2 adminquery.Filters, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "catalog.repository.AdminList")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	data := map[string]any{}
 	for k, v := range c.Data {
 		data[k] = v

@@ -46,16 +46,20 @@ func (r *Repository) Seed(ctx context.Context) error {
 		).
 		Error
 }
-func (r *Repository) List(ctx context.Context) (platform.Result, error) {
+func (r *Repository) List(ctx context.Context) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.group.List")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var v []domain.Team
 	e := r.DB.WithContext(ctx).Order("created_at DESC").Limit(100).Find(&v).Error
 	return platform.Result{"items": v}, e
 }
-func (r *Repository) Get(ctx context.Context, id string) (platform.Result, error) {
+func (r *Repository) Get(ctx context.Context, id string) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.group.Get")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var t domain.Team
 	var aliasErr error
 	id, aliasErr = r.resolveCreateAlias(ctx, id)
@@ -63,6 +67,8 @@ func (r *Repository) Get(ctx context.Context, id string) (platform.Result, error
 		return nil, aliasErr
 	}
 	if e := r.DB.WithContext(ctx).First(&t, "id = ?", id).Error; e != nil {
+		platform.TraceError(ctx, e)
+
 		return nil, status.Error(codes.NotFound, "group not found")
 	}
 	out := platform.Map(t)
@@ -71,9 +77,11 @@ func (r *Repository) Get(ctx context.Context, id string) (platform.Result, error
 }
 
 // ExistingCreate returns the immutable team before consulting a changed policy.
-func (r *Repository) ExistingCreate(ctx context.Context, c platform.Request) (platform.Result, bool, error) {
+func (r *Repository) ExistingCreate(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanResult1 bool, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "group.repository.ExistingCreate")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if c.ID == "" && c.IdempotencyKey == "" {
 		return nil, false, nil
 	}
@@ -102,9 +110,11 @@ func (r *Repository) ExistingCreate(ctx context.Context, c platform.Request) (pl
 	}
 	return platform.Map(old), true, nil
 }
-func (r *Repository) Create(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Create(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.group.Create")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	required := platform.Int(c.Data, "required")
 	if required == 0 {
 		required = 2
@@ -147,9 +157,11 @@ func (r *Repository) Create(ctx context.Context, c platform.Request) (platform.R
 	})
 	return platform.Map(t), e
 }
-func (r *Repository) Reserve(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Reserve(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.group.Reserve")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	gid := platform.Text(c.Data, "group_id")
 	var aliasErr error
 	gid, aliasErr = r.resolveCreateAlias(ctx, gid)
@@ -248,9 +260,11 @@ func emit(ctx context.Context, tx *gorm.DB, t domain.Team, kind string) error {
 	}
 	return nil
 }
-func (r *Repository) Paid(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Paid(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.group.Paid")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var seat domain.Seat
 	var t domain.Team
 	e := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -333,9 +347,11 @@ func (r *Repository) Paid(ctx context.Context, c platform.Request) (platform.Res
 	out["formed"] = t.State == constants.GroupStatusFormed
 	return out, e
 }
-func (r *Repository) Cancel(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Cancel(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.group.Cancel")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if c.ID == "" {
 		return nil, status.Error(codes.InvalidArgument, "order required")
 	}
@@ -372,9 +388,11 @@ func (r *Repository) Cancel(ctx context.Context, c platform.Request) (platform.R
 	})
 	return platform.Map(seat), e
 }
-func (r *Repository) Expire(ctx context.Context) (platform.Result, error) {
+func (r *Repository) Expire(ctx context.Context) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.group.Expire")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var teams []domain.Team
 	if e := r.DB.WithContext(ctx).Where("state = ? AND expires_at <= ?", constants.GroupStatusOpen, time.Now()).Limit(
 		100,
@@ -413,9 +431,11 @@ func (r *Repository) Expire(ctx context.Context) (platform.Result, error) {
 	}
 	return platform.Result{"expired": count}, nil
 }
-func (r *Repository) HasSeat(ctx context.Context, id string) (bool, error) {
+func (r *Repository) HasSeat(ctx context.Context, id string) (spanResult0 bool, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.group.HasSeat")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var n int64
 	e := r.DB.WithContext(ctx).Model(&domain.Seat{}).Where("id = ?", id).Count(&n).Error
 	return n > 0, e

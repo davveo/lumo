@@ -54,6 +54,7 @@ func WithAdministration(m Module, db *gorm.DB) Module {
 	}
 	tick := m.Tick
 	m.Tick = func(ctx context.Context) error {
+		ctx = NewTraceErrorContext(ctx)
 		if e := processRecovery(ctx, db, m); e != nil {
 			return e
 		}
@@ -111,11 +112,28 @@ func serviceTasks(ctx context.Context, db *gorm.DB, name string, c Request) (Res
 		return nil, status.Error(codes.InvalidArgument, "invalid task kind")
 	}
 	q = q.Model(model)
-	if state != "" && kind != "audit" {
+	now := time.Now().UTC()
+	if state == "attention" {
+		switch kind {
+		case "outbox":
+			q = q.Where("state <> ? AND lease_until <= ? AND (attempts > 0 OR created_at < ?)", constants.OutboxStatePublished, now, now.Add(-5*time.Minute))
+		case "inbox":
+			q = q.Where("state IN ? OR (state = ? AND lease_until <= ?)", []string{constants.InboxStateDead, constants.InboxStateRetry}, constants.InboxStateProcessing, now)
+		case "recovery":
+			q = q.Where("state = ? OR (state = ? AND lease_until <= ? AND created_at < ?)", constants.InboxStateDead, constants.InboxStateRetry, now, now.Add(-5*time.Minute))
+		}
+	} else if state != "" && kind != "audit" {
 		q = q.Where("state = ?", state)
 	}
 	if keyword != "" {
-		q = q.Where(search+" LIKE ? ESCAPE '!'", "%"+strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(keyword)+"%")
+		pattern := "%" + strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(keyword) + "%"
+		if kind == "outbox" {
+			q = q.Where("id LIKE ? ESCAPE '!' OR event_type LIKE ? ESCAPE '!' OR payload_json LIKE ? ESCAPE '!'", pattern, pattern, pattern)
+		} else if kind == "inbox" {
+			q = q.Where("event_id LIKE ? ESCAPE '!' OR payload_json LIKE ? ESCAPE '!'", pattern, pattern)
+		} else {
+			q = q.Where(search+" LIKE ? ESCAPE '!' OR reason LIKE ? ESCAPE '!'", pattern, pattern)
+		}
 	}
 	var total int64
 	if e := q.Count(&total).Error; e != nil {
@@ -130,13 +148,8 @@ func serviceTasks(ctx context.Context, db *gorm.DB, name string, c Request) (Res
 			return nil, e
 		}
 		for _, v := range rows {
-			carrier := map[string]string{}
-			_ = json.Unmarshal([]byte(v.CarrierJSON), &carrier)
-			trace := ""
-			if parts := strings.Split(carrier["traceparent"], "-"); len(parts) == 4 && len(parts[1]) == 32 {
-				trace = parts[1]
-			}
-			items = append(items, Result{"id": v.ID, "event_type": v.EventType, "state": v.State, "attempts": v.Attempts, "next_attempt_at": v.NextAttemptAt, "lease_until": v.LeaseUntil, "created_at": v.CreatedAt, "trace_id": trace, "retryable": v.State != constants.OutboxStatePublished && !v.LeaseUntil.After(time.Now().UTC())})
+			row := Result{"id": v.ID, "event_type": v.EventType, "state": v.State, "attempts": v.Attempts, "next_attempt_at": v.NextAttemptAt, "lease_until": v.LeaseUntil, "created_at": v.CreatedAt, "updated_at": v.UpdatedAt, "published_at": v.PublishedAt, "last_error_code": v.LastErrorCode, "last_error_at": v.LastErrorAt, "retryable": (v.State == constants.OutboxStatePending || v.State == constants.OutboxStatePublishing) && !v.LeaseUntil.After(now)}
+			items = append(items, describeTask(row, kind, name, v.PayloadJSON, v.CarrierJSON, now))
 		}
 	case "inbox":
 		rows := []Inbox{}
@@ -144,7 +157,8 @@ func serviceTasks(ctx context.Context, db *gorm.DB, name string, c Request) (Res
 			return nil, e
 		}
 		for _, v := range rows {
-			items = append(items, Result{"id": v.EventID, "consumer": v.Consumer, "state": v.State, "attempts": v.Attempts, "updated_at": v.UpdatedAt, "retryable": v.PayloadJSON != "" && (v.State == constants.InboxStateDead || v.State == constants.InboxStateRetry || v.State == constants.InboxStateProcessing && !v.LeaseUntil.After(time.Now().UTC()))})
+			row := Result{"id": v.EventID, "consumer": v.Consumer, "state": v.State, "attempts": v.Attempts, "updated_at": v.UpdatedAt, "lease_until": v.LeaseUntil, "last_error_code": v.LastErrorCode, "last_error_at": v.LastErrorAt, "retryable": v.PayloadJSON != "" && !v.LeaseUntil.After(now) && (v.State == constants.InboxStateDead || v.State == constants.InboxStateRetry || v.State == constants.InboxStateProcessing)}
+			items = append(items, describeTask(row, kind, name, v.PayloadJSON, v.CarrierJSON, now))
 		}
 	case "recovery":
 		rows := []Recovery{}
@@ -152,7 +166,9 @@ func serviceTasks(ctx context.Context, db *gorm.DB, name string, c Request) (Res
 			return nil, e
 		}
 		for _, v := range rows {
-			items = append(items, Map(v))
+			row := Map(v)
+			row["lease_until"] = v.LeaseUntil
+			items = append(items, row)
 		}
 	case "audit":
 		rows := []TaskAudit{}
@@ -161,6 +177,39 @@ func serviceTasks(ctx context.Context, db *gorm.DB, name string, c Request) (Res
 		}
 		for _, v := range rows {
 			items = append(items, Map(v))
+		}
+	}
+	// Recovery and audit records reference messages in the same service schema.
+	if (kind == "recovery" || kind == "audit") && len(items) > 0 {
+		ids := []string{}
+		for _, row := range items {
+			ids = append(ids, Text(row, "event_id"))
+		}
+		inbox := []Inbox{}
+		outbox := []Outbox{}
+		if e := db.WithContext(ctx).Where("consumer = ? AND event_id IN ?", name, ids).Find(&inbox).Error; e != nil {
+			return nil, e
+		}
+		if e := db.WithContext(ctx).Where("id IN ?", ids).Find(&outbox).Error; e != nil {
+			return nil, e
+		}
+		ins, outs := map[string]Inbox{}, map[string]Outbox{}
+		for _, v := range inbox {
+			ins[v.EventID] = v
+		}
+		for _, v := range outbox {
+			outs[v.ID] = v
+		}
+		for _, row := range items {
+			payload, carrier := "", ""
+			id := Text(row, "event_id")
+			if v, ok := ins[id]; ok {
+				payload, carrier = v.PayloadJSON, v.CarrierJSON
+			}
+			if v, ok := outs[id]; ok && Text(row, "kind") == "outbox" {
+				payload, carrier = v.PayloadJSON, v.CarrierJSON
+			}
+			describeTask(row, kind, name, payload, carrier, now)
 		}
 	}
 	return Result{"items": items, "total": total, "page": page, "page_size": size, "service": name, "kind": kind}, nil
@@ -275,9 +324,11 @@ func processRecovery(ctx context.Context, db *gorm.DB, m Module) error {
 	parent := otel.GetTextMapPropagator().Extract(ctx, carrier)
 	handler, cancel := context.WithTimeout(parent, 30*time.Second)
 	defer cancel()
+	TraceRequest(ctx, event)
 	e = m.OnEvent(handler, event)
 	if e != nil {
-		if err := markInbox(ctx, db, claim, constants.InboxStateDead); err != nil {
+		TraceError(ctx, e)
+		if err := markInbox(ctx, db, claim, constants.InboxStateDead, e); err != nil {
 			return err
 		}
 		return finish(constants.InboxStateDead, status.Code(e).String())

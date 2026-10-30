@@ -162,6 +162,8 @@ func (s *Service) Submit(ctx context.Context, c platform.Request) (traceResult p
 	key := hex.EncodeToString(hash[:])
 	body, err := json.Marshal(c.Data)
 	if err != nil {
+		platform.TraceError(ctx, err)
+
 		return nil, status.Error(codes.InvalidArgument, "invalid submit payload")
 	}
 	bodyHash := sha256.Sum256(body)
@@ -332,9 +334,13 @@ func (s *Service) Submit(ctx context.Context, c platform.Request) (traceResult p
 	}
 	encoded, e := json.Marshal(address)
 	if e != nil {
+		platform.TraceError(ctx, e)
+
 		return nil, status.Error(codes.InvalidArgument, "invalid shipping address")
 	}
 	if e = json.Unmarshal(encoded, &ship); e != nil {
+		platform.TraceError(ctx, e)
+
 		return nil, status.Error(codes.InvalidArgument, "invalid shipping address fields")
 	}
 	ship.Recipient = strings.TrimSpace(ship.Recipient)

@@ -133,6 +133,8 @@ func (s *Service) Reserve(ctx context.Context, c platform.Request) (traceResult 
 		Lines   []domain.Line `json:"lines"`
 	}
 	if e := platform.Decode(c.Data, &v); e != nil {
+		platform.TraceError(ctx, e)
+
 		return nil, status.Error(codes.InvalidArgument, "invalid reservation")
 	}
 	return s.Repo.Reserve(ctx, c, v.OrderID, v.Lines)

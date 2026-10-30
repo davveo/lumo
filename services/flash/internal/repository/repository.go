@@ -41,9 +41,11 @@ func (r *Repository) Seed(ctx context.Context) error {
 		).
 		Error
 }
-func (r *Repository) Session(ctx context.Context, id string) (domain.Session, error) {
+func (r *Repository) Session(ctx context.Context, id string) (spanResult0 domain.Session, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.flash.Session")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var v domain.Session
 	e := r.DB.WithContext(ctx).First(&v, "id = ?", id).Error
 	if errors.Is(e, gorm.ErrRecordNotFound) {
@@ -51,16 +53,20 @@ func (r *Repository) Session(ctx context.Context, id string) (domain.Session, er
 	}
 	return v, e
 }
-func (r *Repository) List(ctx context.Context) (platform.Result, error) {
+func (r *Repository) List(ctx context.Context) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.flash.List")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var v []domain.Session
 	e := r.DB.WithContext(ctx).Where("active = ?", true).Find(&v).Error
 	return platform.Result{"items": v}, e
 }
-func (r *Repository) Find(ctx context.Context, user, key string) (*domain.Request, error) {
+func (r *Repository) Find(ctx context.Context, user, key string) (spanResult0 *domain.Request, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.flash.Find")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var v domain.Request
 	e := r.DB.WithContext(ctx).Where("user_id = ? AND `key` = ?", user, key).First(&v).Error
 	if errors.Is(e, gorm.ErrRecordNotFound) {
@@ -68,9 +74,11 @@ func (r *Repository) Find(ctx context.Context, user, key string) (*domain.Reques
 	}
 	return &v, e
 }
-func (r *Repository) Get(ctx context.Context, id string) (domain.Request, error) {
+func (r *Repository) Get(ctx context.Context, id string) (spanResult0 domain.Request, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.flash.Get")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var v domain.Request
 	e := r.DB.WithContext(ctx).First(&v, "id = ?", id).Error
 	if errors.Is(e, gorm.ErrRecordNotFound) {
@@ -78,11 +86,15 @@ func (r *Repository) Get(ctx context.Context, id string) (domain.Request, error)
 	}
 	return v, e
 }
-func (r *Repository) Create(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Create(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.flash.Create")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	payload, e := json.Marshal(c.Data)
 	if e != nil {
+		platform.TraceError(ctx, e)
+
 		return nil, status.Error(codes.InvalidArgument, "invalid flash payload")
 	}
 	sum := sha256.Sum256([]byte(c.UserID + "\x00" + c.IdempotencyKey))
@@ -129,18 +141,22 @@ func (r *Repository) Create(ctx context.Context, c platform.Request) (platform.R
 	})
 	return platform.Map(v), e
 }
-func (r *Repository) SetProcessing(ctx context.Context, id string) error {
+func (r *Repository) SetProcessing(ctx context.Context, id string) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.flash.SetProcessing")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.DB.WithContext(ctx).
 		Model(&domain.Request{}).
 		Where("id = ? AND state = ?", id, constants.FlashRequestStatusQueued).
 		Update("state", constants.FlashRequestStatusProcessing).
 		Error
 }
-func (r *Repository) Finish(ctx context.Context, id, order, reason string) error {
+func (r *Repository) Finish(ctx context.Context, id, order, reason string) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.flash.Finish")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	next := constants.FlashRequestStatusSucceeded
 	if reason != "" {
 		next = constants.FlashRequestStatusFailed

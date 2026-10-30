@@ -10,9 +10,11 @@ import (
 	"os"
 )
 
-func (s *Service) PolicyGet(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) PolicyGet(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "payment.usecase.PolicyGet")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
@@ -22,9 +24,11 @@ func (s *Service) PolicyGet(ctx context.Context, c platform.Request) (platform.R
 func paymentCapabilities() []platform.Result {
 	return []platform.Result{{"id": constants.PaymentProviderDemo, "name": "演示支付", "configured": os.Getenv("DEMO_MODE") == "true" || os.Getenv("DEMO_MODE") == "1"}, {"id": "wechat", "name": "微信支付", "configured": false, "reason": "尚未接入微信支付渠道适配器"}, {"id": "alipay", "name": "支付宝", "configured": false, "reason": "尚未接入支付宝渠道适配器"}, {"id": "card", "name": "银行卡", "configured": false, "reason": "尚未接入银行卡收单渠道适配器"}}
 }
-func (s *Service) PolicyUpsert(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) PolicyUpsert(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "payment.usecase.PolicyUpsert")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
@@ -45,9 +49,11 @@ func (s *Service) PolicyUpsert(ctx context.Context, c platform.Request) (platfor
 	}
 	return s.r.SaveMethodsPolicy(ctx, c, in.Config)
 }
-func (s *Service) Methods(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) Methods(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "payment.usecase.Methods")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	p, v, e := s.r.MethodsPolicy(ctx)
 	if e != nil {
 		return nil, e

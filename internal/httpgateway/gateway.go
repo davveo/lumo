@@ -23,7 +23,7 @@ import (
 // An HTTP action must appear here. In particular, internal money/resource/state
 // commands cannot be accessed by choosing arbitrary service/action URL values.
 var publicActions = actionSet(map[string][]string{
-	constants.ServiceIAM:            {constants.ActionLogin},
+	constants.ServiceIAM:            {constants.ActionLogin, constants.ActionRegister},
 	constants.ServiceCatalog:        {constants.ActionList, constants.ActionGet, constants.ActionBatchGet},
 	constants.ServiceSearch:         {constants.ActionQuery},
 	constants.ServiceRecommendation: {constants.ActionList},
@@ -209,6 +209,7 @@ type httpTraceContextKey struct{}
 type httpTraceCall struct{ contexts []context.Context }
 
 func beginHTTPTrace(ctx context.Context) context.Context {
+	ctx = platform.NewTraceErrorContext(ctx)
 	call := &httpTraceCall{contexts: []context.Context{ctx}}
 	return context.WithValue(ctx, httpTraceContextKey{}, call)
 }
@@ -392,11 +393,13 @@ func (g *gateway) execute(w http.ResponseWriter, r *http.Request) {
 		decoder.UseNumber()
 		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(&cmd); err != nil && err != io.EOF {
+			platform.TraceError(ctx, err)
 			traceHTTPRequest(ctx, map[string]any{"body": "invalid JSON command"})
 			writeError(w, ctx, status.Error(codes.InvalidArgument, "body must be one JSON command"))
 			return
 		}
 		if err := decoder.Decode(&struct{}{}); err != io.EOF {
+			platform.TraceError(ctx, err)
 			traceHTTPRequest(ctx, map[string]any{"body": "invalid JSON command"})
 			writeError(w, ctx, status.Error(codes.InvalidArgument, "body contains trailing data"))
 			return
@@ -411,7 +414,7 @@ func (g *gateway) execute(w http.ResponseWriter, r *http.Request) {
 	if v := r.Header.Get("Idempotency-Key"); v != "" {
 		cmd.IdempotencyKey = v
 	}
-	if service == constants.ServiceIAM && (action == constants.ActionOtpSend || action == constants.ActionOAuthStart) {
+	if service == constants.ServiceIAM && (action == constants.ActionOtpSend || action == constants.ActionOAuthStart || action == constants.ActionRegister) {
 		host, _, e := net.SplitHostPort(r.RemoteAddr)
 		if e != nil {
 			host = r.RemoteAddr
@@ -506,9 +509,10 @@ func writeJSONResponse(w http.ResponseWriter, ctx context.Context, code int, pay
 	if err == nil {
 		traceHTTPResponse(ctx, payload, nil)
 	} else {
-		// Service errors may interpolate user input. Preserve the HTTP contract,
-		// while recording only the canonical error code in tracing payloads.
-		traceHTTPResponse(ctx, map[string]any{"error": map[string]any{"code": status.Code(err).String()}}, err)
+		// TraceResponse builds its own sanitized diagnostic. Feeding a protocol
+		// error envelope through the PII preview would mistake its code/message
+		// for OTP credentials or private user text and hide the actual cause.
+		traceHTTPResponse(ctx, nil, err)
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
@@ -545,6 +549,6 @@ func writeError(w http.ResponseWriter, ctx context.Context, err error) {
 		ctx,
 		code,
 		map[string]any{"error": map[string]any{"code": s.Code().String(), "message": s.Message()}},
-		status.Error(s.Code(), s.Code().String()),
+		err,
 	)
 }

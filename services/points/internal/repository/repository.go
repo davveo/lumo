@@ -42,9 +42,11 @@ func account(ctx context.Context, tx *gorm.DB, user string) (domain.Account, err
 	e = tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&v, "user_id = ?", user).Error
 	return v, e
 }
-func (r *Repository) Get(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Get(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.points.Get")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var a domain.Account
 	e := r.DB.WithContext(ctx).
 		Transaction(func(tx *gorm.DB) error { var er error; a, er = account(ctx, tx, c.UserID); return er })
@@ -57,9 +59,11 @@ func (r *Repository) Get(ctx context.Context, c platform.Request) (platform.Resu
 	out["ledger"] = ls
 	return out, e
 }
-func (r *Repository) Reserve(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Reserve(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.points.Reserve")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	n := platform.Int(c.Data, "amount")
 	if c.ID == "" || n < 0 || n > 100000000 {
 		return nil, status.Error(codes.InvalidArgument, "order and valid amount required")
@@ -119,9 +123,11 @@ func (r *Repository) Confirm(ctx context.Context, c platform.Request) (platform.
 func (r *Repository) Cancel(ctx context.Context, c platform.Request) (platform.Result, error) {
 	return r.transition(ctx, c, constants.PointsHoldStateCancelled)
 }
-func (r *Repository) transition(ctx context.Context, c platform.Request, target string) (platform.Result, error) {
+func (r *Repository) transition(ctx context.Context, c platform.Request, target string) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.points.transition."+target)
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if c.ID == "" {
 		return nil, status.Error(codes.InvalidArgument, "order required")
 	}
@@ -188,9 +194,11 @@ func (r *Repository) Checkin(ctx context.Context, c platform.Request) (platform.
 func (r *Repository) Reward(ctx context.Context, c platform.Request) (platform.Result, error) {
 	return r.credit(ctx, c, false)
 }
-func (r *Repository) credit(ctx context.Context, c platform.Request, checkin bool) (platform.Result, error) {
+func (r *Repository) credit(ctx context.Context, c platform.Request, checkin bool) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.points.Credit")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	n := platform.Int(c.Data, "amount")
 	id := "reward:" + c.ID
 	kind := constants.PointsLedgerKindReward
@@ -284,9 +292,11 @@ func (r *Repository) credit(ctx context.Context, c platform.Request, checkin boo
 	})
 	return result, e
 }
-func (r *Repository) Refund(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Refund(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.points.Refund")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	order := platform.Text(c.Data, "order_id")
 	payable := platform.Int(c.Data, "payable_cents")
 	total := platform.Int(c.Data, "refunded_total_cents")

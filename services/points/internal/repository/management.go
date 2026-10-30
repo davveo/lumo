@@ -24,9 +24,11 @@ func (r *Repository) Policy(ctx context.Context) (commercepolicy.Points, error) 
 func (r *Repository) PolicyUpsert(ctx context.Context, c platform.Request, p commercepolicy.Points) (platform.Result, error) {
 	return adminconfig.Save(ctx, r.DB, "points-policy", p, platform.Int(c.Data, "version"), c.UserID, platform.Text(c.Data, "reason"))
 }
-func (r *Repository) AdminGet(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) AdminGet(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "points.repository.AdminGet")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var v domain.Account
 	e := r.DB.WithContext(ctx).Where("user_id = ?", c.ID).Find(&v).Error
 	if e != nil {
@@ -35,15 +37,19 @@ func (r *Repository) AdminGet(ctx context.Context, c platform.Request) (platform
 	v.UserID = c.ID
 	return platform.Map(v), nil
 }
-func (r *Repository) Ledger(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Ledger(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "points.repository.Ledger")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	rows, total, f, e := adminquery.Page[domain.Ledger](ctx, r.DB.WithContext(ctx).Where("user_id = ?", c.ID), c.Data, adminquery.Spec{State: "kind", Search: []string{"id", "order_id", "reason", "actor_id"}})
 	return adminquery.Result(rows, total, f), e
 }
-func (r *Repository) Adjust(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Adjust(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "points.repository.Adjust")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	amount := platform.Int(c.Data, "amount")
 	reason := strings.TrimSpace(platform.Text(c.Data, "reason"))
 	var input struct {

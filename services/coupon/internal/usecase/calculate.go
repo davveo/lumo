@@ -7,9 +7,11 @@ import (
 
 // Calculate uses the same authoritative calculation and immutable quote as
 // checkout. It neither claims a coupon nor reserves inventory or points.
-func (s *Service) Calculate(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) Calculate(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "coupon.usecase.Calculate")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireUser(c); e != nil {
 		return nil, e
 	}

@@ -1,7 +1,14 @@
 (function () {
   'use strict';
   const C = window.LumoConstants;
-  const PAGE_SIZE = 6;
+  const pageSize = () =>
+    window.matchMedia?.('(max-width: 540px)').matches
+      ? 4
+      : window.matchMedia?.('(max-width: 800px)').matches
+        ? 6
+        : window.matchMedia?.('(max-width: 1100px)').matches
+          ? 8
+          : 12;
   const MAX_COMPARE = 3;
   let catalogPage = 1;
   let catalogSignature = '';
@@ -217,7 +224,7 @@
     const key = 'search-' + (crypto.randomUUID?.() || Date.now().toString(36));
     api(C.Service.Analytics, C.Action.Record, {
       idempotency_key: key,
-      data: { type: C.AnalyticsBehavior.Search, query: clean },
+      data: { type: C.AnalyticsBehavior.Search, query: clean, page: '#/search', source: 'search' },
     }).catch(() => {});
   }
   function commitSearch(query) {
@@ -275,6 +282,7 @@
       ui.max,
       ui.sort,
       current.filters,
+      pageSize(),
       list.map((p) => [p.id, p.price]),
     ]);
     if (signature !== catalogSignature) {
@@ -282,11 +290,11 @@
       catalogSignature = signature;
     }
     lastTotal = list.length;
-    catalogPage = Math.max(1, Math.min(catalogPage, Math.ceil(lastTotal / PAGE_SIZE) || 1));
-    return list.slice((catalogPage - 1) * PAGE_SIZE, catalogPage * PAGE_SIZE);
+    catalogPage = Math.max(1, Math.min(catalogPage, Math.ceil(lastTotal / pageSize()) || 1));
+    return list.slice((catalogPage - 1) * pageSize(), catalogPage * pageSize());
   }
   function pagination(total = lastTotal) {
-    const pages = Math.ceil(total / PAGE_SIZE);
+    const pages = Math.ceil(total / pageSize());
     if (pages < 2) return '';
     const visible = [
       ...new Set([1, catalogPage - 1, catalogPage, catalogPage + 1, pages].filter((n) => n >= 1 && n <= pages)),
@@ -479,7 +487,15 @@
   document.addEventListener('focusout', (event) => {
     if (inSearchContext(event.target) && !inSearchContext(event.relatedTarget)) closeSearch();
   });
-  window.addEventListener?.('resize', positionOpenSearch);
+  let previousPageSize = pageSize();
+  window.addEventListener?.('resize', () => {
+    positionOpenSearch();
+    const size = pageSize();
+    if (size !== previousPageSize) {
+      previousPageSize = size;
+      if (document.querySelector('.catalog-page')) renderKeepScroll();
+    }
+  });
   window.addEventListener?.('hashchange', closeSearch);
   window.visualViewport?.addEventListener('resize', positionOpenSearch);
   window.addEventListener?.('scroll', closeSearch, { passive: true });
@@ -573,7 +589,7 @@
       return;
     }
     if (action === 'page') {
-      catalogPage = Math.max(1, Math.min(Math.ceil(lastTotal / PAGE_SIZE) || 1, Number(button.dataset.value) || 1));
+      catalogPage = Math.max(1, Math.min(Math.ceil(lastTotal / pageSize()) || 1, Number(button.dataset.value) || 1));
       renderKeepScroll();
       document.getElementById('catalog')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
       return;

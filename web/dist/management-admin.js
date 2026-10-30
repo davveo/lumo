@@ -63,10 +63,10 @@
       ['search', '搜索策略'],
     ],
     tasks: [
-      ['outbox', '待发送事件'],
-      ['inbox', '消费状态'],
-      ['recovery', '重放任务'],
-      ['audit', '重试审计'],
+      ['outbox', '发送通知'],
+      ['inbox', '消费处理'],
+      ['recovery', '人工重试'],
+      ['audit', '操作记录'],
     ],
     audit: [['accounts', '账号启停记录']],
     content: [
@@ -75,6 +75,54 @@
     ],
     reconciliation: [['reports', '对账任务']],
   };
+  const serviceLabels = {
+    iam: '账号',
+    catalog: '商品',
+    inventory: '库存',
+    campaign: '营销活动',
+    coupon: '优惠券',
+    points: '积分',
+    cart: '购物车',
+    pricing: '计价',
+    order: '订单',
+    checkout: '下单流程',
+    payment: '支付',
+    refund: '退款',
+    group: '拼团',
+    flash: '秒杀',
+    fulfillment: '仓库履约',
+    logistics: '物流配送',
+    aftersale: '售后',
+    invoice: '发票',
+    member: '会员',
+    address: '收货地址',
+    media: '媒体文件',
+    engagement: '收藏与足迹',
+    interaction: '评价与问答',
+    content: '内容',
+    analytics: '行为分析',
+    notification: '消息通知',
+    helpdesk: '客服工单',
+    search: '商品搜索',
+    recommendation: '商品推荐',
+    reconciliation: '对账',
+  };
+  const taskDate = (value) => (value && Date.parse(value) > 0 ? date(value) : '—');
+  function taskBusiness(row, all = false) {
+    const references = Array.isArray(row.business_references) ? row.business_references : [];
+    return references.length
+      ? references
+          .slice(0, all ? 12 : 2)
+          .map(
+            (item) =>
+              `<span class="mg-task-reference"><small>${esc(item.label)}</small><code>${esc(item.id)}</code></span>`,
+          )
+          .join('')
+      : '<small>未记录关联业务编号</small>';
+  }
+  function taskDetails(s, row) {
+    return `<button class="outline" data-mg="task-back">← 返回任务列表</button><section class="admin-section mg-task-panel"><div class="admin-panel-heading"><h2>${esc(row.task_title || '业务通知')}</h2><span class="admin-state neutral">${esc(row.status_label || label[row.state] || '操作记录')}</span></div><dl class="op-definition mg-task-definition">${pair('任务内容', row.task_title || '业务通知')}${pair('处理服务', serviceLabels[s.service] || s.service)}${pair('处理阶段', row.stage_label || s.mode)}${pair('当前结果', row.status_description || label[row.state] || row.state)}${row.failure_reason ? pair('失败原因', row.failure_reason) : ''}${row.suggested_action ? pair('处理建议', row.suggested_action) : ''}${pair('可否重试', row.retry_reason || (row.retryable ? '可重试' : '无需重试'))}${row.attempts != null ? pair('已尝试次数', row.attempts) : ''}${pair('最近更新时间', taskDate(row.updated_at || row.created_at))}${row.last_error_at ? pair('最近失败时间', taskDate(row.last_error_at)) : ''}${row.next_attempt_at && Date.parse(row.next_attempt_at) > 0 && row.state !== C.OutboxState.Published ? pair('下次自动尝试', taskDate(row.next_attempt_at)) : ''}${row.lease_until && Date.parse(row.lease_until) > Date.now() ? pair('本次处理截止', taskDate(row.lease_until)) : ''}${row.actor_id ? pair('发起人', row.actor_id) : ''}${row.reason ? pair('操作原因', row.reason) : ''}</dl><div class="mg-task-business">${taskBusiness(row, true)}</div><details class="mg-task-technical"><summary>技术定位信息</summary><dl class="op-definition">${pair('事件编号', row.event_id || row.id)}${row.event_id ? pair('重试记录编号', row.id) : ''}${pair('事件类型', row.event_type || '未记录')}${pair('追踪编号', row.trace_id || '未记录')}${row.last_error_code || row.error ? pair('错误分类', row.last_error_code || row.error) : ''}${pair('内部状态', row.state || '操作记录')}</dl></details>${row.retryable ? `<div class="admin-actions"><button class="primary" data-mg="retry" data-id="${esc(row.id)}">${s.mode === 'outbox' ? '重新发送' : '重新处理'}</button></div>` : ''}</section>`;
+  }
   const notes = {
     special: '先维护专用活动配额，再绑定场次或拼团规则；已有订单与团保留原有规则。',
     stockwatch: '按真实可售数量筛选全部库存，库存阈值与数量分开管理。',
@@ -399,7 +447,7 @@
   }
   function editor(s) {
     const d = s.draft;
-    return `<form data-mg-save class="admin-section"><div class="admin-panel-heading"><h2>${esc({ session: '秒杀场次', rule: '拼团规则', quota: '专用活动配额', threshold: '预警阈值', adjustPoints: '人工积分补偿', profile: '会员资料', run: '创建账期对账任务', retry: '重试异常事件', resume: '恢复核对', template: '通知模板', article: '内容发布', pointsRules: '积分规则', memberRules: '会员成长规则', shipping: '配送模板', recommendation: '推荐运营', search: '搜索策略' }[d.type])}</h2><button type="button" class="outline" data-mg="cancel">返回</button></div>${['session', 'rule'].includes(d.type) ? '<p class="admin-muted">先在“活动配额”维护匹配的秒杀或拼团规则，再填写对应编号。变更不修改已产生订单与拼团。</p>' : ''}${d.type === 'template' ? '<p class="admin-muted">支持 {{business_id}}、{{event_type}}、{{amount}}。仅站内信，历史通知保留原文。</p>' : ''}${d.type === 'adjustPoints' ? `<p class="admin-inline-note">会员 ${esc(d.values.user_id)}，当前可用 ${esc(d.values.expected_available)}。增加的积分会先偿还已有欠账；冻结积分不会被人工扣减。</p>` : ''}${d.type === 'retry' ? `<p class="admin-inline-note">重试 ${esc(d.values.id)}，沿用原事件与消费幂等规则。不会直接修改订单、库存或资金状态。</p>` : ''}<div class="admin-form mg-fields">${formFields(
+    return `<form data-mg-save class="admin-section"><div class="admin-panel-heading"><h2>${esc({ session: '秒杀场次', rule: '拼团规则', quota: '专用活动配额', threshold: '预警阈值', adjustPoints: '人工积分补偿', profile: '会员资料', run: '创建账期对账任务', retry: '重试异常事件', resume: '恢复核对', template: '通知模板', article: '内容发布', pointsRules: '积分规则', memberRules: '会员成长规则', shipping: '配送模板', recommendation: '推荐运营', search: '搜索策略' }[d.type])}</h2><button type="button" class="outline" data-mg="cancel">返回</button></div>${['session', 'rule'].includes(d.type) ? '<p class="admin-muted">先在“活动配额”维护匹配的秒杀或拼团规则，再填写对应编号。变更不修改已产生订单与拼团。</p>' : ''}${d.type === 'template' ? '<p class="admin-muted">支持 {{business_id}}、{{event_type}}、{{amount}}。仅站内信，历史通知保留原文。</p>' : ''}${d.type === 'adjustPoints' ? `<p class="admin-inline-note">会员 ${esc(d.values.user_id)}，当前可用 ${esc(d.values.expected_available)}。增加的积分会先偿还已有欠账；冻结积分不会被人工扣减。</p>` : ''}${d.type === 'retry' ? `<p class="admin-inline-note">${esc(d.values.task_title || '业务通知')} · ${esc(d.values.failure_reason || d.values.status_description || '重新执行当前任务')}</p>` : ''}<div class="admin-form mg-fields">${formFields(
       d,
     )
       .map((f) => control(f, d, s.busy))
@@ -485,16 +533,32 @@
     if (s.key === 'tasks')
       return s.mode === 'audit'
         ? [
-            ['事件', (r) => esc(r.event_id)],
-            ['操作人', (r) => esc(r.actor_id)],
-            ['操作 / 原因', (r) => `${esc(r.kind)}<small>${esc(r.reason)}</small>`],
-            ['时间', (r) => date(r.created_at)],
+            [
+              '操作内容',
+              (r) =>
+                `<strong>${r.kind === 'outbox' ? '重新发送通知' : '重新处理业务'}</strong><small>${esc(r.task_title || '业务通知')}</small>`,
+            ],
+            ['关联业务', (r) => taskBusiness(r)],
+            ['操作人 / 原因', (r) => `<strong>${esc(r.actor_id)}</strong><small>${esc(r.reason)}</small>`],
+            ['操作时间', (r) => taskDate(r.created_at)],
           ]
         : [
-            ['事件 / 任务', (r) => `${esc(r.event_id || r.id)}<small>${esc(r.event_type || r.consumer || '')}</small>`],
-            ['状态', (r) => stateBadge(r.state)],
-            ['重试 / 跟踪', (r) => `${esc(r.attempts ?? '—')}<small>${esc(r.trace_id || r.error || '')}</small>`],
-            ['时间', (r) => date(r.created_at || r.updated_at)],
+            [
+              '任务内容',
+              (r) =>
+                `<strong>${esc(r.task_title || '业务通知')}</strong><small>${esc(r.stage_label || (s.mode === 'outbox' ? '发送通知' : '处理业务'))} · ${esc(serviceLabels[s.service] || s.service)}</small>`,
+            ],
+            ['关联业务', (r) => taskBusiness(r)],
+            [
+              '执行情况',
+              (r) =>
+                `<span class="admin-state ${r.failure_reason ? 'pending' : 'neutral'}">${esc(r.status_label || label[r.state] || r.state)}</span><small class="${r.failure_reason ? 'mg-task-failure' : ''}">${esc(r.failure_reason || r.status_description || '')}</small>`,
+            ],
+            [
+              '处理进度',
+              (r) =>
+                `${r.attempts != null ? `已尝试 ${esc(r.attempts)} 次` : `发起人：${esc(r.actor_id || '系统')}`}<small>${r.retryable ? '可手动重试' : esc(r.retry_reason || '—')}</small><small>${taskDate(r.updated_at || r.created_at)}</small>`,
+            ],
           ];
     if (s.key === 'audit')
       return [
@@ -533,15 +597,24 @@
     if (s.key === 'points') return b('points-detail', '资料与积分');
     if (s.key === 'messages' || s.key === 'content') return b('edit', '编辑');
     if (s.key === 'reconciliation') return b('report', '查看报告');
-    if (s.key === 'tasks' && r.retryable) return b('retry', '重试');
+    if (s.key === 'tasks')
+      return (
+        b('task-detail', '查看详情') + (r.retryable ? b('retry', s.mode === 'outbox' ? '重新发送' : '重新处理') : '')
+      );
     return '';
   }
   function table(s) {
     if (!s.ready) return window.LumoSkeleton.render('table', { count: 5 });
-    if (!s.items.length) return U.empty('暂无匹配记录', '调整筛选条件或创建新的配置。');
+    if (!s.items.length)
+      return s.key === 'tasks'
+        ? U.empty(
+            s.filters.status === 'attention' ? '当前服务暂无需要处理的任务' : '暂无匹配任务',
+            '可切换所属服务或查看全部状态。',
+          )
+        : U.empty('暂无匹配记录', '调整筛选条件或创建新的配置。');
     const cols = columns(s),
       rows = s.local ? s.items.slice((s.page - 1) * size, s.page * size) : s.items;
-    return `<div class="admin-table-wrap" tabindex="0" role="region" aria-label="${esc(names[s.key])}数据列表"><table class="admin-table mg-table"><thead><tr>${cols.map(([title]) => `<th>${title}</th>`).join('')}<th>操作</th></tr></thead><tbody>${rows.map((r) => `<tr>${cols.map(([, render]) => `<td>${render(r)}</td>`).join('')}<td><div class="admin-actions">${actions(s, r) || '<span class="admin-muted">—</span>'}</div></td></tr>`).join('')}</tbody></table></div>`;
+    return `<div class="admin-table-wrap" tabindex="0" role="region" aria-label="${esc(names[s.key])}数据列表"><table class="admin-table mg-table ${s.key === 'tasks' ? 'mg-task-table' : ''}"><thead><tr>${cols.map(([title]) => `<th>${title}</th>`).join('')}<th>操作</th></tr></thead><tbody>${rows.map((r) => `<tr>${cols.map(([, render]) => `<td>${render(r)}</td>`).join('')}<td><div class="admin-actions">${actions(s, r) || '<span class="admin-muted">—</span>'}</div></td></tr>`).join('')}</tbody></table></div>`;
   }
   function filters(s) {
     const options =
@@ -553,8 +626,14 @@
           ]
         : s.key === 'content'
           ? Object.entries(C.ContentStatus).map(([, v]) => [v, label[v] || v])
-          : s.key === 'tasks' && ['inbox', 'outbox'].includes(s.mode)
-            ? Object.entries(s.mode === 'outbox' ? C.OutboxState : C.InboxState).map(([, v]) => [v, label[v] || v])
+          : s.key === 'tasks' && ['inbox', 'outbox', 'recovery'].includes(s.mode)
+            ? [
+                ['attention', '需处理的任务'],
+                ...Object.entries(s.mode === 'outbox' ? C.OutboxState : C.InboxState).map(([, v]) => [
+                  v,
+                  s.mode === 'outbox' && v === C.OutboxState.Published ? '已发送' : label[v] || v,
+                ]),
+              ]
             : [];
     const services = s.services.length
       ? s.services
@@ -566,7 +645,7 @@
           C.Service.Points,
           C.Service.Notification,
         ];
-    return `<form data-mg-filter class="op-filters">${s.key === 'tasks' ? `<label class="field">所属服务<select name="service">${services.map((v) => `<option ${v === s.service ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label>` : ''}${s.key === 'special' && s.mode === 'quotas' ? `<label class="field">配额类型<select name="quotaKind"><option value="${C.CampaignKind.Flash}" ${s.quotaKind === C.CampaignKind.Flash ? 'selected' : ''}>秒杀</option><option value="${C.CampaignKind.Group}" ${s.quotaKind === C.CampaignKind.Group ? 'selected' : ''}>拼团</option></select></label>` : ''}<label class="field">${s.key === 'stockwatch' && s.mode === 'adjustments' ? '完整 SKU 编号（必填）' : '搜索记录'}<input type="search" name="${s.key === 'stockwatch' && s.mode === 'adjustments' ? 'sku' : 'keyword'}" value="${esc(s.key === 'stockwatch' && s.mode === 'adjustments' ? s.filters.sku : s.filters.keyword)}" placeholder="${s.key === 'stockwatch' ? 'SKU、操作人或凭证编号' : '名称、会员或业务编号'}"></label>${options.length ? `<label class="field">状态<select name="status"><option value="">全部状态</option>${options.map(([value, name]) => `<option value="${esc(value)}" ${s.filters.status === value ? 'selected' : ''}>${esc(name)}</option>`).join('')}</select></label>` : ''}<button class="primary" ${s.busy ? 'disabled' : ''}>查询</button><button type="button" class="outline" data-mg="reset" ${s.busy ? 'disabled' : ''}>重置</button></form>`;
+    return `<form data-mg-filter class="op-filters">${s.key === 'tasks' ? `<label class="field">所属服务<select name="service">${services.map((v) => `<option value="${esc(v)}" ${v === s.service ? 'selected' : ''}>${esc(serviceLabels[v] || v)}</option>`).join('')}</select></label>` : ''}${s.key === 'special' && s.mode === 'quotas' ? `<label class="field">配额类型<select name="quotaKind"><option value="${C.CampaignKind.Flash}" ${s.quotaKind === C.CampaignKind.Flash ? 'selected' : ''}>秒杀</option><option value="${C.CampaignKind.Group}" ${s.quotaKind === C.CampaignKind.Group ? 'selected' : ''}>拼团</option></select></label>` : ''}<label class="field">${s.key === 'stockwatch' && s.mode === 'adjustments' ? '完整 SKU 编号（必填）' : '搜索记录'}<input type="search" name="${s.key === 'stockwatch' && s.mode === 'adjustments' ? 'sku' : 'keyword'}" value="${esc(s.key === 'stockwatch' && s.mode === 'adjustments' ? s.filters.sku : s.filters.keyword)}" placeholder="${s.key === 'stockwatch' ? 'SKU、操作人或凭证编号' : s.key === 'tasks' ? '订单号、业务编号或事件编号' : '名称、会员或业务编号'}"></label>${options.length ? `<label class="field">状态<select name="status"><option value="">全部状态</option>${options.map(([value, name]) => `<option value="${esc(value)}" ${s.filters.status === value ? 'selected' : ''}>${esc(name)}</option>`).join('')}</select></label>` : ''}<button class="primary" ${s.busy ? 'disabled' : ''}>查询</button><button type="button" class="outline" data-mg="reset" ${s.busy ? 'disabled' : ''}>重置</button></form>`;
   }
   function detail(s) {
     if (s.key === 'points') {
@@ -685,10 +764,12 @@
       notes[s.key],
       `<button class="outline" data-mg="reload" ${s.busy ? 'disabled' : ''}>刷新</button>${!s.draft && !s.detailId && create ? '<button class="primary" data-mg="new">' + (s.key === 'reconciliation' ? '创建对账任务' : '新建配置') + '</button>' : ''}`,
     );
-    const tabs = s.detailId
-      ? ''
-      : `<div class="mg-tabs" role="group" aria-label="管理分类">${modes[s.key].map(([mode, name]) => `<button class="outline ${mode === s.mode ? 'active' : ''}" data-mg-mode="${mode}" ${s.busy ? 'disabled' : ''}>${name}</button>`).join('')}</div>`;
+    const tabs =
+      s.detailId || s.taskDetail
+        ? ''
+        : `<div class="mg-tabs" role="group" aria-label="管理分类">${modes[s.key].map(([mode, name]) => `<button class="outline ${mode === s.mode ? 'active' : ''}" data-mg-mode="${mode}" ${s.busy ? 'disabled' : ''}>${name}</button>`).join('')}</div>`;
     if (s.draft) return heading + tabs + editor(s);
+    if (s.taskDetail) return heading + taskDetails(s, s.taskDetail);
     if (s.detailId) return heading + (!s.ready ? window.LumoSkeleton.render('form', { count: 5 }) : detail(s));
     if (policyMode(s))
       return (
@@ -895,12 +976,13 @@
         services: [],
         service: C.Service.Inventory,
         quotaKind: C.CampaignKind.Flash,
-        filters: { keyword: '', status: '', sku: '' },
+        filters: { keyword: '', status: key === 'tasks' ? 'attention' : '', sku: '' },
         ready: false,
         busy: false,
         error: '',
         draft: null,
         detailId: '',
+        taskDetail: null,
         noteText: '',
         local: false,
       }),
@@ -920,7 +1002,7 @@
         s.ready = false;
         s.draft = null;
         s.detailId = '';
-        s.filters = { keyword: '', status: '', sku: '' };
+        s.filters = { keyword: '', status: key === 'tasks' && s.mode !== 'audit' ? 'attention' : '', sku: '' };
         await m.refresh();
         return;
       }
@@ -943,12 +1025,13 @@
         return;
       }
       if (action === 'reload') {
+        s.taskDetail = null;
         s.draft = null;
         await m.refresh();
         return;
       }
       if (action === 'reset') {
-        s.filters = { keyword: '', status: '', sku: '' };
+        s.filters = { keyword: '', status: key === 'tasks' && s.mode !== 'audit' ? 'attention' : '', sku: '' };
         s.page = 1;
         await m.refresh();
         return;
@@ -959,6 +1042,11 @@
           s.mode = modes[s.key][0][0];
           if (policyMode(s)) await m.refresh();
         }
+        m.draw();
+        return;
+      }
+      if (action === 'task-back') {
+        s.taskDetail = null;
         m.draw();
         return;
       }
@@ -1014,7 +1102,18 @@
         s.draft = draft(s, 'adjustPoints', { user_id: s.detailId, expected_available: s.account.available, amount: 0 });
       if (action === 'profile')
         s.draft = draft(s, 'profile', { display_name: s.profile.display_name || '', avatar: s.profile.avatar || '' });
-      if (action === 'retry' && row) s.draft = draft(s, 'retry', row);
+      if (action === 'task-detail' && row) {
+        s.taskDetail = row;
+        m.draw();
+        return;
+      }
+      if (action === 'retry') {
+        const selected = row || s.taskDetail;
+        if (selected?.retryable) {
+          s.draft = draft(s, 'retry', selected);
+          s.taskDetail = null;
+        }
+      }
       if (action === 'resume') s.draft = draft(s, 'resume', { id: s.detailId });
       m.draw();
     });

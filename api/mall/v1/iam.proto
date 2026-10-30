@@ -9,21 +9,24 @@ option go_package = "github.com/davveo/lumo/api/mall/v1;mallv1";
 import "api/mall/v1/service_request.proto";
 
 service IAMService {
-  rpc Login(ServiceRequest) returns (ServiceResponse);
-  rpc Logout(ServiceRequest) returns (ServiceResponse);
-  rpc LogoutAll(ServiceRequest) returns (ServiceResponse);
-  rpc Refresh(ServiceRequest) returns (ServiceResponse);
-  rpc Validate(ServiceRequest) returns (ServiceResponse);
+  rpc AdminGet(ServiceRequest) returns (ServiceResponse);
   rpc AdminList(ServiceRequest) returns (ServiceResponse);
   rpc AdminSummary(ServiceRequest) returns (ServiceResponse);
-  rpc SetActive(ServiceRequest) returns (ServiceResponse);
   rpc AuditList(ServiceRequest) returns (ServiceResponse);
-  rpc AdminGet(ServiceRequest) returns (ServiceResponse);
+  rpc Login(ServiceRequest) returns (ServiceResponse);
+  rpc LoginMethods(ServiceRequest) returns (ServiceResponse);
+  rpc Logout(ServiceRequest) returns (ServiceResponse);
+  rpc LogoutAll(ServiceRequest) returns (ServiceResponse);
+  rpc OAuthCallback(ServiceRequest) returns (ServiceResponse);
+  rpc OAuthStart(ServiceRequest) returns (ServiceResponse);
+  rpc OtpLogin(ServiceRequest) returns (ServiceResponse);
+  rpc OtpSend(ServiceRequest) returns (ServiceResponse);
   rpc PolicyGet(ServiceRequest) returns (ServiceResponse);
   rpc PolicyUpsert(ServiceRequest) returns (ServiceResponse);
-  rpc LoginMethods(ServiceRequest) returns (ServiceResponse);
-  rpc OtpSend(ServiceRequest) returns (ServiceResponse);
-  rpc OtpLogin(ServiceRequest) returns (ServiceResponse);
-  rpc OAuthStart(ServiceRequest) returns (ServiceResponse);
-  rpc OAuthCallback(ServiceRequest) returns (ServiceResponse);
+  rpc ProviderGet(ServiceRequest) returns (ServiceResponse);
+  rpc ProviderUpsert(ServiceRequest) returns (ServiceResponse);
+  rpc Refresh(ServiceRequest) returns (ServiceResponse);
+  rpc Register(ServiceRequest) returns (ServiceResponse);
+  rpc SetActive(ServiceRequest) returns (ServiceResponse);
+  rpc Validate(ServiceRequest) returns (ServiceResponse);
 }

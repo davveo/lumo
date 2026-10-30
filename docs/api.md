@@ -12,7 +12,7 @@
 `mall.v1.InventoryService/Reserve`、`mall.v1.CatalogService/BatchGet`。请求类型 `ServiceRequest` 只有对象ID、
 可信主体、幂等键和JSON业务载荷，不含action；返回 `ServiceResponse.payload_json` 保留现有业务字段及整数精度。
 方法直接绑定独立Go用例，业务层不再接收 `Command` 或按action分发。订单使用上述强类型专属消息；
-29个服务的业务载荷仍为JSON，字段校验在各自用例完成。当前30服务共235个领域RPC，另有2个每服务共用的事件管理RPC，完整清单在
+29个服务的业务载荷仍为JSON，字段校验在各自用例完成。当前30服务共242个领域RPC，另有2个每服务共用的事件管理RPC，完整清单在
 `api/mall/v1/service_methods.json` 维护，新增与扩展步骤见 [独立RPC方法说明](rpc-methods.md)。
 
 生产调用优先独立方法，只有服务端明确缺少专属服务/方法时才允许回退旧Execute；业务错误、鉴权失败、
@@ -276,3 +276,20 @@ HTTP 400 参数错误，401 未登录/会话失效，403 权限或未公开动�
 - `engagement/unsubscribe`（会员）传 `id`；`admin_cancel`（管理员）另传 `data.reason`，写入停用审计。
 
 新业务号见 [雪花编号规范](business-identifiers.md)。所有新增方法均在服务自身校验权限和归属，HTTP白名单不会开放内部资金或状态命令。
+
+## 管理可读性与渠道参数（2026-10-29）
+
+`analytics/admin_list` 和 `helpdesk/admin_list` 仅管理员可用，均支持 page/page_size、keyword、from/to；返回精确 total。行为记录另支持 event_type（view/click/impression/search/OrderCompleted/RefundSucceeded）及 status=behavior|purchase_event，返回 action_label、product_name、summary、record_category；商品名批量补齐，缺失时保留原编号与已有快照。工单 status=OPEN|REPLIED|CLOSED。
+
+`helpdesk/get` 保留原工单字段，增加 message_total/message_limit/message_offset；用 data.message_limit（1..100）和 message_offset 分页读取按时间顺序排列的回复，发起问题在 body 中。
+
+IAM和Payment各新增管理员 `provider_get`、`provider_upsert`。Get 的 id 可省略返回所有可配置渠道；返回 fields、非敏感 values、secret_configured、独立 version、配置完整性与可用状态。Upsert 的 id 为渠道名，载荷为 `data:{values,clear_secrets,version,reason}`。密钥字段留空保留原值，清除必须明确列入 clear_secrets；启用中的登录方式不能清除必需参数。版本冲突返回409。
+
+IAM渠道为 phone/wechat/qq，数据库参数优先于原环境变量，并用于实际验证码发送和OAuth授权/回调。Payment渠道为 wechat/alipay/card；可保存参数，真实支付适配器尚未接入时 adapter_ready=false，不会因参数保存成功而伪造已可收款。
+
+## 账号注册与商品优惠预览（2026-10-29）
+
+- `POST /api/v1/iam/register` 为公开的账号密码注册接口，参数 `data.username`、`data.password`。账号规范化为小写，4–32位、字母开头，密码8–72字节且含字母数字。服务端仅创建普通会员，忽略客户端身份；返回 `USR_` 雪花编号及注册时间，不返回密码或自动登录凭据。
+- 注册同时受 `allow_registration` 和账号密码登录开关控制。按网关真实连接IP限20次/UTC日，IP由网关覆盖，数据库唯一索引防止并发重复账号。已有会员登录不受关闭注册影响。
+- 商品详情使用已有 `coupon.calculate`，其调用计价服务的权威报价，按当前SKU、数量及账号已领券选择实际抵扣最高的一张；不会领券、锁券或预占商品。规格、数量和登录身份变化会丢弃旧请求，缓存限定账号并短时复用，结算仍重新报价。
+- 异常任务支持 `status=attention` 筛选需处理记录，以及关联业务编号搜索；返回中文任务名称、业务编号、执行状态、错误分类、处理建议和重试条件，不返回消息全文、电话、凭据或连接信息。新失败记录保存错误分类与时间，历史缺失原因明确标注。处理中与已完成任务仍受后台重试保护。

@@ -9,7 +9,8 @@ import (
 )
 
 func New(s *usecase.Service) *platform.MethodHandler {
-	return platform.NewMethodHandler(constants.ServicePayment, map[string]platform.Operation{constants.ActionMethods: s.Methods, constants.ActionPolicyGet: s.PolicyGet, constants.ActionPolicyUpsert: s.PolicyUpsert,
+	return platform.NewMethodHandler(constants.ServicePayment, map[string]platform.Operation{
+		constants.ActionProviderGet: s.ProviderGet, constants.ActionProviderUpsert: s.ProviderUpsert, constants.ActionMethods: s.Methods, constants.ActionPolicyGet: s.PolicyGet, constants.ActionPolicyUpsert: s.PolicyUpsert,
 		constants.ActionAdminList:    s.AdminList,
 		constants.ActionAdminSummary: s.AdminSummary,
 		constants.ActionGet:          s.Get,

@@ -22,9 +22,11 @@ func (r *Repository) AdminSummary(ctx context.Context, c platform.Request) (plat
 	return adminquery.Summary[domain.Account](ctx, r.db, c.Data, managementSpec)
 }
 
-func (r *Repository) AuditList(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) AuditList(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "iam.repository.AuditList")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	db := r.db.WithContext(ctx)
 	if c.ID != "" {
 		db = db.Where("user_id = ?", c.ID)
@@ -32,9 +34,11 @@ func (r *Repository) AuditList(ctx context.Context, c platform.Request) (platfor
 	rows, total, f, e := adminquery.Page[domain.AccountChange](ctx, db, c.Data, adminquery.Spec{State: "active", Search: []string{"id", "user_id", "actor_id", "reason"}})
 	return adminquery.Result(rows, total, f), e
 }
-func (r *Repository) AdminGet(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) AdminGet(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "iam.repository.AdminGet")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var row domain.Account
 	result := r.db.WithContext(ctx).Where("id = ?", c.ID).Find(&row)
 	if result.Error != nil {

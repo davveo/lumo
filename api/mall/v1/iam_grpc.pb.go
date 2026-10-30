@@ -21,46 +21,52 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	IAMService_Login_FullMethodName         = "/mall.v1.IAMService/Login"
-	IAMService_Logout_FullMethodName        = "/mall.v1.IAMService/Logout"
-	IAMService_LogoutAll_FullMethodName     = "/mall.v1.IAMService/LogoutAll"
-	IAMService_Refresh_FullMethodName       = "/mall.v1.IAMService/Refresh"
-	IAMService_Validate_FullMethodName      = "/mall.v1.IAMService/Validate"
-	IAMService_AdminList_FullMethodName     = "/mall.v1.IAMService/AdminList"
-	IAMService_AdminSummary_FullMethodName  = "/mall.v1.IAMService/AdminSummary"
-	IAMService_SetActive_FullMethodName     = "/mall.v1.IAMService/SetActive"
-	IAMService_AuditList_FullMethodName     = "/mall.v1.IAMService/AuditList"
-	IAMService_AdminGet_FullMethodName      = "/mall.v1.IAMService/AdminGet"
-	IAMService_PolicyGet_FullMethodName     = "/mall.v1.IAMService/PolicyGet"
-	IAMService_PolicyUpsert_FullMethodName  = "/mall.v1.IAMService/PolicyUpsert"
-	IAMService_LoginMethods_FullMethodName  = "/mall.v1.IAMService/LoginMethods"
-	IAMService_OtpSend_FullMethodName       = "/mall.v1.IAMService/OtpSend"
-	IAMService_OtpLogin_FullMethodName      = "/mall.v1.IAMService/OtpLogin"
-	IAMService_OAuthStart_FullMethodName    = "/mall.v1.IAMService/OAuthStart"
-	IAMService_OAuthCallback_FullMethodName = "/mall.v1.IAMService/OAuthCallback"
+	IAMService_AdminGet_FullMethodName       = "/mall.v1.IAMService/AdminGet"
+	IAMService_AdminList_FullMethodName      = "/mall.v1.IAMService/AdminList"
+	IAMService_AdminSummary_FullMethodName   = "/mall.v1.IAMService/AdminSummary"
+	IAMService_AuditList_FullMethodName      = "/mall.v1.IAMService/AuditList"
+	IAMService_Login_FullMethodName          = "/mall.v1.IAMService/Login"
+	IAMService_LoginMethods_FullMethodName   = "/mall.v1.IAMService/LoginMethods"
+	IAMService_Logout_FullMethodName         = "/mall.v1.IAMService/Logout"
+	IAMService_LogoutAll_FullMethodName      = "/mall.v1.IAMService/LogoutAll"
+	IAMService_OAuthCallback_FullMethodName  = "/mall.v1.IAMService/OAuthCallback"
+	IAMService_OAuthStart_FullMethodName     = "/mall.v1.IAMService/OAuthStart"
+	IAMService_OtpLogin_FullMethodName       = "/mall.v1.IAMService/OtpLogin"
+	IAMService_OtpSend_FullMethodName        = "/mall.v1.IAMService/OtpSend"
+	IAMService_PolicyGet_FullMethodName      = "/mall.v1.IAMService/PolicyGet"
+	IAMService_PolicyUpsert_FullMethodName   = "/mall.v1.IAMService/PolicyUpsert"
+	IAMService_ProviderGet_FullMethodName    = "/mall.v1.IAMService/ProviderGet"
+	IAMService_ProviderUpsert_FullMethodName = "/mall.v1.IAMService/ProviderUpsert"
+	IAMService_Refresh_FullMethodName        = "/mall.v1.IAMService/Refresh"
+	IAMService_Register_FullMethodName       = "/mall.v1.IAMService/Register"
+	IAMService_SetActive_FullMethodName      = "/mall.v1.IAMService/SetActive"
+	IAMService_Validate_FullMethodName       = "/mall.v1.IAMService/Validate"
 )
 
 // IAMServiceClient is the client API for IAMService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type IAMServiceClient interface {
-	Login(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
-	Logout(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
-	LogoutAll(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
-	Refresh(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
-	Validate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	AdminGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	AdminSummary(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
-	SetActive(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	AuditList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
-	AdminGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Login(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	LoginMethods(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Logout(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	LogoutAll(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	OAuthCallback(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	OAuthStart(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	OtpLogin(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	OtpSend(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	PolicyGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	PolicyUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
-	LoginMethods(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
-	OtpSend(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
-	OtpLogin(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
-	OAuthStart(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
-	OAuthCallback(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ProviderGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ProviderUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Refresh(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Register(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	SetActive(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Validate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type iAMServiceClient struct {
@@ -71,45 +77,9 @@ func NewIAMServiceClient(cc grpc.ClientConnInterface) IAMServiceClient {
 	return &iAMServiceClient{cc}
 }
 
-func (c *iAMServiceClient) Login(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+func (c *iAMServiceClient) AdminGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
 	out := new(ServiceResponse)
-	err := c.cc.Invoke(ctx, IAMService_Login_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *iAMServiceClient) Logout(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
-	out := new(ServiceResponse)
-	err := c.cc.Invoke(ctx, IAMService_Logout_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *iAMServiceClient) LogoutAll(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
-	out := new(ServiceResponse)
-	err := c.cc.Invoke(ctx, IAMService_LogoutAll_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *iAMServiceClient) Refresh(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
-	out := new(ServiceResponse)
-	err := c.cc.Invoke(ctx, IAMService_Refresh_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *iAMServiceClient) Validate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
-	out := new(ServiceResponse)
-	err := c.cc.Invoke(ctx, IAMService_Validate_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, IAMService_AdminGet_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -134,15 +104,6 @@ func (c *iAMServiceClient) AdminSummary(ctx context.Context, in *ServiceRequest,
 	return out, nil
 }
 
-func (c *iAMServiceClient) SetActive(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
-	out := new(ServiceResponse)
-	err := c.cc.Invoke(ctx, IAMService_SetActive_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *iAMServiceClient) AuditList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
 	out := new(ServiceResponse)
 	err := c.cc.Invoke(ctx, IAMService_AuditList_FullMethodName, in, out, opts...)
@@ -152,9 +113,72 @@ func (c *iAMServiceClient) AuditList(ctx context.Context, in *ServiceRequest, op
 	return out, nil
 }
 
-func (c *iAMServiceClient) AdminGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+func (c *iAMServiceClient) Login(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
 	out := new(ServiceResponse)
-	err := c.cc.Invoke(ctx, IAMService_AdminGet_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, IAMService_Login_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iAMServiceClient) LoginMethods(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, IAMService_LoginMethods_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iAMServiceClient) Logout(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, IAMService_Logout_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iAMServiceClient) LogoutAll(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, IAMService_LogoutAll_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iAMServiceClient) OAuthCallback(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, IAMService_OAuthCallback_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iAMServiceClient) OAuthStart(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, IAMService_OAuthStart_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iAMServiceClient) OtpLogin(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, IAMService_OtpLogin_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iAMServiceClient) OtpSend(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, IAMService_OtpSend_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -179,45 +203,54 @@ func (c *iAMServiceClient) PolicyUpsert(ctx context.Context, in *ServiceRequest,
 	return out, nil
 }
 
-func (c *iAMServiceClient) LoginMethods(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+func (c *iAMServiceClient) ProviderGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
 	out := new(ServiceResponse)
-	err := c.cc.Invoke(ctx, IAMService_LoginMethods_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, IAMService_ProviderGet_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *iAMServiceClient) OtpSend(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+func (c *iAMServiceClient) ProviderUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
 	out := new(ServiceResponse)
-	err := c.cc.Invoke(ctx, IAMService_OtpSend_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, IAMService_ProviderUpsert_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *iAMServiceClient) OtpLogin(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+func (c *iAMServiceClient) Refresh(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
 	out := new(ServiceResponse)
-	err := c.cc.Invoke(ctx, IAMService_OtpLogin_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, IAMService_Refresh_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *iAMServiceClient) OAuthStart(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+func (c *iAMServiceClient) Register(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
 	out := new(ServiceResponse)
-	err := c.cc.Invoke(ctx, IAMService_OAuthStart_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, IAMService_Register_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *iAMServiceClient) OAuthCallback(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+func (c *iAMServiceClient) SetActive(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
 	out := new(ServiceResponse)
-	err := c.cc.Invoke(ctx, IAMService_OAuthCallback_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, IAMService_SetActive_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iAMServiceClient) Validate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, IAMService_Validate_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -228,23 +261,26 @@ func (c *iAMServiceClient) OAuthCallback(ctx context.Context, in *ServiceRequest
 // All implementations must embed UnimplementedIAMServiceServer
 // for forward compatibility
 type IAMServiceServer interface {
-	Login(context.Context, *ServiceRequest) (*ServiceResponse, error)
-	Logout(context.Context, *ServiceRequest) (*ServiceResponse, error)
-	LogoutAll(context.Context, *ServiceRequest) (*ServiceResponse, error)
-	Refresh(context.Context, *ServiceRequest) (*ServiceResponse, error)
-	Validate(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	AdminGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	AdminSummary(context.Context, *ServiceRequest) (*ServiceResponse, error)
-	SetActive(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	AuditList(context.Context, *ServiceRequest) (*ServiceResponse, error)
-	AdminGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Login(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	LoginMethods(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Logout(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	LogoutAll(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	OAuthCallback(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	OAuthStart(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	OtpLogin(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	OtpSend(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	PolicyGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
-	LoginMethods(context.Context, *ServiceRequest) (*ServiceResponse, error)
-	OtpSend(context.Context, *ServiceRequest) (*ServiceResponse, error)
-	OtpLogin(context.Context, *ServiceRequest) (*ServiceResponse, error)
-	OAuthStart(context.Context, *ServiceRequest) (*ServiceResponse, error)
-	OAuthCallback(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ProviderGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ProviderUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Refresh(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Register(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	SetActive(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Validate(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedIAMServiceServer()
 }
 
@@ -252,20 +288,8 @@ type IAMServiceServer interface {
 type UnimplementedIAMServiceServer struct {
 }
 
-func (UnimplementedIAMServiceServer) Login(context.Context, *ServiceRequest) (*ServiceResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
-}
-func (UnimplementedIAMServiceServer) Logout(context.Context, *ServiceRequest) (*ServiceResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
-}
-func (UnimplementedIAMServiceServer) LogoutAll(context.Context, *ServiceRequest) (*ServiceResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method LogoutAll not implemented")
-}
-func (UnimplementedIAMServiceServer) Refresh(context.Context, *ServiceRequest) (*ServiceResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Refresh not implemented")
-}
-func (UnimplementedIAMServiceServer) Validate(context.Context, *ServiceRequest) (*ServiceResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Validate not implemented")
+func (UnimplementedIAMServiceServer) AdminGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminGet not implemented")
 }
 func (UnimplementedIAMServiceServer) AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AdminList not implemented")
@@ -273,14 +297,32 @@ func (UnimplementedIAMServiceServer) AdminList(context.Context, *ServiceRequest)
 func (UnimplementedIAMServiceServer) AdminSummary(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AdminSummary not implemented")
 }
-func (UnimplementedIAMServiceServer) SetActive(context.Context, *ServiceRequest) (*ServiceResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetActive not implemented")
-}
 func (UnimplementedIAMServiceServer) AuditList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AuditList not implemented")
 }
-func (UnimplementedIAMServiceServer) AdminGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AdminGet not implemented")
+func (UnimplementedIAMServiceServer) Login(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
+}
+func (UnimplementedIAMServiceServer) LoginMethods(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LoginMethods not implemented")
+}
+func (UnimplementedIAMServiceServer) Logout(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
+}
+func (UnimplementedIAMServiceServer) LogoutAll(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LogoutAll not implemented")
+}
+func (UnimplementedIAMServiceServer) OAuthCallback(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OAuthCallback not implemented")
+}
+func (UnimplementedIAMServiceServer) OAuthStart(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OAuthStart not implemented")
+}
+func (UnimplementedIAMServiceServer) OtpLogin(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OtpLogin not implemented")
+}
+func (UnimplementedIAMServiceServer) OtpSend(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OtpSend not implemented")
 }
 func (UnimplementedIAMServiceServer) PolicyGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PolicyGet not implemented")
@@ -288,20 +330,23 @@ func (UnimplementedIAMServiceServer) PolicyGet(context.Context, *ServiceRequest)
 func (UnimplementedIAMServiceServer) PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PolicyUpsert not implemented")
 }
-func (UnimplementedIAMServiceServer) LoginMethods(context.Context, *ServiceRequest) (*ServiceResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method LoginMethods not implemented")
+func (UnimplementedIAMServiceServer) ProviderGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProviderGet not implemented")
 }
-func (UnimplementedIAMServiceServer) OtpSend(context.Context, *ServiceRequest) (*ServiceResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method OtpSend not implemented")
+func (UnimplementedIAMServiceServer) ProviderUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProviderUpsert not implemented")
 }
-func (UnimplementedIAMServiceServer) OtpLogin(context.Context, *ServiceRequest) (*ServiceResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method OtpLogin not implemented")
+func (UnimplementedIAMServiceServer) Refresh(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Refresh not implemented")
 }
-func (UnimplementedIAMServiceServer) OAuthStart(context.Context, *ServiceRequest) (*ServiceResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method OAuthStart not implemented")
+func (UnimplementedIAMServiceServer) Register(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Register not implemented")
 }
-func (UnimplementedIAMServiceServer) OAuthCallback(context.Context, *ServiceRequest) (*ServiceResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method OAuthCallback not implemented")
+func (UnimplementedIAMServiceServer) SetActive(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetActive not implemented")
+}
+func (UnimplementedIAMServiceServer) Validate(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Validate not implemented")
 }
 func (UnimplementedIAMServiceServer) mustEmbedUnimplementedIAMServiceServer() {}
 
@@ -316,92 +361,20 @@ func RegisterIAMServiceServer(s grpc.ServiceRegistrar, srv IAMServiceServer) {
 	s.RegisterService(&IAMService_ServiceDesc, srv)
 }
 
-func _IAMService_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _IAMService_AdminGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ServiceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IAMServiceServer).Login(ctx, in)
+		return srv.(IAMServiceServer).AdminGet(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: IAMService_Login_FullMethodName,
+		FullMethod: IAMService_AdminGet_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IAMServiceServer).Login(ctx, req.(*ServiceRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _IAMService_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ServiceRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(IAMServiceServer).Logout(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: IAMService_Logout_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IAMServiceServer).Logout(ctx, req.(*ServiceRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _IAMService_LogoutAll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ServiceRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(IAMServiceServer).LogoutAll(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: IAMService_LogoutAll_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IAMServiceServer).LogoutAll(ctx, req.(*ServiceRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _IAMService_Refresh_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ServiceRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(IAMServiceServer).Refresh(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: IAMService_Refresh_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IAMServiceServer).Refresh(ctx, req.(*ServiceRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _IAMService_Validate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ServiceRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(IAMServiceServer).Validate(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: IAMService_Validate_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IAMServiceServer).Validate(ctx, req.(*ServiceRequest))
+		return srv.(IAMServiceServer).AdminGet(ctx, req.(*ServiceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -442,24 +415,6 @@ func _IAMService_AdminSummary_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IAMService_SetActive_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ServiceRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(IAMServiceServer).SetActive(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: IAMService_SetActive_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IAMServiceServer).SetActive(ctx, req.(*ServiceRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _IAMService_AuditList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ServiceRequest)
 	if err := dec(in); err != nil {
@@ -478,20 +433,146 @@ func _IAMService_AuditList_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IAMService_AdminGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _IAMService_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ServiceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IAMServiceServer).AdminGet(ctx, in)
+		return srv.(IAMServiceServer).Login(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: IAMService_AdminGet_FullMethodName,
+		FullMethod: IAMService_Login_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IAMServiceServer).AdminGet(ctx, req.(*ServiceRequest))
+		return srv.(IAMServiceServer).Login(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IAMService_LoginMethods_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IAMServiceServer).LoginMethods(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IAMService_LoginMethods_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IAMServiceServer).LoginMethods(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IAMService_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IAMServiceServer).Logout(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IAMService_Logout_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IAMServiceServer).Logout(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IAMService_LogoutAll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IAMServiceServer).LogoutAll(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IAMService_LogoutAll_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IAMServiceServer).LogoutAll(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IAMService_OAuthCallback_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IAMServiceServer).OAuthCallback(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IAMService_OAuthCallback_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IAMServiceServer).OAuthCallback(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IAMService_OAuthStart_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IAMServiceServer).OAuthStart(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IAMService_OAuthStart_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IAMServiceServer).OAuthStart(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IAMService_OtpLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IAMServiceServer).OtpLogin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IAMService_OtpLogin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IAMServiceServer).OtpLogin(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IAMService_OtpSend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IAMServiceServer).OtpSend(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IAMService_OtpSend_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IAMServiceServer).OtpSend(ctx, req.(*ServiceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -532,92 +613,110 @@ func _IAMService_PolicyUpsert_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IAMService_LoginMethods_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _IAMService_ProviderGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ServiceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IAMServiceServer).LoginMethods(ctx, in)
+		return srv.(IAMServiceServer).ProviderGet(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: IAMService_LoginMethods_FullMethodName,
+		FullMethod: IAMService_ProviderGet_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IAMServiceServer).LoginMethods(ctx, req.(*ServiceRequest))
+		return srv.(IAMServiceServer).ProviderGet(ctx, req.(*ServiceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IAMService_OtpSend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _IAMService_ProviderUpsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ServiceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IAMServiceServer).OtpSend(ctx, in)
+		return srv.(IAMServiceServer).ProviderUpsert(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: IAMService_OtpSend_FullMethodName,
+		FullMethod: IAMService_ProviderUpsert_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IAMServiceServer).OtpSend(ctx, req.(*ServiceRequest))
+		return srv.(IAMServiceServer).ProviderUpsert(ctx, req.(*ServiceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IAMService_OtpLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _IAMService_Refresh_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ServiceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IAMServiceServer).OtpLogin(ctx, in)
+		return srv.(IAMServiceServer).Refresh(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: IAMService_OtpLogin_FullMethodName,
+		FullMethod: IAMService_Refresh_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IAMServiceServer).OtpLogin(ctx, req.(*ServiceRequest))
+		return srv.(IAMServiceServer).Refresh(ctx, req.(*ServiceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IAMService_OAuthStart_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _IAMService_Register_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ServiceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IAMServiceServer).OAuthStart(ctx, in)
+		return srv.(IAMServiceServer).Register(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: IAMService_OAuthStart_FullMethodName,
+		FullMethod: IAMService_Register_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IAMServiceServer).OAuthStart(ctx, req.(*ServiceRequest))
+		return srv.(IAMServiceServer).Register(ctx, req.(*ServiceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IAMService_OAuthCallback_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _IAMService_SetActive_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ServiceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IAMServiceServer).OAuthCallback(ctx, in)
+		return srv.(IAMServiceServer).SetActive(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: IAMService_OAuthCallback_FullMethodName,
+		FullMethod: IAMService_SetActive_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IAMServiceServer).OAuthCallback(ctx, req.(*ServiceRequest))
+		return srv.(IAMServiceServer).SetActive(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IAMService_Validate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IAMServiceServer).Validate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IAMService_Validate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IAMServiceServer).Validate(ctx, req.(*ServiceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -630,24 +729,8 @@ var IAMService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*IAMServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Login",
-			Handler:    _IAMService_Login_Handler,
-		},
-		{
-			MethodName: "Logout",
-			Handler:    _IAMService_Logout_Handler,
-		},
-		{
-			MethodName: "LogoutAll",
-			Handler:    _IAMService_LogoutAll_Handler,
-		},
-		{
-			MethodName: "Refresh",
-			Handler:    _IAMService_Refresh_Handler,
-		},
-		{
-			MethodName: "Validate",
-			Handler:    _IAMService_Validate_Handler,
+			MethodName: "AdminGet",
+			Handler:    _IAMService_AdminGet_Handler,
 		},
 		{
 			MethodName: "AdminList",
@@ -658,16 +741,40 @@ var IAMService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _IAMService_AdminSummary_Handler,
 		},
 		{
-			MethodName: "SetActive",
-			Handler:    _IAMService_SetActive_Handler,
-		},
-		{
 			MethodName: "AuditList",
 			Handler:    _IAMService_AuditList_Handler,
 		},
 		{
-			MethodName: "AdminGet",
-			Handler:    _IAMService_AdminGet_Handler,
+			MethodName: "Login",
+			Handler:    _IAMService_Login_Handler,
+		},
+		{
+			MethodName: "LoginMethods",
+			Handler:    _IAMService_LoginMethods_Handler,
+		},
+		{
+			MethodName: "Logout",
+			Handler:    _IAMService_Logout_Handler,
+		},
+		{
+			MethodName: "LogoutAll",
+			Handler:    _IAMService_LogoutAll_Handler,
+		},
+		{
+			MethodName: "OAuthCallback",
+			Handler:    _IAMService_OAuthCallback_Handler,
+		},
+		{
+			MethodName: "OAuthStart",
+			Handler:    _IAMService_OAuthStart_Handler,
+		},
+		{
+			MethodName: "OtpLogin",
+			Handler:    _IAMService_OtpLogin_Handler,
+		},
+		{
+			MethodName: "OtpSend",
+			Handler:    _IAMService_OtpSend_Handler,
 		},
 		{
 			MethodName: "PolicyGet",
@@ -678,24 +785,28 @@ var IAMService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _IAMService_PolicyUpsert_Handler,
 		},
 		{
-			MethodName: "LoginMethods",
-			Handler:    _IAMService_LoginMethods_Handler,
+			MethodName: "ProviderGet",
+			Handler:    _IAMService_ProviderGet_Handler,
 		},
 		{
-			MethodName: "OtpSend",
-			Handler:    _IAMService_OtpSend_Handler,
+			MethodName: "ProviderUpsert",
+			Handler:    _IAMService_ProviderUpsert_Handler,
 		},
 		{
-			MethodName: "OtpLogin",
-			Handler:    _IAMService_OtpLogin_Handler,
+			MethodName: "Refresh",
+			Handler:    _IAMService_Refresh_Handler,
 		},
 		{
-			MethodName: "OAuthStart",
-			Handler:    _IAMService_OAuthStart_Handler,
+			MethodName: "Register",
+			Handler:    _IAMService_Register_Handler,
 		},
 		{
-			MethodName: "OAuthCallback",
-			Handler:    _IAMService_OAuthCallback_Handler,
+			MethodName: "SetActive",
+			Handler:    _IAMService_SetActive_Handler,
+		},
+		{
+			MethodName: "Validate",
+			Handler:    _IAMService_Validate_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

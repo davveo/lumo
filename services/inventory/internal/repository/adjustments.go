@@ -14,9 +14,11 @@ import (
 	"unicode/utf8"
 )
 
-func (r *Repository) Adjust(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Adjust(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "inventory.repository.Adjust")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var input struct {
 		OnHand   int64  `json:"on_hand"`
 		Expected *int64 `json:"expected_on_hand"`

@@ -29,6 +29,8 @@ func (s *Service) AdminList(ctx context.Context, request platform.Request) (resu
 		Active   *bool  `json:"active"`
 	}
 	if err = platform.Decode(request.Data, &input); err != nil {
+		platform.TraceError(ctx, err)
+
 		return nil, status.Error(codes.InvalidArgument, "invalid activity list filters")
 	}
 	if input.Page < 1 {
@@ -72,6 +74,8 @@ func (s *Service) upsert(ctx context.Context, request platform.Request, dedicate
 		Version     int64  `json:"version"`
 	}
 	if err = platform.Decode(request.Data, &input); err != nil {
+		platform.TraceError(ctx, err)
+
 		return nil, status.Error(codes.InvalidArgument, "invalid activity configuration")
 	}
 	id := request.ID

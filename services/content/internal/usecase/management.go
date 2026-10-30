@@ -14,9 +14,11 @@ func visibleContent(r domain.Record) bool {
 	now := time.Now().UTC()
 	return (r.Status == constants.ContentStatusPublished || (r.Status == constants.ContentStatusScheduled && r.PublishAt != nil && !now.Before(*r.PublishAt))) && (r.PublishAt == nil || !now.Before(*r.PublishAt)) && (r.UnpublishAt == nil || now.Before(*r.UnpublishAt))
 }
-func (s *Service) AdminList(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) AdminList(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "content.usecase.AdminList")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
@@ -30,9 +32,11 @@ func (s *Service) AdminList(ctx context.Context, c platform.Request) (platform.R
 	}
 	return adminquery.Result(items, total, f), nil
 }
-func (s *Service) AdminUpsert(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) AdminUpsert(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "content.usecase.AdminUpsert")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}

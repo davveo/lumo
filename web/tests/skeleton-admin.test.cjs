@@ -64,11 +64,11 @@ test('admin verifies session and first statistics through noninteractive skeleto
   session.resolve({ role: 'admin' });
   await tick();
   assert.match(f.html(), /sk-loading-summary/);
-  assert.doesNotMatch(f.html(), /服务端实时记录/);
+  assert.doesNotMatch(f.html(), /最近 5 条/);
   orders.resolve({ items: [] });
   await ready;
   assert.doesNotMatch(f.html(), /sk-loading/);
-  assert.match(f.html(), /服务端实时记录/);
+  assert.match(f.html(), /最近 5 条/);
   assert.equal(f.calls.filter(([service, action]) => service === 'order' && action === 'list').length, 1);
 });
 

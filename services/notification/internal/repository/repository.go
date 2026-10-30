@@ -17,7 +17,7 @@ import (
 type Repository struct{ db *gorm.DB }
 
 func New(db *gorm.DB) *Repository { return &Repository{db: db} }
-func (r *Repository) Migrate(ctx context.Context) error {
+func (r *Repository) Migrate(ctx context.Context) (spanErr0 error) {
 	if e := platform.MigrateBusinessIDs(ctx, r.db); e != nil {
 		return e
 	}
@@ -26,11 +26,15 @@ func (r *Repository) Migrate(ctx context.Context) error {
 	}
 	ctx, s := platform.Start(ctx, "notification.repository.Migrate")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).AutoMigrate(&domain.Record{})
 }
-func (r *Repository) Get(ctx context.Context, id string) (domain.Record, error) {
+func (r *Repository) Get(ctx context.Context, id string) (spanResult0 domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "notification.repository.Get")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var v domain.Record
 	err := r.db.WithContext(ctx).First(&v, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -53,9 +57,11 @@ func (r *Repository) scope(ctx context.Context, owner, kind, st string) *gorm.DB
 	}
 	return q
 }
-func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, offset int) ([]domain.Record, error) {
+func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, offset int) (spanResult0 []domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "notification.repository.List")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	q := r.scope(ctx, owner, kind, st)
 	if limit < 1 || limit > 100 {
 		limit = 20
@@ -67,9 +73,11 @@ func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, of
 	err := q.Order("created_at DESC, id DESC").Limit(limit).Offset(offset).Find(&vs).Error
 	return vs, err
 }
-func (r *Repository) Counts(ctx context.Context, owner, kind, st string) (int64, int64, error) {
+func (r *Repository) Counts(ctx context.Context, owner, kind, st string) (spanResult0 int64, spanResult1 int64, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "notification.repository.Counts")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var counts struct {
 		Total       int64
 		UnreadTotal int64
@@ -79,9 +87,11 @@ func (r *Repository) Counts(ctx context.Context, owner, kind, st string) (int64,
 		Scan(&counts).Error
 	return counts.Total, counts.UnreadTotal, err
 }
-func (r *Repository) Save(ctx context.Context, v *domain.Record, event *platform.Event) error {
+func (r *Repository) Save(ctx context.Context, v *domain.Record, event *platform.Event) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "notification.repository.Save")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Upsert mutable columns while preserving the original creation time.
 		// A newly assembled aggregate must not write a zero datetime on update.
@@ -106,9 +116,11 @@ func (r *Repository) Save(ctx context.Context, v *domain.Record, event *platform
 		return nil
 	})
 }
-func (r *Repository) InsertOnce(ctx context.Context, v *domain.Record, event *platform.Event) (bool, error) {
+func (r *Repository) InsertOnce(ctx context.Context, v *domain.Record, event *platform.Event) (spanResult0 bool, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "notification.repository.InsertOnce")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	inserted := false
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		res := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(v)
@@ -131,9 +143,11 @@ func (r *Repository) Mutate(
 	seed domain.Record,
 	create bool,
 	fn func(*domain.Record) ([]domain.Record, *platform.Event, error),
-) (domain.Record, error) {
+) (spanResult0 domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "notification.repository.Mutate")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var got domain.Record
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if create {
@@ -172,9 +186,11 @@ func (r *Repository) Mutate(
 	})
 	return got, err
 }
-func (r *Repository) Delete(ctx context.Context, id, owner string) error {
+func (r *Repository) Delete(ctx context.Context, id, owner string) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "notification.repository.Delete")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	res := r.db.WithContext(ctx).Where("id = ? AND user_id = ?", id, owner).Delete(&domain.Record{})
 	if res.Error != nil {
 		return res.Error
@@ -184,14 +200,18 @@ func (r *Repository) Delete(ctx context.Context, id, owner string) error {
 	}
 	return nil
 }
-func (r *Repository) DeleteKind(ctx context.Context, owner, kind string) error {
+func (r *Repository) DeleteKind(ctx context.Context, owner, kind string) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "notification.repository.DeleteKind")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Where("user_id = ? AND kind = ?", owner, kind).Delete(&domain.Record{}).Error
 }
-func (r *Repository) MarkAllRead(ctx context.Context, owner string) (int64, error) {
+func (r *Repository) MarkAllRead(ctx context.Context, owner string) (spanResult0 int64, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "notification.repository.MarkAllRead")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	res := r.db.WithContext(ctx).
 		Model(&domain.Record{}).
 		Where(

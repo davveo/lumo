@@ -15,25 +15,31 @@ func openSession(row domain.Session) bool {
 	now := time.Now().UTC()
 	return row.Active && (row.StartsAt == nil || !now.Before(*row.StartsAt)) && (row.EndsAt == nil || now.Before(*row.EndsAt))
 }
-func (s *Service) AdminList(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) AdminList(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "flash.usecase.AdminList")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
 	return s.Repo.AdminList(ctx, c)
 }
-func (s *Service) RequestsAdmin(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) RequestsAdmin(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "flash.usecase.RequestsAdmin")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
 	return s.Repo.RequestsAdmin(ctx, c)
 }
-func (s *Service) SessionGet(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) SessionGet(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "flash.usecase.SessionGet")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var row domain.Session
 	var e error
 	if c.ID != "" {
@@ -48,9 +54,11 @@ func (s *Service) SessionGet(ctx context.Context, c platform.Request) (platform.
 	out["open"] = openSession(row)
 	return out, nil
 }
-func (s *Service) Upsert(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) Upsert(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "flash.usecase.Upsert")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}

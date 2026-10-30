@@ -339,7 +339,7 @@ test('completed behavior write invalidates an old read before its explicit aggre
 test('payment, checkout, login and editing routes leave business forms unobstructed', (t) => {
   const f = setup();
   t.after(() => f.app.dispose());
-  for (const route of ['login', 'payment', 'checkout', 'editor']) {
+  for (const route of ['login', 'register', 'payment', 'checkout', 'editor']) {
     f.app.ctx.location.hash = '#/' + route;
     assert.equal(f.sidebar.render(), '', route);
   }

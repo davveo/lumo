@@ -53,7 +53,7 @@ func InitTelemetry(ctx context.Context, service, endpoint string) (func(context.
 		if err != nil {
 			return nil, fmt.Errorf("create OTLP exporter: %w", err)
 		}
-		opts = append(opts, sdktrace.WithBatcher(exporter))
+		opts = append(opts, sdktrace.WithSpanProcessor(newBackgroundSpanProcessor(sdktrace.NewBatchSpanProcessor(exporter))))
 	}
 	tp := sdktrace.NewTracerProvider(opts...)
 	otel.SetTracerProvider(tp)
@@ -114,6 +114,7 @@ func telemetryInstanceID(service string) string {
 // Start adds a code-layer span. Pass the returned context to every RPC,
 // repository, transaction and goroutine that is part of this operation.
 func Start(ctx context.Context, name string) (context.Context, trace.Span) {
+	ctx = withTraceErrorContext(ctx)
 	layer := "application"
 	for _, candidate := range []string{"transport", "usecase", "repository", "worker", "rpc", "mq"} {
 		if strings.Contains(name, candidate) {

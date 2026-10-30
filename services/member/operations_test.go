@@ -30,6 +30,7 @@ func TestAllAccountCatalogServicesExposeDistinctOperations(t *testing.T) {
 			iam.New(platform.Dependencies{}),
 			[]string{
 				"login",
+				"register",
 				"validate",
 				"refresh",
 				"logout",
@@ -37,7 +38,7 @@ func TestAllAccountCatalogServicesExposeDistinctOperations(t *testing.T) {
 				"admin_list",
 				"admin_summary",
 				"set_active", "audit_list", "admin_get",
-				"login_methods", "otp_send", "otp_login", "oauth_start", "oauth_callback", "policy_get", "policy_upsert",
+				"login_methods", "otp_send", "otp_login", "oauth_start", "oauth_callback", "policy_get", "policy_upsert", "provider_get", "provider_upsert",
 			},
 		},
 		{"member", member.New(platform.Dependencies{}), []string{"get", "update", "policy_get", "policy_upsert"}},

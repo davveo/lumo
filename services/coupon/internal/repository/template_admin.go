@@ -37,9 +37,11 @@ type TemplateWrite struct {
 	Version    *int64     `json:"version"`
 }
 
-func (r *Repository) TemplatesAdmin(ctx context.Context, request platform.Request) (platform.Result, error) {
+func (r *Repository) TemplatesAdmin(ctx context.Context, request platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.coupon.TemplatesAdmin")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var query struct {
 		Page     int64  `json:"page"`
 		PageSize int64  `json:"page_size"`
@@ -124,9 +126,11 @@ func validTemplateID(id string) bool {
 	return true
 }
 
-func (r *Repository) TemplateUpsert(ctx context.Context, request platform.Request) (platform.Result, error) {
+func (r *Repository) TemplateUpsert(ctx context.Context, request platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.coupon.TemplateUpsert")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var input TemplateWrite
 	if err := platform.Decode(request.Data, &input); err != nil {
 		return nil, err
@@ -158,6 +162,8 @@ func (r *Repository) TemplateUpsert(ctx context.Context, request platform.Reques
 		)
 	}
 	if err := input.Rule.Normalize(input.Amount, input.Minimum); err != nil {
+		platform.TraceError(ctx, err)
+
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 	// Cross-language clients can represent these configuration quantities exactly.

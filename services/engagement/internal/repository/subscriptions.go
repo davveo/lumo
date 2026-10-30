@@ -29,9 +29,11 @@ func (r *Repository) SaveAlertPolicy(ctx context.Context, c platform.Request, p 
 	return adminconfig.Save(ctx, r.db, "product-alerts", p, platform.Int(c.Data, "version"), c.UserID, platform.Text(c.Data, "reason"))
 }
 
-func (r *Repository) Subscribe(ctx context.Context, seed domain.Subscription, max int64) (domain.Subscription, error) {
+func (r *Repository) Subscribe(ctx context.Context, seed domain.Subscription, max int64) (spanResult0 domain.Subscription, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "engagement.repository.Subscribe")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var got domain.Subscription
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		owner := domain.CompareOwner{UserID: seed.UserID}
@@ -80,9 +82,11 @@ func (r *Repository) Subscribe(ctx context.Context, seed domain.Subscription, ma
 	return got, err
 }
 
-func (r *Repository) Subscriptions(ctx context.Context, owner, sku, kind, state string, limit, offset int) ([]domain.Subscription, int64, error) {
+func (r *Repository) Subscriptions(ctx context.Context, owner, sku, kind, state string, limit, offset int) (spanResult0 []domain.Subscription, spanResult1 int64, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "engagement.repository.Subscriptions")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	q := r.db.WithContext(ctx).Model(&domain.Subscription{})
 	if owner != "" {
 		q = q.Where("user_id = ?", owner)
@@ -105,9 +109,11 @@ func (r *Repository) Subscriptions(ctx context.Context, owner, sku, kind, state 
 	return rows, total, err
 }
 
-func (r *Repository) CancelSubscription(ctx context.Context, c platform.Request, admin bool) (domain.Subscription, error) {
+func (r *Repository) CancelSubscription(ctx context.Context, c platform.Request, admin bool) (spanResult0 domain.Subscription, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "engagement.repository.CancelSubscription")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var got domain.Subscription
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		q := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"})
@@ -136,9 +142,11 @@ func (r *Repository) CancelSubscription(ctx context.Context, c platform.Request,
 	return got, err
 }
 
-func (r *Repository) DueSubscriptions(ctx context.Context, now time.Time) ([]domain.Subscription, error) {
+func (r *Repository) DueSubscriptions(ctx context.Context, now time.Time) (spanResult0 []domain.Subscription, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "engagement.repository.DueSubscriptions")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	rows := []domain.Subscription{}
 	err := r.db.WithContext(ctx).Where("status = ? AND next_check_at <= ?", constants.SubscriptionStatusActive, now).Order("next_check_at, id").Limit(100).Find(&rows).Error
 	return rows, err
@@ -146,9 +154,11 @@ func (r *Repository) DueSubscriptions(ctx context.Context, now time.Time) ([]dom
 
 // CompleteCheck compares the generation and check time captured before RPC.
 // A cancelled/rearmed subscription or another replica can never emit twice.
-func (r *Repository) CompleteCheck(ctx context.Context, expected domain.Subscription, now time.Time, price int64, hit bool) error {
+func (r *Repository) CompleteCheck(ctx context.Context, expected domain.Subscription, now time.Time, price int64, hit bool) (spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "engagement.repository.CompleteCheck")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var got domain.Subscription
 		if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&got, "id = ?", expected.ID).Error; err != nil {

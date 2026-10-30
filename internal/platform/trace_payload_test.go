@@ -185,7 +185,7 @@ func TestTracePayloadBoundsHugeResultsAndKeepsValidUTF8JSON(t *testing.T) {
 	}
 }
 
-func TestTracePayloadErrorsNeverExportOriginalErrorText(t *testing.T) {
+func TestTracePayloadErrorsKeepDiagnosticsAndRedactRequestSecrets(t *testing.T) {
 	for _, test := range []struct {
 		err  error
 		code string
@@ -196,10 +196,10 @@ func TestTracePayloadErrorsNeverExportOriginalErrorText(t *testing.T) {
 		{context.Canceled, "Canceled"},
 	} {
 		t.Run(test.code, func(t *testing.T) {
-			span, attrs := captureTracePayload(t, map[string]any{"id": "business-order"}, nil, test.err)
+			span, attrs := captureTracePayload(t, map[string]any{"id": "business-order", "password": "private-error-secret"}, nil, test.err)
 			if attrs["lumo.error.code"].AsString() != test.code ||
 				!strings.Contains(attrs["lumo.response"].AsString(), test.code) ||
-				span.Status.Description != test.code {
+				!strings.HasPrefix(span.Status.Description, test.code+": ") || attrs["lumo.error.message"].AsString() == "" || len(span.Events) == 0 {
 				t.Fatalf("missing safe error result: %+v", span)
 			}
 			encoded, _ := json.Marshal(span)

@@ -17,9 +17,11 @@ import (
 	"time"
 )
 
-func (r *Repository) Start(ctx context.Context, row *domain.Run) (platform.Result, error) {
+func (r *Repository) Start(ctx context.Context, row *domain.Run) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "reconciliation.repository.Start")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	result := r.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(row)
 	if result.Error != nil {
 		return nil, result.Error
@@ -33,15 +35,19 @@ func (r *Repository) Start(ctx context.Context, row *domain.Run) (platform.Resul
 	}
 	return platform.Map(saved), nil
 }
-func (r *Repository) AdminList(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) AdminList(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "reconciliation.repository.AdminList")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	rows, total, f, e := adminquery.Page[domain.Run](ctx, r.db, c.Data, adminquery.Spec{State: "status", Search: []string{"id", "actor_id", "error", "reason"}})
 	return adminquery.Result(rows, total, f), e
 }
-func (r *Repository) Get(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Get(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "reconciliation.repository.Get")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var row domain.Run
 	e := r.db.WithContext(ctx).First(&row, "id = ?", c.ID).Error
 	if errors.Is(e, gorm.ErrRecordNotFound) {
@@ -83,9 +89,11 @@ func (r *Repository) Get(ctx context.Context, c platform.Request) (platform.Resu
 	out["notes"] = notes
 	return out, nil
 }
-func (r *Repository) Note(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Note(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "reconciliation.repository.Note")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var count int64
 	if e := r.db.WithContext(ctx).Model(&domain.Run{}).Where("id = ?", c.ID).Count(&count).Error; e != nil {
 		return nil, e
@@ -107,9 +115,11 @@ func (r *Repository) Note(ctx context.Context, c platform.Request) (platform.Res
 	}
 	return platform.Map(saved), nil
 }
-func (r *Repository) Claim(ctx context.Context) (*domain.Run, error) {
+func (r *Repository) Claim(ctx context.Context) (spanResult0 *domain.Run, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "reconciliation.repository.Claim")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var row domain.Run
 	now := time.Now().UTC()
 	e := r.db.WithContext(ctx).Where("status IN ? AND (claim = ? OR lease_until <= ?)", []string{constants.ReconciliationStatusQueued, constants.ReconciliationStatusRunning}, "", now).Order("created_at,id").First(&row).Error
@@ -131,9 +141,11 @@ func (r *Repository) Claim(ctx context.Context) (*domain.Run, error) {
 	row.Status = constants.ReconciliationStatusRunning
 	return &row, nil
 }
-func (r *Repository) Progress(ctx context.Context, row domain.Run, diffs []domain.Difference, processed, total int64, done bool, failure error) error {
+func (r *Repository) Progress(ctx context.Context, row domain.Run, diffs []domain.Difference, processed, total int64, done bool, failure error) (spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "reconciliation.repository.Progress")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var held domain.Run
 		if e := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&held, "id = ? AND claim = ?", row.ID, row.Claim).Error; e != nil {
@@ -166,9 +178,11 @@ func (r *Repository) Progress(ctx context.Context, row domain.Run, diffs []domai
 	})
 }
 
-func (r *Repository) Resume(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (r *Repository) Resume(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "reconciliation.repository.Resume")
 	defer sp.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	hash := sha256.Sum256([]byte(c.UserID + ":" + c.IdempotencyKey))
 	id := fmt.Sprintf("resume-%x", hash[:16])
 	e := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {

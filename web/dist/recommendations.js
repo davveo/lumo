@@ -181,7 +181,7 @@
     ensureScope();
     const row = home?.rows.find((row) => row.product.id === product.id);
     if (!row) return productCard(product);
-    return `<div class="home-recommendation-card">${productCard(product)}<div class="purchase-recommendation-reason">${icon('sparkles')}<span>${esc(row.reason)}</span></div></div>`;
+    return productCard(product);
   }
   async function refresh(order) {
     ensureScope();
@@ -246,7 +246,7 @@
       pages > 1
         ? `<button class="purchase-recommendations-refresh" data-recommendation-action="next" aria-label="换一组推荐商品">${icon('return')}换一组<span>${page + 1} / ${pages}</span></button>`
         : '';
-    return `<section class="purchase-recommendations" aria-labelledby="purchase-recommendations-title"><div class="purchase-recommendations-head"><div><span class="purchase-recommendations-eyebrow">CURATED FOR YOU</span><h2 id="purchase-recommendations-title">为你推荐</h2><p>结合本次购买与商品特征，发现更多合心好物</p></div>${controls}</div>${entry.error && visible.length ? `<p role="alert">${esc(entry.error)}</p>` : ''}${entry.loading && !visible.length ? window.LumoSkeleton?.render('products', { count: 4, label: '正在加载推荐商品', className: 'sk-post-purchase' }) || '' : entry.error && !visible.length ? `<div class="purchase-recommendations-empty"><p>${esc(entry.error)}</p><button class="outline" data-recommendation-action="retry" data-order="${esc(order.id)}">重新加载</button></div>` : visible.length ? `<div class="purchase-recommendations-grid">${visible.map((row) => `<div class="purchase-recommendation-card">${productCard(row.product)}<div class="purchase-recommendation-reason">${icon('sparkles')}<span>${esc(row.reason)}</span></div></div>`).join('')}</div>` : `<div class="purchase-recommendations-empty">${icon('bag')}<h3>当前暂无更多可售推荐</h3><p>继续逛逛，发现更多好物。</p><a class="outline" href="#/">浏览全部商品 ${icon('arrow')}</a></div>`}</section>`;
+    return `<section class="purchase-recommendations" aria-labelledby="purchase-recommendations-title"><div class="purchase-recommendations-head"><div><h2 id="purchase-recommendations-title">为你推荐</h2></div>${controls}</div>${entry.error && visible.length ? `<p role="alert">${esc(entry.error)}</p>` : ''}${entry.loading && !visible.length ? window.LumoSkeleton?.render('products', { count: 4, label: '正在加载推荐商品', className: 'sk-post-purchase' }) || '' : entry.error && !visible.length ? `<div class="purchase-recommendations-empty"><p>${esc(entry.error)}</p><button class="outline" data-recommendation-action="retry" data-order="${esc(order.id)}">重新加载</button></div>` : visible.length ? `<div class="purchase-recommendations-grid">${visible.map((row) => `<div class="purchase-recommendation-card">${productCard(row.product)}</div>`).join('')}</div>` : `<div class="purchase-recommendations-empty">${icon('bag')}<h3>当前暂无更多可售推荐</h3><a class="outline" href="#/">浏览全部商品 ${icon('arrow')}</a></div>`}</section>`;
   }
   document.addEventListener('click', (event) => {
     const control = event.target.closest('[data-recommendation-action]');

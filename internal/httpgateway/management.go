@@ -66,6 +66,12 @@ func (g *gateway) managementDashboard(ctx context.Context, c platform.Command) (
 }
 
 func init() {
+	for _, service := range []string{constants.ServiceIAM, constants.ServicePayment} {
+		for _, action := range []string{constants.ActionProviderGet, constants.ActionProviderUpsert} {
+			adminActions[service+"/"+action] = true
+		}
+	}
+	reads[constants.ActionProviderGet] = true
 	publicActions[constants.ServiceEngagement+"/"+constants.ActionPolicyGet] = true
 	for _, a := range []string{constants.ActionSubscribe, constants.ActionSubscriptions, constants.ActionUnsubscribe} {
 		userActions[constants.ServiceEngagement+"/"+a] = true
@@ -84,6 +90,7 @@ func init() {
 	adminActions[constants.ServicePayment+"/"+constants.ActionPolicyUpsert] = true
 	userActions[constants.ServiceCoupon+"/"+constants.ActionCalculate] = true
 	additions := actionSet(map[string][]string{
+		constants.ServiceAnalytics: {constants.ActionAdminList}, constants.ServiceHelpdesk: {constants.ActionAdminList},
 		constants.ServiceFlash:          {constants.ActionAdminList, constants.ActionUpsert, constants.ActionRequestsAdmin},
 		constants.ServiceGroup:          {constants.ActionAdminList, constants.ActionRulesAdmin, constants.ActionRuleUpsert},
 		constants.ServiceCampaign:       {constants.ActionRuleUpsert},

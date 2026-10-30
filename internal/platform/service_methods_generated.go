@@ -102,8 +102,9 @@ var namedOperationActions = map[string]map[string]string{
 		"AdminSummary": constants.ActionAdminSummary,
 	},
 	constants.ServiceAnalytics: {
-		"List":   constants.ActionList,
-		"Record": constants.ActionRecord,
+		"AdminList": constants.ActionAdminList,
+		"List":      constants.ActionList,
+		"Record":    constants.ActionRecord,
 	},
 	constants.ServiceCampaign: {
 		"AdminList":  constants.ActionAdminList,
@@ -212,31 +213,35 @@ var namedOperationActions = map[string]map[string]string{
 		"RuleUpsert": constants.ActionRuleUpsert,
 	},
 	constants.ServiceHelpdesk: {
-		"Close":  constants.ActionClose,
-		"Create": constants.ActionCreate,
-		"Faq":    constants.ActionFaq,
-		"Get":    constants.ActionGet,
-		"List":   constants.ActionList,
-		"Reply":  constants.ActionReply,
+		"AdminList": constants.ActionAdminList,
+		"Close":     constants.ActionClose,
+		"Create":    constants.ActionCreate,
+		"Faq":       constants.ActionFaq,
+		"Get":       constants.ActionGet,
+		"List":      constants.ActionList,
+		"Reply":     constants.ActionReply,
 	},
 	constants.ServiceIAM: {
-		"Login":         constants.ActionLogin,
-		"Logout":        constants.ActionLogout,
-		"LogoutAll":     constants.ActionLogoutAll,
-		"Refresh":       constants.ActionRefresh,
-		"Validate":      constants.ActionValidate,
-		"AdminList":     constants.ActionAdminList,
-		"AdminSummary":  constants.ActionAdminSummary,
-		"SetActive":     constants.ActionSetActive,
-		"AuditList":     constants.ActionAuditList,
-		"AdminGet":      constants.ActionAdminGet,
-		"PolicyGet":     constants.ActionPolicyGet,
-		"PolicyUpsert":  constants.ActionPolicyUpsert,
-		"LoginMethods":  constants.ActionLoginMethods,
-		"OtpSend":       constants.ActionOtpSend,
-		"OtpLogin":      constants.ActionOtpLogin,
-		"OAuthStart":    constants.ActionOAuthStart,
-		"OAuthCallback": constants.ActionOAuthCallback,
+		"AdminGet":       constants.ActionAdminGet,
+		"AdminList":      constants.ActionAdminList,
+		"AdminSummary":   constants.ActionAdminSummary,
+		"AuditList":      constants.ActionAuditList,
+		"Login":          constants.ActionLogin,
+		"LoginMethods":   constants.ActionLoginMethods,
+		"Logout":         constants.ActionLogout,
+		"LogoutAll":      constants.ActionLogoutAll,
+		"OAuthCallback":  constants.ActionOAuthCallback,
+		"OAuthStart":     constants.ActionOAuthStart,
+		"OtpLogin":       constants.ActionOtpLogin,
+		"OtpSend":        constants.ActionOtpSend,
+		"PolicyGet":      constants.ActionPolicyGet,
+		"PolicyUpsert":   constants.ActionPolicyUpsert,
+		"ProviderGet":    constants.ActionProviderGet,
+		"ProviderUpsert": constants.ActionProviderUpsert,
+		"Refresh":        constants.ActionRefresh,
+		"Register":       constants.ActionRegister,
+		"SetActive":      constants.ActionSetActive,
+		"Validate":       constants.ActionValidate,
 	},
 	constants.ServiceInteraction: {
 		"Answer":   constants.ActionAnswer,
@@ -317,17 +322,19 @@ var namedOperationActions = map[string]map[string]string{
 		"AdminSummary":  constants.ActionAdminSummary,
 	},
 	constants.ServicePayment: {
-		"Close":        constants.ActionClose,
-		"ConfirmDemo":  constants.ActionConfirmDemo,
-		"Create":       constants.ActionCreate,
-		"Get":          constants.ActionGet,
-		"List":         constants.ActionList,
-		"SubmitDemo":   constants.ActionSubmitDemo,
-		"AdminList":    constants.ActionAdminList,
-		"AdminSummary": constants.ActionAdminSummary,
-		"Methods":      constants.ActionMethods,
-		"PolicyGet":    constants.ActionPolicyGet,
-		"PolicyUpsert": constants.ActionPolicyUpsert,
+		"AdminList":      constants.ActionAdminList,
+		"AdminSummary":   constants.ActionAdminSummary,
+		"Close":          constants.ActionClose,
+		"ConfirmDemo":    constants.ActionConfirmDemo,
+		"Create":         constants.ActionCreate,
+		"Get":            constants.ActionGet,
+		"List":           constants.ActionList,
+		"Methods":        constants.ActionMethods,
+		"PolicyGet":      constants.ActionPolicyGet,
+		"PolicyUpsert":   constants.ActionPolicyUpsert,
+		"ProviderGet":    constants.ActionProviderGet,
+		"ProviderUpsert": constants.ActionProviderUpsert,
+		"SubmitDemo":     constants.ActionSubmitDemo,
 	},
 	constants.ServicePoints: {
 		"Cancel":       constants.ActionCancel,
@@ -528,6 +535,14 @@ func (client AftersaleMethods) AdminSummary(
 
 type AnalyticsMethods struct{ caller Caller }
 
+func (client AnalyticsMethods) AdminList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceAnalytics, "AdminList",
+		constants.ActionAdminList, request,
+	)
+}
 func (client AnalyticsMethods) List(
 	ctx context.Context, request Request,
 ) (Result, error) {
@@ -1265,6 +1280,14 @@ func (client GroupMethods) RuleUpsert(
 
 type HelpdeskMethods struct{ caller Caller }
 
+func (client HelpdeskMethods) AdminList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceHelpdesk, "AdminList",
+		constants.ActionAdminList, request,
+	)
+}
 func (client HelpdeskMethods) Close(
 	ctx context.Context, request Request,
 ) (Result, error) {
@@ -1316,44 +1339,12 @@ func (client HelpdeskMethods) Reply(
 
 type IAMMethods struct{ caller Caller }
 
-func (client IAMMethods) Login(
+func (client IAMMethods) AdminGet(
 	ctx context.Context, request Request,
 ) (Result, error) {
 	return invokeMethod(
-		ctx, client.caller, constants.ServiceIAM, "Login",
-		constants.ActionLogin, request,
-	)
-}
-func (client IAMMethods) Logout(
-	ctx context.Context, request Request,
-) (Result, error) {
-	return invokeMethod(
-		ctx, client.caller, constants.ServiceIAM, "Logout",
-		constants.ActionLogout, request,
-	)
-}
-func (client IAMMethods) LogoutAll(
-	ctx context.Context, request Request,
-) (Result, error) {
-	return invokeMethod(
-		ctx, client.caller, constants.ServiceIAM, "LogoutAll",
-		constants.ActionLogoutAll, request,
-	)
-}
-func (client IAMMethods) Refresh(
-	ctx context.Context, request Request,
-) (Result, error) {
-	return invokeMethod(
-		ctx, client.caller, constants.ServiceIAM, "Refresh",
-		constants.ActionRefresh, request,
-	)
-}
-func (client IAMMethods) Validate(
-	ctx context.Context, request Request,
-) (Result, error) {
-	return invokeMethod(
-		ctx, client.caller, constants.ServiceIAM, "Validate",
-		constants.ActionValidate, request,
+		ctx, client.caller, constants.ServiceIAM, "AdminGet",
+		constants.ActionAdminGet, request,
 	)
 }
 func (client IAMMethods) AdminList(
@@ -1372,14 +1363,6 @@ func (client IAMMethods) AdminSummary(
 		constants.ActionAdminSummary, request,
 	)
 }
-func (client IAMMethods) SetActive(
-	ctx context.Context, request Request,
-) (Result, error) {
-	return invokeMethod(
-		ctx, client.caller, constants.ServiceIAM, "SetActive",
-		constants.ActionSetActive, request,
-	)
-}
 func (client IAMMethods) AuditList(
 	ctx context.Context, request Request,
 ) (Result, error) {
@@ -1388,12 +1371,68 @@ func (client IAMMethods) AuditList(
 		constants.ActionAuditList, request,
 	)
 }
-func (client IAMMethods) AdminGet(
+func (client IAMMethods) Login(
 	ctx context.Context, request Request,
 ) (Result, error) {
 	return invokeMethod(
-		ctx, client.caller, constants.ServiceIAM, "AdminGet",
-		constants.ActionAdminGet, request,
+		ctx, client.caller, constants.ServiceIAM, "Login",
+		constants.ActionLogin, request,
+	)
+}
+func (client IAMMethods) LoginMethods(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "LoginMethods",
+		constants.ActionLoginMethods, request,
+	)
+}
+func (client IAMMethods) Logout(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "Logout",
+		constants.ActionLogout, request,
+	)
+}
+func (client IAMMethods) LogoutAll(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "LogoutAll",
+		constants.ActionLogoutAll, request,
+	)
+}
+func (client IAMMethods) OAuthCallback(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "OAuthCallback",
+		constants.ActionOAuthCallback, request,
+	)
+}
+func (client IAMMethods) OAuthStart(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "OAuthStart",
+		constants.ActionOAuthStart, request,
+	)
+}
+func (client IAMMethods) OtpLogin(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "OtpLogin",
+		constants.ActionOtpLogin, request,
+	)
+}
+func (client IAMMethods) OtpSend(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "OtpSend",
+		constants.ActionOtpSend, request,
 	)
 }
 func (client IAMMethods) PolicyGet(
@@ -1412,44 +1451,52 @@ func (client IAMMethods) PolicyUpsert(
 		constants.ActionPolicyUpsert, request,
 	)
 }
-func (client IAMMethods) LoginMethods(
+func (client IAMMethods) ProviderGet(
 	ctx context.Context, request Request,
 ) (Result, error) {
 	return invokeMethod(
-		ctx, client.caller, constants.ServiceIAM, "LoginMethods",
-		constants.ActionLoginMethods, request,
+		ctx, client.caller, constants.ServiceIAM, "ProviderGet",
+		constants.ActionProviderGet, request,
 	)
 }
-func (client IAMMethods) OtpSend(
+func (client IAMMethods) ProviderUpsert(
 	ctx context.Context, request Request,
 ) (Result, error) {
 	return invokeMethod(
-		ctx, client.caller, constants.ServiceIAM, "OtpSend",
-		constants.ActionOtpSend, request,
+		ctx, client.caller, constants.ServiceIAM, "ProviderUpsert",
+		constants.ActionProviderUpsert, request,
 	)
 }
-func (client IAMMethods) OtpLogin(
+func (client IAMMethods) Refresh(
 	ctx context.Context, request Request,
 ) (Result, error) {
 	return invokeMethod(
-		ctx, client.caller, constants.ServiceIAM, "OtpLogin",
-		constants.ActionOtpLogin, request,
+		ctx, client.caller, constants.ServiceIAM, "Refresh",
+		constants.ActionRefresh, request,
 	)
 }
-func (client IAMMethods) OAuthStart(
+func (client IAMMethods) Register(
 	ctx context.Context, request Request,
 ) (Result, error) {
 	return invokeMethod(
-		ctx, client.caller, constants.ServiceIAM, "OAuthStart",
-		constants.ActionOAuthStart, request,
+		ctx, client.caller, constants.ServiceIAM, "Register",
+		constants.ActionRegister, request,
 	)
 }
-func (client IAMMethods) OAuthCallback(
+func (client IAMMethods) SetActive(
 	ctx context.Context, request Request,
 ) (Result, error) {
 	return invokeMethod(
-		ctx, client.caller, constants.ServiceIAM, "OAuthCallback",
-		constants.ActionOAuthCallback, request,
+		ctx, client.caller, constants.ServiceIAM, "SetActive",
+		constants.ActionSetActive, request,
+	)
+}
+func (client IAMMethods) Validate(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "Validate",
+		constants.ActionValidate, request,
 	)
 }
 
@@ -1975,6 +2022,22 @@ func (client OrderMethods) AdminSummary(
 
 type PaymentMethods struct{ caller Caller }
 
+func (client PaymentMethods) AdminList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServicePayment, "AdminList",
+		constants.ActionAdminList, request,
+	)
+}
+func (client PaymentMethods) AdminSummary(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServicePayment, "AdminSummary",
+		constants.ActionAdminSummary, request,
+	)
+}
 func (client PaymentMethods) Close(
 	ctx context.Context, request Request,
 ) (Result, error) {
@@ -2015,30 +2078,6 @@ func (client PaymentMethods) List(
 		constants.ActionList, request,
 	)
 }
-func (client PaymentMethods) SubmitDemo(
-	ctx context.Context, request Request,
-) (Result, error) {
-	return invokeMethod(
-		ctx, client.caller, constants.ServicePayment, "SubmitDemo",
-		constants.ActionSubmitDemo, request,
-	)
-}
-func (client PaymentMethods) AdminList(
-	ctx context.Context, request Request,
-) (Result, error) {
-	return invokeMethod(
-		ctx, client.caller, constants.ServicePayment, "AdminList",
-		constants.ActionAdminList, request,
-	)
-}
-func (client PaymentMethods) AdminSummary(
-	ctx context.Context, request Request,
-) (Result, error) {
-	return invokeMethod(
-		ctx, client.caller, constants.ServicePayment, "AdminSummary",
-		constants.ActionAdminSummary, request,
-	)
-}
 func (client PaymentMethods) Methods(
 	ctx context.Context, request Request,
 ) (Result, error) {
@@ -2061,6 +2100,30 @@ func (client PaymentMethods) PolicyUpsert(
 	return invokeMethod(
 		ctx, client.caller, constants.ServicePayment, "PolicyUpsert",
 		constants.ActionPolicyUpsert, request,
+	)
+}
+func (client PaymentMethods) ProviderGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServicePayment, "ProviderGet",
+		constants.ActionProviderGet, request,
+	)
+}
+func (client PaymentMethods) ProviderUpsert(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServicePayment, "ProviderUpsert",
+		constants.ActionProviderUpsert, request,
+	)
+}
+func (client PaymentMethods) SubmitDemo(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServicePayment, "SubmitDemo",
+		constants.ActionSubmitDemo, request,
 	)
 }
 
@@ -2465,6 +2528,12 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			}},
 	},
 	constants.ServiceAnalytics: {
+		constants.ActionAdminList: {
+			fullMethod: mallv1.AnalyticsService_AdminList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewAnalyticsServiceClient(connection).AdminList(ctx, request)
+			}},
 		constants.ActionList: {
 			fullMethod: mallv1.AnalyticsService_List_FullMethodName,
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
@@ -3015,6 +3084,12 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			}},
 	},
 	constants.ServiceHelpdesk: {
+		constants.ActionAdminList: {
+			fullMethod: mallv1.HelpdeskService_AdminList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewHelpdeskServiceClient(connection).AdminList(ctx, request)
+			}},
 		constants.ActionClose: {
 			fullMethod: mallv1.HelpdeskService_Close_FullMethodName,
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
@@ -3053,35 +3128,11 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			}},
 	},
 	constants.ServiceIAM: {
-		constants.ActionLogin: {
-			fullMethod: mallv1.IAMService_Login_FullMethodName,
+		constants.ActionAdminGet: {
+			fullMethod: mallv1.IAMService_AdminGet_FullMethodName,
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
-				return mallv1.NewIAMServiceClient(connection).Login(ctx, request)
-			}},
-		constants.ActionLogout: {
-			fullMethod: mallv1.IAMService_Logout_FullMethodName,
-			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
-				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
-				return mallv1.NewIAMServiceClient(connection).Logout(ctx, request)
-			}},
-		constants.ActionLogoutAll: {
-			fullMethod: mallv1.IAMService_LogoutAll_FullMethodName,
-			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
-				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
-				return mallv1.NewIAMServiceClient(connection).LogoutAll(ctx, request)
-			}},
-		constants.ActionRefresh: {
-			fullMethod: mallv1.IAMService_Refresh_FullMethodName,
-			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
-				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
-				return mallv1.NewIAMServiceClient(connection).Refresh(ctx, request)
-			}},
-		constants.ActionValidate: {
-			fullMethod: mallv1.IAMService_Validate_FullMethodName,
-			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
-				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
-				return mallv1.NewIAMServiceClient(connection).Validate(ctx, request)
+				return mallv1.NewIAMServiceClient(connection).AdminGet(ctx, request)
 			}},
 		constants.ActionAdminList: {
 			fullMethod: mallv1.IAMService_AdminList_FullMethodName,
@@ -3095,23 +3146,59 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewIAMServiceClient(connection).AdminSummary(ctx, request)
 			}},
-		constants.ActionSetActive: {
-			fullMethod: mallv1.IAMService_SetActive_FullMethodName,
-			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
-				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
-				return mallv1.NewIAMServiceClient(connection).SetActive(ctx, request)
-			}},
 		constants.ActionAuditList: {
 			fullMethod: mallv1.IAMService_AuditList_FullMethodName,
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewIAMServiceClient(connection).AuditList(ctx, request)
 			}},
-		constants.ActionAdminGet: {
-			fullMethod: mallv1.IAMService_AdminGet_FullMethodName,
+		constants.ActionLogin: {
+			fullMethod: mallv1.IAMService_Login_FullMethodName,
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
-				return mallv1.NewIAMServiceClient(connection).AdminGet(ctx, request)
+				return mallv1.NewIAMServiceClient(connection).Login(ctx, request)
+			}},
+		constants.ActionLoginMethods: {
+			fullMethod: mallv1.IAMService_LoginMethods_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).LoginMethods(ctx, request)
+			}},
+		constants.ActionLogout: {
+			fullMethod: mallv1.IAMService_Logout_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).Logout(ctx, request)
+			}},
+		constants.ActionLogoutAll: {
+			fullMethod: mallv1.IAMService_LogoutAll_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).LogoutAll(ctx, request)
+			}},
+		constants.ActionOAuthCallback: {
+			fullMethod: mallv1.IAMService_OAuthCallback_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).OAuthCallback(ctx, request)
+			}},
+		constants.ActionOAuthStart: {
+			fullMethod: mallv1.IAMService_OAuthStart_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).OAuthStart(ctx, request)
+			}},
+		constants.ActionOtpLogin: {
+			fullMethod: mallv1.IAMService_OtpLogin_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).OtpLogin(ctx, request)
+			}},
+		constants.ActionOtpSend: {
+			fullMethod: mallv1.IAMService_OtpSend_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).OtpSend(ctx, request)
 			}},
 		constants.ActionPolicyGet: {
 			fullMethod: mallv1.IAMService_PolicyGet_FullMethodName,
@@ -3125,35 +3212,41 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewIAMServiceClient(connection).PolicyUpsert(ctx, request)
 			}},
-		constants.ActionLoginMethods: {
-			fullMethod: mallv1.IAMService_LoginMethods_FullMethodName,
+		constants.ActionProviderGet: {
+			fullMethod: mallv1.IAMService_ProviderGet_FullMethodName,
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
-				return mallv1.NewIAMServiceClient(connection).LoginMethods(ctx, request)
+				return mallv1.NewIAMServiceClient(connection).ProviderGet(ctx, request)
 			}},
-		constants.ActionOtpSend: {
-			fullMethod: mallv1.IAMService_OtpSend_FullMethodName,
+		constants.ActionProviderUpsert: {
+			fullMethod: mallv1.IAMService_ProviderUpsert_FullMethodName,
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
-				return mallv1.NewIAMServiceClient(connection).OtpSend(ctx, request)
+				return mallv1.NewIAMServiceClient(connection).ProviderUpsert(ctx, request)
 			}},
-		constants.ActionOtpLogin: {
-			fullMethod: mallv1.IAMService_OtpLogin_FullMethodName,
+		constants.ActionRefresh: {
+			fullMethod: mallv1.IAMService_Refresh_FullMethodName,
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
-				return mallv1.NewIAMServiceClient(connection).OtpLogin(ctx, request)
+				return mallv1.NewIAMServiceClient(connection).Refresh(ctx, request)
 			}},
-		constants.ActionOAuthStart: {
-			fullMethod: mallv1.IAMService_OAuthStart_FullMethodName,
+		constants.ActionRegister: {
+			fullMethod: mallv1.IAMService_Register_FullMethodName,
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
-				return mallv1.NewIAMServiceClient(connection).OAuthStart(ctx, request)
+				return mallv1.NewIAMServiceClient(connection).Register(ctx, request)
 			}},
-		constants.ActionOAuthCallback: {
-			fullMethod: mallv1.IAMService_OAuthCallback_FullMethodName,
+		constants.ActionSetActive: {
+			fullMethod: mallv1.IAMService_SetActive_FullMethodName,
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
-				return mallv1.NewIAMServiceClient(connection).OAuthCallback(ctx, request)
+				return mallv1.NewIAMServiceClient(connection).SetActive(ctx, request)
+			}},
+		constants.ActionValidate: {
+			fullMethod: mallv1.IAMService_Validate_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).Validate(ctx, request)
 			}},
 	},
 	constants.ServiceInteraction: {
@@ -3441,6 +3534,18 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			}},
 	},
 	constants.ServicePayment: {
+		constants.ActionAdminList: {
+			fullMethod: mallv1.PaymentService_AdminList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewPaymentServiceClient(connection).AdminList(ctx, request)
+			}},
+		constants.ActionAdminSummary: {
+			fullMethod: mallv1.PaymentService_AdminSummary_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewPaymentServiceClient(connection).AdminSummary(ctx, request)
+			}},
 		constants.ActionClose: {
 			fullMethod: mallv1.PaymentService_Close_FullMethodName,
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
@@ -3471,24 +3576,6 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewPaymentServiceClient(connection).List(ctx, request)
 			}},
-		constants.ActionSubmitDemo: {
-			fullMethod: mallv1.PaymentService_SubmitDemo_FullMethodName,
-			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
-				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
-				return mallv1.NewPaymentServiceClient(connection).SubmitDemo(ctx, request)
-			}},
-		constants.ActionAdminList: {
-			fullMethod: mallv1.PaymentService_AdminList_FullMethodName,
-			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
-				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
-				return mallv1.NewPaymentServiceClient(connection).AdminList(ctx, request)
-			}},
-		constants.ActionAdminSummary: {
-			fullMethod: mallv1.PaymentService_AdminSummary_FullMethodName,
-			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
-				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
-				return mallv1.NewPaymentServiceClient(connection).AdminSummary(ctx, request)
-			}},
 		constants.ActionMethods: {
 			fullMethod: mallv1.PaymentService_Methods_FullMethodName,
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
@@ -3506,6 +3593,24 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewPaymentServiceClient(connection).PolicyUpsert(ctx, request)
+			}},
+		constants.ActionProviderGet: {
+			fullMethod: mallv1.PaymentService_ProviderGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewPaymentServiceClient(connection).ProviderGet(ctx, request)
+			}},
+		constants.ActionProviderUpsert: {
+			fullMethod: mallv1.PaymentService_ProviderUpsert_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewPaymentServiceClient(connection).ProviderUpsert(ctx, request)
+			}},
+		constants.ActionSubmitDemo: {
+			fullMethod: mallv1.PaymentService_SubmitDemo_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewPaymentServiceClient(connection).SubmitDemo(ctx, request)
 			}},
 	},
 	constants.ServicePoints: {
@@ -3827,6 +3932,11 @@ type analyticsRPCServer struct {
 	operations map[string]Operation
 }
 
+func (server *analyticsRPCServer) AdminList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminList], request)
+}
 func (server *analyticsRPCServer) List(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
@@ -4333,6 +4443,11 @@ type helpdeskRPCServer struct {
 	operations map[string]Operation
 }
 
+func (server *helpdeskRPCServer) AdminList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminList], request)
+}
 func (server *helpdeskRPCServer) Close(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
@@ -4369,30 +4484,10 @@ type iamRPCServer struct {
 	operations map[string]Operation
 }
 
-func (server *iamRPCServer) Login(
+func (server *iamRPCServer) AdminGet(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
-	return serveMethod(ctx, server.operations[constants.ActionLogin], request)
-}
-func (server *iamRPCServer) Logout(
-	ctx context.Context, request *mallv1.ServiceRequest,
-) (*mallv1.ServiceResponse, error) {
-	return serveMethod(ctx, server.operations[constants.ActionLogout], request)
-}
-func (server *iamRPCServer) LogoutAll(
-	ctx context.Context, request *mallv1.ServiceRequest,
-) (*mallv1.ServiceResponse, error) {
-	return serveMethod(ctx, server.operations[constants.ActionLogoutAll], request)
-}
-func (server *iamRPCServer) Refresh(
-	ctx context.Context, request *mallv1.ServiceRequest,
-) (*mallv1.ServiceResponse, error) {
-	return serveMethod(ctx, server.operations[constants.ActionRefresh], request)
-}
-func (server *iamRPCServer) Validate(
-	ctx context.Context, request *mallv1.ServiceRequest,
-) (*mallv1.ServiceResponse, error) {
-	return serveMethod(ctx, server.operations[constants.ActionValidate], request)
+	return serveMethod(ctx, server.operations[constants.ActionAdminGet], request)
 }
 func (server *iamRPCServer) AdminList(
 	ctx context.Context, request *mallv1.ServiceRequest,
@@ -4404,20 +4499,50 @@ func (server *iamRPCServer) AdminSummary(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionAdminSummary], request)
 }
-func (server *iamRPCServer) SetActive(
-	ctx context.Context, request *mallv1.ServiceRequest,
-) (*mallv1.ServiceResponse, error) {
-	return serveMethod(ctx, server.operations[constants.ActionSetActive], request)
-}
 func (server *iamRPCServer) AuditList(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionAuditList], request)
 }
-func (server *iamRPCServer) AdminGet(
+func (server *iamRPCServer) Login(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
-	return serveMethod(ctx, server.operations[constants.ActionAdminGet], request)
+	return serveMethod(ctx, server.operations[constants.ActionLogin], request)
+}
+func (server *iamRPCServer) LoginMethods(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionLoginMethods], request)
+}
+func (server *iamRPCServer) Logout(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionLogout], request)
+}
+func (server *iamRPCServer) LogoutAll(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionLogoutAll], request)
+}
+func (server *iamRPCServer) OAuthCallback(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionOAuthCallback], request)
+}
+func (server *iamRPCServer) OAuthStart(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionOAuthStart], request)
+}
+func (server *iamRPCServer) OtpLogin(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionOtpLogin], request)
+}
+func (server *iamRPCServer) OtpSend(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionOtpSend], request)
 }
 func (server *iamRPCServer) PolicyGet(
 	ctx context.Context, request *mallv1.ServiceRequest,
@@ -4429,30 +4554,35 @@ func (server *iamRPCServer) PolicyUpsert(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionPolicyUpsert], request)
 }
-func (server *iamRPCServer) LoginMethods(
+func (server *iamRPCServer) ProviderGet(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
-	return serveMethod(ctx, server.operations[constants.ActionLoginMethods], request)
+	return serveMethod(ctx, server.operations[constants.ActionProviderGet], request)
 }
-func (server *iamRPCServer) OtpSend(
+func (server *iamRPCServer) ProviderUpsert(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
-	return serveMethod(ctx, server.operations[constants.ActionOtpSend], request)
+	return serveMethod(ctx, server.operations[constants.ActionProviderUpsert], request)
 }
-func (server *iamRPCServer) OtpLogin(
+func (server *iamRPCServer) Refresh(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
-	return serveMethod(ctx, server.operations[constants.ActionOtpLogin], request)
+	return serveMethod(ctx, server.operations[constants.ActionRefresh], request)
 }
-func (server *iamRPCServer) OAuthStart(
+func (server *iamRPCServer) Register(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
-	return serveMethod(ctx, server.operations[constants.ActionOAuthStart], request)
+	return serveMethod(ctx, server.operations[constants.ActionRegister], request)
 }
-func (server *iamRPCServer) OAuthCallback(
+func (server *iamRPCServer) SetActive(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
-	return serveMethod(ctx, server.operations[constants.ActionOAuthCallback], request)
+	return serveMethod(ctx, server.operations[constants.ActionSetActive], request)
+}
+func (server *iamRPCServer) Validate(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionValidate], request)
 }
 
 type interactionRPCServer struct {
@@ -4727,6 +4857,16 @@ type paymentRPCServer struct {
 	operations map[string]Operation
 }
 
+func (server *paymentRPCServer) AdminList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminList], request)
+}
+func (server *paymentRPCServer) AdminSummary(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionAdminSummary], request)
+}
 func (server *paymentRPCServer) Close(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
@@ -4752,21 +4892,6 @@ func (server *paymentRPCServer) List(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionList], request)
 }
-func (server *paymentRPCServer) SubmitDemo(
-	ctx context.Context, request *mallv1.ServiceRequest,
-) (*mallv1.ServiceResponse, error) {
-	return serveMethod(ctx, server.operations[constants.ActionSubmitDemo], request)
-}
-func (server *paymentRPCServer) AdminList(
-	ctx context.Context, request *mallv1.ServiceRequest,
-) (*mallv1.ServiceResponse, error) {
-	return serveMethod(ctx, server.operations[constants.ActionAdminList], request)
-}
-func (server *paymentRPCServer) AdminSummary(
-	ctx context.Context, request *mallv1.ServiceRequest,
-) (*mallv1.ServiceResponse, error) {
-	return serveMethod(ctx, server.operations[constants.ActionAdminSummary], request)
-}
 func (server *paymentRPCServer) Methods(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
@@ -4781,6 +4906,21 @@ func (server *paymentRPCServer) PolicyUpsert(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionPolicyUpsert], request)
+}
+func (server *paymentRPCServer) ProviderGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionProviderGet], request)
+}
+func (server *paymentRPCServer) ProviderUpsert(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionProviderUpsert], request)
+}
+func (server *paymentRPCServer) SubmitDemo(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionSubmitDemo], request)
 }
 
 type pointsRPCServer struct {

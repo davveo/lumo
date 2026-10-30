@@ -215,6 +215,56 @@ test('task retry sends owner service, unchanged event id and an audit reason', a
   assert.equal(write.command.data.reason, '依赖恢复后重试');
 });
 
+test('task list explains business, failure and retry eligibility instead of opaque identifiers', async (t) => {
+  const calls = [];
+  const f = fixture('tasks', async (_service, _action, command) => {
+    calls.push(command);
+    return {
+      total: 2,
+      services: ['order'],
+      items: [
+        {
+          id: 'event-failed',
+          task_title: '支付成功通知',
+          stage_label: '处理业务',
+          state: 'DEAD',
+          attempts: 5,
+          status_label: '需人工处理',
+          failure_reason: '依赖服务暂时不可用',
+          suggested_action: '检查关联服务是否恢复，再重试',
+          retryable: true,
+          business_references: [{ label: '订单', id: 'ORD_123' }],
+        },
+        {
+          id: 'event-live',
+          task_title: '<需转义的通知>',
+          state: 'PROCESSING',
+          status_label: '处理中',
+          retry_reason: '正在处理，暂不可重复发起',
+          retryable: false,
+          business_references: [],
+        },
+      ],
+    };
+  });
+  t.after(() => f.app.dispose());
+  await f.m.refresh();
+  assert.equal(calls[0].data.status, 'attention');
+  const html = f.m.render();
+  for (const text of ['支付成功通知', 'ORD_123', '依赖服务暂时不可用', '查看详情'])
+    assert.ok(html.includes(text), text);
+  assert.match(html, /&lt;需转义的通知&gt;/);
+  assert.match(html, /data-mg="retry" data-id="event-failed"/);
+  assert.doesNotMatch(html, /data-mg="retry" data-id="event-live"/);
+  assert.match(html, /<option value="order"[^>]*>订单<\/option>/);
+  await f.app.click({ mg: 'task-detail', id: 'event-failed' });
+  assert.match(f.m.render(), /检查关联服务是否恢复，再重试/);
+  assert.match(f.m.render(), /技术定位信息/);
+  assert.doesNotMatch(f.m.render(), /class="admin-table mg-table/);
+  await f.app.click({ mg: 'task-back' });
+  assert.match(f.m.render(), /关联业务/);
+});
+
 test('member detail concurrent reads use API read semantics without invalidating each other', async (t) => {
   let api;
   const f = fixture('points', (...args) => api.call(...args, { token: 'test-admin-token', auth: true }));

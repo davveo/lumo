@@ -67,7 +67,7 @@ function setup(handler = async () => ({ items: [] })) {
   };
 }
 
-test('home follows server rank with real reasons and respects every explicit sort/filter', async () => {
+test('home follows server rank, hides decorative explanations and respects every explicit sort/filter', async () => {
   const fixture = setup(async () => ({
     items: [
       { id: 'macbook', recommendation_reason: '更符合你的品牌偏好' },
@@ -81,7 +81,7 @@ test('home follows server rank with real reasons and respects every explicit sor
     await recommendations.refreshHome();
     let html = app.navigate('');
     assert.match(html, /<h2>为你推荐<\/h2>/);
-    assert.match(html, /更符合你的品牌偏好/);
+    assert.doesNotMatch(html, /更符合你的品牌偏好/);
     assert.deepEqual(titles(html).slice(0, 2), ['MacBook Air 13 英寸', 'Apple iPhone 15 Pro']);
     assert.deepEqual(calls[0].command, { data: { scene: 'home', limit: 20 } });
     app.evaluate("ui.sort='价格低'");
@@ -110,7 +110,7 @@ test('cold start is labelled honestly and response text is escaped', async () =>
     const html = app.navigate('');
     assert.match(html, /<h2>精选推荐<\/h2>/);
     assert.doesNotMatch(html, /<h2>为你推荐<\/h2>/);
-    assert.match(html, /&lt;script&gt;fake\(\)&lt;\/script&gt;/);
+    assert.doesNotMatch(html, /fake\(\)/);
     assert.doesNotMatch(html, /<script>fake/);
   } finally {
     app.dispose();
@@ -192,7 +192,8 @@ test('post-purchase sends its scene, excludes this order, and uses the server ex
     await fixture.recommendations.refresh(order);
     assert.deepEqual(fixture.calls[0].command, { data: { scene: 'post_purchase', order_id: 'paid-order', limit: 20 } });
     assert.deepEqual(json(fixture.recommendations.rank(order).map((row) => row.product.id)), ['macbook']);
-    assert.match(fixture.recommendations.render(order), /与你购买的品牌相近/);
+    assert.match(fixture.recommendations.render(order), /MacBook Air/);
+    assert.doesNotMatch(fixture.recommendations.render(order), /与你购买的品牌相近/);
     assert.doesNotMatch(fixture.recommendations.render(order), /should exclude/);
     fixture.setContext({ token: 'new-session' });
     assert.equal(fixture.recommendations.rank(order).length, 0);
@@ -225,7 +226,7 @@ test('similar results use the current product and keep the correct cached explan
         { scene: 'similar', product_id: 'headphones', limit: 8 },
       ],
     );
-    assert.match(extras.related(fixture.app.json("products.find(p=>p.id==='iphone')")), /与手机品牌相近/);
+    assert.match(extras.related(fixture.app.json("products.find(p=>p.id==='iphone')")), /MacBook Air/);
     assert.doesNotMatch(extras.related(fixture.app.json("products.find(p=>p.id==='iphone')")), /与耳机价格相近/);
     fixture.setContext({ base: 'http://other.test' });
     const pending = extras.related(fixture.app.json("products.find(p=>p.id==='iphone')"));

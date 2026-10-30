@@ -36,17 +36,21 @@ func (s *Service) SetActive(ctx context.Context, c platform.Request) (result pla
 	return s.repo.SetActive(ctx, c)
 }
 
-func (s *Service) AuditList(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) AuditList(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "iam.usecase.AuditList")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
 	return s.repo.AuditList(ctx, c)
 }
-func (s *Service) AdminGet(ctx context.Context, c platform.Request) (platform.Result, error) {
+func (s *Service) AdminGet(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "iam.usecase.AdminGet")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}

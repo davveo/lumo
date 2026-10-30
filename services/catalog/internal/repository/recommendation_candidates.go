@@ -28,7 +28,7 @@ type RecommendationRecall struct {
 func (r *Repository) RecommendationCandidates(
 	ctx context.Context,
 	input RecommendationRecall,
-) ([]domain.Record, bool, error) {
+) (spanResult0 []domain.Record, spanResult1 bool, spanErr0 error) {
 	rows := []domain.Record{}
 	if len(input.Categories)+len(input.Brands)+len(input.Queries) == 0 {
 		return rows, false, nil
@@ -40,6 +40,8 @@ func (r *Repository) RecommendationCandidates(
 	defer cancel()
 	ctx, span := platform.Start(ctx, "catalog.repository.RecommendationCandidates")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	// Paths are constants, and interest values are always bound parameters. The
 	// guarded document also keeps a malformed historical payload from failing recall.
 	text := func(path string) string {

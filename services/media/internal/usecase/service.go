@@ -89,6 +89,8 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 		st = constants.MediaStatusUploading
 		signed, e = s.store.SignUpload(ctx, key, ct, size, signedTTL)
 		if e != nil {
+			platform.TraceError(ctx, e)
+
 			return nil, status.Error(codes.Unavailable, "object upload signing unavailable")
 		}
 	} else {
@@ -144,6 +146,8 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 	key := platform.Text(data, "object_key")
 	info, e := s.store.Stat(ctx, key)
 	if e != nil {
+		platform.TraceError(ctx, e)
+
 		return nil, status.Error(
 			codes.FailedPrecondition,
 			"object not uploaded or storage verification unavailable",
@@ -169,6 +173,8 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 
 	download, e := s.store.SignDownload(ctx, key, signedTTL)
 	if e != nil {
+		platform.TraceError(ctx, e)
+
 		return nil, status.Error(codes.Unavailable, "object download signing unavailable")
 	}
 	out["download_url"] = download
@@ -210,6 +216,8 @@ func (s *Service) Download(ctx context.Context, c platform.Request) (traceResult
 	key := platform.Text(data, "object_key")
 	info, e := s.store.Stat(ctx, key)
 	if e != nil {
+		platform.TraceError(ctx, e)
+
 		return nil, status.Error(
 			codes.FailedPrecondition,
 			"object not uploaded or storage verification unavailable",
@@ -235,6 +243,8 @@ func (s *Service) Download(ctx context.Context, c platform.Request) (traceResult
 
 	download, e := s.store.SignDownload(ctx, key, signedTTL)
 	if e != nil {
+		platform.TraceError(ctx, e)
+
 		return nil, status.Error(codes.Unavailable, "object download signing unavailable")
 	}
 	out["download_url"] = download
@@ -273,6 +283,8 @@ func (s *Service) Complete(ctx context.Context, c platform.Request) (traceResult
 	key := platform.Text(data, "object_key")
 	info, e := s.store.Stat(ctx, key)
 	if e != nil {
+		platform.TraceError(ctx, e)
+
 		return nil, status.Error(
 			codes.FailedPrecondition,
 			"object not uploaded or storage verification unavailable",
@@ -320,6 +332,8 @@ func (s *Service) Complete(ctx context.Context, c platform.Request) (traceResult
 	}
 	download, e := s.store.SignDownload(ctx, key, signedTTL)
 	if e != nil {
+		platform.TraceError(ctx, e)
+
 		return nil, status.Error(codes.Unavailable, "object download signing unavailable")
 	}
 	out["download_url"] = download

@@ -21,9 +21,11 @@ func (r *Repository) AdminList(
 	page, size int,
 	keyword, kind string,
 	active *bool,
-) (platform.Result, error) {
+) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.campaign.AdminList")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	query := r.DB.WithContext(ctx).Model(&domain.Activity{})
 	if keyword != "" {
 		query = query.Where(
@@ -50,9 +52,11 @@ func (r *Repository) AdminList(
 	return platform.Result{"items": items, "total": total, "page": page, "page_size": size}, nil
 }
 
-func (r *Repository) Upsert(ctx context.Context, next domain.Activity, dedicated bool, actor, reason string) (platform.Result, error) {
+func (r *Repository) Upsert(ctx context.Context, next domain.Activity, dedicated bool, actor, reason string) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.campaign.Upsert")
 	defer span.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	err := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		audit := func(prior domain.Activity) error {
 			if !dedicated {

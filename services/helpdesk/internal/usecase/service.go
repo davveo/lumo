@@ -133,7 +133,14 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 		return nil, e
 	}
 	out := view(r)
-	msgs, e := s.repo.Children(ctx, r.ID, constants.HelpdeskKindMessage)
+	limit, offset := int(platform.Int(c.Data, "message_limit")), int(platform.Int(c.Data, "message_offset"))
+	if limit == 0 {
+		limit = 100
+	}
+	if limit < 1 || limit > 100 || offset < 0 {
+		return nil, bad("invalid conversation pagination")
+	}
+	msgs, total, e := s.repo.MessagePage(ctx, r.ID, limit, offset)
 	if e != nil {
 		return nil, e
 	}
@@ -142,6 +149,10 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 		v = append(v, view(m))
 	}
 	out["messages"] = v
+	out["message_total"] = total
+	out["message_limit"] = limit
+	out["message_offset"] = offset
+	out["updated_at"] = r.UpdatedAt
 	return out, nil
 }
 

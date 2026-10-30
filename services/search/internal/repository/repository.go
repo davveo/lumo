@@ -15,20 +15,24 @@ import (
 type Repository struct{ db *gorm.DB }
 
 func New(db *gorm.DB) *Repository { return &Repository{db: db} }
-func (r *Repository) Migrate(ctx context.Context) error {
+func (r *Repository) Migrate(ctx context.Context) (spanErr0 error) {
 	if e := platform.MigrateBusinessIDs(ctx, r.db); e != nil {
 		return e
 	}
 	ctx, s := platform.Start(ctx, "search.repository.Migrate")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	if e := adminconfig.Migrate(ctx, r.db); e != nil {
 		return e
 	}
 	return r.db.WithContext(ctx).AutoMigrate(&domain.Record{})
 }
-func (r *Repository) Get(ctx context.Context, id string) (domain.Record, error) {
+func (r *Repository) Get(ctx context.Context, id string) (spanResult0 domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "search.repository.Get")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var v domain.Record
 	err := r.db.WithContext(ctx).First(&v, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -36,9 +40,11 @@ func (r *Repository) Get(ctx context.Context, id string) (domain.Record, error) 
 	}
 	return v, err
 }
-func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, offset int) ([]domain.Record, error) {
+func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, offset int) (spanResult0 []domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "search.repository.List")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	q := r.db.WithContext(ctx).Model(&domain.Record{})
 	if owner != "" {
 		q = q.Where("user_id = ?", owner)
@@ -59,9 +65,11 @@ func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, of
 	err := q.Order("created_at DESC, id DESC").Limit(limit).Offset(offset).Find(&vs).Error
 	return vs, err
 }
-func (r *Repository) Save(ctx context.Context, v *domain.Record, event *platform.Event) error {
+func (r *Repository) Save(ctx context.Context, v *domain.Record, event *platform.Event) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "search.repository.Save")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Upsert mutable columns while preserving the original creation time.
 		// A newly assembled aggregate must not write a zero datetime on update.
@@ -86,9 +94,11 @@ func (r *Repository) Save(ctx context.Context, v *domain.Record, event *platform
 		return nil
 	})
 }
-func (r *Repository) InsertOnce(ctx context.Context, v *domain.Record, event *platform.Event) (bool, error) {
+func (r *Repository) InsertOnce(ctx context.Context, v *domain.Record, event *platform.Event) (spanResult0 bool, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "search.repository.InsertOnce")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	inserted := false
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		res := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(v)
@@ -111,9 +121,11 @@ func (r *Repository) Mutate(
 	seed domain.Record,
 	create bool,
 	fn func(*domain.Record) ([]domain.Record, *platform.Event, error),
-) (domain.Record, error) {
+) (spanResult0 domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "search.repository.Mutate")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var got domain.Record
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if create {
@@ -152,9 +164,11 @@ func (r *Repository) Mutate(
 	})
 	return got, err
 }
-func (r *Repository) Delete(ctx context.Context, id, owner string) error {
+func (r *Repository) Delete(ctx context.Context, id, owner string) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "search.repository.Delete")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	res := r.db.WithContext(ctx).Where("id = ? AND user_id = ?", id, owner).Delete(&domain.Record{})
 	if res.Error != nil {
 		return res.Error
@@ -164,8 +178,10 @@ func (r *Repository) Delete(ctx context.Context, id, owner string) error {
 	}
 	return nil
 }
-func (r *Repository) DeleteKind(ctx context.Context, owner, kind string) error {
+func (r *Repository) DeleteKind(ctx context.Context, owner, kind string) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "search.repository.DeleteKind")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Where("user_id = ? AND kind = ?", owner, kind).Delete(&domain.Record{}).Error
 }

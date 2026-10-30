@@ -17,9 +17,10 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -33,6 +34,8 @@ type Outbox struct {
 	CarrierJSON   string `gorm:"type:text"`
 	State         string `gorm:"size:20;index"`
 	Attempts      int
+	LastErrorCode string `gorm:"size:40"`
+	LastErrorAt   *time.Time
 	ClaimToken    string    `gorm:"size:80"`
 	NextAttemptAt time.Time `gorm:"index"`
 	LeaseUntil    time.Time `gorm:"index"`
@@ -41,15 +44,17 @@ type Outbox struct {
 	UpdatedAt     time.Time
 }
 type Inbox struct {
-	PayloadJSON string `gorm:"type:longtext"`
-	CarrierJSON string `gorm:"type:text"`
-	Consumer    string `gorm:"primaryKey;size:80"`
-	EventID     string `gorm:"primaryKey;size:80"`
-	State       string `gorm:"size:20"`
-	Attempts    int
-	ClaimToken  string `gorm:"size:80"`
-	LeaseUntil  time.Time
-	UpdatedAt   time.Time
+	PayloadJSON   string `gorm:"type:longtext"`
+	CarrierJSON   string `gorm:"type:text"`
+	Consumer      string `gorm:"primaryKey;size:80"`
+	EventID       string `gorm:"primaryKey;size:80"`
+	State         string `gorm:"size:20"`
+	Attempts      int
+	LastErrorCode string `gorm:"size:40"`
+	LastErrorAt   *time.Time
+	ClaimToken    string `gorm:"size:80"`
+	LeaseUntil    time.Time
+	UpdatedAt     time.Time
 }
 
 func MigratePlatform(ctx context.Context, db *gorm.DB) error {
@@ -266,9 +271,13 @@ drain:
 func publishOne(ctx context.Context, db *gorm.DB, ch *confirmedPublisher, row Outbox) (traceErr error) {
 	carrier := propagation.MapCarrier{}
 	if err := json.Unmarshal([]byte(row.CarrierJSON), &carrier); err != nil {
+		failureCtx, failureSpan := Start(NewTraceErrorContext(ctx), "mq.publish.invalid_carrier")
+		TraceRequest(failureCtx, Result{"event_id": row.ID, "event_type": row.EventType})
+		TraceError(failureCtx, fmt.Errorf("decode outbox trace carrier: %w", err))
+		failureSpan.End()
 		return err
 	}
-	parent := otel.GetTextMapPropagator().Extract(ctx, carrier)
+	parent := NewTraceErrorContext(otel.GetTextMapPropagator().Extract(ctx, carrier))
 	ctx, span := otel.Tracer("lumo/mq").
 		Start(
 			parent,
@@ -313,14 +322,14 @@ func publishOne(ctx context.Context, db *gorm.DB, ch *confirmedPublisher, row Ou
 		row.ID,
 	)
 	if err != nil {
-		span.SetStatus(codes.Error, "event publish failed")
+		TraceError(ctx, err)
 		backoff := time.Second * time.Duration(1<<min(row.Attempts, 5))
 		_ = markOutbox(
 			ctx,
 			db,
 			row.ID,
 			claim,
-			map[string]any{"state": constants.OutboxStatePending, "next_attempt_at": time.Now().UTC().Add(backoff)},
+			map[string]any{"state": constants.OutboxStatePending, "next_attempt_at": time.Now().UTC().Add(backoff), "last_error_code": taskErrorCode(err), "last_error_at": time.Now().UTC()},
 		)
 		return err
 	}
@@ -331,7 +340,7 @@ func publishOne(ctx context.Context, db *gorm.DB, ch *confirmedPublisher, row Ou
 		db,
 		row.ID,
 		claim,
-		map[string]any{"state": constants.OutboxStatePublished, "published_at": published},
+		map[string]any{"state": constants.OutboxStatePublished, "published_at": published, "last_error_code": "", "last_error_at": nil},
 	)
 	outcome["outbox_recorded"] = err == nil
 	return err
@@ -381,19 +390,21 @@ func outboxLoop(ctx context.Context, db *gorm.DB, ch *confirmedPublisher) error 
 	for {
 		var rows []Outbox
 		now := time.Now().UTC()
-		if err := db.WithContext(ctx).Where(
-			"(state = ? AND next_attempt_at <= ?) OR (state = ? AND lease_until < ?)",
-			constants.OutboxStatePending,
-			now,
-			constants.OutboxStatePublishing,
-			now,
-		).Order(
-			"created_at ASC",
-		).Limit(
-			20,
-		).Find(
-			&rows,
-		).Error; err != nil {
+		if err := traceBackgroundPoll(ctx, "mq.outbox.poll", func(pollCtx context.Context) error {
+			return db.WithContext(pollCtx).Where(
+				"(state = ? AND next_attempt_at <= ?) OR (state = ? AND lease_until < ?)",
+				constants.OutboxStatePending,
+				now,
+				constants.OutboxStatePublishing,
+				now,
+			).Order(
+				"created_at ASC",
+			).Limit(
+				20,
+			).Find(
+				&rows,
+			).Error
+		}); err != nil {
 			return err
 		}
 		for _, row := range rows {
@@ -478,11 +489,17 @@ func claimInbox(ctx context.Context, db *gorm.DB, consumer, eventID string) (Inb
 	record.Attempts = old.Attempts + 1
 	return record, true, nil
 }
-func markInbox(ctx context.Context, db *gorm.DB, row Inbox, state string) error {
+func markInbox(ctx context.Context, db *gorm.DB, row Inbox, state string, failure ...error) error {
+	values := map[string]any{"state": state, "lease_until": time.Now().UTC()}
+	if len(failure) > 0 && failure[0] != nil {
+		values["last_error_code"], values["last_error_at"] = taskErrorCode(failure[0]), time.Now().UTC()
+	} else if state == constants.InboxStateDone {
+		values["last_error_code"], values["last_error_at"] = "", nil
+	}
 	result := db.WithContext(ctx).
 		Model(&Inbox{}).
 		Where("consumer = ? AND event_id = ? AND claim_token = ?", row.Consumer, row.EventID, row.ClaimToken).
-		Updates(map[string]any{"state": state, "lease_until": time.Now().UTC()})
+		Updates(values)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -490,6 +507,22 @@ func markInbox(ctx context.Context, db *gorm.DB, row Inbox, state string) error 
 		return fmt.Errorf("inbox claim expired")
 	}
 	return nil
+}
+
+func traceRejectedDelivery(ctx context.Context, m Module, delivery amqp.Delivery, event Event, err error) {
+	carrier := propagation.MapCarrier{}
+	for key, value := range delivery.Headers {
+		if text, ok := value.(string); ok && len(text) <= 8192 && (key == "traceparent" || key == "tracestate") {
+			carrier[key] = text
+		}
+	}
+	ctx = NewTraceErrorContext(otel.GetTextMapPropagator().Extract(ctx, carrier))
+	ctx, span := Start(ctx, "mq.consume.rejected")
+	defer span.End()
+	span.SetAttributes(attribute.String("lumo.target_service", m.Name), attribute.String("messaging.destination.name", queueName(m.Name)))
+	TraceRequest(ctx, event)
+	TraceError(ctx, err)
+	TraceResponse(ctx, Result{"handled": false, "disposition": "rejected"}, status.Error(codes.InvalidArgument, "message rejected before business handling"))
 }
 
 func consumeOne(
@@ -502,12 +535,21 @@ func consumeOne(
 	var event Event
 	decoder := json.NewDecoder(bytes.NewReader(d.Body))
 	decoder.UseNumber()
-	if err := decoder.Decode(&event); err != nil || validateEventMetadata(event) != nil {
+	if err := decoder.Decode(&event); err != nil {
+		traceRejectedDelivery(ctx, m, d, event, fmt.Errorf("decode message JSON: %w", err))
+		return d.Reject(false)
+	}
+	if err := validateEventMetadata(event); err != nil {
+		traceRejectedDelivery(ctx, m, d, event, err)
 		return d.Reject(false)
 	}
 	// Schema-invalid deliveries cannot be retried into MySQL forever, and one
 	// broker message must contain one complete event rather than a JSON prefix.
 	if err := decoder.Decode(new(any)); err != io.EOF {
+		if err == nil {
+			err = errors.New("extra JSON value after the message")
+		}
+		traceRejectedDelivery(ctx, m, d, event, err)
 		return d.Reject(false)
 	}
 	if !moduleWants(m, event.Type) {
@@ -519,7 +561,7 @@ func consumeOne(
 			carrier[k] = s
 		}
 	}
-	parent := otel.GetTextMapPropagator().Extract(ctx, carrier)
+	parent := NewTraceErrorContext(otel.GetTextMapPropagator().Extract(ctx, carrier))
 	ctx, span := otel.Tracer("lumo/mq").
 		Start(
 			parent,
@@ -575,16 +617,16 @@ func consumeOne(
 		outcome["disposition"] = "ack"
 		return d.Ack(false)
 	}
-	span.SetStatus(codes.Error, "event handler failed")
+	TraceError(ctx, err)
 	Log(ctx, slog.LevelWarn, "event handler retry", "event_type", event.Type, "attempt", claim.Attempts)
 	if claim.Attempts >= 5 {
-		if err = markInbox(ctx, db, claim, constants.InboxStateDead); err != nil {
+		if err = markInbox(ctx, db, claim, constants.InboxStateDead, err); err != nil {
 			return err
 		}
 		outcome["disposition"] = "dead_letter"
 		return d.Reject(false)
 	}
-	if err = markInbox(ctx, db, claim, constants.InboxStateRetry); err != nil {
+	if err = markInbox(ctx, db, claim, constants.InboxStateRetry, err); err != nil {
 		return err
 	}
 	outcome["disposition"] = "retry"

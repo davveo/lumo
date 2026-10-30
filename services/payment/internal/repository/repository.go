@@ -17,7 +17,7 @@ type Tx struct {
 }
 
 func New(db *gorm.DB) *Repository { return &Repository{db} }
-func (r *Repository) Migrate(ctx context.Context) error {
+func (r *Repository) Migrate(ctx context.Context) (spanErr0 error) {
 	if e := adminconfig.Migrate(ctx, r.db); e != nil {
 		return e
 	}
@@ -26,11 +26,15 @@ func (r *Repository) Migrate(ctx context.Context) error {
 	}
 	ctx, s := platform.Start(ctx, "payment.repository.Migrate")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).AutoMigrate(&domain.Gate{}, &domain.Payment{})
 }
-func (r *Repository) Transaction(ctx context.Context, fn func(*Tx) error) error {
+func (r *Repository) Transaction(ctx context.Context, fn func(*Tx) error) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "payment.repository.Transaction")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	return r.db.WithContext(ctx).Transaction(func(db *gorm.DB) error { return fn(&Tx{db, ctx}) })
 }
 func (t *Tx) Gate(id string) (domain.Gate, error) {
@@ -59,16 +63,20 @@ func (t *Tx) Get(id string) (domain.Payment, error) {
 func (t *Tx) Create(p *domain.Payment) error { return t.db.WithContext(t.ctx).Create(p).Error }
 func (t *Tx) Save(p *domain.Payment) error   { return t.db.WithContext(t.ctx).Save(p).Error }
 func (t *Tx) Emit(e platform.Event) error    { return platform.Enqueue(t.ctx, t.db, e) }
-func (r *Repository) Get(ctx context.Context, id string) (domain.Payment, error) {
+func (r *Repository) Get(ctx context.Context, id string) (spanResult0 domain.Payment, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "payment.repository.Get")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var p domain.Payment
 	err := r.db.WithContext(ctx).First(&p, "id = ?", id).Error
 	return p, err
 }
-func (r *Repository) List(ctx context.Context, user string, all bool) ([]domain.Payment, error) {
+func (r *Repository) List(ctx context.Context, user string, all bool) (spanResult0 []domain.Payment, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "payment.repository.List")
 	defer s.End()
+	defer func() { platform.TraceError(ctx, spanErr0) }()
+
 	var p []domain.Payment
 	q := r.db.WithContext(ctx)
 	if !all {
