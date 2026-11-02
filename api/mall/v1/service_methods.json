@@ -105,6 +105,14 @@
         {
           "action": "ActionRecord",
           "method": "Record"
+        },
+        {
+          "method": "Dashboard",
+          "action": "ActionDashboard"
+        },
+        {
+          "method": "SyncHistory",
+          "action": "ActionSyncHistory"
         }
       ]
     },
@@ -213,6 +221,18 @@
         {
           "action": "ActionAdminList",
           "method": "AdminList"
+        },
+        {
+          "method": "ImportPreview",
+          "action": "ActionImportPreview"
+        },
+        {
+          "method": "ImportCommit",
+          "action": "ActionImportCommit"
+        },
+        {
+          "method": "ImportGet",
+          "action": "ActionImportGet"
         }
       ]
     },
@@ -477,6 +497,10 @@
         {
           "action": "ActionAdminSummary",
           "method": "AdminSummary"
+        },
+        {
+          "action": "ActionInspectReturns",
+          "method": "InspectReturns"
         }
       ]
     },
@@ -653,6 +677,42 @@
         {
           "action": "ActionValidate",
           "method": "Validate"
+        },
+        {
+          "method": "SecurityGet",
+          "action": "ActionSecurityGet"
+        },
+        {
+          "method": "PasswordChange",
+          "action": "ActionPasswordChange"
+        },
+        {
+          "method": "SecuritySend",
+          "action": "ActionSecuritySend"
+        },
+        {
+          "method": "SecurityVerify",
+          "action": "ActionSecurityVerify"
+        },
+        {
+          "method": "SessionRevoke",
+          "action": "ActionSessionRevoke"
+        },
+        {
+          "method": "PasswordResetRequest",
+          "action": "ActionPasswordResetRequest"
+        },
+        {
+          "method": "PasswordReset",
+          "action": "ActionPasswordReset"
+        },
+        {
+          "method": "StaffList",
+          "action": "ActionStaffList"
+        },
+        {
+          "method": "StaffUpsert",
+          "action": "ActionStaffUpsert"
         }
       ]
     },
@@ -737,6 +797,34 @@
         {
           "action": "ActionLedger",
           "method": "Ledger"
+        },
+        {
+          "method": "ProcurementList",
+          "action": "ActionProcurementList"
+        },
+        {
+          "method": "ProcurementGet",
+          "action": "ActionProcurementGet"
+        },
+        {
+          "method": "ProcurementCreate",
+          "action": "ActionProcurementCreate"
+        },
+        {
+          "method": "ProcurementApprove",
+          "action": "ActionProcurementApprove"
+        },
+        {
+          "method": "ProcurementReceive",
+          "action": "ActionProcurementReceive"
+        },
+        {
+          "method": "ProcurementCancel",
+          "action": "ActionProcurementCancel"
+        },
+        {
+          "action": "ActionRestockBatch",
+          "method": "RestockBatch"
         }
       ]
     },
@@ -813,6 +901,22 @@
         {
           "action": "ActionPolicyUpsert",
           "method": "PolicyUpsert"
+        },
+        {
+          "method": "Tracking",
+          "action": "ActionTracking"
+        },
+        {
+          "method": "TrackingUpdate",
+          "action": "ActionTrackingUpdate"
+        },
+        {
+          "method": "Exceptions",
+          "action": "ActionExceptions"
+        },
+        {
+          "method": "ExceptionResolve",
+          "action": "ActionExceptionResolve"
         }
       ]
     },
@@ -965,6 +1069,10 @@
         {
           "action": "ActionAdminSummary",
           "method": "AdminSummary"
+        },
+        {
+          "action": "ActionBatchGet",
+          "method": "BatchGet"
         }
       ]
     },

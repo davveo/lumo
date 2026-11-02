@@ -39,7 +39,7 @@ func (f *popupRPC) Call(ctx context.Context, target string, c platform.Command) 
 		_ = json.Unmarshal(b, &ids)
 		f.batches = append(f.batches, ids)
 		items := []platform.Result{}
-		if c.Role != "system" || len(ids) > 50 {
+		if c.Role != "system" || len(ids) > 5000 {
 			return nil, fmt.Errorf("invalid internal batch")
 		}
 		for _, id := range ids {
@@ -434,7 +434,7 @@ func TestPopupGuestHistoryAndCouponFallbackBatching(t *testing.T) {
 	if p["campaign_id"] != "batch-60" {
 		t.Fatalf("did not fall through ended coupons: %v", p)
 	}
-	if len(rpc2.batches) != 2 || len(rpc2.batches[0]) != 50 || len(rpc2.batches[1]) != 11 {
+	if len(rpc2.batches) != 1 || len(rpc2.batches[0]) != 61 {
 		t.Fatalf("coupon eligibility N+1: %+v", rpc2.batches)
 	}
 	rpc.states["everyday-10"] = "claimed"

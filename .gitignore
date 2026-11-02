@@ -9,3 +9,7 @@ __pycache__/
 node_modules/
 
 .local/
+**/pkg/mod/
+web/build/
+test-results/
+playwright-report/

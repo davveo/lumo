@@ -18,9 +18,19 @@ import (
 )
 
 func TestTraceErrorPreservesSpecificReasonAndCauseWithoutRequestSecrets(t *testing.T) {
-	err := fmt.Errorf("reserve SKU sku-demo requested=3 available=1: %w", status.Error(codes.FailedPrecondition, "stock insufficient; buyer-user-private; account-secret-private"))
-	span, attrs := captureTracePayload(t, map[string]any{"user_id": "buyer-user-private", "password": "account-secret-private"}, nil, err)
-	if !strings.Contains(attrs["error.message"].AsString(), "requested=3 available=1") || !strings.Contains(attrs["lumo.error.causes"].AsString(), "stock insufficient") || len(span.Events) == 0 {
+	err := fmt.Errorf(
+		"reserve SKU sku-demo requested=3 available=1: %w",
+		status.Error(codes.FailedPrecondition, "stock insufficient; buyer-user-private; account-secret-private"),
+	)
+	span, attrs := captureTracePayload(
+		t,
+		map[string]any{"user_id": "buyer-user-private", "password": "account-secret-private"},
+		nil,
+		err,
+	)
+	if !strings.Contains(attrs["error.message"].AsString(), "requested=3 available=1") ||
+		!strings.Contains(attrs["lumo.error.causes"].AsString(), "stock insufficient") ||
+		len(span.Events) == 0 {
 		t.Fatal("specific diagnostics missing", attrs)
 	}
 	encoded, _ := json.Marshal(span)
@@ -29,7 +39,8 @@ func TestTraceErrorPreservesSpecificReasonAndCauseWithoutRequestSecrets(t *testi
 			t.Fatal("secret escaped redaction", secret)
 		}
 	}
-	if span.Events[0].Name != "exception" || !attrs["lumo.error.redacted"].AsBool() || span.Status.Code != otelcodes.Error {
+	if span.Events[0].Name != "exception" || !attrs["lumo.error.redacted"].AsBool() ||
+		span.Status.Code != otelcodes.Error {
 		t.Fatal(span)
 	}
 }
@@ -43,14 +54,19 @@ func TestTraceErrorRetainsOriginalFailureBeforeRPCConversionAndSuccessfulAck(t *
 	span.End()
 	got := exporter.GetSpans()[0]
 	attrs := rpcSpanAttributes(got)
-	if !strings.Contains(attrs["error.message"], "UNIQUE constraint failed: orders.id") || attrs["lumo.error.code"] != "AlreadyExists" || got.Status.Code != otelcodes.Error {
+	if !strings.Contains(attrs["error.message"], "UNIQUE constraint failed: orders.id") ||
+		attrs["lumo.error.code"] != "AlreadyExists" ||
+		got.Status.Code != otelcodes.Error {
 		t.Fatal("original failure was overwritten", got)
 	}
 }
 
 func TestTraceErrorRedactsConnectionCredentialsAndBoundsDiagnosticSize(t *testing.T) {
 	ctx := NewTraceErrorContext(context.Background())
-	raw := "database connection failed account:raw-password@tcp(database:3306); amqp://mall:broker-password@rabbitmq:5672/; https://provider.test/callback?token=callback-secret; phone=13912345678; " + strings.Repeat("错误", 10000)
+	raw := "database connection failed account:raw-password@tcp(database:3306); amqp://mall:broker-password@rabbitmq:5672/; https://provider.test/callback?token=callback-secret; phone=13912345678; " + strings.Repeat(
+		"错误",
+		10000,
+	)
 	clean, redacted, truncated := safeTraceErrorText(ctx, raw)
 	if len(clean) > 2051 || !redacted || !truncated || !strings.Contains(clean, "database connection failed") {
 		t.Fatal(len(clean), redacted, truncated)
@@ -115,9 +131,20 @@ func TestConsumerTraceKeepsBusinessFailureWhenDeadLetterAckSucceeds(t *testing.T
 	if err = MigratePlatform(ctx, db); err != nil {
 		t.Fatal(err)
 	}
-	event := Event{ID: "event-trace-failed", Type: constants.EventOrderCompleted, AggregateID: "order-demo", UserID: "buyer-private"}
+	event := Event{
+		ID:          "event-trace-failed",
+		Type:        constants.EventOrderCompleted,
+		AggregateID: "order-demo",
+		UserID:      "buyer-private",
+	}
 	raw, _ := json.Marshal(event)
-	in := Inbox{Consumer: "notification", EventID: event.ID, State: constants.InboxStateRetry, Attempts: 4, LeaseUntil: time.Now().Add(-time.Minute)}
+	in := Inbox{
+		Consumer:   "notification",
+		EventID:    event.ID,
+		State:      constants.InboxStateRetry,
+		Attempts:   4,
+		LeaseUntil: time.Now().Add(-time.Minute),
+	}
 	if err = db.WithContext(ctx).Create(&in).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +162,9 @@ func TestConsumerTraceKeepsBusinessFailureWhenDeadLetterAckSucceeds(t *testing.T
 		}
 		found = true
 		attrs := rpcSpanAttributes(span)
-		if span.Status.Code != otelcodes.Error || attrs["lumo.error.code"] != "FailedPrecondition" || !strings.Contains(attrs["error.message"], "notification template missing") || !strings.Contains(attrs["lumo.response"], "dead_letter") {
+		if span.Status.Code != otelcodes.Error || attrs["lumo.error.code"] != "FailedPrecondition" ||
+			!strings.Contains(attrs["error.message"], "notification template missing") ||
+			!strings.Contains(attrs["lumo.response"], "dead_letter") {
 			t.Fatal("ack hid consumer failure", span)
 		}
 	}
@@ -162,7 +191,8 @@ func TestRPCTraceKeepsUnderlyingReasonBeforeGenericTransportError(t *testing.T) 
 		}
 		found = true
 		attrs := rpcSpanAttributes(span)
-		if !strings.Contains(attrs["error.message"], "quota exhausted for sku-visible") || !strings.Contains(attrs["lumo.error.causes"], "warehouse reservation rejected") {
+		if !strings.Contains(attrs["error.message"], "quota exhausted for sku-visible") ||
+			!strings.Contains(attrs["lumo.error.causes"], "warehouse reservation rejected") {
 			t.Fatal("transport discarded original failure", span)
 		}
 	}
@@ -189,7 +219,9 @@ func TestInvalidMessageProducesTraceBeforeRejection(t *testing.T) {
 		}
 		found = true
 		attrs := rpcSpanAttributes(span)
-		if attrs["lumo.error.code"] != "InvalidArgument" || !strings.Contains(attrs["error.message"], "unexpected EOF") || len(span.Events) == 0 {
+		if attrs["lumo.error.code"] != "InvalidArgument" ||
+			!strings.Contains(attrs["error.message"], "unexpected EOF") ||
+			len(span.Events) == 0 {
 			t.Fatal(span)
 		}
 	}
@@ -200,9 +232,16 @@ func TestInvalidMessageProducesTraceBeforeRejection(t *testing.T) {
 
 func TestOversizedSensitiveValueCannotLeakAfterErrorTruncation(t *testing.T) {
 	secret := strings.Repeat("private-password-material-", 800)
-	span, attrs := captureTracePayload(t, map[string]any{"password": secret}, nil, fmt.Errorf("provider verification failed: %s", secret))
+	span, attrs := captureTracePayload(
+		t,
+		map[string]any{"password": secret},
+		nil,
+		fmt.Errorf("provider verification failed: %s", secret),
+	)
 	encoded, _ := json.Marshal(span)
-	if strings.Contains(string(encoded), "private-password-material") || !strings.Contains(attrs["error.message"].AsString(), "provider verification failed") || !attrs["lumo.error.truncated"].AsBool() {
+	if strings.Contains(string(encoded), "private-password-material") ||
+		!strings.Contains(attrs["error.message"].AsString(), "provider verification failed") ||
+		!attrs["lumo.error.truncated"].AsBool() {
 		t.Fatal("truncation exposed a sensitive prefix", attrs)
 	}
 }

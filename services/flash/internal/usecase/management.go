@@ -13,7 +13,8 @@ import (
 
 func openSession(row domain.Session) bool {
 	now := time.Now().UTC()
-	return row.Active && (row.StartsAt == nil || !now.Before(*row.StartsAt)) && (row.EndsAt == nil || now.Before(*row.EndsAt))
+	return row.Active && (row.StartsAt == nil || !now.Before(*row.StartsAt)) &&
+		(row.EndsAt == nil || now.Before(*row.EndsAt))
 }
 func (s *Service) AdminList(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "flash.usecase.AdminList")
@@ -68,13 +69,30 @@ func (s *Service) Upsert(ctx context.Context, c platform.Request) (spanResult0 p
 	}
 	row.ID = c.ID
 	reason := strings.TrimSpace(platform.Text(c.Data, "reason"))
-	if row.ID == "" || len(row.ID) > 120 || row.SKUID == "" || len(row.SKUID) > 80 || row.ActivityID == "" || len(row.ActivityID) > 120 || strings.TrimSpace(row.Name) == "" || len([]rune(row.Name)) > 120 || row.Version < 0 || row.Version > 9007199254740990 || reason == "" || len([]rune(reason)) > 240 || (row.StartsAt != nil && row.EndsAt != nil && !row.StartsAt.Before(*row.EndsAt)) {
+	if row.ID == "" || len(row.ID) > 120 || row.SKUID == "" || len(row.SKUID) > 80 || row.ActivityID == "" ||
+		len(row.ActivityID) > 120 ||
+		strings.TrimSpace(row.Name) == "" ||
+		len([]rune(row.Name)) > 120 ||
+		row.Version < 0 ||
+		row.Version > 9007199254740990 ||
+		reason == "" ||
+		len([]rune(reason)) > 240 ||
+		(row.StartsAt != nil && row.EndsAt != nil && !row.StartsAt.Before(*row.EndsAt)) {
 		return nil, status.Error(codes.InvalidArgument, "valid session, time window, version and reason required")
 	}
 	if _, e := platform.NewClients(s.RPC).Catalog.Get(ctx, platform.Request{ID: row.SKUID, UserID: c.UserID, Role: c.Role}); e != nil {
 		return nil, e
 	}
-	activities, e := platform.NewClients(s.RPC).Campaign.AdminList(ctx, platform.Request{UserID: c.UserID, Role: c.Role, Data: map[string]any{"keyword": row.ActivityID, "page_size": 100}})
+	activities, e := platform.NewClients(
+		s.RPC,
+	).Campaign.AdminList(
+		ctx,
+		platform.Request{
+			UserID: c.UserID,
+			Role:   c.Role,
+			Data:   map[string]any{"keyword": row.ActivityID, "page_size": 100},
+		},
+	)
 	if e != nil {
 		return nil, e
 	}

@@ -56,7 +56,12 @@ func (r *Repository) scope(ctx context.Context, owner, kind, st string) *gorm.DB
 	}
 	return q
 }
-func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, offset int) (spanResult0 []domain.Record, spanErr0 error) {
+
+func (r *Repository) List(
+	ctx context.Context,
+	owner, kind, st string,
+	limit, offset int,
+) (spanResult0 []domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "engagement.repository.List")
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -148,7 +153,12 @@ func (r *Repository) SaveComparison(ctx context.Context, v *domain.Record) (span
 		return tx.WithContext(ctx).First(v, "id = ?", v.ID).Error
 	})
 }
-func (r *Repository) InsertOnce(ctx context.Context, v *domain.Record, event *platform.Event) (spanResult0 bool, spanErr0 error) {
+
+func (r *Repository) InsertOnce(
+	ctx context.Context,
+	v *domain.Record,
+	event *platform.Event,
+) (spanResult0 bool, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "engagement.repository.InsertOnce")
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()

@@ -39,6 +39,11 @@ server {
   location = /api {
     include /etc/nginx/lumo-proxy.conf;
   }
+  location = /api/v1/notification/stream {
+    include /etc/nginx/lumo-proxy.conf;
+    proxy_buffering off;
+    gzip off;
+  }
   location ^~ /api/ {
     include /etc/nginx/lumo-proxy.conf;
   }

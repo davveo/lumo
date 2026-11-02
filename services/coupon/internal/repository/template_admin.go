@@ -37,7 +37,10 @@ type TemplateWrite struct {
 	Version    *int64     `json:"version"`
 }
 
-func (r *Repository) TemplatesAdmin(ctx context.Context, request platform.Request) (spanResult0 platform.Result, spanErr0 error) {
+func (r *Repository) TemplatesAdmin(
+	ctx context.Context,
+	request platform.Request,
+) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.coupon.TemplatesAdmin")
 	defer span.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -126,7 +129,10 @@ func validTemplateID(id string) bool {
 	return true
 }
 
-func (r *Repository) TemplateUpsert(ctx context.Context, request platform.Request) (spanResult0 platform.Result, spanErr0 error) {
+func (r *Repository) TemplateUpsert(
+	ctx context.Context,
+	request platform.Request,
+) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.coupon.TemplateUpsert")
 	defer span.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()

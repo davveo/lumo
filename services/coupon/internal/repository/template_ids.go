@@ -13,7 +13,10 @@ import (
 
 // TemplatesByIDs is an internal bounded lookup used by marketing decisions.
 // It shares the public template status projection and reads only requested IDs.
-func (r *Repository) TemplatesByIDs(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
+func (r *Repository) TemplatesByIDs(
+	ctx context.Context,
+	c platform.Request,
+) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.coupon.TemplatesByIDs")
 	defer span.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -33,8 +36,8 @@ func (r *Repository) TemplatesByIDs(ctx context.Context, c platform.Request) (sp
 	default:
 		return nil, status.Error(codes.InvalidArgument, "template ids required")
 	}
-	if len(ids) < 1 || len(ids) > 50 {
-		return nil, status.Error(codes.InvalidArgument, "1..50 template ids required")
+	if len(ids) < 1 || len(ids) > 5000 {
+		return nil, status.Error(codes.InvalidArgument, "1..5000 template ids required")
 	}
 	unique := []string{}
 	seen := map[string]bool{}

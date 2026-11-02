@@ -71,6 +71,7 @@
     return message || code || '请求失败';
   };
   const readActions = {
+    [C.Service.Logistics]: [C.Action.Get, C.Action.List, C.Action.Tracking, C.Action.Exceptions],
     [C.Service.Storefront]: [
       C.Action.Recent,
       C.Action.Shell,
@@ -78,8 +79,16 @@
       C.Action.Activities,
       C.Action.AccountSummary,
     ],
-    [C.Service.Catalog]: [C.Action.List, C.Action.Get, C.Action.BatchGet, C.Action.AdminList],
-    [C.Service.Inventory]: [C.Action.Get, C.Action.BatchGet, C.Action.AdminList, C.Action.Adjustments, C.Action.Ledger],
+    [C.Service.Catalog]: [C.Action.ImportGet, C.Action.List, C.Action.Get, C.Action.BatchGet, C.Action.AdminList],
+    [C.Service.Inventory]: [
+      C.Action.ProcurementList,
+      C.Action.ProcurementGet,
+      C.Action.Get,
+      C.Action.BatchGet,
+      C.Action.AdminList,
+      C.Action.Adjustments,
+      C.Action.Ledger,
+    ],
     [C.Service.Search]: [C.Action.Query, C.Action.PolicyGet],
     [C.Service.Recommendation]: [C.Action.List, C.Action.PolicyGet],
     [C.Service.Content]: [C.Action.List, C.Action.Get, C.Action.AdminList, C.Action.PopupList],
@@ -87,7 +96,7 @@
     [C.Service.Group]: [C.Action.List, C.Action.Get, C.Action.AdminList, C.Action.Rules, C.Action.RulesAdmin],
     [C.Service.Flash]: [C.Action.List, C.Action.AdminList, C.Action.SessionGet, C.Action.RequestsAdmin],
     [C.Service.Interaction]: [C.Action.List],
-    [C.Service.Logistics]: [C.Action.Get, C.Action.PolicyGet],
+    [C.Service.Logistics]: [C.Action.Tracking, C.Action.Exceptions, C.Action.Get, C.Action.PolicyGet],
     [C.Service.Helpdesk]: [C.Action.Faq, C.Action.List, C.Action.Get, C.Action.AdminList],
     [C.Service.Member]: [C.Action.Get, C.Action.PolicyGet],
     [C.Service.Address]: [C.Action.List, C.Action.Get],
@@ -110,8 +119,10 @@
     ],
     [C.Service.Refund]: [C.Action.List, C.Action.AdminList, C.Action.AdminSummary],
     [C.Service.Reconciliation]: [C.Action.List, C.Action.AdminList, C.Action.Get],
-    [C.Service.Analytics]: [C.Action.List, C.Action.AdminList],
+    [C.Service.Analytics]: [C.Action.List, C.Action.AdminList, C.Action.Dashboard],
     [C.Service.IAM]: [
+      C.Action.StaffList,
+      C.Action.SecurityGet,
       C.Action.AdminList,
       C.Action.AdminGet,
       C.Action.AdminSummary,
@@ -126,6 +137,12 @@
   // These operations must observe each call's current state and stay outside the
   // read batch. Quotes may reserve/write state even though their names look like reads.
   const directReads = new Set([
+    C.Service.Coupon + '/' + C.Action.Templates,
+    C.Service.Coupon + '/' + C.Action.TemplatesSnapshot,
+    C.Service.Helpdesk + '/' + C.Action.Faq,
+    C.Service.Interaction + '/' + C.Action.List,
+    C.Service.Recommendation + '/' + C.Action.List,
+    C.Service.Search + '/' + C.Action.Query,
     C.Service.Coupon + '/' + C.Action.Calculate,
     C.Service.IAM + '/' + C.Action.Current,
     C.Service.IAM + '/' + C.Action.Validate,
@@ -456,7 +473,13 @@
     // Coalesce identical work only. Unrelated reads retain their semantic URL;
     // no client-generated service/action list crosses an HTTP boundary.
     if (safeRead) return aggregateRead(service, action, payload, options, context);
-    if (!safeRead && !directReads.has(service + '/' + action) && service !== C.Service.Storefront) invalidate();
+    if (
+      !safeRead &&
+      !directReads.has(service + '/' + action) &&
+      service !== C.Service.Storefront &&
+      !(service === C.Service.Analytics && action === C.Action.Record)
+    )
+      invalidate();
     return transport(service, action, payload, options, context).then((result) => result.data);
   }
   function beginSections() {
@@ -565,9 +588,41 @@
     (window.crypto?.randomUUID
       ? window.crypto.randomUUID()
       : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2));
+  async function listAll(service, command = {}, options = {}) {
+    const api = window.LumoAPI,
+      originalBase = api.getBase(),
+      originalToken = api.getToken();
+    const active = () => api.getBase() === originalBase && api.getToken() === originalToken;
+    const items = [],
+      seen = new Set(),
+      cursors = new Set();
+    let cursor = '',
+      result;
+    do {
+      if (!active()) throw changed(service, C.Action.List);
+      result = await api.call(
+        service,
+        C.Action.List,
+        { ...command, data: { ...command.data, limit: 100, ...(cursor ? { cursor, offset: 0 } : {}) } },
+        options,
+      );
+      if (!active()) throw changed(service, C.Action.List);
+      for (const row of result.items || []) {
+        if (row.id && seen.has(row.id)) continue;
+        if (row.id) seen.add(row.id);
+        items.push(row);
+      }
+      if (!result.has_more) break;
+      cursor = result.next_cursor;
+      if (!cursor || cursors.has(cursor)) throw Error('列表分页未推进，请重新加载');
+      cursors.add(cursor);
+    } while (true);
+    return { ...result, items, has_more: false, next_cursor: '' };
+  }
   window.LumoAccountSummary = { model: () => clone(accountSummary), refresh: refreshAccountSummary };
   window.LumoAPI = {
     call,
+    listAll,
     key,
     APIError,
     prefetchBootstrap,

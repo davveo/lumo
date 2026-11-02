@@ -5,6 +5,7 @@ import (
 
 	"github.com/davveo/lumo/internal/commercepolicy"
 	"os"
+	"time"
 
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
@@ -36,7 +37,7 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 	if !privileged(c) {
 		return nil, status.Error(codes.PermissionDenied, "internal fulfillment permission required")
 	}
-	if os.Getenv("DEMO_MODE") != "true" {
+	if os.Getenv("DEMO_MODE") != "true" && os.Getenv("LOGISTICS_CARRIER_CREATE_URL") == "" {
 		return nil, status.Error(
 			codes.FailedPrecondition,
 			"real carrier adapter not configured; local carrier requires DEMO_MODE=true",
@@ -53,6 +54,14 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 	if kind == "" {
 		kind = constants.FulfillmentKindOrder
 	}
+	if old, e := s.Repo.Get(ctx, c.ID); e == nil {
+		if old.UserID != c.UserID {
+			return nil, status.Error(codes.PermissionDenied, "运单归属不匹配")
+		}
+		return platform.Map(old), nil
+	} else if status.Code(e) != codes.NotFound {
+		return nil, e
+	}
 	number, err := s.Repo.BusinessID(ctx, "tracking", c.ID, "")
 	if err != nil {
 		return nil, err
@@ -65,6 +74,13 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 		Status:     constants.LogisticsStatusCreated,
 		TrackingID: number,
 		Provider:   constants.LogisticsProviderLocalDemoCarrier,
+	}
+	if os.Getenv("LOGISTICS_CARRIER_CREATE_URL") != "" {
+		var e error
+		r.TrackingID, r.Provider, e = s.createCarrier(ctx, c, orderID)
+		if e != nil {
+			return nil, e
+		}
 	}
 	if err := s.Repo.Create(ctx, r); err != nil {
 		return nil, err
@@ -88,28 +104,32 @@ func (s *Service) Deliver(ctx context.Context, c platform.Request) (traceResult 
 	if err != nil {
 		return nil, err
 	}
-	event := &platform.Event{
-		ID:          r.ID + ":delivered",
-		Type:        constants.EventDeliveryConfirmed,
-		AggregateID: r.ID,
-		UserID:      r.UserID,
-		Data: map[string]any{
-			"order_id":       r.OrderID,
-			"fulfillment_id": r.ID,
-			"tracking_id":    r.TrackingID,
-			"kind":           r.Kind,
-			"provider":       r.Provider,
-		},
+	if r.Status == constants.TrackingStatusDelivered {
+		return platform.Map(r), nil
 	}
-	r, err = s.Repo.Transition(
+	out, err := s.TrackingUpdate(
 		ctx,
-		r.ID,
-		[]string{constants.LogisticsStatusCreated, constants.LogisticsStatusInTransit},
-		constants.LogisticsStatusDelivered,
-		nil,
-		event,
+		platform.Request{
+			ID:     "warehouse-delivered:" + r.ID,
+			UserID: c.UserID,
+			Role:   c.Role,
+			Data: map[string]any{
+				"tracking_id": r.TrackingID,
+				"status":      constants.TrackingStatusDelivered,
+				"occurred_at": time.Now().UTC().Format(time.RFC3339Nano),
+				"description": "仓库确认已签收",
+				"_source":     "warehouse",
+			},
+		},
 	)
-	return platform.Map(r), err
+	// A concurrent delivery can win after the initial read. Its persisted event
+	// has a different server timestamp but confirms the same terminal outcome.
+	if status.Code(err) == codes.AlreadyExists {
+		if current, e := s.Repo.Get(ctx, c.ID); e == nil && current.Status == constants.TrackingStatusDelivered {
+			return platform.Map(current), nil
+		}
+	}
+	return out, err
 }
 
 func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
@@ -181,5 +201,12 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 		return nil, status.Error(codes.InvalidArgument, "invalid shipping subtotal or quantity")
 	}
 	fee, allowed := policy.Quote(region, in.Subtotal, in.Quantity)
-	return platform.Result{"shipping_cents": fee, "provider": policy.Name, "serviceable": allowed, "region": region, "policy_version": policy.Version, "policy": policy}, nil
+	return platform.Result{
+		"shipping_cents": fee,
+		"provider":       policy.Name,
+		"serviceable":    allowed,
+		"region":         region,
+		"policy_version": policy.Version,
+		"policy":         policy,
+	}, nil
 }

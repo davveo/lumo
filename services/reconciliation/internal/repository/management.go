@@ -40,7 +40,12 @@ func (r *Repository) AdminList(ctx context.Context, c platform.Request) (spanRes
 	defer sp.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
 
-	rows, total, f, e := adminquery.Page[domain.Run](ctx, r.db, c.Data, adminquery.Spec{State: "status", Search: []string{"id", "actor_id", "error", "reason"}})
+	rows, total, f, e := adminquery.Page[domain.Run](
+		ctx,
+		r.db,
+		c.Data,
+		adminquery.Spec{State: "status", Search: []string{"id", "actor_id", "error", "reason"}},
+	)
 	return adminquery.Result(rows, total, f), e
 }
 func (r *Repository) Get(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
@@ -56,7 +61,12 @@ func (r *Repository) Get(ctx context.Context, c platform.Request) (spanResult0 p
 	if e != nil {
 		return nil, e
 	}
-	rows, total, f, e := adminquery.Page[domain.Difference](ctx, r.db.WithContext(ctx).Where("run_id = ?", c.ID), c.Data, adminquery.Spec{State: "kind", Search: []string{"payment_id", "order_id"}})
+	rows, total, f, e := adminquery.Page[domain.Difference](
+		ctx,
+		r.db.WithContext(ctx).Where("run_id = ?", c.ID),
+		c.Data,
+		adminquery.Spec{State: "kind", Search: []string{"payment_id", "order_id"}},
+	)
 	if e != nil {
 		return nil, e
 	}
@@ -102,7 +112,12 @@ func (r *Repository) Note(ctx context.Context, c platform.Request) (spanResult0 
 		return nil, status.Error(codes.NotFound, "report not found")
 	}
 	hash := sha256.Sum256([]byte(c.UserID + "\x00" + c.IdempotencyKey))
-	row := domain.Followup{ID: fmt.Sprintf("recon-note-%x", hash[:16]), RunID: c.ID, ActorID: c.UserID, Body: platform.Text(c.Data, "body")}
+	row := domain.Followup{
+		ID:      fmt.Sprintf("recon-note-%x", hash[:16]),
+		RunID:   c.ID,
+		ActorID: c.UserID,
+		Body:    platform.Text(c.Data, "body"),
+	}
 	if e := r.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&row).Error; e != nil {
 		return nil, e
 	}
@@ -122,7 +137,11 @@ func (r *Repository) Claim(ctx context.Context) (spanResult0 *domain.Run, spanEr
 
 	var row domain.Run
 	now := time.Now().UTC()
-	e := r.db.WithContext(ctx).Where("status IN ? AND (claim = ? OR lease_until <= ?)", []string{constants.ReconciliationStatusQueued, constants.ReconciliationStatusRunning}, "", now).Order("created_at,id").First(&row).Error
+	e := r.db.WithContext(ctx).
+		Where("status IN ? AND (claim = ? OR lease_until <= ?)", []string{constants.ReconciliationStatusQueued, constants.ReconciliationStatusRunning}, "", now).
+		Order("created_at,id").
+		First(&row).
+		Error
 	if errors.Is(e, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
@@ -130,7 +149,10 @@ func (r *Repository) Claim(ctx context.Context) (spanResult0 *domain.Run, spanEr
 		return nil, e
 	}
 	token := platform.ID("recon-claim")
-	v := r.db.WithContext(ctx).Model(&domain.Run{}).Where("id = ? AND (claim = ? OR lease_until <= ?)", row.ID, "", now).Updates(map[string]any{"claim": token, "lease_until": now.Add(2 * time.Minute), "status": constants.ReconciliationStatusRunning})
+	v := r.db.WithContext(ctx).
+		Model(&domain.Run{}).
+		Where("id = ? AND (claim = ? OR lease_until <= ?)", row.ID, "", now).
+		Updates(map[string]any{"claim": token, "lease_until": now.Add(2 * time.Minute), "status": constants.ReconciliationStatusRunning})
 	if v.Error != nil {
 		return nil, v.Error
 	}
@@ -141,7 +163,15 @@ func (r *Repository) Claim(ctx context.Context) (spanResult0 *domain.Run, spanEr
 	row.Status = constants.ReconciliationStatusRunning
 	return &row, nil
 }
-func (r *Repository) Progress(ctx context.Context, row domain.Run, diffs []domain.Difference, processed, total int64, done bool, failure error) (spanErr0 error) {
+
+func (r *Repository) Progress(
+	ctx context.Context,
+	row domain.Run,
+	diffs []domain.Difference,
+	processed, total int64,
+	done bool,
+	failure error,
+) (spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "reconciliation.repository.Progress")
 	defer sp.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -174,7 +204,11 @@ func (r *Repository) Progress(ctx context.Context, row domain.Run, diffs []domai
 				message = message[:255]
 			}
 		}
-		return tx.WithContext(ctx).Model(&domain.Run{}).Where("id = ? AND claim = ?", row.ID, row.Claim).Updates(map[string]any{"offset": held.Offset + processed, "checked": held.Checked + processed, "total": total, "difference_count": held.DifferenceCount + inserted, "status": state, "error": message, "claim": "", "lease_until": time.Now().UTC()}).Error
+		return tx.WithContext(ctx).
+			Model(&domain.Run{}).
+			Where("id = ? AND claim = ?", row.ID, row.Claim).
+			Updates(map[string]any{"offset": held.Offset + processed, "checked": held.Checked + processed, "total": total, "difference_count": held.DifferenceCount + inserted, "status": state, "error": message, "claim": "", "lease_until": time.Now().UTC()}).
+			Error
 	})
 }
 
@@ -196,14 +230,19 @@ func (r *Repository) Resume(ctx context.Context, c platform.Request) (spanResult
 			}
 			return nil
 		}
-		result := tx.WithContext(ctx).Model(&domain.Run{}).Where("id = ? AND status = ?", c.ID, constants.ReconciliationStatusFailed).Updates(map[string]any{"status": constants.ReconciliationStatusQueued, "error": "", "claim": "", "lease_until": time.Now().UTC()})
+		result := tx.WithContext(ctx).
+			Model(&domain.Run{}).
+			Where("id = ? AND status = ?", c.ID, constants.ReconciliationStatusFailed).
+			Updates(map[string]any{"status": constants.ReconciliationStatusQueued, "error": "", "claim": "", "lease_until": time.Now().UTC()})
 		if result.Error != nil {
 			return result.Error
 		}
 		if result.RowsAffected != 1 {
 			return status.Error(codes.FailedPrecondition, "only failed reconciliation jobs can resume")
 		}
-		return tx.WithContext(ctx).Create(&domain.Followup{ID: id, RunID: c.ID, ActorID: c.UserID, Body: platform.Text(c.Data, "reason")}).Error
+		return tx.WithContext(ctx).
+			Create(&domain.Followup{ID: id, RunID: c.ID, ActorID: c.UserID, Body: platform.Text(c.Data, "reason")}).
+			Error
 	})
 	if e != nil {
 		return nil, e

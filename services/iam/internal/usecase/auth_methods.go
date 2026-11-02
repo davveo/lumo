@@ -30,7 +30,8 @@ var phonePattern = regexp.MustCompile(`^1[3-9][0-9]{9}$`)
 func demoAuth() bool { return os.Getenv("DEMO_MODE") == "true" || os.Getenv("DEMO_MODE") == "1" }
 func validCallback(raw string) bool {
 	u, e := url.Parse(raw)
-	return e == nil && u.Host != "" && u.User == nil && u.Fragment == "" && (u.Scheme == "https" || demoAuth() && u.Scheme == "http" && (u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1"))
+	return e == nil && u.Host != "" && u.User == nil && u.Fragment == "" &&
+		(u.Scheme == "https" || demoAuth() && u.Scheme == "http" && (u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1"))
 }
 func (s *Service) PolicyGet(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "iam.usecase.PolicyGet")
@@ -62,7 +63,8 @@ func (s *Service) PolicyUpsert(ctx context.Context, c platform.Request) (spanRes
 		return nil, e
 	}
 	p := in.Config
-	if p.OTPTTL < 60 || p.OTPTTL > 600 || p.OTPCooldown < 30 || p.OTPCooldown > 300 || !p.Password && !p.Phone && !p.Wechat && !p.QQ {
+	if p.OTPTTL < 60 || p.OTPTTL > 600 || p.OTPCooldown < 30 || p.OTPCooldown > 300 ||
+		!p.Password && !p.Phone && !p.Wechat && !p.QQ {
 		return nil, status.Error(codes.InvalidArgument, "至少启用一种登录方式，验证码有效期60至600秒，发送间隔30至300秒")
 	}
 	for id, enabled := range map[string]bool{"phone": p.Phone, "wechat": p.Wechat, "qq": p.QQ} {
@@ -100,7 +102,13 @@ func (s *Service) LoginMethods(ctx context.Context, c platform.Request) (spanRes
 	if e != nil {
 		return nil, e
 	}
-	return platform.Result{"items": items, "version": v, "allow_registration": p.Registration, "otp_cooldown_seconds": p.OTPCooldown, "demo_sms": demoAuth() && phone.Values["webhook_url"] == ""}, nil
+	return platform.Result{
+		"items":                items,
+		"version":              v,
+		"allow_registration":   p.Registration,
+		"otp_cooldown_seconds": p.OTPCooldown,
+		"demo_sms":             demoAuth() && phone.Values["webhook_url"] == "",
+	}, nil
 }
 func otpDigest(id, phone, code string) string {
 	key := os.Getenv("IAM_OTP_HASH_KEY")
@@ -197,7 +205,16 @@ func (s *Service) OtpLogin(ctx context.Context, c platform.Request) (spanResult0
 	if !p.Phone || !readyLoginParameters("phone", phoneProvider.Values) {
 		return nil, status.Error(codes.PermissionDenied, "手机验证码登录已关闭")
 	}
-	id, phone, code := platform.Text(c.Data, "challenge_id"), platform.Text(c.Data, "phone"), platform.Text(c.Data, "code")
+	id, phone, code := platform.Text(
+		c.Data,
+		"challenge_id",
+	), platform.Text(
+		c.Data,
+		"phone",
+	), platform.Text(
+		c.Data,
+		"code",
+	)
 	if len(id) != 64 || !phonePattern.MatchString(phone) || len(code) != 6 {
 		return nil, status.Error(codes.InvalidArgument, "手机号及验证码格式无效")
 	}
@@ -216,8 +233,21 @@ func (s *Service) issueSession(ctx context.Context, a domain.Account) (platform.
 	if e = s.repo.CreateSession(ctx, &session); e != nil {
 		return nil, e
 	}
-	return platform.Result{"token": raw, "token_type": "Bearer", "expires_at": session.ExpiresAt.Format(time.RFC3339), "user_id": a.ID, "role": a.Role}, nil
+	return platform.Result{
+		"token":         raw,
+		"token_type":    "Bearer",
+		"expires_at":    session.ExpiresAt.Format(time.RFC3339),
+		"user_id":       a.ID,
+		"role":          a.Role,
+		"staff":         platform.IsEmployee(a.Role),
+		"permissions":   platform.StaffGrants(a.Role),
+		"can_export":    platform.StaffCanExport(a.Role),
+		"registered_at": a.CreatedAt.UTC().Format(time.RFC3339),
+	}, nil
 }
 func authClient() *http.Client {
-	return &http.Client{Timeout: 8 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	return &http.Client{
+		Timeout:       8 * time.Second,
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+	}
 }

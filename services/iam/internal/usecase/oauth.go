@@ -25,7 +25,13 @@ func (s *Service) oauthEnabled(ctx context.Context, provider string) (bool, erro
 }
 func oauthSettings(provider string) (string, string, string) {
 	if provider == "wechat" {
-		return os.Getenv("WECHAT_LOGIN_APP_ID"), os.Getenv("WECHAT_LOGIN_APP_SECRET"), os.Getenv("WECHAT_LOGIN_REDIRECT_URI")
+		return os.Getenv(
+				"WECHAT_LOGIN_APP_ID",
+			), os.Getenv(
+				"WECHAT_LOGIN_APP_SECRET",
+			), os.Getenv(
+				"WECHAT_LOGIN_REDIRECT_URI",
+			)
 	}
 	return os.Getenv("QQ_LOGIN_APP_ID"), os.Getenv("QQ_LOGIN_APP_SECRET"), os.Getenv("QQ_LOGIN_REDIRECT_URI")
 }
@@ -102,7 +108,12 @@ func exchangeOAuth(ctx context.Context, client *http.Client, provider, code stri
 	app, secret, redirect := oauthSettings(provider)
 	return exchangeOAuthParameters(ctx, client, provider, code, app, secret, redirect)
 }
-func exchangeOAuthParameters(ctx context.Context, client *http.Client, provider, code, app, secret, redirect string) (string, error) {
+
+func exchangeOAuthParameters(
+	ctx context.Context,
+	client *http.Client,
+	provider, code, app, secret, redirect string,
+) (string, error) {
 	values := url.Values{"grant_type": {"authorization_code"}, "code": {code}}
 	if provider == "wechat" {
 		values.Set("appid", app)
@@ -132,7 +143,12 @@ func exchangeOAuthParameters(ctx context.Context, client *http.Client, provider,
 	}
 	// me also binds the verified token to this exact app, rather than trusting
 	// a subject field copied into the callback by a client.
-	identity, e := oauthJSON(ctx, client, "https://graph.qq.com/oauth2.0/me", url.Values{"access_token": {access}, "fmt": {"json"}})
+	identity, e := oauthJSON(
+		ctx,
+		client,
+		"https://graph.qq.com/oauth2.0/me",
+		url.Values{"access_token": {access}, "fmt": {"json"}},
+	)
 	if e != nil {
 		return "", e
 	}
@@ -146,8 +162,23 @@ func (s *Service) OAuthCallback(ctx context.Context, c platform.Request) (spanRe
 	defer span.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
 
-	provider, state, proof, code := platform.Text(c.Data, "provider"), platform.Text(c.Data, "oauth_state"), platform.Text(c.Data, "proof"), platform.Text(c.Data, "code")
-	if provider != "wechat" && provider != "qq" || len(state) != 64 || len(proof) < 32 || len(proof) > 128 || len(code) < 1 || len(code) > 1024 || strings.TrimSpace(code) != code {
+	provider, state, proof, code := platform.Text(
+		c.Data,
+		"provider",
+	), platform.Text(
+		c.Data,
+		"oauth_state",
+	), platform.Text(
+		c.Data,
+		"proof",
+	), platform.Text(
+		c.Data,
+		"code",
+	)
+	if provider != "wechat" && provider != "qq" || len(state) != 64 || len(proof) < 32 || len(proof) > 128 ||
+		len(code) < 1 ||
+		len(code) > 1024 ||
+		strings.TrimSpace(code) != code {
 		return nil, status.Error(codes.InvalidArgument, "授权回调参数无效")
 	}
 	enabled, e := s.oauthEnabled(ctx, provider)
@@ -168,7 +199,15 @@ func (s *Service) OAuthCallback(ctx context.Context, c platform.Request) (spanRe
 	if e != nil {
 		return nil, e
 	}
-	subject, e := exchangeOAuthParameters(ctx, client, provider, code, parameters.Values["app_id"], parameters.Values["app_secret"], parameters.Values["redirect_uri"])
+	subject, e := exchangeOAuthParameters(
+		ctx,
+		client,
+		provider,
+		code,
+		parameters.Values["app_id"],
+		parameters.Values["app_secret"],
+		parameters.Values["redirect_uri"],
+	)
 	if e != nil {
 		return nil, e
 	}

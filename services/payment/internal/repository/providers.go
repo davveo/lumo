@@ -13,6 +13,12 @@ func (r *Repository) Provider(ctx context.Context, id string) (channelconfig.Pro
 	}
 	return p, e
 }
-func (r *Repository) SaveProvider(ctx context.Context, schema channelconfig.Schema, p channelconfig.Profile, c platform.Request) (platform.Result, error) {
+
+func (r *Repository) SaveProvider(
+	ctx context.Context,
+	schema channelconfig.Schema,
+	p channelconfig.Profile,
+	c platform.Request,
+) (platform.Result, error) {
 	return channelconfig.Save(ctx, r.db, "payment-provider-"+schema.ID, schema, p, c)
 }

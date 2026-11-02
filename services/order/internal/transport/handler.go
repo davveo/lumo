@@ -18,6 +18,7 @@ type legacyAdapter struct{ service *usecase.Service }
 func New(service *usecase.Service) func(context.Context, platform.Command) (platform.Result, error) {
 	adapter := legacyAdapter{service: service}
 	actions := map[string]legacyAction{
+		constants.ActionBatchGet:      adapter.batchGet,
 		constants.ActionAdminList:     adapter.adminList,
 		constants.ActionAdminSummary:  adapter.adminSummary,
 		constants.ActionList:          adapter.list,

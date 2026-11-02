@@ -9,7 +9,10 @@ import (
 	"strings"
 )
 
-func (r *Repository) AdminList(ctx context.Context, c platform.Request) (spanResult0 []domain.Record, spanResult1 int64, spanResult2 adminquery.Filters, spanErr0 error) {
+func (r *Repository) AdminList(
+	ctx context.Context,
+	c platform.Request,
+) (spanResult0 []domain.Record, spanResult1 int64, spanResult2 adminquery.Filters, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "catalog.repository.AdminList")
 	defer sp.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -29,7 +32,19 @@ func (r *Repository) AdminList(ctx context.Context, c platform.Request) (spanRes
 	}
 	if keyword != "" {
 		like := "%" + strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(strings.ToLower(keyword)) + "%"
-		db = db.Where("LOWER(id) LIKE ? ESCAPE '!' OR LOWER(COALESCE("+text("$.name")+",'')) LIKE ? ESCAPE '!' OR LOWER(COALESCE("+text("$.brand")+",'')) LIKE ? ESCAPE '!' OR LOWER(COALESCE("+text("$.category")+",'')) LIKE ? ESCAPE '!'", like, like, like, like)
+		db = db.Where(
+			"LOWER(id) LIKE ? ESCAPE '!' OR LOWER(COALESCE("+text(
+				"$.name",
+			)+",'')) LIKE ? ESCAPE '!' OR LOWER(COALESCE("+text(
+				"$.brand",
+			)+",'')) LIKE ? ESCAPE '!' OR LOWER(COALESCE("+text(
+				"$.category",
+			)+",'')) LIKE ? ESCAPE '!'",
+			like,
+			like,
+			like,
+			like,
+		)
 	}
 	if category := platform.Text(data, "category"); category != "" {
 		db = db.Where(text("$.category")+" = ?", category)

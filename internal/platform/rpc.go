@@ -125,8 +125,27 @@ func (c *rpcCaller) Call(ctx context.Context, service string, command Command) (
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	ctx = metadata.AppendToOutgoingContext(ctx, rpcTokenHeader, c.token)
+	if command.Action == constants.ActionReadSnapshot {
+		response, e := mallv1.NewDomainServiceClient(conn).
+			ReadSnapshot(ctx, &mallv1.Command{Action: command.Action, Id: service, PayloadJson: payload}, grpc.MaxCallRecvMsgSize(32<<20))
+		if e != nil {
+			return nil, e
+		}
+		decoder := json.NewDecoder(bytes.NewReader(response.GetPayloadJson()))
+		decoder.UseNumber()
+		if e = decoder.Decode(&out); e != nil {
+			return nil, status.Error(codes.Internal, "invalid snapshot response")
+		}
+		return out, nil
+	}
 	if command.Action == constants.ActionTasks || command.Action == constants.ActionRetry {
-		request := &mallv1.ServiceRequest{Id: command.ID, UserId: command.UserID, Role: command.Role, IdempotencyKey: command.IdempotencyKey, PayloadJson: payload}
+		request := &mallv1.ServiceRequest{
+			Id:             command.ID,
+			UserId:         command.UserID,
+			Role:           command.Role,
+			IdempotencyKey: command.IdempotencyKey,
+			PayloadJson:    payload,
+		}
 		client := mallv1.NewPlatformAdminServiceClient(conn)
 		var response *mallv1.ServiceResponse
 		var err error
@@ -308,6 +327,10 @@ func NewRPCServer(token string, module Module) (*grpc.Server, error) {
 		module.RPCActions[mallv1.PlatformAdminService_Tasks_FullMethodName] = constants.ActionTasks
 		module.RPCActions[mallv1.PlatformAdminService_Retry_FullMethodName] = constants.ActionRetry
 	}
+	if module.RPCActions == nil {
+		module.RPCActions = map[string]string{}
+	}
+	module.RPCActions[mallv1.DomainService_ReadSnapshot_FullMethodName] = constants.ActionReadSnapshot
 	interceptor := func(
 		ctx context.Context,
 		req any,
@@ -373,7 +396,7 @@ func NewRPCServer(token string, module Module) (*grpc.Server, error) {
 		grpc.StatsHandler(&rpcPayloadStatsHandler{Handler: otelgrpc.NewServerHandler()}),
 		grpc.UnaryInterceptor(interceptor),
 		grpc.MaxRecvMsgSize(4<<20),
-		grpc.MaxSendMsgSize(4<<20),
+		grpc.MaxSendMsgSize(32<<20),
 	)
 	if module.Handle != nil {
 		mallv1.RegisterDomainServiceServer(server, &domainServer{module: module})

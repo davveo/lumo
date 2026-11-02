@@ -3,18 +3,7 @@
   const C = window.LumoConstants;
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const defaultCatalog = clone(typeof presentationProducts !== 'undefined' ? presentationProducts : products);
-  const defaults = {
-    brand: 'LUMO',
-    brandSuffix: 'Mall',
-    heroTitle: '智享生活\n从此不同',
-    heroSubtitle: '甄选品质好物，享受更美好的生活',
-    heroEyebrow: 'SMART LIVING, SIMPLY BETTER',
-    heroImage: 'hero.jpg',
-    accent: '#ff443d',
-    sectionTitle: '今日推荐',
-    sectionSubtitle: '精选好物，为你而来',
-  };
-  const shop = { ...defaults };
+  const { defaults, settings: shop, safeImage, asset, normalizeSettings, applyTheme } = window.LumoStorefrontSettings;
   const studio = { tab: 'products', query: '', status: C.CatalogViewStatus.All, savedAt: '', loadWarning: '' };
   const readScope = () =>
     JSON.stringify([
@@ -51,42 +40,6 @@
 
   const el = (selector) => document.querySelector(selector);
   const safeText = (value, max, fallback = '') => (typeof value === 'string' ? value.trim().slice(0, max) : fallback);
-  function safeImage(value, fallback = 'hero.jpg') {
-    if (typeof value !== 'string' || value.length > 2500000) return fallback;
-    if (/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(value)) return value;
-    if (/^https:\/\//i.test(value)) {
-      try {
-        const u = new URL(value);
-        if (u.protocol === 'https:' && !u.username && !u.password) return u.href;
-      } catch (_) {}
-    }
-    if (/^(?:assets\/)?demo-[a-z0-9-]+\.svg$/.test(value)) return value;
-    if (/^(?:assets\/)?[A-Za-z0-9_-]+\.(?:png|jpe?g|webp)$/i.test(value)) return value;
-    return fallback;
-  }
-  function asset(value) {
-    const src = safeImage(value);
-    return /^https:|^data:|^assets\//i.test(src) ? src : 'assets/' + src;
-  }
-  function normalizeSettings(raw) {
-    const output = { ...defaults, ...(window.LumoStorefrontLayout?.normalize(raw) || {}) };
-    if (raw?.heroFileId) output.heroFileId = safeText(raw.heroFileId, 128);
-    const lengths = {
-      brand: 20,
-      brandSuffix: 12,
-      heroTitle: 60,
-      heroSubtitle: 120,
-      heroEyebrow: 80,
-      sectionTitle: 30,
-      sectionSubtitle: 80,
-    };
-    for (const key of Object.keys(lengths))
-      if (raw && typeof raw[key] === 'string')
-        output[key] = safeText(raw[key], lengths[key], defaults[key]) || defaults[key];
-    output.heroImage = safeImage(raw?.heroImage, defaults.heroImage);
-    output.accent = /^#[0-9a-f]{6}$/i.test(raw?.accent || '') ? raw.accent : defaults.accent;
-    return output;
-  }
   const numberValue = (value, min, max, fallback) =>
     Number.isFinite(Number(value)) && Number(value) >= min && Number(value) <= max
       ? Math.round(Number(value))
@@ -285,11 +238,6 @@
       toast(error.message);
       return false;
     }
-  }
-  function applyTheme() {
-    document.documentElement.style.setProperty('--red', shop.accent);
-    document.documentElement.style.removeProperty?.('--red-dark');
-    document.documentElement.style.removeProperty?.('--pale');
   }
   function savedTime() {
     if (!studio.savedAt) return '尚未修改';

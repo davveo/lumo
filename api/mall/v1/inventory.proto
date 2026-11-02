@@ -21,4 +21,11 @@ service InventoryService {
   rpc AdminList(ServiceRequest) returns (ServiceResponse);
   rpc Threshold(ServiceRequest) returns (ServiceResponse);
   rpc Ledger(ServiceRequest) returns (ServiceResponse);
+  rpc ProcurementList(ServiceRequest) returns (ServiceResponse);
+  rpc ProcurementGet(ServiceRequest) returns (ServiceResponse);
+  rpc ProcurementCreate(ServiceRequest) returns (ServiceResponse);
+  rpc ProcurementApprove(ServiceRequest) returns (ServiceResponse);
+  rpc ProcurementReceive(ServiceRequest) returns (ServiceResponse);
+  rpc ProcurementCancel(ServiceRequest) returns (ServiceResponse);
+  rpc RestockBatch(ServiceRequest) returns (ServiceResponse);
 }

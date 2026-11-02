@@ -4,6 +4,8 @@ import (
 	"github.com/davveo/lumo/internal/constants"
 
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"github.com/davveo/lumo/internal/platform"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -12,7 +14,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"io"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -198,8 +199,10 @@ func actionSet(m map[string][]string) map[string]bool {
 }
 
 type gateway struct {
-	rpc  platform.Caller
-	demo bool
+	rpc       platform.Caller
+	demo      bool
+	clientIPs *clientIPResolver
+	streams   *streamLimits
 }
 
 type httpTraceContextKey struct{}
@@ -243,7 +246,13 @@ func traceHTTPResponse(ctx context.Context, value any, err error) {
 // NewHandler serves the authenticated API. An explicit frontendDir is supported
 // only for the self-contained local devstack and isolated HTTP regression tests.
 func NewHandler(rpc platform.Caller, demo bool, frontendDir string) http.Handler {
-	g := &gateway{rpc: rpc, demo: demo}
+	proxy, proxyErr := proxyConfiguration()
+	if proxyErr != nil {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			writeError(w, r.Context(), status.Error(codes.Unavailable, "invalid trusted proxy configuration"))
+		})
+	}
+	g := &gateway{rpc: rpc, demo: demo, clientIPs: proxy, streams: &streamLimits{owners: map[string]int{}}}
 	allowedOrigins := corsOrigins(os.Getenv("CORS_ALLOWED_ORIGINS"))
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -251,6 +260,8 @@ func NewHandler(rpc platform.Caller, demo bool, frontendDir string) http.Handler
 	})
 	mux.HandleFunc("/readyz", g.ready)
 	mux.HandleFunc("/api/v1/", g.execute)
+	mux.HandleFunc("/api/v1/notification/stream", g.notificationStream)
+	mux.HandleFunc("/api/v1/logistics/carrier_callback", g.carrierCallback)
 	mux.HandleFunc("/debug", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/debug" {
 			http.NotFound(w, r)
@@ -414,12 +425,14 @@ func (g *gateway) execute(w http.ResponseWriter, r *http.Request) {
 	if v := r.Header.Get("Idempotency-Key"); v != "" {
 		cmd.IdempotencyKey = v
 	}
-	if service == constants.ServiceIAM && (action == constants.ActionOtpSend || action == constants.ActionOAuthStart || action == constants.ActionRegister) {
-		host, _, e := net.SplitHostPort(r.RemoteAddr)
-		if e != nil {
-			host = r.RemoteAddr
+	if service == constants.ServiceIAM &&
+		(action == constants.ActionPasswordChange || action == constants.ActionSecuritySend || action == constants.ActionPasswordResetRequest || action == constants.ActionOtpSend || action == constants.ActionOAuthStart || action == constants.ActionRegister || action == constants.ActionLogin) {
+		cmd.Data["_client_ip"] = g.clientIPs.clientIP(r)
+		agent := []rune(strings.ToValidUTF8(r.UserAgent(), ""))
+		if len(agent) > 160 {
+			agent = agent[:160]
 		}
-		cmd.Data["_client_ip"] = host
+		cmd.Data["_user_agent"] = string(agent)
 	}
 	// Only trace parsed values. Browser identity claims have already been
 	// cleared, and the shared recorder redacts secrets without mutating cmd.
@@ -452,7 +465,7 @@ func (g *gateway) execute(w http.ResponseWriter, r *http.Request) {
 			writeError(w, ctx, status.Error(codes.Unauthenticated, "invalid browser principal"))
 			return
 		}
-		if admin && cmd.Role != constants.RoleAdmin {
+		if admin && !platform.StaffAllows(cmd.Role, service, action) {
 			writeError(w, ctx, status.Error(codes.PermissionDenied, "administrator required"))
 			return
 		}
@@ -466,6 +479,10 @@ func (g *gateway) execute(w http.ResponseWriter, r *http.Request) {
 	if service == constants.ServiceIAM &&
 		(action == constants.ActionLogout || action == constants.ActionRefresh || action == constants.ActionCurrent) {
 		cmd.Data["token"] = token
+	}
+	if service == constants.ServiceIAM && action == constants.ActionSecurityGet {
+		sum := sha256.Sum256([]byte(token))
+		cmd.Data["_current_session"] = hex.EncodeToString(sum[:])
 	}
 	if service == constants.ServiceIAM && action == constants.ActionCurrent {
 		cmd.Action = constants.ActionValidate

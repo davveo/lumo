@@ -103,6 +103,9 @@ func main() {
 }
 
 func run() error {
+	if err := httpgateway.ValidateProxyConfiguration(); err != nil {
+		return err
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	token := os.Getenv("INTERNAL_RPC_TOKEN")

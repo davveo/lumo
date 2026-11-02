@@ -31,7 +31,12 @@ func (r *Repository) AuditList(ctx context.Context, c platform.Request) (spanRes
 	if c.ID != "" {
 		db = db.Where("user_id = ?", c.ID)
 	}
-	rows, total, f, e := adminquery.Page[domain.AccountChange](ctx, db, c.Data, adminquery.Spec{State: "active", Search: []string{"id", "user_id", "actor_id", "reason"}})
+	rows, total, f, e := adminquery.Page[domain.AccountChange](
+		ctx,
+		db,
+		c.Data,
+		adminquery.Spec{State: "active", Search: []string{"id", "user_id", "actor_id", "reason"}},
+	)
 	return adminquery.Result(rows, total, f), e
 }
 func (r *Repository) AdminGet(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {

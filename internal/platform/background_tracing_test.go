@@ -17,7 +17,10 @@ func backgroundTracing(t *testing.T) (*tracetest.InMemoryExporter, *backgroundSp
 	t.Helper()
 	exporter := tracetest.NewInMemoryExporter()
 	processor := newBackgroundSpanProcessor(sdktrace.NewSimpleSpanProcessor(exporter))
-	provider := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(processor), sdktrace.WithSampler(sdktrace.AlwaysSample()))
+	provider := sdktrace.NewTracerProvider(
+		sdktrace.WithSpanProcessor(processor),
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+	)
 	previous := otel.GetTracerProvider()
 	otel.SetTracerProvider(provider)
 	t.Cleanup(func() {
@@ -54,7 +57,8 @@ func TestBackgroundPollingDropsOnlyIdleScansAndRetainsCompleteWork(t *testing.T)
 	if len(spans) != 3 {
 		t.Fatal("work must retain worker, repository and SQL spans", spans)
 	}
-	if spans[0].Parent.SpanID() != spans[1].SpanContext.SpanID() || spans[1].Parent.SpanID() != spans[2].SpanContext.SpanID() {
+	if spans[0].Parent.SpanID() != spans[1].SpanContext.SpanID() ||
+		spans[1].Parent.SpanID() != spans[2].SpanContext.SpanID() {
 		t.Fatal("business work lost its trace hierarchy", spans)
 	}
 	// An empty query invoked by an interactive request must still be exported.
@@ -80,7 +84,8 @@ func TestBackgroundPollingKeepsCaughtDatabaseFailuresAndExternalCalls(t *testing
 		t.Fatal(err)
 	}
 	spans := exporter.GetSpans()
-	if len(spans) != 2 || !strings.Contains(rpcSpanAttributes(spans[0])["error.message"], "no such table: absent_background_table") {
+	if len(spans) != 2 ||
+		!strings.Contains(rpcSpanAttributes(spans[0])["error.message"], "no such table: absent_background_table") {
 		t.Fatal("caught database error was lost", spans)
 	}
 	exporter.Reset()

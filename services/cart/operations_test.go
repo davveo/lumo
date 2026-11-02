@@ -29,7 +29,7 @@ func TestIndependentOperationsKeepAuthorization(t *testing.T) {
 		count     int
 		protected []string
 	}{
-		{constants.ServiceAnalytics, analyticsmod.New, 3, []string{constants.ActionRecord, constants.ActionList, constants.ActionAdminList}},
+		{constants.ServiceAnalytics, analyticsmod.New, 5, []string{constants.ActionRecord, constants.ActionList, constants.ActionAdminList}},
 		{constants.ServiceCart, cartmod.New, 6, []string{
 			constants.ActionList, constants.ActionAdd, constants.ActionSet,
 			constants.ActionRemove, constants.ActionClear, constants.ActionMerge,

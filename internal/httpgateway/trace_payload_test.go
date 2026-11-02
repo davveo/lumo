@@ -60,7 +60,11 @@ func TestHTTPErrorTraceRetainsSpecificReasonAtEveryGatewayBoundary(t *testing.T)
 	caller := traceTestCaller(func(context.Context, string, platform.Command) (platform.Result, error) {
 		return nil, status.Error(codes.NotFound, reason)
 	})
-	request := httptest.NewRequest(http.MethodPost, "/api/v1/catalog/get", strings.NewReader(`{"id":"missing-sku","data":{"password":"private-input-password"}}`))
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/catalog/get",
+		strings.NewReader(`{"id":"missing-sku","data":{"password":"private-input-password"}}`),
+	)
 	w := httptest.NewRecorder()
 	NewHandler(caller, true, t.TempDir()).ServeHTTP(w, request)
 	if w.Code != http.StatusNotFound || !strings.Contains(w.Body.String(), reason) {
@@ -72,7 +76,9 @@ func TestHTTPErrorTraceRetainsSpecificReasonAtEveryGatewayBoundary(t *testing.T)
 	}
 	for _, span := range spans {
 		attrs := payloadSpanAttributes(span)
-		if attrs["lumo.error.message"] != reason || attrs["lumo.error.code"] != "NotFound" || !strings.Contains(attrs["lumo.response"], reason) || len(span.Events) == 0 {
+		if attrs["lumo.error.message"] != reason || attrs["lumo.error.code"] != "NotFound" ||
+			!strings.Contains(attrs["lumo.response"], reason) ||
+			len(span.Events) == 0 {
 			t.Fatalf("%s lost specific error: %v", span.Name, attrs)
 		}
 		assertHTTPPayloadPrivacy(t, span)

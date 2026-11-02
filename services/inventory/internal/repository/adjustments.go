@@ -82,7 +82,12 @@ func (r *Repository) Adjustments(ctx context.Context, c platform.Request) (platf
 		return nil, status.Error(codes.InvalidArgument, "SKU required")
 	}
 	if platform.Int(c.Data, "page") > 0 {
-		rows, total, f, e := adminquery.Page[domain.Adjustment](ctx, r.DB.WithContext(ctx).Where("sku_id = ?", c.ID), c.Data, adminquery.Spec{State: "actor_id", Search: []string{"reason", "actor_id"}})
+		rows, total, f, e := adminquery.Page[domain.Adjustment](
+			ctx,
+			r.DB.WithContext(ctx).Where("sku_id = ?", c.ID),
+			c.Data,
+			adminquery.Spec{State: "actor_id", Search: []string{"reason", "actor_id"}},
+		)
 		return adminquery.Result(rows, total, f), e
 	}
 	items := []domain.Adjustment{}

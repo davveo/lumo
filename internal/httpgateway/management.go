@@ -12,7 +12,7 @@ import (
 // This read model is exclusively for the operations dashboard. Domain lists,
 // configuration and business writes remain separate, named service operations.
 func (g *gateway) managementDashboard(ctx context.Context, c platform.Command) (platform.Result, error) {
-	if err := platform.RequireAdmin(c); err != nil {
+	if err := platform.RequireAdmin(c); err != nil && !platform.StaffAllows(c.Role, "management", c.Action) {
 		return nil, err
 	}
 	if c.Action == constants.ActionTasks || c.Action == constants.ActionRetry {
@@ -25,40 +25,39 @@ func (g *gateway) managementDashboard(ctx context.Context, c platform.Command) (
 	if days == 0 {
 		days = 7
 	}
-	if days != 7 && days != 30 {
-		return nil, status.Error(codes.InvalidArgument, "days must be 7 or 30")
+	if days != 7 && days != 30 && days != 90 {
+		return nil, status.Error(codes.InvalidArgument, "days must be 7, 30 or 90")
 	}
 	clients := platform.NewClients(g.rpc)
-	calls := map[string]platform.Operation{
-		"order":       clients.Order.AdminSummary,
-		"payment":     clients.Payment.AdminSummary,
-		"fulfillment": clients.Fulfillment.AdminSummary,
-		"aftersale":   clients.Aftersale.AdminSummary,
-		"refund":      clients.Refund.AdminSummary,
-		"invoice":     clients.Invoice.AdminSummary,
-		"users":       clients.IAM.AdminSummary,
-	}
+
 	result := platform.Result{"days": days, "timezone": "Asia/Shanghai"}
 	failures := map[string]string{}
 	var lock sync.Mutex
 	var group sync.WaitGroup
-	for name, read := range calls {
-		group.Add(1)
-		go func(name string, read platform.Operation) {
-			defer group.Done()
-			value, err := read(
-				ctx,
-				platform.Request{UserID: c.UserID, Role: c.Role, Data: map[string]any{"days": days}},
-			)
-			lock.Lock()
-			defer lock.Unlock()
-			if err != nil {
-				failures[name] = status.Code(err).String()
-			} else {
-				result[name] = value
-			}
-		}(name, read)
+	read := func(name string, read platform.Operation) {
+		defer group.Done()
+		value, err := read(
+			ctx,
+			platform.Request{UserID: c.UserID, Role: c.Role, Data: map[string]any{"days": days}},
+		)
+		lock.Lock()
+		defer lock.Unlock()
+		if err != nil {
+			failures[name] = status.Code(err).String()
+		} else {
+			result[name] = value
+		}
 	}
+	group.Add(8)
+	go read("order", clients.Order.AdminSummary)
+	go read("payment", clients.Payment.AdminSummary)
+	go read("fulfillment", clients.Fulfillment.AdminSummary)
+	go read("aftersale", clients.Aftersale.AdminSummary)
+	go read("refund", clients.Refund.AdminSummary)
+	go read("invoice", clients.Invoice.AdminSummary)
+	go read("users", clients.IAM.AdminSummary)
+	go read("insights", clients.Analytics.Dashboard)
+
 	group.Wait()
 	result["errors"] = failures
 	result["degraded"] = len(failures) > 0
@@ -66,6 +65,40 @@ func (g *gateway) managementDashboard(ctx context.Context, c platform.Command) (
 }
 
 func init() {
+	userActions["logistics/tracking"] = true
+	reads["tracking"] = true
+	for _, a := range []string{"tracking_update", "exceptions", "exception_resolve"} {
+		adminActions["logistics/"+a] = true
+	}
+	reads["exceptions"] = true
+
+	for _, a := range []string{"procurement_list", "procurement_get", "procurement_create", "procurement_approve", "procurement_receive", "procurement_cancel"} {
+		adminActions["inventory/"+a] = true
+	}
+	reads["procurement_get"] = true
+	reads["procurement_list"] = true
+
+	for _, a := range []string{"import_preview", "import_commit", "import_get"} {
+		adminActions["catalog/"+a] = true
+	}
+	reads["import_get"] = true
+
+	for _, a := range []string{"staff_list", "staff_upsert"} {
+		adminActions["iam/"+a] = true
+	}
+	reads["staff_list"] = true
+
+	adminActions["analytics/dashboard"] = true
+	adminActions["analytics/sync_history"] = true
+
+	for _, a := range []string{"security_get", "password_change", "security_send", "security_verify", "session_revoke"} {
+		userActions["iam/"+a] = true
+	}
+	for _, a := range []string{"password_reset_request", "password_reset"} {
+		publicActions["iam/"+a] = true
+	}
+	reads["security_get"] = true
+
 	for _, service := range []string{constants.ServiceIAM, constants.ServicePayment} {
 		for _, action := range []string{constants.ActionProviderGet, constants.ActionProviderUpsert} {
 			adminActions[service+"/"+action] = true
@@ -91,13 +124,26 @@ func init() {
 	userActions[constants.ServiceCoupon+"/"+constants.ActionCalculate] = true
 	additions := actionSet(map[string][]string{
 		constants.ServiceAnalytics: {constants.ActionAdminList}, constants.ServiceHelpdesk: {constants.ActionAdminList},
-		constants.ServiceFlash:          {constants.ActionAdminList, constants.ActionUpsert, constants.ActionRequestsAdmin},
-		constants.ServiceGroup:          {constants.ActionAdminList, constants.ActionRulesAdmin, constants.ActionRuleUpsert},
+		constants.ServiceFlash: {
+			constants.ActionAdminList,
+			constants.ActionUpsert,
+			constants.ActionRequestsAdmin,
+		},
+		constants.ServiceGroup: {
+			constants.ActionAdminList,
+			constants.ActionRulesAdmin,
+			constants.ActionRuleUpsert,
+		},
 		constants.ServiceCampaign:       {constants.ActionRuleUpsert},
 		constants.ServiceCatalog:        {constants.ActionAdminList},
 		constants.ServiceInventory:      {constants.ActionAdminList, constants.ActionThreshold, constants.ActionLedger},
 		constants.ServiceReconciliation: {constants.ActionAdminList, constants.ActionGet, constants.ActionNote},
-		constants.ServicePoints:         {constants.ActionPolicyUpsert, constants.ActionAdminGet, constants.ActionAdjust, constants.ActionLedger},
+		constants.ServicePoints: {
+			constants.ActionPolicyUpsert,
+			constants.ActionAdminGet,
+			constants.ActionAdjust,
+			constants.ActionLedger,
+		},
 		constants.ServiceMember:         {constants.ActionPolicyUpsert},
 		constants.ServiceLogistics:      {constants.ActionPolicyGet, constants.ActionPolicyUpsert},
 		constants.ServiceNotification:   {constants.ActionTemplatesAdmin, constants.ActionTemplateUpsert},

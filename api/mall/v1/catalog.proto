@@ -16,4 +16,7 @@ service CatalogService {
   rpc SearchProducts(ServiceRequest) returns (ServiceResponse);
   rpc Upsert(ServiceRequest) returns (ServiceResponse);
   rpc AdminList(ServiceRequest) returns (ServiceResponse);
+  rpc ImportPreview(ServiceRequest) returns (ServiceResponse);
+  rpc ImportCommit(ServiceRequest) returns (ServiceResponse);
+  rpc ImportGet(ServiceRequest) returns (ServiceResponse);
 }

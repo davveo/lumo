@@ -53,7 +53,10 @@ func InitTelemetry(ctx context.Context, service, endpoint string) (func(context.
 		if err != nil {
 			return nil, fmt.Errorf("create OTLP exporter: %w", err)
 		}
-		opts = append(opts, sdktrace.WithSpanProcessor(newBackgroundSpanProcessor(sdktrace.NewBatchSpanProcessor(exporter))))
+		opts = append(
+			opts,
+			sdktrace.WithSpanProcessor(newBackgroundSpanProcessor(sdktrace.NewBatchSpanProcessor(exporter))),
+		)
 	}
 	tp := sdktrace.NewTracerProvider(opts...)
 	otel.SetTracerProvider(tp)

@@ -17,4 +17,5 @@ service FulfillmentService {
   rpc List(ServiceRequest) returns (ServiceResponse);
   rpc AdminList(ServiceRequest) returns (ServiceResponse);
   rpc AdminSummary(ServiceRequest) returns (ServiceResponse);
+  rpc InspectReturns(ServiceRequest) returns (ServiceResponse);
 }

@@ -123,8 +123,8 @@ func Summary[T any](ctx context.Context, db *gorm.DB, data map[string]any, spec 
 	if days == 0 {
 		days = 7
 	}
-	if days != 7 && days != 30 {
-		return nil, status.Error(codes.InvalidArgument, "dashboard days must be 7 or 30")
+	if days != 7 && days != 30 && days != 90 {
+		return nil, status.Error(codes.InvalidArgument, "dashboard days must be 7, 30 or 90")
 	}
 	var model T
 	amount := "0"

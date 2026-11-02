@@ -21,6 +21,21 @@ type orderServer struct {
 	service *usecase.Service
 }
 
+func (s *orderServer) BatchGetOrders(
+	ctx context.Context,
+	in *mallv1.BatchGetOrdersRequest,
+) (*mallv1.BatchGetOrdersResponse, error) {
+	rows, err := s.service.BatchGet(ctx, actor(in.GetActor()), in.GetIds())
+	if err != nil {
+		return nil, err
+	}
+	out := &mallv1.BatchGetOrdersResponse{Items: []*mallv1.Order{}}
+	for _, row := range rows {
+		out.Items = append(out.Items, orderMessage(row))
+	}
+	return out, nil
+}
+
 func Register(service *usecase.Service) func(grpc.ServiceRegistrar) {
 	return func(registrar grpc.ServiceRegistrar) {
 		mallv1.RegisterOrderServiceServer(registrar, &orderServer{service: service})
@@ -95,7 +110,11 @@ func (s *orderServer) ListOrders(
 	defer span.End()
 	platform.TraceRequest(ctx, in)
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
-	orders, err := s.service.List(ctx, actor(in.GetActor()))
+	orders, page, err := s.service.ListPage(
+		ctx,
+		staffReadActor(in.GetActor(), "list"),
+		map[string]any{"limit": in.GetLimit(), "offset": in.GetOffset(), "cursor": in.GetCursor()},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +122,14 @@ func (s *orderServer) ListOrders(
 	for _, order := range orders {
 		items = append(items, orderMessage(order))
 	}
-	return &mallv1.ListOrdersResponse{Items: items}, nil
+	return &mallv1.ListOrdersResponse{
+		Items:      items,
+		Total:      platform.Int(page, "total"),
+		HasMore:    page["has_more"] == true,
+		NextCursor: platform.Text(page, "next_cursor"),
+		Limit:      int32(platform.Int(page, "limit")),
+		Offset:     int32(platform.Int(page, "offset")),
+	}, nil
 }
 
 func (s *orderServer) GetOrder(ctx context.Context, in *mallv1.OrderRequest) (*mallv1.Order, error) {
@@ -112,7 +138,9 @@ func (s *orderServer) GetOrder(ctx context.Context, in *mallv1.OrderRequest) (*m
 		constants.ActionGet,
 		in.GetId(),
 		in,
-		func(ctx context.Context) (domain.Order, error) { return s.service.Get(ctx, request(in)) },
+		func(ctx context.Context) (domain.Order, error) {
+			return s.service.Get(ctx, usecase.OrderRequest{Actor: staffReadActor(in.GetActor(), "get"), ID: in.GetId()})
+		},
 	)
 }
 func (s *orderServer) CreateOrder(ctx context.Context, in *mallv1.CreateOrderRequest) (*mallv1.Order, error) {
@@ -270,4 +298,10 @@ func (s *orderServer) AcceptPayment(
 		Status:    result.Status,
 		PaymentId: result.PaymentID,
 	}, nil
+}
+
+func staffReadActor(value *mallv1.OrderActor, action string) usecase.Actor {
+	a := actor(value)
+	a.Role = platform.StaffRoleAtBoundary(a.Role, "order", action)
+	return a
 }

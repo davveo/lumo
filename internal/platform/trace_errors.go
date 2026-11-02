@@ -31,7 +31,11 @@ type traceErrorContext struct {
 // NewTraceErrorContext isolates redaction memory at an HTTP, server RPC or
 // message boundary. Values remain in request memory and are never exported.
 func NewTraceErrorContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, traceErrorContextKey{}, &traceErrorContext{values: map[string]struct{}{}, recorded: map[trace.SpanID]string{}})
+	return context.WithValue(
+		ctx,
+		traceErrorContextKey{},
+		&traceErrorContext{values: map[string]struct{}{}, recorded: map[trace.SpanID]string{}},
+	)
 }
 func withTraceErrorContext(ctx context.Context) context.Context {
 	if ctx.Value(traceErrorContextKey{}) == nil {
@@ -117,8 +121,10 @@ func (c *traceErrorContext) reflectValue(value reflect.Value, depth int, remaini
 }
 
 var (
-	errorURL         = regexp.MustCompile(`(?i)(?:https?|amqps?|rediss?|mysql|postgres(?:ql)?)://[^\s<>"']+`)
-	errorAssignment  = regexp.MustCompile(`(?i)((?:password|passwd|pwd|passphrase|secret|token|credential|authorization|cookie|api[_-]?key|access[_-]?key|private[_-]?key|phone|mobile|email|address|recipient|username|user_id|密码|口令|密钥|手机号|地址)["'\\]*\s*[:=]\s*)(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s,;}&]+)`)
+	errorURL        = regexp.MustCompile(`(?i)(?:https?|amqps?|rediss?|mysql|postgres(?:ql)?)://[^\s<>"']+`)
+	errorAssignment = regexp.MustCompile(
+		`(?i)((?:password|passwd|pwd|passphrase|secret|token|credential|authorization|cookie|api[_-]?key|access[_-]?key|private[_-]?key|phone|mobile|email|address|recipient|username|user_id|密码|口令|密钥|手机号|地址)["'\\]*\s*[:=]\s*)(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s,;}&]+)`,
+	)
 	errorDSN         = regexp.MustCompile(`[^\s:@/]+:[^\s@]+@(?:tcp|unix)\([^)]*\)`)
 	errorPEM         = regexp.MustCompile(`(?s)-----BEGIN [^-]+-----.*?(?:-----END [^-]+-----|$)`)
 	errorOpaque      = regexp.MustCompile(`\b(?:[a-fA-F0-9]{40,}|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)\b`)
@@ -236,7 +242,11 @@ func errorCallSite() []attribute.KeyValue {
 			if i := strings.Index(path, "/lumo/"); i >= 0 {
 				path = path[i+6:]
 			}
-			return []attribute.KeyValue{attribute.String("code.file.path", path), attribute.Int("code.line.number", frame.Line), attribute.String("code.function.name", frame.Function)}
+			return []attribute.KeyValue{
+				attribute.String("code.file.path", path),
+				attribute.Int("code.line.number", frame.Line),
+				attribute.String("code.function.name", frame.Function),
+			}
 		}
 		if !more {
 			break
@@ -293,9 +303,22 @@ func TraceError(ctx context.Context, err error) {
 		c.mu.Unlock()
 	}
 	if first {
-		span.SetAttributes(attribute.String("lumo.error.code", code), attribute.String("lumo.error.message", message), attribute.String("error.message", message), attribute.String("error.type", fmt.Sprintf("%T", err)), attribute.String("lumo.error.causes", string(encoded)), attribute.Bool("lumo.error.redacted", redacted), attribute.Bool("lumo.error.truncated", truncated))
+		span.SetAttributes(
+			attribute.String("lumo.error.code", code),
+			attribute.String("lumo.error.message", message),
+			attribute.String("error.message", message),
+			attribute.String("error.type", fmt.Sprintf("%T", err)),
+			attribute.String("lumo.error.causes", string(encoded)),
+			attribute.Bool("lumo.error.redacted", redacted),
+			attribute.Bool("lumo.error.truncated", truncated),
+		)
 		span.SetStatus(otelcodes.Error, code+": "+message)
 	}
-	attrs := append(errorCallSite(), attribute.String("exception.type", fmt.Sprintf("%T", err)), attribute.String("exception.message", message), attribute.Bool("exception.escaped", false))
+	attrs := append(
+		errorCallSite(),
+		attribute.String("exception.type", fmt.Sprintf("%T", err)),
+		attribute.String("exception.message", message),
+		attribute.Bool("exception.escaped", false),
+	)
 	span.AddEvent("exception", trace.WithAttributes(attrs...))
 }

@@ -48,7 +48,7 @@ def install():
         ("github.com/segmentio/golines", GOLINES_VERSION),
         ("mvdan.cc/sh/v3/cmd/shfmt", SHFMT_VERSION),
     ):
-        run(["go", "install", f"{module}@{version}"], env=environment)
+        run(["sh", str(ROOT / "scripts/go.sh"), "install", f"{module}@{version}"], env=environment)
     python_tools = ROOT / ".local" / "tools" / "python"
     run([sys.executable, "-m", "venv", str(python_tools)])
     run(
@@ -66,7 +66,9 @@ def install():
 
 def verify_go_module(executable, module, version):
     # `go install` builds may report "vdev"; module build metadata is authoritative.
-    metadata = run(["go", "version", "-m", executable], capture_output=True, text=True).stdout
+    metadata = run(
+        ["sh", str(ROOT / "scripts/go.sh"), "version", "-m", executable], capture_output=True, text=True
+    ).stdout
     modules = [line.split() for line in metadata.splitlines()]
     expected = ["mod", module, version]
     if not any(fields[:3] == expected for fields in modules):
@@ -90,6 +92,7 @@ def source_files():
         for directory in ("api", "cmd", "internal", "services", "tests")
         for path in (ROOT / directory).rglob("*.go")
         if not path.name.endswith(".pb.go")
+        and not any(a == "pkg" and b == "mod" for a, b in zip(path.parts, path.parts[1:]))
     )
     web_files = sorted(
         path.relative_to(ROOT).as_posix()
@@ -102,7 +105,10 @@ def source_files():
         for path in (ROOT / directory).glob(pattern)
         if path.name != "constants.js"
     )
-    web_files.extend([".prettierrc.json", "package.json", "package-lock.json"])
+    web_files.extend(
+        [".prettierrc.json", "package.json", "package-lock.json", "web/build.cjs", "playwright.config.cjs"]
+    )
+    web_files.extend(path.relative_to(ROOT).as_posix() for path in (ROOT / "web/e2e").glob("*.cjs"))
     python_files = sorted(
         path.relative_to(ROOT).as_posix()
         for directory in (".", "scripts", "deploy", "tests")

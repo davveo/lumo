@@ -62,7 +62,9 @@ func TraceResponse(ctx context.Context, value any, err error) {
 			if message == "" {
 				message, _, _ = safeTraceErrorText(ctx, errorText(err))
 			}
-			encoded, _ := json.Marshal(map[string]any{"error": map[string]any{"code": code.String(), "message": message}})
+			encoded, _ := json.Marshal(
+				map[string]any{"error": map[string]any{"code": code.String(), "message": message}},
+			)
 			span.SetAttributes(
 				attribute.String("lumo.response", string(encoded)),
 				attribute.Bool("lumo.response.redacted", strings.Contains(message, traceRedacted)),
@@ -268,7 +270,19 @@ func sensitiveTraceKey(key string) bool {
 	// Marketing delivery tokens identify browser views and recipient lists
 	// contain private principals. Redact these exact keys at every JSON/RPC
 	// boundary while keeping campaign IDs and targeting metadata useful.
-	case "code", "democode", "proof", "oauthstate", "challengeid", "openid", "unionid", "clientip", "visitorid", "deliveryid", "viewid", "includeuserids", "excludeuserids":
+	case "code",
+		"democode",
+		"proof",
+		"oauthstate",
+		"challengeid",
+		"openid",
+		"unionid",
+		"clientip",
+		"visitorid",
+		"deliveryid",
+		"viewid",
+		"includeuserids",
+		"excludeuserids":
 		return true
 	case "pwd",
 		"auth",

@@ -2,12 +2,15 @@ package tests_test
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"github.com/davveo/lumo/internal/adminquery"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/coupon"
 	"github.com/davveo/lumo/services/iam"
 	"github.com/davveo/lumo/services/inventory"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"os"
 	"path/filepath"
@@ -16,10 +19,145 @@ import (
 	"time"
 )
 
+func TestMySQLRegistrationAndAuthRateInitialization(t *testing.T) {
+	t.Setenv("DEMO_MODE", "true")
+	t.Setenv("INTERNAL_RPC_TOKEN", "isolated-mysql-auth-rate-test")
+	t.Setenv("SMS_WEBHOOK_URL", "")
+	t.Setenv("WECHAT_LOGIN_APP_ID", "isolated-app")
+	t.Setenv("WECHAT_LOGIN_APP_SECRET", "isolated-secret")
+	t.Setenv("WECHAT_LOGIN_REDIRECT_URI", "https://shop.example.test/index.html")
+	ctx, db := adminMySQLScratch(t, "registration")
+	var mode string
+	if err := db.Raw("SELECT @@SESSION.sql_mode").Scan(&mode).Error; err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(mode, "STRICT_TRANS_TABLES") || !strings.Contains(mode, "NO_ZERO_DATE") {
+		t.Fatalf("regression requires MySQL strict date validation: %s", mode)
+	}
+	module := iam.New(platform.Dependencies{DB: db})
+	if err := module.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := module.Handle(ctx, adminCommand("policy_upsert", "", "admin", "admin", map[string]any{
+		"config": map[string]any{
+			"password_enabled": true, "phone_enabled": true, "wechat_enabled": true,
+			"allow_registration": true, "otp_ttl_seconds": 300, "otp_cooldown_seconds": 60,
+		},
+		"version": 0, "reason": "isolated MySQL authentication regression",
+	})); err != nil {
+		t.Fatal(err)
+	}
+	t.Run("registration", func(t *testing.T) {
+		ip := "203.0.113.10"
+		register := func(name string) (platform.Result, error) {
+			return module.Handle(ctx, adminCommand("register", "", "", "", map[string]any{
+				"username": name, "password": "Member@2026", "role": "admin", "_client_ip": ip,
+			}))
+		}
+		account, err := register("New.Buyer")
+		if err != nil || platform.Text(account, "role") != "user" || platform.Text(account, "username") != "new.buyer" {
+			t.Fatalf("fresh registration failed: %v %v", account, err)
+		}
+		login, err := module.Handle(ctx, adminCommand("login", "", "", "", map[string]any{
+			"username": "new.buyer", "password": "Member@2026", "_client_ip": ip,
+		}))
+		if err != nil || platform.Text(login, "user_id") != platform.Text(account, "user_id") {
+			t.Fatalf("registered member cannot log in: %v", err)
+		}
+		if _, err := register("new.buyer"); status.Code(err) != codes.AlreadyExists {
+			t.Fatalf("duplicate registration returned %v", err)
+		}
+		rateID := fmt.Sprintf("%x", sha256.Sum256([]byte("register:"+ip)))
+		if err := db.Table("auth_rates").Where("id = ?", rateID).Update("count", 19).Error; err != nil {
+			t.Fatal(err)
+		}
+		if _, err := register("limit.member"); err != nil {
+			t.Fatalf("last allowed registration failed: %v", err)
+		}
+		if _, err := register("blocked.member"); status.Code(err) != codes.ResourceExhausted {
+			t.Fatalf("registration limit bypassed: %v", err)
+		}
+		if err := db.Table("auth_rates").Where("id = ?", rateID).
+			Update("day", time.Now().UTC().AddDate(0, 0, -1).Format("2006-01-02")).Error; err != nil {
+			t.Fatal(err)
+		}
+		if _, err := register("nextday.member"); err != nil {
+			t.Fatalf("registration did not recover next day: %v", err)
+		}
+	})
+	t.Run("sms", func(t *testing.T) {
+		data := map[string]any{"phone": "13800138001", "_client_ip": "203.0.113.11"}
+		challenge, err := module.Handle(ctx, adminCommand("otp_send", "", "", "", data))
+		if err != nil || len(platform.Text(challenge, "demo_code")) != 6 {
+			t.Fatalf("first SMS request failed: %v", err)
+		}
+		if _, err := module.Handle(ctx, adminCommand("otp_send", "", "", "", data)); status.Code(
+			err,
+		) != codes.ResourceExhausted {
+			t.Fatalf("SMS cooldown bypassed: %v", err)
+		}
+		login, err := module.Handle(ctx, adminCommand("otp_login", "", "", "", map[string]any{
+			"phone": data["phone"], "challenge_id": challenge["challenge_id"], "code": challenge["demo_code"],
+		}))
+		if err != nil || platform.Text(login, "role") != "user" {
+			t.Fatalf("SMS login failed: %v", err)
+		}
+	})
+	t.Run("oauth", func(t *testing.T) {
+		for i := 0; i < 2; i++ {
+			result, err := module.Handle(ctx, adminCommand("oauth_start", "", "", "", map[string]any{
+				"provider": "wechat", "proof": strings.Repeat("p", 32), "_client_ip": "203.0.113.12",
+			}))
+			if err != nil || len(platform.Text(result, "oauth_state")) != 64 {
+				t.Fatalf("OAuth request %d failed: %v", i+1, err)
+			}
+		}
+	})
+}
+
+func TestMySQLPasswordLoginRates(t *testing.T) {
+	t.Setenv("DEMO_MODE", "true")
+	ctx, db := adminMySQLScratch(t, "password")
+	module := iam.New(platform.Dependencies{DB: db})
+	if err := module.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := module.Seed(ctx); err != nil {
+		t.Fatal(err)
+	}
+	login := func(password string) (platform.Result, error) {
+		return module.Handle(
+			ctx,
+			platform.Command{
+				Action: "login",
+				Data:   map[string]any{"username": "admin", "password": password, "_client_ip": "203.0.113.1"},
+			},
+		)
+	}
+	for i := 0; i < 5; i++ {
+		if _, err := login("incorrect-password"); status.Code(err) != codes.Unauthenticated {
+			t.Fatal("wrong failure result", err)
+		}
+	}
+	if _, err := login("Admin@2026"); status.Code(err) != codes.ResourceExhausted {
+		t.Fatal("password backoff bypassed", err)
+	}
+	if err := db.Table("iam_password_rates").Where("1 = 1").Updates(map[string]any{"blocked_until": nil, "window_started": time.Now().Add(-2 * time.Minute)}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if result, err := login("Admin@2026"); err != nil || platform.Text(result, "role") != "admin" {
+		t.Fatal("login did not recover after rate window", err)
+	}
+}
+
 func adminMySQLScratch(t *testing.T, name string) (context.Context, *gorm.DB) {
 	t.Helper()
 	if os.Getenv("LUMO_MYSQL_ADMIN_TEST") != "1" {
 		t.Skip("requires explicitly enabled MySQL scratch-schema regression")
+	}
+	address := os.Getenv("LUMO_MYSQL_TEST_ADDR")
+	if address == "" {
+		address = "127.0.0.1:3306"
 	}
 	password := os.Getenv("MYSQL_ROOT_PASSWORD")
 	if password == "" {
@@ -27,7 +165,7 @@ func adminMySQLScratch(t *testing.T, name string) (context.Context, *gorm.DB) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	t.Cleanup(cancel)
-	dsn := "root:" + password + "@tcp(127.0.0.1:3306)/"
+	dsn := "root:" + password + "@tcp(" + address + ")/"
 	admin, err := platform.OpenDB(ctx, "mysql", dsn+"?charset=utf8mb4&parseTime=true&loc=UTC")
 	if err != nil {
 		t.Fatal(err)

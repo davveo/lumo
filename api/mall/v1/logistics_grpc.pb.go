@@ -21,13 +21,17 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	LogisticsService_Create_FullMethodName       = "/mall.v1.LogisticsService/Create"
-	LogisticsService_Deliver_FullMethodName      = "/mall.v1.LogisticsService/Deliver"
-	LogisticsService_Get_FullMethodName          = "/mall.v1.LogisticsService/Get"
-	LogisticsService_List_FullMethodName         = "/mall.v1.LogisticsService/List"
-	LogisticsService_Quote_FullMethodName        = "/mall.v1.LogisticsService/Quote"
-	LogisticsService_PolicyGet_FullMethodName    = "/mall.v1.LogisticsService/PolicyGet"
-	LogisticsService_PolicyUpsert_FullMethodName = "/mall.v1.LogisticsService/PolicyUpsert"
+	LogisticsService_Create_FullMethodName           = "/mall.v1.LogisticsService/Create"
+	LogisticsService_Deliver_FullMethodName          = "/mall.v1.LogisticsService/Deliver"
+	LogisticsService_Get_FullMethodName              = "/mall.v1.LogisticsService/Get"
+	LogisticsService_List_FullMethodName             = "/mall.v1.LogisticsService/List"
+	LogisticsService_Quote_FullMethodName            = "/mall.v1.LogisticsService/Quote"
+	LogisticsService_PolicyGet_FullMethodName        = "/mall.v1.LogisticsService/PolicyGet"
+	LogisticsService_PolicyUpsert_FullMethodName     = "/mall.v1.LogisticsService/PolicyUpsert"
+	LogisticsService_Tracking_FullMethodName         = "/mall.v1.LogisticsService/Tracking"
+	LogisticsService_TrackingUpdate_FullMethodName   = "/mall.v1.LogisticsService/TrackingUpdate"
+	LogisticsService_Exceptions_FullMethodName       = "/mall.v1.LogisticsService/Exceptions"
+	LogisticsService_ExceptionResolve_FullMethodName = "/mall.v1.LogisticsService/ExceptionResolve"
 )
 
 // LogisticsServiceClient is the client API for LogisticsService service.
@@ -41,6 +45,10 @@ type LogisticsServiceClient interface {
 	Quote(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	PolicyGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	PolicyUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Tracking(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	TrackingUpdate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Exceptions(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ExceptionResolve(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type logisticsServiceClient struct {
@@ -114,6 +122,42 @@ func (c *logisticsServiceClient) PolicyUpsert(ctx context.Context, in *ServiceRe
 	return out, nil
 }
 
+func (c *logisticsServiceClient) Tracking(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, LogisticsService_Tracking_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *logisticsServiceClient) TrackingUpdate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, LogisticsService_TrackingUpdate_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *logisticsServiceClient) Exceptions(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, LogisticsService_Exceptions_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *logisticsServiceClient) ExceptionResolve(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, LogisticsService_ExceptionResolve_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LogisticsServiceServer is the server API for LogisticsService service.
 // All implementations must embed UnimplementedLogisticsServiceServer
 // for forward compatibility
@@ -125,6 +169,10 @@ type LogisticsServiceServer interface {
 	Quote(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	PolicyGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Tracking(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	TrackingUpdate(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Exceptions(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ExceptionResolve(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedLogisticsServiceServer()
 }
 
@@ -152,6 +200,18 @@ func (UnimplementedLogisticsServiceServer) PolicyGet(context.Context, *ServiceRe
 }
 func (UnimplementedLogisticsServiceServer) PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PolicyUpsert not implemented")
+}
+func (UnimplementedLogisticsServiceServer) Tracking(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Tracking not implemented")
+}
+func (UnimplementedLogisticsServiceServer) TrackingUpdate(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TrackingUpdate not implemented")
+}
+func (UnimplementedLogisticsServiceServer) Exceptions(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Exceptions not implemented")
+}
+func (UnimplementedLogisticsServiceServer) ExceptionResolve(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExceptionResolve not implemented")
 }
 func (UnimplementedLogisticsServiceServer) mustEmbedUnimplementedLogisticsServiceServer() {}
 
@@ -292,6 +352,78 @@ func _LogisticsService_PolicyUpsert_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LogisticsService_Tracking_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LogisticsServiceServer).Tracking(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LogisticsService_Tracking_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LogisticsServiceServer).Tracking(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LogisticsService_TrackingUpdate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LogisticsServiceServer).TrackingUpdate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LogisticsService_TrackingUpdate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LogisticsServiceServer).TrackingUpdate(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LogisticsService_Exceptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LogisticsServiceServer).Exceptions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LogisticsService_Exceptions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LogisticsServiceServer).Exceptions(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LogisticsService_ExceptionResolve_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LogisticsServiceServer).ExceptionResolve(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LogisticsService_ExceptionResolve_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LogisticsServiceServer).ExceptionResolve(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // LogisticsService_ServiceDesc is the grpc.ServiceDesc for LogisticsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -326,6 +458,22 @@ var LogisticsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PolicyUpsert",
 			Handler:    _LogisticsService_PolicyUpsert_Handler,
+		},
+		{
+			MethodName: "Tracking",
+			Handler:    _LogisticsService_Tracking_Handler,
+		},
+		{
+			MethodName: "TrackingUpdate",
+			Handler:    _LogisticsService_TrackingUpdate_Handler,
+		},
+		{
+			MethodName: "Exceptions",
+			Handler:    _LogisticsService_Exceptions_Handler,
+		},
+		{
+			MethodName: "ExceptionResolve",
+			Handler:    _LogisticsService_ExceptionResolve_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

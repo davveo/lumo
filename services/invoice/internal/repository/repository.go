@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/invoice/internal/domain"
@@ -129,4 +130,22 @@ func (r *Repository) Transition(
 		return tx.WithContext(ctx).First(&row, "id = ?", id).Error
 	})
 	return &row, err
+}
+
+func (r *Repository) ListPage(
+	ctx context.Context,
+	user string,
+	c platform.Request,
+) ([]domain.Record, platform.Result, error) {
+	q := r.DB.Model(&domain.Record{})
+	if user != "" {
+		q = q.Where("user_id = ?", user)
+	}
+	return platform.ReadListPage(
+		ctx,
+		q,
+		c,
+		"invoice",
+		func(row domain.Record) (string, time.Time) { return row.ID, row.CreatedAt },
+	)
 }

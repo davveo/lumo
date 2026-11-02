@@ -7,6 +7,7 @@ import (
 	"github.com/davveo/lumo/services/order/internal/domain"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"time"
 )
 
 type Repository struct{ db *gorm.DB }
@@ -86,4 +87,22 @@ func (r *Repository) Expired(ctx context.Context) (spanResult0 []domain.Order, s
 		Find(&rows).
 		Error
 	return rows, err
+}
+
+func (r *Repository) ListPage(
+	ctx context.Context,
+	user string,
+	c platform.Request,
+) ([]domain.Order, platform.Result, error) {
+	q := r.db.Model(&domain.Order{})
+	if user != "" {
+		q = q.Where("user_id = ?", user)
+	}
+	return platform.ReadListPage(
+		ctx,
+		q,
+		c,
+		"order",
+		func(row domain.Order) (string, time.Time) { return row.ID, row.CreatedAt },
+	)
 }

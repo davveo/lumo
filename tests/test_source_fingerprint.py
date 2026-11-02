@@ -11,6 +11,17 @@ PROJECT = Path(__file__).resolve().parents[1]
 
 
 class SourceFingerprintTests(unittest.TestCase):
+    def test_nested_go_cache_does_not_change_service_fingerprint(self) -> None:
+        before = self.digest("order")
+        self.write("cmd/server/pkg/mod/example.org/dependency@v1/cache.go", "package dependency\n")
+        self.assertEqual(before, self.digest("order"))
+
+    def test_frontend_builder_changes_only_frontend_fingerprint(self) -> None:
+        backend, frontend = self.digest("order"), self.digest("web")
+        self.write("web/build.cjs", "console.log('builder');\n")
+        self.assertEqual(backend, self.digest("order"))
+        self.assertNotEqual(frontend, self.digest("web"))
+
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory(prefix="lumo fingerprint ")
         self.addCleanup(self.temporary.cleanup)

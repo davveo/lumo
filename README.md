@@ -2,6 +2,8 @@
 
 已将原商城前端接入 Go + GORM + gRPC 多服务项目，包含完整商城、独立管理页面、30 个领域服务与配套依赖。30 个领域服务独立运行，通过 Consul 注册、健康检查与服务发现连接；独立Nginx前端同源代理到HTTP网关，MySQL 按服务隔离 schema / 数据库账号，RabbitMQ 承接领域事件，Redis 用于缓存与秒杀准入。OpenTelemetry + Collector + Jaeger 将调用关联到 SQL。
 
+新增账号安全中心、游客购物车合并、经营分析、员工岗位权限、CSV/XLSX 商品导入、实时站内消息、采购补货、物流轨迹与异常件；入口、配置和使用限制见 [八项功能说明](docs/feature-expansion.md)，外部渠道协议见 [物流适配](docs/carrier-adapter.md)。
+
 ## 放到桌面并一键启动
 
 将交付的压缩包下载到“下载”目录后，在 macOS 终端执行：
@@ -162,3 +164,25 @@ docker compose logs --tail=100 checkout inventory payment
 | 外部仓库/物流/开票/短信 | 使用演示/规则适配，需接入选定供应商 |
 
 MinIO公共预构建镜像在本次环境无法访问，因此 `deploy/minio.Dockerfile` 从官方release `RELEASE.2025-09-07T16-13-09Z` 对应固定commit `07c3a429bfed433e49018cb0f78a52145d4bedeb` 构建，首次启动会增加源码和Go依赖下载时间。源码与许可证来自官方仓库 https://github.com/minio/minio 。
+
+## 2026-10-30 工程优化
+
+- 网关仅接受可信代理的转发 IP。Compose 默认用 `TRUSTED_PROXY_HOSTS=web` 解析前端容器的当前地址，每 5 秒刷新；直连 API 不信任转发头。其他部署可显式设置 `TRUSTED_PROXY_CIDRS`，默认不信任任何网段。多级代理从右向左取首个不可信跳点，客户端不能用伪造的头部前缀改变限流身份。
+- 密码登录在 bcrypt 前使用 IAM 数据库中的频控：每账号每分钟最多 10 次，每 IP 每分钟最多 60 次；连续失败 5 次后按 1、2、4 秒递增退避，最多 64 秒。成功登录清除失败退避。不存在或停用的账号也执行密码散列比较。登录输入在后台页面重绘时保留在内存中，不进入公开状态、存储或 HTML，离开登录页及登录结束时清除密码。
+- 搜索使用商品服务的稳定游标继续扫描，不再将前 100 个候选当成全部匹配项。请求可带 `cursor`，响应带 `has_more`、`next_cursor`、`total_exact`；仅扫描完成时返回准确 `total`。每次最多扫描 20 批，稀疏库存筛选可能返回空的部分页，此时仍提供继续游标，页面显示“继续加载”。搜索条件或策略版本变化后需重新开始。
+- 订单、支付、售后和发票列表支持 `limit`（1–100）、`offset`（0–10000）和 `cursor`，响应包含 `total`、`has_more` 与 `next_cursor`。深页使用游标；游标与服务、账号、角色绑定，查询始终应用服务端归属条件。订单的强类型 protobuf 契约保留并扩展分页字段。顾客历史页面按游标读取后续记录。
+- RabbitMQ 按集中订阅清单建立所有服务队列，在精确绑定就绪后移除旧的 `#` 绑定，不删除队列消息。业务事件仍要求可路由和发布确认；目前无订阅方的四类信息事件（商品变更、行为接纳、评价发布、退货验收完成）保留生产者持久记录，允许经 broker 确认后无接收方。未知事件仍按路由错误处理。
+- `npm run build:web` 从可编辑的 `web/dist` 生成 `web/build`：每个入口各一个启动 JS/CSS 包，文件名包含内容哈希，并生成 gzip 文件。装修与分类编辑器进入管理页面时才加载；公开首页配置独立加载。Nginx 对哈希资源使用长期不可变缓存，HTML 重新验证。Docker 前端镜像自动执行构建，运行镜像不包含 Node。
+- `.github/workflows/ci.yml` 包含 Go/前端/生成一致性/排版、临时 MySQL 与 RabbitMQ、实际 Nginx 代理/压缩/缓存，以及 Chromium 下的下单、演示支付、售后退款、编辑器懒加载检查。Playwright 浏览器检查使用构建后的前端和独立数据库。
+- Go 下载缓存不再由 Git 跟踪。`make`、前端和浏览器测试、工具安装通过 `scripts/go.sh` 保留显式的外部缓存配置，并纠正项目内或相对缓存路径。IDE 的 GOPATH 也应设为项目外的绝对路径（例如 `$HOME/go`）。旧缓存本次归档到忽略的 `.local/cache-backup`，没有删除磁盘内容；Docker 上下文和源码指纹排除嵌套模块缓存。
+
+```sh
+make test
+make test-web
+make build-web
+npx --no-install playwright install chromium
+make test-browser
+make format-check
+```
+
+基础设施测试显式启用后只创建独立 scratch schema/vhost：MySQL 使用 `LUMO_MYSQL_ADMIN_TEST`、`LUMO_MYSQL_SEARCH_TEST`、`LUMO_MYSQL_PROJECTION_TEST`，地址可用 `LUMO_MYSQL_TEST_ADDR` 覆盖；RabbitMQ 使用 `LUMO_AMQP_TEST=1`、`LUMO_TEST_AMQP_URL` 和 `LUMO_AMQP_MANAGEMENT_URL`。真实 Nginx 测试使用 `LUMO_TEST_WEB_IMAGE` 指定独立测试镜像。这些是测试环境参数，不需要写入商城 `.env`。

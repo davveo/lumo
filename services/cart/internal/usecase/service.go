@@ -76,17 +76,45 @@ func (s *Service) Merge(ctx context.Context, c platform.Request) (traceResult pl
 	}
 	// Validate all input before writing. A merge uses max quantities, not additive
 	// increments, so retries after a partial RPC failure remain idempotent.
+	ids, seen := []string{}, map[string]bool{}
 	for _, it := range input.Items {
 		if it.Quantity < 1 || it.Quantity > 10 {
 			return nil, bad("quantity must be 1..10")
 		}
-		if _, e := platform.NewClients(s.rpc).Catalog.Get(ctx, platform.Request{
-			ID:             it.SKU,
+		if it.SKU == "" || len(it.SKU) > 150 {
+			return nil, bad("invalid SKU")
+		}
+		if !seen[it.SKU] {
+			ids = append(ids, it.SKU)
+			seen[it.SKU] = true
+		}
+	}
+	if len(ids) > 0 {
+		result, e := platform.NewClients(s.rpc).Catalog.BatchGet(ctx, platform.Request{
 			UserID:         c.UserID,
 			Role:           c.Role,
 			IdempotencyKey: c.IdempotencyKey,
-		}); e != nil {
+			Data:           map[string]any{"ids": ids},
+		})
+		if e != nil {
 			return nil, e
+		}
+		var rows struct {
+			Items []struct {
+				ID string `json:"id"`
+			} `json:"items"`
+		}
+		if e = platform.Decode(result, &rows); e != nil {
+			return nil, e
+		}
+		found := map[string]bool{}
+		for _, row := range rows.Items {
+			found[row.ID] = true
+		}
+		for _, id := range ids {
+			if !found[id] {
+				return nil, status.Error(codes.NotFound, "商品规格不存在或已下架")
+			}
 		}
 	}
 	for _, it := range input.Items {

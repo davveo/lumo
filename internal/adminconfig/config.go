@@ -55,10 +55,20 @@ func Read[T any](ctx context.Context, db *gorm.DB, id string, defaults T) (T, in
 	}
 	return result, row.Version, nil
 }
-func Save[T any](ctx context.Context, db *gorm.DB, id string, value T, expected int64, actor, reason string) (platform.Result, error) {
+
+func Save[T any](
+	ctx context.Context,
+	db *gorm.DB,
+	id string,
+	value T,
+	expected int64,
+	actor, reason string,
+) (platform.Result, error) {
 	ctx, span := platform.Start(ctx, "adminconfig.repository.Save")
 	defer span.End()
-	if id == "" || len(id) > 120 || expected < 0 || expected == math.MaxInt64 || actor == "" || strings.TrimSpace(reason) == "" || len([]rune(reason)) > 240 {
+	if id == "" || len(id) > 120 || expected < 0 || expected == math.MaxInt64 || actor == "" ||
+		strings.TrimSpace(reason) == "" ||
+		len([]rune(reason)) > 240 {
 		return nil, status.Error(codes.InvalidArgument, "configuration id, expected version and reason required")
 	}
 	raw, err := json.Marshal(value)
@@ -75,7 +85,13 @@ func Save[T any](ctx context.Context, db *gorm.DB, id string, value T, expected 
 		if old.Version != expected {
 			return status.Error(codes.Aborted, "configuration changed; reload before saving")
 		}
-		next := Document{ID: id, Version: expected + 1, Payload: string(raw), ActorID: actor, UpdatedAt: time.Now().UTC()}
+		next := Document{
+			ID:        id,
+			Version:   expected + 1,
+			Payload:   string(raw),
+			ActorID:   actor,
+			UpdatedAt: time.Now().UTC(),
+		}
 		if missing {
 			r := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&next)
 			if r.Error != nil {
@@ -93,7 +109,9 @@ func Save[T any](ctx context.Context, db *gorm.DB, id string, value T, expected 
 				return status.Error(codes.Aborted, "configuration changed; reload before saving")
 			}
 		}
-		return tx.WithContext(ctx).Create(&Change{ID: platform.ID("config-change"), DocumentID: id, Version: next.Version, ActorID: actor, Reason: strings.TrimSpace(reason), Before: old.Payload, After: string(raw)}).Error
+		return tx.WithContext(ctx).
+			Create(&Change{ID: platform.ID("config-change"), DocumentID: id, Version: next.Version, ActorID: actor, Reason: strings.TrimSpace(reason), Before: old.Payload, After: string(raw)}).
+			Error
 	})
 	if err != nil {
 		return nil, err

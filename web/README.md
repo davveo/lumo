@@ -49,7 +49,9 @@ Docker 中由独立 `web` 容器提供 HTML、JavaScript、CSS 和图片；同�
 
 ## 单独部署
 
-`web/Dockerfile` 只使用本目录作为构建上下文，独立生成 `lumo-mall-web:dev`，不需要 Go 或 Node 构建。
+`web/Dockerfile` 只使用本目录作为构建上下文，独立生成 `lumo-mall-web:dev`。宿主机只需 Docker；
+构建阶段使用固定版本 Node，运行容器只有 Nginx。`node web/build.cjs` 也可在本机生成 `web/build`：
+每个入口各一个带内容哈希的 JS/CSS 启动包及 gzip 文件，装修编辑器按需加载。
 根目录后端镜像不再包含 `dist/`。运行 `sh start.sh web` 只构建/更新前端；默认增量检测也将页面资源、
 Nginx 配置及入口脚本归属到 `web`，后端代码变化不会构建前端镜像。`WEB_PORT` 默认8080，
 `GATEWAY_PORT` 默认18080，`WEB_GATEWAY_UPSTREAM` 默认 `gateway:8080`。
@@ -64,6 +66,10 @@ HTML及未版本化的静态文件使用 `no-cache` 重新验证。带 `?v=版�
 默认基础镜像为官方固定标签 `nginx:1.30.6-alpine`。Docker Hub不可达时，可设置
 `WEB_NGINX_IMAGE=public.ecr.aws/docker/library/nginx:1.30.6-alpine` 使用同版本官方ECR镜像。
 也可显式选择本机兼容的Nginx镜像并保留实际版本记录；修改此构建参数只重建前端。
+Node 构建镜像默认使用 `public.ecr.aws/docker/library/node:22.23.4-alpine3.24`，避免构建时访问
+Docker Hub 的令牌服务；已有 `.env` 未设置 `WEB_NODE_IMAGE` 时也使用此默认值。
+可用 `WEB_NODE_IMAGE` 指定兼容的本地或其他仓库镜像（如 `node:22.23.4-alpine3.24`）。
+修改 Node 或 Nginx 镜像参数均会重新构建前端，不影响后端和运行中的中间件。
 `entrypoint.sh` 仅替换通过校验的网关 `hostname:port`，保留 Nginx 自身变量；只读容器仅将临时数据和生成配置
 写入 tmpfs。默认镜像拉取仍需宿主机正常访问镜像仓库。
 

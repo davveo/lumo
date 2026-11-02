@@ -13,6 +13,7 @@
   let catalogPage = 1;
   let catalogSignature = '';
   let lastTotal = 0;
+  let remotePage = null;
   let activeSuggestion = -1;
   let comparison = [],
     history = [],
@@ -40,9 +41,10 @@
     ]);
   };
   const searchSignature = () => JSON.stringify([ui.query, ui.category, data().filters, ui.sort]);
-  function refreshSearch(force = false) {
+  function refreshSearch(force = false, more = false) {
     const signature = searchSignature(),
       owner = currentOwner();
+    const continuing = more && remotePage?.signature === signature && remotePage.owner === owner;
     if (!force && queryFlight?.signature === signature && queryFlight.owner === owner) return queryFlight.promise;
     const revision = ++queryRevision;
     querySignature = signature;
@@ -50,7 +52,13 @@
     queryLoading = true;
     queryError = '';
     const selected = () => querySignature === signature && owner === currentOwner() && revision === queryRevision;
-    if (!String(ui.query || '').trim() && ui.category === '全部好物') {
+    if (
+      !String(ui.query || '').trim() &&
+      ui.category === '全部好物' &&
+      data().filters.brand === 'all' &&
+      !data().filters.inStock
+    ) {
+      remotePage = null;
       queryFlight = null;
       window.LumoRecommendations?.restoreItems?.(C.ProductPool.Search, []);
       remoteIds = new Set(products.filter((p) => p.visible !== false).map((p) => p.id));
@@ -81,27 +89,51 @@
                   新品: C.CatalogSort.Newest,
                 }[ui.sort] || C.CatalogSort.Default,
               limit: 100,
+              ...(continuing ? { cursor: remotePage.next } : {}),
             },
           },
           { auth: false },
         );
         if (selected()) {
+          const previous = continuing ? remotePage.items : [],
+            previousInventory = continuing ? remotePage.inventory : [],
+            merged = [...new Map([...previous, ...(result.items || [])].map((row) => [row.id, row])).values()],
+            inventory = [
+              ...new Map(
+                [...previousInventory, ...(result.inventory_items || [])].map((row) => [row.sku_id, row]),
+              ).values(),
+            ];
+          remotePage = {
+            signature,
+            owner,
+            items: merged,
+            inventory,
+            next: result.next_cursor || '',
+            hasMore: result.has_more === true,
+            total: result.total_exact === false ? null : result.total,
+          };
+          if (continuing) catalogPage = Math.floor(previous.length / pageSize()) + 1;
           resolvedSearch = signature;
           resolvedOwner = owner;
-          remoteIds = new Set((result.items || []).map((p) => p.product_id || p.id));
+          remoteIds = new Set(merged.map((p) => p.product_id || p.id));
           if (window.LumoRecommendations?.mapItems)
-            window.LumoRecommendations.mapItems(result, C.ProductPool.Search, [], ticket);
+            window.LumoRecommendations.mapItems(
+              { ...result, items: merged, inventory_items: inventory },
+              C.ProductPool.Search,
+              [],
+              ticket,
+            );
           else {
-            for (const raw of (result.items || []).slice(0, 100)) {
+            for (const raw of merged) {
               const product = window.LumoCommerce?.normalizeProduct?.(raw);
               if (product && !products.some((p) => p.id === product.id)) products.push(product);
             }
-            window.LumoInventory?.prime?.(result.inventory_items || [], ticket);
+            window.LumoInventory?.prime?.(inventory, ticket);
           }
         }
       } catch (error) {
         if (selected()) {
-          remoteIds = new Set();
+          if (!continuing) remoteIds = new Set();
           queryError = error.message;
         }
         throw error;
@@ -252,13 +284,18 @@
   }
   function filter(list) {
     const filters = data().filters;
-    return list.filter(
+    const rows = list.filter(
       (p) =>
         querySignature === searchSignature() &&
         remoteIds.has(p.id) &&
         (filters.brand === 'all' || brandFor(p) === filters.brand) &&
         (!filters.inStock || available(p)),
     );
+    if (remotePage?.signature === searchSignature() && remotePage.owner === currentOwner()) {
+      const positions = new Map(remotePage.items.map((row, i) => [row.product_id || row.id, i]));
+      rows.sort((a, b) => positions.get(a.id) - positions.get(b.id));
+    }
+    return rows;
   }
   function resetFilters() {
     data().filters = { brand: 'all', inStock: false };
@@ -283,7 +320,9 @@
       ui.sort,
       current.filters,
       pageSize(),
-      list.map((p) => [p.id, p.price]),
+      remotePage?.signature === searchSignature() && remotePage.owner === currentOwner()
+        ? null
+        : list.map((p) => [p.id, p.price]),
     ]);
     if (signature !== catalogSignature) {
       catalogPage = 1;
@@ -295,7 +334,9 @@
   }
   function pagination(total = lastTotal) {
     const pages = Math.ceil(total / pageSize());
-    if (pages < 2) return '';
+    const more =
+      remotePage?.signature === searchSignature() && remotePage.owner === currentOwner() && remotePage.hasMore;
+    if (pages < 2 && !more) return '';
     const visible = [
       ...new Set([1, catalogPage - 1, catalogPage, catalogPage + 1, pages].filter((n) => n >= 1 && n <= pages)),
     ].sort((a, b) => a - b);
@@ -307,7 +348,7 @@
         return `${gap}<button data-discovery-action="page" data-value="${n}" ${n === catalogPage ? 'class="active" aria-current="page"' : ''} aria-label="第 ${n} 页">${n}</button>`;
       })
       .join('');
-    return `<nav class="disc-pagination" aria-label="商品分页"><span>共 ${total} 件好物</span><div><button data-discovery-action="page" data-value="${catalogPage - 1}" ${catalogPage <= 1 ? 'disabled' : ''} aria-label="上一页">${icon('back')}</button>${buttons}<button data-discovery-action="page" data-value="${catalogPage + 1}" ${catalogPage >= pages ? 'disabled' : ''} aria-label="下一页">${icon('chevron')}</button></div><small>第 ${catalogPage} / ${pages} 页</small></nav>`;
+    return `<nav class="disc-pagination" aria-label="商品分页"><span>${more ? '已加载' : '共'} ${total} 件好物</span><div><button data-discovery-action="page" data-value="${catalogPage - 1}" ${catalogPage <= 1 ? 'disabled' : ''} aria-label="上一页">${icon('back')}</button>${buttons}<button data-discovery-action="page" data-value="${catalogPage + 1}" ${catalogPage >= pages ? 'disabled' : ''} aria-label="下一页">${icon('chevron')}</button>${more ? `<button data-discovery-action="load-more" ${queryLoading ? 'disabled' : ''}>${queryLoading ? '正在加载…' : '继续加载'}</button>` : ''}</div><small>第 ${catalogPage} / ${Math.max(1, pages)} 页${more ? ' · 还有更多结果' : ''}</small></nav>`;
   }
   function compareButton(p) {
     if (!p || p.visible === false) return '';
@@ -552,6 +593,17 @@
     if (button.disabled) return;
     const action = button.dataset.discoveryAction,
       id = button.dataset.id;
+    if (action === 'load-more') {
+      if (!remotePage?.next || queryLoading) return;
+      button.disabled = true;
+      try {
+        await refreshSearch(true, true);
+      } catch (error) {
+        toast(error.message);
+      }
+      renderKeepScroll();
+      return;
+    }
     if (action === 'search') {
       commitSearch(button.dataset.value);
       return;
@@ -653,6 +705,7 @@
       loading: queryLoading && queryOwner === currentOwner(),
       loaded: resolvedSearch === searchSignature() && resolvedOwner === currentOwner(),
       error: querySignature === searchSignature() && queryOwner === currentOwner() ? queryError : '',
+      hasMore: remotePage?.signature === searchSignature() && remotePage.owner === currentOwner() && remotePage.hasMore,
     }),
     selectCategory,
     afterRender,

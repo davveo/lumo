@@ -123,7 +123,12 @@ func (r *Repository) Confirm(ctx context.Context, c platform.Request) (platform.
 func (r *Repository) Cancel(ctx context.Context, c platform.Request) (platform.Result, error) {
 	return r.transition(ctx, c, constants.PointsHoldStateCancelled)
 }
-func (r *Repository) transition(ctx context.Context, c platform.Request, target string) (spanResult0 platform.Result, spanErr0 error) {
+
+func (r *Repository) transition(
+	ctx context.Context,
+	c platform.Request,
+	target string,
+) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.points.transition."+target)
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -194,7 +199,12 @@ func (r *Repository) Checkin(ctx context.Context, c platform.Request) (platform.
 func (r *Repository) Reward(ctx context.Context, c platform.Request) (platform.Result, error) {
 	return r.credit(ctx, c, false)
 }
-func (r *Repository) credit(ctx context.Context, c platform.Request, checkin bool) (spanResult0 platform.Result, spanErr0 error) {
+
+func (r *Repository) credit(
+	ctx context.Context,
+	c platform.Request,
+	checkin bool,
+) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.points.Credit")
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()

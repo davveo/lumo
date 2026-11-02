@@ -21,7 +21,12 @@ func (p Membership) Growth(amount int64) int64 {
 	return n
 }
 func ReadMembership(ctx context.Context, caller platform.Caller) (Membership, error) {
-	value, e := platform.NewClients(caller).Member.PolicyGet(ctx, platform.Request{UserID: constants.RoleSystem, Role: constants.RoleSystem})
+	value, e := platform.NewClients(
+		caller,
+	).Member.PolicyGet(
+		ctx,
+		platform.Request{UserID: constants.RoleSystem, Role: constants.RoleSystem},
+	)
 	if e != nil {
 		return Membership{}, e
 	}

@@ -32,6 +32,7 @@ func (s *Service) SearchProducts(
 		Brand    string `json:"brand"`
 		Sort     string `json:"sort"`
 		Limit    int    `json:"limit"`
+		Cursor   string `json:"cursor"`
 	}
 	b, err := json.Marshal(c.Data)
 	if err != nil {
@@ -68,22 +69,37 @@ func (s *Service) SearchProducts(
 	default:
 		return nil, bad("invalid product search sort")
 	}
-	rows, err := s.repo.SearchProducts(
-		ctx,
-		repository.ProductSearch{
-			Query:    input.Query,
-			Category: input.Category,
-			Brand:    input.Brand,
-			Sort:     input.Sort,
-			Limit:    input.Limit,
-		},
-	)
+	search := repository.ProductSearch{
+		Query:    input.Query,
+		Category: input.Category,
+		Brand:    input.Brand,
+		Sort:     input.Sort,
+		Limit:    input.Limit + 1,
+		Cursor:   input.Cursor,
+	}
+	rows, err := s.repo.SearchProducts(ctx, search)
 	if err != nil {
 		return nil, err
 	}
+	hasMore := len(rows) > input.Limit
+	if hasMore {
+		rows = rows[:input.Limit]
+	}
 	items := make([]platform.Result, 0, len(rows))
+	cursors := make([]string, 0, len(rows))
 	for _, row := range rows {
 		items = append(items, view(row))
+		cursors = append(cursors, repository.ProductSearchCursor(search, row))
 	}
-	return platform.Result{"items": items, "limit": input.Limit}, nil
+	next := ""
+	if hasMore {
+		next = cursors[len(cursors)-1]
+	}
+	return platform.Result{
+		"items":        items,
+		"limit":        input.Limit,
+		"has_more":     hasMore,
+		"next_cursor":  next,
+		"item_cursors": cursors,
+	}, nil
 }

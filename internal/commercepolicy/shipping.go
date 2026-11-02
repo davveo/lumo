@@ -24,7 +24,14 @@ type Shipping struct {
 }
 
 func DefaultShipping() Shipping {
-	return Shipping{Name: "标准配送", Enabled: true, Mode: "flat", AllowedRegions: []string{}, BlockedRegions: []string{}, Regions: []RegionFee{}}
+	return Shipping{
+		Name:           "标准配送",
+		Enabled:        true,
+		Mode:           "flat",
+		AllowedRegions: []string{},
+		BlockedRegions: []string{},
+		Regions:        []RegionFee{},
+	}
 }
 func Region(address map[string]any) string {
 	parts := []string{}

@@ -21,8 +21,9 @@ type AuthChallenge struct {
 	CreatedAt  time.Time
 }
 type AuthRate struct {
-	ID       string `gorm:"primaryKey;size:64"`
-	LastSent time.Time
+	ID string `gorm:"primaryKey;size:64"`
+	// No attempt has been sent yet; persist NULL instead of a zero MySQL date.
+	LastSent *time.Time
 	Day      string `gorm:"size:10"`
 	Count    int64
 }

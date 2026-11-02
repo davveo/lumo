@@ -99,7 +99,8 @@ func (s *Service) Update(ctx context.Context, c platform.Request) (traceResult p
 				}
 				if k == "avatar" {
 					value, ok := x.(string)
-					if !ok || len(value) > 2000 || (value != "" && !strings.HasPrefix(value, "https://") && !strings.HasPrefix(value, "assets/")) {
+					if !ok || len(value) > 2000 ||
+						(value != "" && !strings.HasPrefix(value, "https://") && !strings.HasPrefix(value, "assets/")) {
 						return nil, nil, bad("avatar must be an HTTPS or existing asset URL")
 					}
 				}
@@ -115,7 +116,13 @@ func (s *Service) Update(ctx context.Context, c platform.Request) (traceResult p
 			v.Payload = next.Payload
 		}
 		if c.Role == constants.RoleAdmin && c.ID != "" && c.ID != c.UserID {
-			change := record(platform.ID("profile-change"), id, "profile_change", "RECORDED", map[string]any{"actor_id": c.UserID, "reason": platform.Text(c.Data, "reason"), "fields": c.Data})
+			change := record(
+				platform.ID("profile-change"),
+				id,
+				"profile_change",
+				"RECORDED",
+				map[string]any{"actor_id": c.UserID, "reason": platform.Text(c.Data, "reason"), "fields": c.Data},
+			)
 			return []domain.Record{change}, nil, nil
 		}
 		return nil, nil, nil

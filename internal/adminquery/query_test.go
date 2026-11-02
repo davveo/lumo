@@ -58,6 +58,10 @@ func TestManagementQueriesCountAllRowsAndRespectLiteralSearchAndBusinessDates(t 
 	if err != nil || value["total"] != int64(126) {
 		t.Fatalf("summary must not count only one page: %v %v", value, err)
 	}
+	if value, err = Summary[fixture](ctx, db, map[string]any{"days": 90}, spec); err != nil ||
+		platform.Int(value, "days") != 90 {
+		t.Fatal("90-day summary rejected", value, err)
+	}
 	_, _, _, err = Page[fixture](ctx, db, map[string]any{"from": "2026-10-28", "to": "2026-10-27"}, spec)
 	if err == nil {
 		t.Fatal("inverted date range accepted")

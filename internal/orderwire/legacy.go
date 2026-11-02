@@ -57,7 +57,14 @@ func ListResult(response *mallv1.ListOrdersResponse) map[string]any {
 	for _, order := range response.GetItems() {
 		items = append(items, Result(order))
 	}
-	return map[string]any{"items": items}
+	return map[string]any{
+		"items":       items,
+		"total":       response.GetTotal(),
+		"has_more":    response.GetHasMore(),
+		"next_cursor": response.GetNextCursor(),
+		"limit":       response.GetLimit(),
+		"offset":      response.GetOffset(),
+	}
 }
 
 func PaymentResult(response *mallv1.AcceptPaymentResponse) map[string]any {
@@ -71,6 +78,7 @@ func PaymentResult(response *mallv1.AcceptPaymentResponse) map[string]any {
 
 func Actions() map[string]string {
 	return map[string]string{
+		mallv1.OrderService_BatchGetOrders_FullMethodName:   constants.ActionBatchGet,
 		mallv1.OrderService_AdminList_FullMethodName:        constants.ActionAdminList,
 		mallv1.OrderService_AdminSummary_FullMethodName:     constants.ActionAdminSummary,
 		mallv1.OrderService_ListOrders_FullMethodName:       constants.ActionList,

@@ -24,7 +24,19 @@ func TestTaskListExplainsBusinessFailureAndProtectsLiveWork(t *testing.T) {
 	if err = MigratePlatform(ctx, db); err != nil {
 		t.Fatal(err)
 	}
-	envelope, _ := json.Marshal(Event{ID: "event-a", Type: constants.EventPaymentSucceeded, AggregateID: "PAY_123", UserID: "buyer", Data: map[string]any{"order_id": "ORD_123", "phone": "13800138000", "password": "never-display-this"}})
+	envelope, _ := json.Marshal(
+		Event{
+			ID:          "event-a",
+			Type:        constants.EventPaymentSucceeded,
+			AggregateID: "PAY_123",
+			UserID:      "buyer",
+			Data: map[string]any{
+				"order_id": "ORD_123",
+				"phone":    "13800138000",
+				"password": "never-display-this",
+			},
+		},
+	)
 	now := time.Now().UTC()
 	for _, in := range []Inbox{
 		{Consumer: "order", EventID: "event-a", PayloadJSON: string(envelope), State: constants.InboxStateDead, Attempts: 5, ClaimToken: "claim", LastErrorCode: "Unavailable", LeaseUntil: now.Add(-time.Minute)},
@@ -36,7 +48,11 @@ func TestTaskListExplainsBusinessFailureAndProtectsLiveWork(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	query := Request{UserID: "admin", Role: constants.RoleAdmin, Data: map[string]any{"kind": "inbox", "status": "attention", "keyword": "ORD_123", "page_size": 1}}
+	query := Request{
+		UserID: "admin",
+		Role:   constants.RoleAdmin,
+		Data:   map[string]any{"kind": "inbox", "status": "attention", "keyword": "ORD_123", "page_size": 1},
+	}
 	r, err := serviceTasks(ctx, db, "order", query)
 	if err != nil {
 		t.Fatal(err)
@@ -62,7 +78,8 @@ func TestTaskListExplainsBusinessFailureAndProtectsLiveWork(t *testing.T) {
 		}
 	}
 	b, _ := json.Marshal(r)
-	if strings.Contains(string(b), "13800138000") || strings.Contains(string(b), "never-display-this") || strings.Contains(string(b), "payload_json") {
+	if strings.Contains(string(b), "13800138000") || strings.Contains(string(b), "never-display-this") ||
+		strings.Contains(string(b), "payload_json") {
 		t.Fatal("unnecessary payload leaked", string(b))
 	}
 	var failed Inbox
@@ -105,7 +122,14 @@ func TestTaskHistoryLabelsMissingDiagnosticsAndLinksReplay(t *testing.T) {
 	if len(refs) != 2 || refs[0]["label"] != "退款单" || refs[1]["label"] != "订单" {
 		t.Fatal(refs)
 	}
-	r = describeTask(Result{"id": "recovery", "event_id": "evt", "state": constants.InboxStateDone}, "recovery", "order", payload, "", now)
+	r = describeTask(
+		Result{"id": "recovery", "event_id": "evt", "state": constants.InboxStateDone},
+		"recovery",
+		"order",
+		payload,
+		"",
+		now,
+	)
 	if r["status_label"] != "重试成功" {
 		t.Fatal(r)
 	}

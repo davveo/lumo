@@ -53,7 +53,11 @@ func (s *Service) Run(ctx context.Context, c platform.Request) (traceResult plat
 		if e := platform.RequireAdmin(c); e != nil {
 			return nil, e
 		}
-		if strings.TrimSpace(platform.Text(c.Data, "reason")) == "" || len([]rune(platform.Text(c.Data, "reason"))) > 240 || c.ID == "" || c.IdempotencyKey == "" || len(c.IdempotencyKey) > 120 {
+		if strings.TrimSpace(platform.Text(c.Data, "reason")) == "" ||
+			len([]rune(platform.Text(c.Data, "reason"))) > 240 ||
+			c.ID == "" ||
+			c.IdempotencyKey == "" ||
+			len(c.IdempotencyKey) > 120 {
 			return nil, status.Error(codes.InvalidArgument, "resume reason and idempotency key required")
 		}
 		return s.r.Resume(ctx, c)
@@ -78,19 +82,36 @@ func (s *Service) Run(ctx context.Context, c platform.Request) (traceResult plat
 	if err = json.Unmarshal(b, &rows); err != nil {
 		return nil, err
 	}
+	ids := []string{}
+	for _, p := range rows {
+		if platform.Text(p, "status") == constants.PaymentStatusSucceeded {
+			ids = append(ids, platform.Text(p, "order_id"))
+		}
+	}
+	orders := map[string]platform.Result{}
+	if len(ids) > 0 {
+		result, err := platform.NewClients(
+			s.rpc,
+		).Order.BatchGet(
+			ctx,
+			platform.Request{UserID: c.UserID, Role: constants.RoleSystem, Data: map[string]any{"ids": ids}},
+		)
+		if err != nil {
+			return nil, err
+		}
+		orders, err = platform.IndexResults(result, "id")
+		if err != nil {
+			return nil, err
+		}
+	}
 	diffs := []platform.Result{}
 	for _, p := range rows {
 		if platform.Text(p, "status") != constants.PaymentStatusSucceeded {
 			continue
 		}
-		o, e := platform.NewClients(s.rpc).Order.Get(
-			ctx, platform.Request{
-				ID:     platform.Text(p, "order_id"),
-				UserID: c.UserID,
-				Role:   constants.RoleSystem,
-			},
-		)
-		if e != nil {
+		o := orders[platform.Text(p, "order_id")]
+
+		if o == nil {
 			diffs = append(
 				diffs,
 				platform.Result{

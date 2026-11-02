@@ -21,7 +21,9 @@ type Service struct {
 	RPC  platform.Caller
 }
 
-func (s *Service) Topics() []string { return []string{constants.EventOrderReadyToFulfill} }
+func (s *Service) Topics() []string {
+	return []string{constants.EventFulfillmentRecoveryRequested, constants.EventOrderReadyToFulfill}
+}
 func internal(c platform.Request) bool {
 	return c.Role == constants.RoleSystem || c.Role == constants.RoleAdmin
 }
@@ -32,6 +34,9 @@ func owned(c platform.Request, r *domain.Record) error {
 	return nil
 }
 func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error) {
+	if e.Type == constants.EventFulfillmentRecoveryRequested {
+		return s.recoverOne(ctx, e)
+	}
 	if e.Type != constants.EventOrderReadyToFulfill {
 		return nil
 	}

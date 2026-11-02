@@ -20,11 +20,25 @@ message OrderRequest {
 
 message ListOrdersRequest {
   OrderActor actor = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+  string cursor = 4;
 }
 
 message ListOrdersResponse {
   repeated Order items = 1;
+  int64 total = 2;
+  bool has_more = 3;
+  string next_cursor = 4;
+  int32 limit = 5;
+  int32 offset = 6;
 }
+
+message BatchGetOrdersRequest {
+  OrderActor actor = 1;
+  repeated string ids = 2;
+}
+message BatchGetOrdersResponse { repeated Order items = 1; }
 
 message CreateOrderRequest {
   OrderActor actor = 1;
@@ -119,6 +133,7 @@ message OrderSummaryResponse {
 }
 
 service OrderService {
+  rpc BatchGetOrders(BatchGetOrdersRequest) returns (BatchGetOrdersResponse);
  rpc AdminList(AdminOrdersRequest) returns (AdminOrdersResponse);
  rpc AdminSummary(AdminOrdersRequest) returns (OrderSummaryResponse);
   rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);

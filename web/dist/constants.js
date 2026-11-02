@@ -44,14 +44,20 @@
       "Dispatch": "dispatch",
       "Download": "download",
       "Evaluate": "evaluate",
+      "ExceptionResolve": "exception_resolve",
+      "Exceptions": "exceptions",
       "Exchange": "exchange",
       "Expire": "expire",
       "Faq": "faq",
       "Get": "get",
       "GroupFailed": "group_failed",
       "GroupFormed": "group_formed",
+      "ImportCommit": "import_commit",
+      "ImportGet": "import_get",
+      "ImportPreview": "import_preview",
       "Inspect": "inspect",
       "InspectReturn": "inspect_return",
+      "InspectReturns": "inspect_returns",
       "IssueDemo": "issue_demo",
       "Ledger": "ledger",
       "Like": "like",
@@ -69,6 +75,9 @@
       "OtpLogin": "otp_login",
       "OtpSend": "otp_send",
       "Paid": "paid",
+      "PasswordChange": "password_change",
+      "PasswordReset": "password_reset",
+      "PasswordResetRequest": "password_reset_request",
       "Pending": "pending",
       "PolicyGet": "policy_get",
       "PolicyUpsert": "policy_upsert",
@@ -82,6 +91,12 @@
       "PopupImpression": "popup_impression",
       "PopupList": "popup_list",
       "PopupUpsert": "popup_upsert",
+      "ProcurementApprove": "procurement_approve",
+      "ProcurementCancel": "procurement_cancel",
+      "ProcurementCreate": "procurement_create",
+      "ProcurementGet": "procurement_get",
+      "ProcurementList": "procurement_list",
+      "ProcurementReceive": "procurement_receive",
       "Products": "products",
       "ProviderGet": "provider_get",
       "ProviderUpsert": "provider_upsert",
@@ -91,6 +106,7 @@
       "RankBootstrap": "rank_bootstrap",
       "Read": "read",
       "ReadAll": "read_all",
+      "ReadSnapshot": "read_snapshot",
       "Ready": "ready",
       "Recent": "recent",
       "RecommendationCandidates": "recommendation_candidates",
@@ -106,6 +122,7 @@
       "RequestsAdmin": "requests_admin",
       "Reserve": "reserve",
       "Restock": "restock",
+      "RestockBatch": "restock_batch",
       "Retry": "retry",
       "Return": "return",
       "Reversals": "reversals",
@@ -115,16 +132,23 @@
       "RulesAdmin": "rules_admin",
       "Run": "run",
       "SearchProducts": "search_products",
+      "SecurityGet": "security_get",
+      "SecuritySend": "security_send",
+      "SecurityVerify": "security_verify",
       "SessionGet": "session_get",
+      "SessionRevoke": "session_revoke",
       "Set": "set",
       "SetActive": "set_active",
       "Shell": "shell",
       "Shipped": "shipped",
+      "StaffList": "staff_list",
+      "StaffUpsert": "staff_upsert",
       "Submit": "submit",
       "SubmitDemo": "submit_demo",
       "Subscribe": "subscribe",
       "Subscriptions": "subscriptions",
       "Suggest": "suggest",
+      "SyncHistory": "sync_history",
       "Tasks": "tasks",
       "TemplateUpsert": "template_upsert",
       "Templates": "templates",
@@ -132,6 +156,8 @@
       "TemplatesByIds": "templates_by_ids",
       "TemplatesSnapshot": "templates_snapshot",
       "Threshold": "threshold",
+      "Tracking": "tracking",
+      "TrackingUpdate": "tracking_update",
       "Unsubscribe": "unsubscribe",
       "Update": "update",
       "Upsert": "upsert",
@@ -176,6 +202,8 @@
       "Returning": "returning"
     },
     "AnalyticsBehavior": {
+      "AddCart": "add_cart",
+      "Checkout": "checkout",
       "Click": "click",
       "Impression": "impression",
       "Search": "search",
@@ -216,6 +244,19 @@
     "CartStatus": {
       "Active": "ACTIVE",
       "Consumed": "CONSUMED"
+    },
+    "CatalogImportRowStatus": {
+      "Failed": "FAILED",
+      "Invalid": "INVALID",
+      "Succeeded": "SUCCEEDED",
+      "Valid": "VALID"
+    },
+    "CatalogImportStatus": {
+      "Completed": "COMPLETED",
+      "Importing": "IMPORTING",
+      "PartialFailed": "PARTIAL_FAILED",
+      "Preview": "PREVIEW",
+      "ValidationFailed": "VALIDATION_FAILED"
     },
     "CatalogKind": {
       "Sku": "sku"
@@ -344,6 +385,10 @@
       "Frozen": "frozen",
       "Used": "used"
     },
+    "DeliveryExceptionStatus": {
+      "Open": "OPEN",
+      "Resolved": "RESOLVED"
+    },
     "EngagementKind": {
       "Compare": "compare",
       "Favorite": "favorite",
@@ -354,9 +399,13 @@
       "Active": "ACTIVE"
     },
     "Event": {
+      "AftersaleRecoveryRequested": "AftersaleRecoveryRequested",
       "BehaviorAccepted": "BehaviorAccepted",
+      "CheckoutGroupResolution": "CheckoutGroupResolution",
+      "CheckoutRecoveryRequested": "CheckoutRecoveryRequested",
       "DeliveryConfirmed": "DeliveryConfirmed",
       "FlashOrderRequested": "FlashOrderRequested",
+      "FulfillmentRecoveryRequested": "FulfillmentRecoveryRequested",
       "GroupFailed": "GroupFailed",
       "GroupFormed": "GroupFormed",
       "GroupOrderTerminated": "GroupOrderTerminated",
@@ -364,6 +413,7 @@
       "OrderAwaitingPayment": "OrderAwaitingPayment",
       "OrderClosed": "OrderClosed",
       "OrderCompleted": "OrderCompleted",
+      "OrderExpiryRequested": "OrderExpiryRequested",
       "OrderPaymentAccepted": "OrderPaymentAccepted",
       "OrderReadyToFulfill": "OrderReadyToFulfill",
       "PaymentRejected": "PaymentRejected",
@@ -375,6 +425,7 @@
       "ReturnInspectionCompleted": "ReturnInspectionCompleted",
       "ReviewPublished": "ReviewPublished",
       "ShipmentDispatched": "ShipmentDispatched",
+      "ShipmentException": "ShipmentException",
       "TicketReplied": "TicketReplied"
     },
     "FlashRequestStatus": {
@@ -707,6 +758,17 @@
       "Pending": "pending",
       "Rejected": "rejected"
     },
+    "PurchaseMovement": {
+      "Damaged": "PURCHASE_DAMAGED",
+      "Receipt": "PURCHASE_RECEIPT"
+    },
+    "PurchaseStatus": {
+      "Approved": "APPROVED",
+      "Cancelled": "CANCELLED",
+      "Draft": "DRAFT",
+      "PartiallyReceived": "PARTIALLY_RECEIVED",
+      "Received": "RECEIVED"
+    },
     "RecommendationKind": {
       "Policy": "policy"
     },
@@ -836,6 +898,14 @@
       "Answered": "answered",
       "Closed": "closed",
       "Open": "open"
+    },
+    "TrackingStatus": {
+      "Created": "CREATED",
+      "Delivered": "DELIVERED",
+      "Exception": "EXCEPTION",
+      "InTransit": "IN_TRANSIT",
+      "OutForDelivery": "OUT_FOR_DELIVERY",
+      "PickedUp": "PICKED_UP"
     }
   };
   for (const group of Object.values(values)) Object.freeze(group);

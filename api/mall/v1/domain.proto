@@ -22,4 +22,7 @@ message Result {
 
 service DomainService {
   rpc Execute(Command) returns (Result);
+  // Transport-only coalescing for explicitly allowed local reads. A child may
+  // not call another domain; derived reads use independent named RPC methods.
+  rpc ReadSnapshot(Command) returns (Result);
 }

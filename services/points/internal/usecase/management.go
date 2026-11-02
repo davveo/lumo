@@ -38,7 +38,9 @@ func (s *Service) PolicyUpsert(ctx context.Context, c platform.Request) (spanRes
 		return nil, e
 	}
 	p := input.Config
-	if p.CheckinPoints < 0 || p.CheckinPoints > 10000 || p.DeductionBPS < 0 || p.DeductionBPS > 10000 || p.RewardPerYuan < 0 || p.RewardPerYuan > 100 {
+	if p.CheckinPoints < 0 || p.CheckinPoints > 10000 || p.DeductionBPS < 0 || p.DeductionBPS > 10000 ||
+		p.RewardPerYuan < 0 ||
+		p.RewardPerYuan > 100 {
 		return nil, status.Error(codes.InvalidArgument, "invalid points or membership rule")
 	}
 	return s.Repo.PolicyUpsert(ctx, c, p)
@@ -94,7 +96,12 @@ func (s *Service) requireMember(ctx context.Context, c platform.Request) (spanEr
 	defer span.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
 
-	account, e := platform.NewClients(s.RPC).IAM.AdminGet(ctx, platform.Request{ID: c.ID, UserID: c.UserID, Role: c.Role})
+	account, e := platform.NewClients(
+		s.RPC,
+	).IAM.AdminGet(
+		ctx,
+		platform.Request{ID: c.ID, UserID: c.UserID, Role: c.Role},
+	)
 	if e != nil {
 		return e
 	}

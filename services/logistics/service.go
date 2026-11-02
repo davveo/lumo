@@ -19,5 +19,6 @@ func New(d platform.Dependencies) platform.Module {
 		Operations: t.Operations(),
 		Topics:     u.Topics(),
 		OnEvent:    u.OnEvent,
+		Tick:       u.TickTracking,
 	}
 }

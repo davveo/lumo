@@ -34,7 +34,7 @@ func (r *Repository) RegistrationAttempt(ctx context.Context, ip string) (spanEr
 			return status.Error(codes.ResourceExhausted, "注册请求过多，请明天再试或联系客服")
 		}
 		rate.Count++
-		rate.LastSent = now
+		rate.LastSent = &now
 		return tx.WithContext(ctx).Save(&rate).Error
 	})
 }

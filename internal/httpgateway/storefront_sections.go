@@ -92,9 +92,10 @@ func (g *gateway) storefrontActivities(ctx context.Context, c platform.Command) 
 			sorted = append(sorted, id)
 		}
 		sort.Strings(sorted)
+		plan := []readRequest{}
 		for first := 0; first < len(sorted); first += 500 {
 			chunk := sorted[first:min(first+500, len(sorted))]
-			rows = append(rows, g.runReads(ctx, []readRequest{
+			plan = append(plan, []readRequest{
 				sectionRead(
 					fmt.Sprintf("offer-products-%d", first),
 					constants.ServiceCatalog,
@@ -111,8 +112,9 @@ func (g *gateway) storefrontActivities(ctx context.Context, c platform.Command) 
 					map[string]any{"ids": chunk},
 					false,
 				),
-			}, platform.Command{})...)
+			}...)
 		}
+		rows = append(rows, g.runReads(ctx, plan, platform.Command{})...)
 	}
 	return platform.Result{"results": rows}, nil
 }
@@ -150,25 +152,23 @@ func (g *gateway) sectionStocks(ctx context.Context, rows []platform.Result) []p
 		ordered = append(ordered, id)
 	}
 	sort.Strings(ordered)
+	plan := []readRequest{}
 	for first := 0; first < len(ordered); first += 500 {
 		chunk := ordered[first:min(first+500, len(ordered))]
-		rows = append(
-			rows,
-			g.runReads(
-				ctx,
-				[]readRequest{
-					sectionRead(
-						fmt.Sprintf("product-stock-%d", first),
-						constants.ServiceInventory,
-						constants.ActionBatchGet,
-						"",
-						map[string]any{"ids": chunk},
-						false,
-					),
-				},
-				platform.Command{},
-			)...)
+		plan = append(
+			plan,
+			sectionRead(
+				fmt.Sprintf("product-stock-%d", first),
+				constants.ServiceInventory,
+				constants.ActionBatchGet,
+				"",
+				map[string]any{"ids": chunk},
+				false,
+			),
+		)
 	}
+	rows = append(rows, g.runReads(ctx, plan, platform.Command{})...)
+
 	return rows
 }
 func (g *gateway) storefrontAccountSummary(ctx context.Context, c platform.Command) platform.Result {
@@ -204,7 +204,8 @@ func (g *gateway) storefrontAccountSummary(ctx context.Context, c platform.Comma
 		"unread_count":   nil,
 	}
 	failures := platform.Result{}
-	for _, fragment := range g.runReads(ctx, reads, c) {
+	fragments := g.runReads(ctx, reads, c)
+	for _, fragment := range fragments {
 		key := platform.Text(fragment, "key")
 		if fragment["error"] != nil {
 			failures[key] = fragment["error"]

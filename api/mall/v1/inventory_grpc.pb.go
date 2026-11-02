@@ -21,18 +21,25 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	InventoryService_Adjust_FullMethodName      = "/mall.v1.InventoryService/Adjust"
-	InventoryService_BatchGet_FullMethodName    = "/mall.v1.InventoryService/BatchGet"
-	InventoryService_Cancel_FullMethodName      = "/mall.v1.InventoryService/Cancel"
-	InventoryService_Confirm_FullMethodName     = "/mall.v1.InventoryService/Confirm"
-	InventoryService_Dispatch_FullMethodName    = "/mall.v1.InventoryService/Dispatch"
-	InventoryService_Get_FullMethodName         = "/mall.v1.InventoryService/Get"
-	InventoryService_Reserve_FullMethodName     = "/mall.v1.InventoryService/Reserve"
-	InventoryService_Restock_FullMethodName     = "/mall.v1.InventoryService/Restock"
-	InventoryService_Adjustments_FullMethodName = "/mall.v1.InventoryService/Adjustments"
-	InventoryService_AdminList_FullMethodName   = "/mall.v1.InventoryService/AdminList"
-	InventoryService_Threshold_FullMethodName   = "/mall.v1.InventoryService/Threshold"
-	InventoryService_Ledger_FullMethodName      = "/mall.v1.InventoryService/Ledger"
+	InventoryService_Adjust_FullMethodName             = "/mall.v1.InventoryService/Adjust"
+	InventoryService_BatchGet_FullMethodName           = "/mall.v1.InventoryService/BatchGet"
+	InventoryService_Cancel_FullMethodName             = "/mall.v1.InventoryService/Cancel"
+	InventoryService_Confirm_FullMethodName            = "/mall.v1.InventoryService/Confirm"
+	InventoryService_Dispatch_FullMethodName           = "/mall.v1.InventoryService/Dispatch"
+	InventoryService_Get_FullMethodName                = "/mall.v1.InventoryService/Get"
+	InventoryService_Reserve_FullMethodName            = "/mall.v1.InventoryService/Reserve"
+	InventoryService_Restock_FullMethodName            = "/mall.v1.InventoryService/Restock"
+	InventoryService_Adjustments_FullMethodName        = "/mall.v1.InventoryService/Adjustments"
+	InventoryService_AdminList_FullMethodName          = "/mall.v1.InventoryService/AdminList"
+	InventoryService_Threshold_FullMethodName          = "/mall.v1.InventoryService/Threshold"
+	InventoryService_Ledger_FullMethodName             = "/mall.v1.InventoryService/Ledger"
+	InventoryService_ProcurementList_FullMethodName    = "/mall.v1.InventoryService/ProcurementList"
+	InventoryService_ProcurementGet_FullMethodName     = "/mall.v1.InventoryService/ProcurementGet"
+	InventoryService_ProcurementCreate_FullMethodName  = "/mall.v1.InventoryService/ProcurementCreate"
+	InventoryService_ProcurementApprove_FullMethodName = "/mall.v1.InventoryService/ProcurementApprove"
+	InventoryService_ProcurementReceive_FullMethodName = "/mall.v1.InventoryService/ProcurementReceive"
+	InventoryService_ProcurementCancel_FullMethodName  = "/mall.v1.InventoryService/ProcurementCancel"
+	InventoryService_RestockBatch_FullMethodName       = "/mall.v1.InventoryService/RestockBatch"
 )
 
 // InventoryServiceClient is the client API for InventoryService service.
@@ -51,6 +58,13 @@ type InventoryServiceClient interface {
 	AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Threshold(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Ledger(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ProcurementList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ProcurementGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ProcurementCreate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ProcurementApprove(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ProcurementReceive(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ProcurementCancel(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	RestockBatch(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type inventoryServiceClient struct {
@@ -169,6 +183,69 @@ func (c *inventoryServiceClient) Ledger(ctx context.Context, in *ServiceRequest,
 	return out, nil
 }
 
+func (c *inventoryServiceClient) ProcurementList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, InventoryService_ProcurementList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inventoryServiceClient) ProcurementGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, InventoryService_ProcurementGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inventoryServiceClient) ProcurementCreate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, InventoryService_ProcurementCreate_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inventoryServiceClient) ProcurementApprove(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, InventoryService_ProcurementApprove_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inventoryServiceClient) ProcurementReceive(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, InventoryService_ProcurementReceive_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inventoryServiceClient) ProcurementCancel(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, InventoryService_ProcurementCancel_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inventoryServiceClient) RestockBatch(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, InventoryService_RestockBatch_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InventoryServiceServer is the server API for InventoryService service.
 // All implementations must embed UnimplementedInventoryServiceServer
 // for forward compatibility
@@ -185,6 +262,13 @@ type InventoryServiceServer interface {
 	AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Threshold(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Ledger(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ProcurementList(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ProcurementGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ProcurementCreate(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ProcurementApprove(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ProcurementReceive(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ProcurementCancel(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	RestockBatch(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedInventoryServiceServer()
 }
 
@@ -227,6 +311,27 @@ func (UnimplementedInventoryServiceServer) Threshold(context.Context, *ServiceRe
 }
 func (UnimplementedInventoryServiceServer) Ledger(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ledger not implemented")
+}
+func (UnimplementedInventoryServiceServer) ProcurementList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProcurementList not implemented")
+}
+func (UnimplementedInventoryServiceServer) ProcurementGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProcurementGet not implemented")
+}
+func (UnimplementedInventoryServiceServer) ProcurementCreate(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProcurementCreate not implemented")
+}
+func (UnimplementedInventoryServiceServer) ProcurementApprove(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProcurementApprove not implemented")
+}
+func (UnimplementedInventoryServiceServer) ProcurementReceive(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProcurementReceive not implemented")
+}
+func (UnimplementedInventoryServiceServer) ProcurementCancel(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProcurementCancel not implemented")
+}
+func (UnimplementedInventoryServiceServer) RestockBatch(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RestockBatch not implemented")
 }
 func (UnimplementedInventoryServiceServer) mustEmbedUnimplementedInventoryServiceServer() {}
 
@@ -457,6 +562,132 @@ func _InventoryService_Ledger_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _InventoryService_ProcurementList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).ProcurementList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_ProcurementList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).ProcurementList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InventoryService_ProcurementGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).ProcurementGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_ProcurementGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).ProcurementGet(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InventoryService_ProcurementCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).ProcurementCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_ProcurementCreate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).ProcurementCreate(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InventoryService_ProcurementApprove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).ProcurementApprove(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_ProcurementApprove_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).ProcurementApprove(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InventoryService_ProcurementReceive_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).ProcurementReceive(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_ProcurementReceive_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).ProcurementReceive(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InventoryService_ProcurementCancel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).ProcurementCancel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_ProcurementCancel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).ProcurementCancel(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InventoryService_RestockBatch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).RestockBatch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_RestockBatch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).RestockBatch(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // InventoryService_ServiceDesc is the grpc.ServiceDesc for InventoryService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -511,6 +742,34 @@ var InventoryService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Ledger",
 			Handler:    _InventoryService_Ledger_Handler,
+		},
+		{
+			MethodName: "ProcurementList",
+			Handler:    _InventoryService_ProcurementList_Handler,
+		},
+		{
+			MethodName: "ProcurementGet",
+			Handler:    _InventoryService_ProcurementGet_Handler,
+		},
+		{
+			MethodName: "ProcurementCreate",
+			Handler:    _InventoryService_ProcurementCreate_Handler,
+		},
+		{
+			MethodName: "ProcurementApprove",
+			Handler:    _InventoryService_ProcurementApprove_Handler,
+		},
+		{
+			MethodName: "ProcurementReceive",
+			Handler:    _InventoryService_ProcurementReceive_Handler,
+		},
+		{
+			MethodName: "ProcurementCancel",
+			Handler:    _InventoryService_ProcurementCancel_Handler,
+		},
+		{
+			MethodName: "RestockBatch",
+			Handler:    _InventoryService_RestockBatch_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

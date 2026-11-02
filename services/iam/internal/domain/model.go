@@ -15,6 +15,8 @@ type Account struct {
 func (Account) TableName() string { return "iam_accounts" }
 
 type Session struct {
+	Device    string     `gorm:"size:160" json:"device"`
+	ClientIP  string     `gorm:"size:64" json:"ip"`
 	Digest    string     `gorm:"primaryKey;size:64" json:"-"`
 	UserID    string     `gorm:"size:128;index" json:"user_id"`
 	ExpiresAt time.Time  `gorm:"index" json:"expires_at"`

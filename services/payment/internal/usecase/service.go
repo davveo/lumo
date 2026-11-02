@@ -140,8 +140,12 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 	if c.Role != constants.RoleAdmin && c.Role != constants.RoleSystem {
 		return nil, status.Error(codes.PermissionDenied, "internal payment listing")
 	}
-	rows, err := s.r.List(ctx, c.UserID, true)
-	return platform.Result{"items": rows}, err
+	rows, page, err := s.r.ListPage(ctx, "", c)
+	if err != nil {
+		return nil, err
+	}
+	page["items"] = rows
+	return page, nil
 }
 
 func (s *Service) SubmitDemo(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
@@ -186,6 +190,25 @@ func (s *Service) captureDemo(ctx context.Context, c platform.Request, validateO
 	if err = own(c, before); err != nil {
 		return nil, err
 	}
+	var payableOrder platform.Result
+	if validateOrder && before.Status != constants.PaymentStatusSucceeded {
+		payableOrder, err = platform.NewClients(
+			s.rpc,
+		).Order.Get(
+			ctx,
+			platform.Request{ID: before.OrderID, UserID: c.UserID, Role: c.Role},
+		)
+		if err != nil {
+			return nil, err
+		}
+		if err = requirePayableOrder(payableOrder, time.Now().UTC()); err != nil {
+			return nil, err
+		}
+		if platform.Text(payableOrder, "user_id") != before.UserID ||
+			platform.Int(payableOrder, "payable_cents") != before.Amount {
+			return nil, status.Error(codes.FailedPrecondition, "payment does not match order")
+		}
+	}
 	var out platform.Result
 	// All payment mutations take the order gate before the payment row. The
 	// same lock order is used by create/close to serialize payment and cancel.
@@ -213,19 +236,13 @@ func (s *Service) captureDemo(ctx context.Context, c platform.Request, validateO
 		}
 		now := time.Now().UTC()
 		if validateOrder {
-			// Hold the payment gate while observing order state so a concurrent
-			// close cannot freeze the payment between validation and capture.
-			o, err := platform.NewClients(s.rpc).Order.Get(
-				ctx, platform.Request{ID: p.OrderID, UserID: c.UserID, Role: c.Role},
-			)
-			if err != nil {
+			// The payment gate serializes capture against freezing. The order
+			// acceptance/late-refund protocol resolves cross-domain close races.
+			if err = requirePayableOrder(payableOrder, now); err != nil {
 				return err
 			}
-			now = time.Now().UTC()
-			if err = requirePayableOrder(o, now); err != nil {
-				return err
-			}
-			if platform.Text(o, "user_id") != p.UserID || platform.Int(o, "payable_cents") != p.Amount {
+			if p.OrderID != before.OrderID || platform.Text(payableOrder, "user_id") != p.UserID ||
+				platform.Int(payableOrder, "payable_cents") != p.Amount {
 				return status.Error(codes.FailedPrecondition, "payment does not match order")
 			}
 		}

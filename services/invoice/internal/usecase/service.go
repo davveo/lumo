@@ -201,8 +201,12 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 	if privileged(c) {
 		user = ""
 	}
-	rows, err := s.Repo.List(ctx, user)
-	return platform.Result{"items": rows}, err
+	rows, page, err := s.Repo.ListPage(ctx, user, c)
+	if err != nil {
+		return nil, err
+	}
+	page["items"] = rows
+	return page, nil
 }
 
 func (s *Service) Reversals(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {

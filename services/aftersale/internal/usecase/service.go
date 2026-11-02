@@ -23,7 +23,11 @@ type Service struct {
 }
 
 func (s *Service) Topics() []string {
-	return []string{constants.EventRefundSucceeded, constants.EventDeliveryConfirmed}
+	return []string{
+		constants.EventAftersaleRecoveryRequested,
+		constants.EventRefundSucceeded,
+		constants.EventDeliveryConfirmed,
+	}
 }
 func staff(c platform.Request) bool {
 	return c.Role == constants.RoleAdmin || c.Role == constants.RoleSystem
@@ -39,6 +43,9 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 	defer span.End()
 	platform.TraceRequest(ctx, e)
 	defer func() { platform.TraceResponse(ctx, nil, traceErr) }()
+	if e.Type == constants.EventAftersaleRecoveryRequested {
+		return s.recoverOne(ctx, e)
+	}
 	switch e.Type {
 	case constants.EventRefundSucceeded:
 		id := platform.Text(e.Data, "aftersale_id")
@@ -258,8 +265,12 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 	if staff(c) {
 		user = ""
 	}
-	items, err := s.Repo.List(ctx, user)
-	return platform.Result{"items": items}, err
+	rows, page, err := s.Repo.ListPage(ctx, user, c)
+	if err != nil {
+		return nil, err
+	}
+	page["items"] = rows
+	return page, nil
 }
 
 func (s *Service) Refund(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
@@ -566,26 +577,24 @@ func (s *Service) inspect(ctx context.Context, c platform.Request, r *domain.Rec
 	if err = json.Unmarshal([]byte(r.LinesJSON), &lines); err != nil {
 		return nil, err
 	}
+	receipts := []map[string]any{}
 	for _, line := range lines {
 		digest := sha256.Sum256([]byte(r.ID + ":" + line.SKUID))
-		receipt := fmt.Sprintf("inspection-%x", digest[:16])
-		_, err = platform.NewClients(s.RPC).Fulfillment.InspectReturn(
-			ctx, platform.Request{
-				ID:     receipt,
-				UserID: r.UserID,
-				Role:   constants.RoleSystem,
-				Data: map[string]any{
-					"order_id":  r.OrderID,
-					"sku_id":    line.SKUID,
-					"quantity":  line.Quantity,
-					"condition": r.Condition,
-				},
+		receipts = append(
+			receipts,
+			map[string]any{
+				"id":        fmt.Sprintf("inspection-%x", digest[:16]),
+				"order_id":  r.OrderID,
+				"sku_id":    line.SKUID,
+				"quantity":  line.Quantity,
+				"condition": r.Condition,
 			},
 		)
-		if err != nil {
-			return nil, err
-		}
 	}
+	if _, err = platform.NewClients(s.RPC).Fulfillment.InspectReturns(ctx, platform.Request{UserID: r.UserID, Role: constants.RoleSystem, Data: map[string]any{"items": receipts}}); err != nil {
+		return nil, err
+	}
+
 	r, err = s.Repo.Transition(
 		ctx,
 		r.ID,

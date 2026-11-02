@@ -102,7 +102,7 @@ func authorizeRead(item readRequest, principal platform.Command) error {
 	if !publicActions[key] && principal.UserID == "" {
 		return status.Error(codes.Unauthenticated, "Bearer token required for private reads")
 	}
-	if adminActions[key] && principal.Role != constants.RoleAdmin {
+	if adminActions[key] && !platform.StaffAllows(principal.Role, item.Service, item.Action) {
 		return status.Error(codes.PermissionDenied, "administrator required")
 	}
 	return nil
@@ -186,24 +186,22 @@ func (g *gateway) runReads(ctx context.Context, requests []readRequest, principa
 			duplicates[canonicalRead(item)] = append(duplicates[canonicalRead(item)], i)
 		}
 	}
-	jobs := []func(){}
+	type snapshotJob struct {
+		command   platform.Command
+		positions []int
+		byID      map[string][]int
+		ids       []string
+	}
+	jobs := map[string][]snapshotJob{}
 	for _, positions := range duplicates {
-		positions := positions
-		jobs = append(jobs, func() {
-			item := requests[positions[0]]
-			command := platform.Command{Action: item.Action, ID: item.Command.ID, Data: item.Command.Data}
-			if item.auth {
-				command.UserID, command.Role = principal.UserID, principal.Role
-			}
-			data, err := g.readRPC(ctx, item.Service, command)
-			for _, position := range positions {
-				results[position] = readResult(requests[position], data, err)
-			}
-		})
+		item := requests[positions[0]]
+		command := platform.Command{Action: item.Action, ID: item.Command.ID, Data: item.Command.Data}
+		if item.auth {
+			command.UserID, command.Role = principal.UserID, principal.Role
+		}
+		jobs[item.Service] = append(jobs[item.Service], snapshotJob{command: command, positions: positions})
 	}
 	for _, positions := range bulk {
-		// The public batch is at most 64 entries; bootstrap can have several
-		// hundred variants, so split into bounded database/RPC reads.
 		byID, ids := map[string][]int{}, []string{}
 		for _, position := range positions {
 			id := requests[position].Command.ID
@@ -212,54 +210,184 @@ func (g *gateway) runReads(ctx context.Context, requests []readRequest, principa
 			}
 			byID[id] = append(byID[id], position)
 		}
+		item := requests[positions[0]]
 		for first := 0; first < len(ids); first += 500 {
-			last := min(first+500, len(ids))
-			chunk := append([]string(nil), ids[first:last]...)
-			item, byID := requests[positions[0]], byID
-			jobs = append(jobs, func() {
-				command := platform.Command{Action: constants.ActionBatchGet, Data: map[string]any{"ids": chunk}}
-				if item.auth {
-					command.UserID, command.Role = principal.UserID, principal.Role
-				}
-				data, err := g.readRPC(ctx, item.Service, command)
-				rows := map[string]platform.Result{}
-				if err == nil {
-					for _, row := range resultRows(data) {
-						id := platform.Text(row, "id")
-						if item.Service == constants.ServiceInventory {
-							id = platform.Text(row, "sku_id")
-						}
-						rows[id] = row
-					}
-				}
-				for _, id := range chunk {
-					row, rowErr := rows[id], err
-					if rowErr == nil && row == nil {
-						rowErr = status.Error(codes.NotFound, "SKU unavailable")
-					}
-					for _, position := range byID[id] {
-						results[position] = readResult(requests[position], row, rowErr)
-					}
-				}
-			})
+			chunk := append([]string(nil), ids[first:min(first+500, len(ids))]...)
+			command := platform.Command{Action: constants.ActionBatchGet, Data: map[string]any{"ids": chunk}}
+			if item.auth {
+				command.UserID, command.Role = principal.UserID, principal.Role
+			}
+			jobs[item.Service] = append(jobs[item.Service], snapshotJob{command: command, byID: byID, ids: chunk})
 		}
 	}
-	queue := make(chan func(), len(jobs))
-	for _, job := range jobs {
-		queue <- job
-	}
-	close(queue)
-	var workers sync.WaitGroup
-	for i := 0; i < min(8, len(jobs)); i++ {
-		workers.Add(1)
-		go func() {
-			defer workers.Done()
-			for job := range queue {
-				job()
+	apply := func(service string, job snapshotJob, data platform.Result, err error) {
+		if job.byID == nil {
+			for _, position := range job.positions {
+				results[position] = readResult(requests[position], data, err)
 			}
-		}()
+			return
+		}
+		rows := map[string]platform.Result{}
+		if err == nil {
+			for _, row := range resultRows(data) {
+				key := "id"
+				if service == constants.ServiceInventory {
+					key = "sku_id"
+				}
+				rows[platform.Text(row, key)] = row
+			}
+		}
+		for _, id := range job.ids {
+			row, rowErr := rows[id], err
+			if rowErr == nil && row == nil {
+				rowErr = status.Error(codes.NotFound, "SKU unavailable")
+			}
+			for _, position := range job.byID[id] {
+				results[position] = readResult(requests[position], row, rowErr)
+			}
+		}
 	}
+	var workers sync.WaitGroup
+	semaphore := make(chan struct{}, 8)
+	acquire := func() bool {
+		select {
+		case semaphore <- struct{}{}:
+			return true
+		case <-ctx.Done():
+			return false
+		}
+	}
+	readLocal := func(service string) {
+		defer workers.Done()
+		batch := []platform.Command{}
+		local := []snapshotJob{}
+		for _, job := range jobs[service] {
+			if platform.LocalReadAllowed(service, job.command.Action) {
+				local = append(local, job)
+				batch = append(batch, job.command)
+			}
+		}
+		if len(batch) == 0 {
+			return
+		}
+		if !acquire() {
+			for _, job := range local {
+				apply(service, job, nil, status.FromContextError(ctx.Err()).Err())
+			}
+			return
+		}
+		defer func() { <-semaphore }()
+		data, err := g.readRPC(
+			ctx,
+			service,
+			platform.Command{
+				Action: constants.ActionReadSnapshot,
+				ID:     service,
+				Data:   map[string]any{"requests": batch},
+			},
+		)
+		replies := []platform.Result{}
+		if err == nil {
+			var value struct {
+				Results []platform.Result `json:"results"`
+			}
+			err = platform.Decode(data, &value)
+			replies = value.Results
+			if err == nil && len(replies) != len(local) {
+				err = status.Error(codes.Internal, "incomplete local snapshot")
+			}
+		}
+		for i, job := range local {
+			var value platform.Result
+			childErr := err
+			if childErr == nil {
+				reply := replies[i]
+				if reply["error"] != nil {
+					detail := platform.Map(reply["error"])
+					childErr = status.Error(codes.Code(platform.Int(detail, "code")), platform.Text(detail, "message"))
+				} else {
+					value = platform.Map(reply["data"])
+				}
+			}
+			apply(service, job, value, childErr)
+		}
+	}
+	// A derived read is a distinct fixed computation, not an entity list. More
+	// than one different request of the same kind must use its direct endpoint.
+	readDerived := func(service, action string) {
+		defer workers.Done()
+		matches := []snapshotJob{}
+		for _, job := range jobs[service] {
+			if job.command.Action == action && !platform.LocalReadAllowed(service, action) {
+				matches = append(matches, job)
+			}
+		}
+		if len(matches) == 0 {
+			return
+		}
+		if len(matches) > 1 {
+			for _, job := range matches {
+				apply(
+					service,
+					job,
+					nil,
+					status.Error(codes.InvalidArgument, "multiple derived reads must use direct endpoints"),
+				)
+			}
+			return
+		}
+		job := matches[0]
+		if !acquire() {
+			apply(service, job, nil, status.FromContextError(ctx.Err()).Err())
+			return
+		}
+		defer func() { <-semaphore }()
+		data, err := g.readRPC(ctx, service, job.command)
+		apply(service, job, data, err)
+	}
+	workers.Add(34)
+	go readLocal(constants.ServiceAddress)
+	go readLocal(constants.ServiceAftersale)
+	go readLocal(constants.ServiceAnalytics)
+	go readLocal(constants.ServiceCampaign)
+	go readLocal(constants.ServiceCart)
+	go readLocal(constants.ServiceCatalog)
+	go readLocal(constants.ServiceContent)
+	go readLocal(constants.ServiceCoupon)
+	go readLocal(constants.ServiceEngagement)
+	go readLocal(constants.ServiceFlash)
+	go readLocal(constants.ServiceFulfillment)
+	go readLocal(constants.ServiceGroup)
+	go readLocal(constants.ServiceHelpdesk)
+	go readLocal(constants.ServiceInteraction)
+	go readLocal(constants.ServiceInventory)
+	go readLocal(constants.ServiceInvoice)
+	go readLocal(constants.ServiceLogistics)
+	go readLocal(constants.ServiceMember)
+	go readLocal(constants.ServiceNotification)
+	go readLocal(constants.ServiceOrder)
+	go readLocal(constants.ServicePayment)
+	go readLocal(constants.ServicePoints)
+	go readLocal(constants.ServicePricing)
+	go readLocal(constants.ServiceReconciliation)
+	go readLocal(constants.ServiceRefund)
+	go readLocal(constants.ServiceSearch)
+	go readDerived(constants.ServiceCoupon, constants.ActionTemplates)
+	go readDerived(constants.ServiceCoupon, constants.ActionTemplatesSnapshot)
+	go readDerived(constants.ServiceHelpdesk, constants.ActionFaq)
+	go readDerived(constants.ServiceInteraction, constants.ActionList)
+	go readDerived(constants.ServiceRecommendation, constants.ActionList)
+	go readDerived(constants.ServiceSearch, constants.ActionQuery)
+	go readDerived(constants.ServiceMedia, constants.ActionGet)
+	go readDerived(constants.ServiceMedia, constants.ActionList)
 	workers.Wait()
+	// Unsupported kinds cannot become an arbitrary fallback RPC loop.
+	for i, item := range requests {
+		if results[i] == nil {
+			results[i] = readResult(item, nil, status.Error(codes.PermissionDenied, "unsupported snapshot read"))
+		}
+	}
+
 	return results
 }
 func (g *gateway) readRPC(ctx context.Context, service string, c platform.Command) (platform.Result, error) {

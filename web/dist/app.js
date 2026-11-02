@@ -349,7 +349,8 @@ const itemPrice = (item) => {
 };
 const cartCount = () => state.cart.reduce((a, b) => a + b.qty, 0);
 function displayCartCount() {
-  if (!window.LumoAuth?.isLoggedIn()) return window.LumoAuth?.model?.().checking ? null : 0;
+  if (!window.LumoAuth?.isLoggedIn())
+    return window.LumoAuth?.model?.().checking ? null : window.LumoGuestCart?.count?.() || 0;
   if (commerceReadState('cart').loaded) return cartCount();
   const summary = window.LumoAccountSummary?.model?.();
   return summary?.loaded && summary.cart_count != null && Number.isFinite(Number(summary.cart_count))
@@ -544,7 +545,7 @@ function catalog() {
   const catalogError =
     searchRead?.error || commerceState.catalogError || (ui.onlyFavorites && commerceReadState('favorites').error);
   const catalogCount = catalogBusy ? '加载中' : list.length + ' 件好物';
-  return `${storefrontPageStart(`catalog-page${!filtered ? ' home-page' : ''}`)}${!filtered ? homeLanding(list, catalogBusy, catalogError, homeRecommendation) : ''}<section class="catalog" id="catalog" ${!filtered && shop().showRecommendations === false ? 'hidden' : ''}><div class="section-head"><div><h2>${ui.onlyFavorites ? '我的收藏' : ui.categoryLabel ? esc(ui.categoryLabel) : ui.query ? '搜索结果' : ui.category === '全部好物' ? (recommendationMode ? (shop().sectionTitle !== defaultShopSettings.sectionTitle ? esc(shop().sectionTitle) : homeRecommendation.personalized ? '为你推荐' : '精选推荐') : esc(shop().sectionTitle)) : esc(ui.category)}</h2></div></div>${filtered ? `<div class="result-summary">${ui.query ? `“${esc(ui.query)}” · ` : ''}${catalogBusy ? '正在加载商品' : (ui.category !== '全部好物' ? '当前展示' : '共找到') + ' ' + list.length + ' 件好物'}<button data-action="reset-filters">查看全部好物</button></div>` : ''}${window.LumoDiscovery?.controls() || ''}<div class="filter-bar">${['综合', '销量', '价格', '新品'].map((s) => `<button data-action="sort" data-value="${s}" class="filter-tab ${ui.sort.startsWith(s) ? 'active' : ''}">${s}${s === '价格' ? icon(ui.sort === '价格高' ? 'sort' : 'chevron') : ''}</button>`).join('')}<div class="filter-end"><span>${catalogCount}</span><button class="filter-btn" data-action="filters" aria-expanded="${ui.filters}">筛选 ${icon('filter')}</button></div></div><form class="filter-panel" id="price-form" ${ui.filters ? '' : 'hidden'}><span>价格区间</span><input type="number" min="0" name="min" aria-label="最低价格" placeholder="最低价" value="${esc(ui.min)}"><span>—</span><input type="number" min="0" name="max" aria-label="最高价格" placeholder="最高价" value="${esc(ui.max)}"><button class="primary">确定</button><button class="outline" type="button" data-action="reset-price">重置</button></form>${catalogBusy ? commerceSkeleton('products', { count: 6, label: '正在加载商品' }) : list.length ? `<div class="product-grid">${pageList.map((p) => (recommendationMode ? window.LumoRecommendations.homeCard(p) : productCard(p))).join('')}</div>${window.LumoDiscovery?.pagination(list.length) || ''}` : empty(catalogError ? '商品加载失败' : '没有找到合适的好物', esc(catalogError || '') || '试试其他关键词，或看看全部商品。', catalogError ? (searchRead?.error ? 'commerce-search-retry' : 'commerce-refresh') : 'reset-filters', catalogError ? '重新加载' : '浏览全部好物', 'search')}</section></main>${footer()}`;
+  return `${storefrontPageStart(`catalog-page${!filtered ? ' home-page' : ''}`)}${!filtered ? homeLanding(list, catalogBusy, catalogError, homeRecommendation) : ''}<section class="catalog" id="catalog" ${!filtered && shop().showRecommendations === false ? 'hidden' : ''}><div class="section-head"><div><h2>${ui.onlyFavorites ? '我的收藏' : ui.categoryLabel ? esc(ui.categoryLabel) : ui.query ? '搜索结果' : ui.category === '全部好物' ? (recommendationMode ? (shop().sectionTitle !== defaultShopSettings.sectionTitle ? esc(shop().sectionTitle) : homeRecommendation.personalized ? '为你推荐' : '精选推荐') : esc(shop().sectionTitle)) : esc(ui.category)}</h2></div></div>${filtered ? `<div class="result-summary">${ui.query ? `“${esc(ui.query)}” · ` : ''}${catalogBusy ? '正在加载商品' : (searchRead?.hasMore ? '已加载' : ui.category !== '全部好物' ? '当前展示' : '共找到') + ' ' + list.length + ' 件好物'}<button data-action="reset-filters">查看全部好物</button></div>` : ''}${window.LumoDiscovery?.controls() || ''}<div class="filter-bar">${['综合', '销量', '价格', '新品'].map((s) => `<button data-action="sort" data-value="${s}" class="filter-tab ${ui.sort.startsWith(s) ? 'active' : ''}">${s}${s === '价格' ? icon(ui.sort === '价格高' ? 'sort' : 'chevron') : ''}</button>`).join('')}<div class="filter-end"><span>${catalogCount}</span><button class="filter-btn" data-action="filters" aria-expanded="${ui.filters}">筛选 ${icon('filter')}</button></div></div><form class="filter-panel" id="price-form" ${ui.filters ? '' : 'hidden'}><span>价格区间</span><input type="number" min="0" name="min" aria-label="最低价格" placeholder="最低价" value="${esc(ui.min)}"><span>—</span><input type="number" min="0" name="max" aria-label="最高价格" placeholder="最高价" value="${esc(ui.max)}"><button class="primary">确定</button><button class="outline" type="button" data-action="reset-price">重置</button></form>${catalogBusy ? commerceSkeleton('products', { count: 6, label: '正在加载商品' }) : list.length ? `<div class="product-grid">${pageList.map((p) => (recommendationMode ? window.LumoRecommendations.homeCard(p) : productCard(p))).join('')}</div>${window.LumoDiscovery?.pagination(list.length) || ''}` : searchRead?.hasMore && !catalogError ? `<p role="status">当前批次暂无匹配商品，可继续加载。</p>${window.LumoDiscovery?.pagination(0) || ''}` : empty(catalogError ? '商品加载失败' : '没有找到合适的好物', esc(catalogError || '') || '试试其他关键词，或看看全部商品。', catalogError ? (searchRead?.error ? 'commerce-search-retry' : 'commerce-refresh') : 'reset-filters', catalogError ? '重新加载' : '浏览全部好物', 'search')}</section></main>${footer()}`;
 }
 let detailPageProduct = '';
 function detailMedia(product, selectedImage) {
@@ -659,10 +660,11 @@ function cartBrand(item) {
   return product?.brand || item.brand || product?.category || item.category || 'LUMO 精选';
 }
 function cartPage() {
-  const read = commerceReadState('cart');
-  const heading = `<div class="cart-page-heading"><div><span class="cart-kicker">SHOPPING BAG</span><h1>购物车 ${read.loaded || state.cart.length ? `<span>(${cartCount()})</span>` : ''}</h1></div><button class="cart-destination" data-action="choose-address">${icon('pin')}<span>配送至 ${esc(state.address?.region || '选择收货地址')}</span>${icon('chevron')}</button></div>`;
+  const read =
+    !window.LumoAuth?.isLoggedIn() && window.LumoGuestCart ? { loaded: true, error: '' } : commerceReadState('cart');
+  const heading = `<div class="cart-page-heading"><div><span class="cart-kicker">SHOPPING BAG</span><h1>${window.LumoAuth?.isLoggedIn() ? '购物车' : '游客购物车'} ${read.loaded || state.cart.length ? `<span>(${cartCount()})</span>` : ''}</h1></div><button class="cart-destination" data-action="choose-address">${icon('pin')}<span>配送至 ${esc(state.address?.region || '选择收货地址')}</span>${icon('chevron')}</button></div>`;
   if (!state.cart.length && (!read.loaded || read.error)) {
-    return `${header()}<main id="main" class="container cart-page">${heading}${read.error ? empty('购物车加载失败', esc(read.error), 'commerce-refresh', '重新加载') : commerceSkeleton('rows', { count: 3, label: '正在加载购物车' })}</main>${footer()}`;
+    return `${header()}<main id="main" class="container cart-page">${heading}${window.LumoAuth?.isLoggedIn() && window.LumoGuestCart?.count() ? '<p class="api-config-error">游客购物车尚未同步。<button class="outline" data-guest-merge>重试合并</button></p>' : ''}${read.error ? empty('购物车加载失败', esc(read.error), 'commerce-refresh', '重新加载') : commerceSkeleton('rows', { count: 3, label: '正在加载购物车' })}</main>${footer()}`;
   }
   const checked = state.cart.filter((item) => item.selected);
   const totalItems = window.LumoPromotions?.augmentItems(checked) || checked;
@@ -705,7 +707,7 @@ function cartPage() {
     .slice(0, 4)
     .map((item) => `<img src="${esc(asset(imageFor(item)))}" alt="${esc(item.name || byId(item.id).name)}">`)
     .join('');
-  return `${header()}<main id="main" class="container cart-page">${heading}
+  return `${header()}<main id="main" class="container cart-page">${heading}${window.LumoAuth?.isLoggedIn() && window.LumoGuestCart?.count() ? '<p class="api-config-error">游客购物车尚未同步。<button class="outline" data-guest-merge>重试合并</button></p>' : ''}
     <div class="cart-benefits-strip"><span>${icon('ticket')}好券搭配好物，结算时核验可用优惠</span><a href="#/coupons">去领券 ${icon('chevron')}</a></div>
     ${
       state.cart.length
@@ -791,6 +793,20 @@ function ordersPage() {
     return `${header()}<main id="main" class="container"><div class="page-title"><h1>我的订单</h1></div>${read.error ? empty('订单加载失败', esc(read.error), 'commerce-refresh', '重新加载') : commerceSkeleton('rows', { count: 3, label: '正在加载订单' })}</main>${footer()}`;
   return `${header()}<main id="main" class="container"><div class="page-title"><h1>我的订单 <span>(${state.orders.length})</span></h1><a class="text-button" href="#/">继续购物 ${icon('chevron')}</a></div><div class="orders-list">${state.pending ? `<div class="cart-banner"><span>${icon('clock')}你有一笔待支付的订单</span><button data-action="resume-payment">继续支付</button></div>` : ''}${state.orders.length ? state.orders.map((o) => `<article class="order-card"><div class="order-card-header"><span>${esc(o.id)} · ${new Date(o.paidAt).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' })}</span><strong>${esc(window.LumoPromotions?.orderStatus(o) || '支付已确认')}</strong></div><div class="order-card-body">${orderItems(o.items)}<div class="order-card-total">实付款 ${price(o.totals.total)}<button class="outline" data-action="order-details" data-id="${o.id}">订单详情</button></div></div></article>`).join('') : empty('还没有订单', '你的美好生活，从第一件好物开始。', 'home', '发现好物', 'bag')}</div></main>${footer()}`;
 }
+let renderedAuthRoot = null,
+  renderedAuthMarkup = null;
+function drawAppContent(markup, authMarkup = null) {
+  const root = $('#app');
+  // Public background reads must not detach an input between focus and typing.
+  // Auth values remain in the existing DOM/private draft, never serialized here.
+  if (authMarkup == null || root !== renderedAuthRoot || authMarkup !== renderedAuthMarkup) root.innerHTML = markup;
+  renderedAuthRoot = authMarkup == null ? null : root;
+  renderedAuthMarkup = authMarkup;
+}
+window.addEventListener('lumo:logout', () => {
+  renderedAuthRoot = null;
+  renderedAuthMarkup = null;
+});
 function render() {
   clearInterval(countdownTimer);
   let accent = shop().accent;
@@ -801,16 +817,17 @@ function render() {
   let route = (location.hash || '#/').slice(2).split('/');
   const name = route[0] || '';
   if (window.LumoAuth && !window.LumoAuth.gate(route)) {
-    $('#app').innerHTML =
+    const authContent =
       window.LumoAuthView?.page() ||
       '<main id="main" class="container auth-loading" role="status">正在打开登录页面…</main>';
+    drawAppContent(authContent, authContent);
     document.title = '登录 · ' + shop().brand + ' ' + shop().brandSuffix;
     window.LumoAuth?.afterRender();
     window.LumoSidebars?.afterRender();
     return;
   }
   if (['login', 'register'].includes(name) && !window.LumoAuthView) {
-    $('#app').innerHTML = '<main id="main" class="container auth-loading" role="status">正在打开登录页面…</main>';
+    drawAppContent('<main id="main" class="container auth-loading" role="status">正在打开登录页面…</main>');
     return;
   }
   let content =
@@ -844,10 +861,12 @@ function render() {
                             : name === 'orders'
                               ? ordersPage()
                               : catalog();
-  $('#app').innerHTML =
+  drawAppContent(
     content +
-    (window.LumoDiscovery?.compareBar() || '') +
-    (window.LumoSidebars ? window.LumoSidebars.render() : window.LumoServices?.supportLauncher() || '');
+      (window.LumoDiscovery?.compareBar() || '') +
+      (window.LumoSidebars ? window.LumoSidebars.render() : window.LumoServices?.supportLauncher() || ''),
+    ['login', 'register'].includes(name) ? content : null,
+  );
   document.title =
     ({
       cart: '购物车',
@@ -889,6 +908,14 @@ function renderKeepScroll() {
   window.scrollTo(0, y);
 }
 async function addToCart(item) {
+  if (!window.LumoAuth?.isLoggedIn() && window.LumoGuestCart) {
+    try {
+      return await window.LumoGuestCart.add(item);
+    } catch (error) {
+      commerceError(error);
+      return false;
+    }
+  }
   if (!window.LumoAuth?.requireLogin(location.hash)) return;
   const sku = skuForItem(item);
   if (commerceAdding.has(sku)) return false;
@@ -904,6 +931,7 @@ async function addToCart(item) {
     });
     await refreshCart();
     renderKeepScroll();
+    window.dispatchEvent(new CustomEvent('lumo:cart-added', { detail: { sku_id: sku } }));
     toast('已加入购物车');
     return true;
   } catch (error) {
@@ -1710,8 +1738,7 @@ function refreshCatalog() {
 function refreshCart() {
   return readCommerce('cart', async (active) => {
     if (!window.LumoAuth?.isLoggedIn()) {
-      state.cart = [];
-      return [];
+      return window.LumoGuestCart ? window.LumoGuestCart.refresh() : [];
     }
     const rows = [],
       seen = new Set();
@@ -1782,7 +1809,9 @@ function refreshOrders() {
       state.pending = null;
       return [];
     }
-    const result = await commerceCall(CommerceEnums.Service.Order, CommerceEnums.Action.List);
+    const result = await (window.LumoAPI.listAll
+      ? window.LumoAPI.listAll(CommerceEnums.Service.Order)
+      : commerceCall(CommerceEnums.Service.Order, CommerceEnums.Action.List));
     if (!active() || !window.LumoAuth?.isLoggedIn()) return [];
     commerceOrders = (result.items || []).map(normalizeOrder).sort((a, b) => b.createdAt - a.createdAt);
     const prior = state.pending?.id;
@@ -1877,6 +1906,8 @@ function commerceError(error) {
   );
 }
 async function setCartQuantity(item, quantity) {
+  if (!window.LumoAuth?.isLoggedIn() && window.LumoGuestCart)
+    return window.LumoGuestCart.set(item, quantity).catch(commerceError);
   const sku = skuForItem(item);
   if (commerceCartMutating.has(sku)) return;
   commerceCartMutating.add(sku);
@@ -1899,6 +1930,8 @@ async function setCartQuantity(item, quantity) {
   }
 }
 async function removeCartItems(items) {
+  if (!window.LumoAuth?.isLoggedIn() && window.LumoGuestCart)
+    return window.LumoGuestCart.remove(items).catch(commerceError);
   const owner = commerceOwner();
   try {
     const rows = items.filter(Boolean);

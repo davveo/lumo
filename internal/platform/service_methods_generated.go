@@ -102,9 +102,11 @@ var namedOperationActions = map[string]map[string]string{
 		"AdminSummary": constants.ActionAdminSummary,
 	},
 	constants.ServiceAnalytics: {
-		"AdminList": constants.ActionAdminList,
-		"List":      constants.ActionList,
-		"Record":    constants.ActionRecord,
+		"AdminList":   constants.ActionAdminList,
+		"List":        constants.ActionList,
+		"Record":      constants.ActionRecord,
+		"Dashboard":   constants.ActionDashboard,
+		"SyncHistory": constants.ActionSyncHistory,
 	},
 	constants.ServiceCampaign: {
 		"AdminList":  constants.ActionAdminList,
@@ -132,6 +134,9 @@ var namedOperationActions = map[string]map[string]string{
 		"SearchProducts":           constants.ActionSearchProducts,
 		"Upsert":                   constants.ActionUpsert,
 		"AdminList":                constants.ActionAdminList,
+		"ImportPreview":            constants.ActionImportPreview,
+		"ImportCommit":             constants.ActionImportCommit,
+		"ImportGet":                constants.ActionImportGet,
 	},
 	constants.ServiceCheckout: {
 		"Cancel": constants.ActionCancel,
@@ -198,6 +203,7 @@ var namedOperationActions = map[string]map[string]string{
 		"List":           constants.ActionList,
 		"AdminList":      constants.ActionAdminList,
 		"AdminSummary":   constants.ActionAdminSummary,
+		"InspectReturns": constants.ActionInspectReturns,
 	},
 	constants.ServiceGroup: {
 		"Cancel":     constants.ActionCancel,
@@ -222,26 +228,35 @@ var namedOperationActions = map[string]map[string]string{
 		"Reply":     constants.ActionReply,
 	},
 	constants.ServiceIAM: {
-		"AdminGet":       constants.ActionAdminGet,
-		"AdminList":      constants.ActionAdminList,
-		"AdminSummary":   constants.ActionAdminSummary,
-		"AuditList":      constants.ActionAuditList,
-		"Login":          constants.ActionLogin,
-		"LoginMethods":   constants.ActionLoginMethods,
-		"Logout":         constants.ActionLogout,
-		"LogoutAll":      constants.ActionLogoutAll,
-		"OAuthCallback":  constants.ActionOAuthCallback,
-		"OAuthStart":     constants.ActionOAuthStart,
-		"OtpLogin":       constants.ActionOtpLogin,
-		"OtpSend":        constants.ActionOtpSend,
-		"PolicyGet":      constants.ActionPolicyGet,
-		"PolicyUpsert":   constants.ActionPolicyUpsert,
-		"ProviderGet":    constants.ActionProviderGet,
-		"ProviderUpsert": constants.ActionProviderUpsert,
-		"Refresh":        constants.ActionRefresh,
-		"Register":       constants.ActionRegister,
-		"SetActive":      constants.ActionSetActive,
-		"Validate":       constants.ActionValidate,
+		"AdminGet":             constants.ActionAdminGet,
+		"AdminList":            constants.ActionAdminList,
+		"AdminSummary":         constants.ActionAdminSummary,
+		"AuditList":            constants.ActionAuditList,
+		"Login":                constants.ActionLogin,
+		"LoginMethods":         constants.ActionLoginMethods,
+		"Logout":               constants.ActionLogout,
+		"LogoutAll":            constants.ActionLogoutAll,
+		"OAuthCallback":        constants.ActionOAuthCallback,
+		"OAuthStart":           constants.ActionOAuthStart,
+		"OtpLogin":             constants.ActionOtpLogin,
+		"OtpSend":              constants.ActionOtpSend,
+		"PolicyGet":            constants.ActionPolicyGet,
+		"PolicyUpsert":         constants.ActionPolicyUpsert,
+		"ProviderGet":          constants.ActionProviderGet,
+		"ProviderUpsert":       constants.ActionProviderUpsert,
+		"Refresh":              constants.ActionRefresh,
+		"Register":             constants.ActionRegister,
+		"SetActive":            constants.ActionSetActive,
+		"Validate":             constants.ActionValidate,
+		"SecurityGet":          constants.ActionSecurityGet,
+		"PasswordChange":       constants.ActionPasswordChange,
+		"SecuritySend":         constants.ActionSecuritySend,
+		"SecurityVerify":       constants.ActionSecurityVerify,
+		"SessionRevoke":        constants.ActionSessionRevoke,
+		"PasswordResetRequest": constants.ActionPasswordResetRequest,
+		"PasswordReset":        constants.ActionPasswordReset,
+		"StaffList":            constants.ActionStaffList,
+		"StaffUpsert":          constants.ActionStaffUpsert,
 	},
 	constants.ServiceInteraction: {
 		"Answer":   constants.ActionAnswer,
@@ -251,18 +266,25 @@ var namedOperationActions = map[string]map[string]string{
 		"Moderate": constants.ActionModerate,
 	},
 	constants.ServiceInventory: {
-		"Adjust":      constants.ActionAdjust,
-		"BatchGet":    constants.ActionBatchGet,
-		"Cancel":      constants.ActionCancel,
-		"Confirm":     constants.ActionConfirm,
-		"Dispatch":    constants.ActionDispatch,
-		"Get":         constants.ActionGet,
-		"Reserve":     constants.ActionReserve,
-		"Restock":     constants.ActionRestock,
-		"Adjustments": constants.ActionAdjustments,
-		"AdminList":   constants.ActionAdminList,
-		"Threshold":   constants.ActionThreshold,
-		"Ledger":      constants.ActionLedger,
+		"Adjust":             constants.ActionAdjust,
+		"BatchGet":           constants.ActionBatchGet,
+		"Cancel":             constants.ActionCancel,
+		"Confirm":            constants.ActionConfirm,
+		"Dispatch":           constants.ActionDispatch,
+		"Get":                constants.ActionGet,
+		"Reserve":            constants.ActionReserve,
+		"Restock":            constants.ActionRestock,
+		"Adjustments":        constants.ActionAdjustments,
+		"AdminList":          constants.ActionAdminList,
+		"Threshold":          constants.ActionThreshold,
+		"Ledger":             constants.ActionLedger,
+		"ProcurementList":    constants.ActionProcurementList,
+		"ProcurementGet":     constants.ActionProcurementGet,
+		"ProcurementCreate":  constants.ActionProcurementCreate,
+		"ProcurementApprove": constants.ActionProcurementApprove,
+		"ProcurementReceive": constants.ActionProcurementReceive,
+		"ProcurementCancel":  constants.ActionProcurementCancel,
+		"RestockBatch":       constants.ActionRestockBatch,
 	},
 	constants.ServiceInvoice: {
 		"AdjustDemo":   constants.ActionAdjustDemo,
@@ -275,13 +297,17 @@ var namedOperationActions = map[string]map[string]string{
 		"AdminSummary": constants.ActionAdminSummary,
 	},
 	constants.ServiceLogistics: {
-		"Create":       constants.ActionCreate,
-		"Deliver":      constants.ActionDeliver,
-		"Get":          constants.ActionGet,
-		"List":         constants.ActionList,
-		"Quote":        constants.ActionQuote,
-		"PolicyGet":    constants.ActionPolicyGet,
-		"PolicyUpsert": constants.ActionPolicyUpsert,
+		"Create":           constants.ActionCreate,
+		"Deliver":          constants.ActionDeliver,
+		"Get":              constants.ActionGet,
+		"List":             constants.ActionList,
+		"Quote":            constants.ActionQuote,
+		"PolicyGet":        constants.ActionPolicyGet,
+		"PolicyUpsert":     constants.ActionPolicyUpsert,
+		"Tracking":         constants.ActionTracking,
+		"TrackingUpdate":   constants.ActionTrackingUpdate,
+		"Exceptions":       constants.ActionExceptions,
+		"ExceptionResolve": constants.ActionExceptionResolve,
 	},
 	constants.ServiceMedia: {
 		"Complete": constants.ActionComplete,
@@ -320,6 +346,7 @@ var namedOperationActions = map[string]map[string]string{
 		"WaitGroup":     constants.ActionWaitGroup,
 		"AdminList":     constants.ActionAdminList,
 		"AdminSummary":  constants.ActionAdminSummary,
+		"BatchGet":      constants.ActionBatchGet,
 	},
 	constants.ServicePayment: {
 		"AdminList":      constants.ActionAdminList,
@@ -559,6 +586,22 @@ func (client AnalyticsMethods) Record(
 		constants.ActionRecord, request,
 	)
 }
+func (client AnalyticsMethods) Dashboard(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceAnalytics, "Dashboard",
+		constants.ActionDashboard, request,
+	)
+}
+func (client AnalyticsMethods) SyncHistory(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceAnalytics, "SyncHistory",
+		constants.ActionSyncHistory, request,
+	)
+}
 
 type CampaignMethods struct{ caller Caller }
 
@@ -734,6 +777,30 @@ func (client CatalogMethods) AdminList(
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceCatalog, "AdminList",
 		constants.ActionAdminList, request,
+	)
+}
+func (client CatalogMethods) ImportPreview(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceCatalog, "ImportPreview",
+		constants.ActionImportPreview, request,
+	)
+}
+func (client CatalogMethods) ImportCommit(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceCatalog, "ImportCommit",
+		constants.ActionImportCommit, request,
+	)
+}
+func (client CatalogMethods) ImportGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceCatalog, "ImportGet",
+		constants.ActionImportGet, request,
 	)
 }
 
@@ -1186,6 +1253,14 @@ func (client FulfillmentMethods) AdminSummary(
 		constants.ActionAdminSummary, request,
 	)
 }
+func (client FulfillmentMethods) InspectReturns(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceFulfillment, "InspectReturns",
+		constants.ActionInspectReturns, request,
+	)
+}
 
 type GroupMethods struct{ caller Caller }
 
@@ -1499,6 +1574,78 @@ func (client IAMMethods) Validate(
 		constants.ActionValidate, request,
 	)
 }
+func (client IAMMethods) SecurityGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "SecurityGet",
+		constants.ActionSecurityGet, request,
+	)
+}
+func (client IAMMethods) PasswordChange(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "PasswordChange",
+		constants.ActionPasswordChange, request,
+	)
+}
+func (client IAMMethods) SecuritySend(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "SecuritySend",
+		constants.ActionSecuritySend, request,
+	)
+}
+func (client IAMMethods) SecurityVerify(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "SecurityVerify",
+		constants.ActionSecurityVerify, request,
+	)
+}
+func (client IAMMethods) SessionRevoke(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "SessionRevoke",
+		constants.ActionSessionRevoke, request,
+	)
+}
+func (client IAMMethods) PasswordResetRequest(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "PasswordResetRequest",
+		constants.ActionPasswordResetRequest, request,
+	)
+}
+func (client IAMMethods) PasswordReset(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "PasswordReset",
+		constants.ActionPasswordReset, request,
+	)
+}
+func (client IAMMethods) StaffList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "StaffList",
+		constants.ActionStaffList, request,
+	)
+}
+func (client IAMMethods) StaffUpsert(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceIAM, "StaffUpsert",
+		constants.ActionStaffUpsert, request,
+	)
+}
 
 type InteractionMethods struct{ caller Caller }
 
@@ -1641,6 +1788,62 @@ func (client InventoryMethods) Ledger(
 		constants.ActionLedger, request,
 	)
 }
+func (client InventoryMethods) ProcurementList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInventory, "ProcurementList",
+		constants.ActionProcurementList, request,
+	)
+}
+func (client InventoryMethods) ProcurementGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInventory, "ProcurementGet",
+		constants.ActionProcurementGet, request,
+	)
+}
+func (client InventoryMethods) ProcurementCreate(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInventory, "ProcurementCreate",
+		constants.ActionProcurementCreate, request,
+	)
+}
+func (client InventoryMethods) ProcurementApprove(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInventory, "ProcurementApprove",
+		constants.ActionProcurementApprove, request,
+	)
+}
+func (client InventoryMethods) ProcurementReceive(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInventory, "ProcurementReceive",
+		constants.ActionProcurementReceive, request,
+	)
+}
+func (client InventoryMethods) ProcurementCancel(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInventory, "ProcurementCancel",
+		constants.ActionProcurementCancel, request,
+	)
+}
+func (client InventoryMethods) RestockBatch(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInventory, "RestockBatch",
+		constants.ActionRestockBatch, request,
+	)
+}
 
 type InvoiceMethods struct{ caller Caller }
 
@@ -1765,6 +1968,38 @@ func (client LogisticsMethods) PolicyUpsert(
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceLogistics, "PolicyUpsert",
 		constants.ActionPolicyUpsert, request,
+	)
+}
+func (client LogisticsMethods) Tracking(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceLogistics, "Tracking",
+		constants.ActionTracking, request,
+	)
+}
+func (client LogisticsMethods) TrackingUpdate(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceLogistics, "TrackingUpdate",
+		constants.ActionTrackingUpdate, request,
+	)
+}
+func (client LogisticsMethods) Exceptions(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceLogistics, "Exceptions",
+		constants.ActionExceptions, request,
+	)
+}
+func (client LogisticsMethods) ExceptionResolve(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceLogistics, "ExceptionResolve",
+		constants.ActionExceptionResolve, request,
 	)
 }
 
@@ -2017,6 +2252,14 @@ func (client OrderMethods) AdminSummary(
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceOrder, "AdminSummary",
 		constants.ActionAdminSummary, request,
+	)
+}
+func (client OrderMethods) BatchGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceOrder, "BatchGet",
+		constants.ActionBatchGet, request,
 	)
 }
 
@@ -2546,6 +2789,18 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewAnalyticsServiceClient(connection).Record(ctx, request)
 			}},
+		constants.ActionDashboard: {
+			fullMethod: mallv1.AnalyticsService_Dashboard_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewAnalyticsServiceClient(connection).Dashboard(ctx, request)
+			}},
+		constants.ActionSyncHistory: {
+			fullMethod: mallv1.AnalyticsService_SyncHistory_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewAnalyticsServiceClient(connection).SyncHistory(ctx, request)
+			}},
 	},
 	constants.ServiceCampaign: {
 		constants.ActionAdminList: {
@@ -2677,6 +2932,24 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewCatalogServiceClient(connection).AdminList(ctx, request)
+			}},
+		constants.ActionImportPreview: {
+			fullMethod: mallv1.CatalogService_ImportPreview_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewCatalogServiceClient(connection).ImportPreview(ctx, request)
+			}},
+		constants.ActionImportCommit: {
+			fullMethod: mallv1.CatalogService_ImportCommit_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewCatalogServiceClient(connection).ImportCommit(ctx, request)
+			}},
+		constants.ActionImportGet: {
+			fullMethod: mallv1.CatalogService_ImportGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewCatalogServiceClient(connection).ImportGet(ctx, request)
 			}},
 	},
 	constants.ServiceCheckout: {
@@ -3014,6 +3287,12 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewFulfillmentServiceClient(connection).AdminSummary(ctx, request)
 			}},
+		constants.ActionInspectReturns: {
+			fullMethod: mallv1.FulfillmentService_InspectReturns_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewFulfillmentServiceClient(connection).InspectReturns(ctx, request)
+			}},
 	},
 	constants.ServiceGroup: {
 		constants.ActionCancel: {
@@ -3248,6 +3527,60 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewIAMServiceClient(connection).Validate(ctx, request)
 			}},
+		constants.ActionSecurityGet: {
+			fullMethod: mallv1.IAMService_SecurityGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).SecurityGet(ctx, request)
+			}},
+		constants.ActionPasswordChange: {
+			fullMethod: mallv1.IAMService_PasswordChange_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).PasswordChange(ctx, request)
+			}},
+		constants.ActionSecuritySend: {
+			fullMethod: mallv1.IAMService_SecuritySend_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).SecuritySend(ctx, request)
+			}},
+		constants.ActionSecurityVerify: {
+			fullMethod: mallv1.IAMService_SecurityVerify_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).SecurityVerify(ctx, request)
+			}},
+		constants.ActionSessionRevoke: {
+			fullMethod: mallv1.IAMService_SessionRevoke_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).SessionRevoke(ctx, request)
+			}},
+		constants.ActionPasswordResetRequest: {
+			fullMethod: mallv1.IAMService_PasswordResetRequest_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).PasswordResetRequest(ctx, request)
+			}},
+		constants.ActionPasswordReset: {
+			fullMethod: mallv1.IAMService_PasswordReset_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).PasswordReset(ctx, request)
+			}},
+		constants.ActionStaffList: {
+			fullMethod: mallv1.IAMService_StaffList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).StaffList(ctx, request)
+			}},
+		constants.ActionStaffUpsert: {
+			fullMethod: mallv1.IAMService_StaffUpsert_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewIAMServiceClient(connection).StaffUpsert(ctx, request)
+			}},
 	},
 	constants.ServiceInteraction: {
 		constants.ActionAnswer: {
@@ -3354,6 +3687,48 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewInventoryServiceClient(connection).Ledger(ctx, request)
 			}},
+		constants.ActionProcurementList: {
+			fullMethod: mallv1.InventoryService_ProcurementList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInventoryServiceClient(connection).ProcurementList(ctx, request)
+			}},
+		constants.ActionProcurementGet: {
+			fullMethod: mallv1.InventoryService_ProcurementGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInventoryServiceClient(connection).ProcurementGet(ctx, request)
+			}},
+		constants.ActionProcurementCreate: {
+			fullMethod: mallv1.InventoryService_ProcurementCreate_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInventoryServiceClient(connection).ProcurementCreate(ctx, request)
+			}},
+		constants.ActionProcurementApprove: {
+			fullMethod: mallv1.InventoryService_ProcurementApprove_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInventoryServiceClient(connection).ProcurementApprove(ctx, request)
+			}},
+		constants.ActionProcurementReceive: {
+			fullMethod: mallv1.InventoryService_ProcurementReceive_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInventoryServiceClient(connection).ProcurementReceive(ctx, request)
+			}},
+		constants.ActionProcurementCancel: {
+			fullMethod: mallv1.InventoryService_ProcurementCancel_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInventoryServiceClient(connection).ProcurementCancel(ctx, request)
+			}},
+		constants.ActionRestockBatch: {
+			fullMethod: mallv1.InventoryService_RestockBatch_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInventoryServiceClient(connection).RestockBatch(ctx, request)
+			}},
 	},
 	constants.ServiceInvoice: {
 		constants.ActionAdjustDemo: {
@@ -3447,6 +3822,30 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewLogisticsServiceClient(connection).PolicyUpsert(ctx, request)
+			}},
+		constants.ActionTracking: {
+			fullMethod: mallv1.LogisticsService_Tracking_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewLogisticsServiceClient(connection).Tracking(ctx, request)
+			}},
+		constants.ActionTrackingUpdate: {
+			fullMethod: mallv1.LogisticsService_TrackingUpdate_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewLogisticsServiceClient(connection).TrackingUpdate(ctx, request)
+			}},
+		constants.ActionExceptions: {
+			fullMethod: mallv1.LogisticsService_Exceptions_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewLogisticsServiceClient(connection).Exceptions(ctx, request)
+			}},
+		constants.ActionExceptionResolve: {
+			fullMethod: mallv1.LogisticsService_ExceptionResolve_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewLogisticsServiceClient(connection).ExceptionResolve(ctx, request)
 			}},
 	},
 	constants.ServiceMedia: {
@@ -3947,6 +4346,16 @@ func (server *analyticsRPCServer) Record(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionRecord], request)
 }
+func (server *analyticsRPCServer) Dashboard(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionDashboard], request)
+}
+func (server *analyticsRPCServer) SyncHistory(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionSyncHistory], request)
+}
 
 type campaignRPCServer struct {
 	mallv1.UnimplementedCampaignServiceServer
@@ -4069,6 +4478,21 @@ func (server *catalogRPCServer) AdminList(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionAdminList], request)
+}
+func (server *catalogRPCServer) ImportPreview(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionImportPreview], request)
+}
+func (server *catalogRPCServer) ImportCommit(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionImportCommit], request)
+}
+func (server *catalogRPCServer) ImportGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionImportGet], request)
 }
 
 type checkoutRPCServer struct {
@@ -4376,6 +4800,11 @@ func (server *fulfillmentRPCServer) AdminSummary(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionAdminSummary], request)
 }
+func (server *fulfillmentRPCServer) InspectReturns(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionInspectReturns], request)
+}
 
 type groupRPCServer struct {
 	mallv1.UnimplementedGroupServiceServer
@@ -4584,6 +5013,51 @@ func (server *iamRPCServer) Validate(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionValidate], request)
 }
+func (server *iamRPCServer) SecurityGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionSecurityGet], request)
+}
+func (server *iamRPCServer) PasswordChange(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPasswordChange], request)
+}
+func (server *iamRPCServer) SecuritySend(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionSecuritySend], request)
+}
+func (server *iamRPCServer) SecurityVerify(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionSecurityVerify], request)
+}
+func (server *iamRPCServer) SessionRevoke(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionSessionRevoke], request)
+}
+func (server *iamRPCServer) PasswordResetRequest(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPasswordResetRequest], request)
+}
+func (server *iamRPCServer) PasswordReset(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPasswordReset], request)
+}
+func (server *iamRPCServer) StaffList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionStaffList], request)
+}
+func (server *iamRPCServer) StaffUpsert(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionStaffUpsert], request)
+}
 
 type interactionRPCServer struct {
 	mallv1.UnimplementedInteractionServiceServer
@@ -4681,6 +5155,41 @@ func (server *inventoryRPCServer) Ledger(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionLedger], request)
 }
+func (server *inventoryRPCServer) ProcurementList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionProcurementList], request)
+}
+func (server *inventoryRPCServer) ProcurementGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionProcurementGet], request)
+}
+func (server *inventoryRPCServer) ProcurementCreate(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionProcurementCreate], request)
+}
+func (server *inventoryRPCServer) ProcurementApprove(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionProcurementApprove], request)
+}
+func (server *inventoryRPCServer) ProcurementReceive(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionProcurementReceive], request)
+}
+func (server *inventoryRPCServer) ProcurementCancel(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionProcurementCancel], request)
+}
+func (server *inventoryRPCServer) RestockBatch(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionRestockBatch], request)
+}
 
 type invoiceRPCServer struct {
 	mallv1.UnimplementedInvoiceServiceServer
@@ -4767,6 +5276,26 @@ func (server *logisticsRPCServer) PolicyUpsert(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionPolicyUpsert], request)
+}
+func (server *logisticsRPCServer) Tracking(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionTracking], request)
+}
+func (server *logisticsRPCServer) TrackingUpdate(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionTrackingUpdate], request)
+}
+func (server *logisticsRPCServer) Exceptions(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionExceptions], request)
+}
+func (server *logisticsRPCServer) ExceptionResolve(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionExceptionResolve], request)
 }
 
 type mediaRPCServer struct {

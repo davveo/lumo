@@ -27,7 +27,8 @@ func (r *Repository) Migrate(ctx context.Context) (spanErr0 error) {
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
 
-	return r.db.WithContext(ctx).AutoMigrate(&domain.Account{}, &domain.Session{}, &domain.AccountChange{}, &domain.Identity{}, &domain.AuthChallenge{}, &domain.AuthRate{})
+	return r.db.WithContext(ctx).
+		AutoMigrate(&domain.Account{}, &domain.Session{}, &domain.AccountChange{}, &domain.Identity{}, &domain.AuthChallenge{}, &domain.AuthRate{}, &PasswordRate{}, &domain.SecurityChallenge{}, &domain.StaffChange{})
 }
 func (r *Repository) ByUsername(ctx context.Context, name string) (spanResult0 domain.Account, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "iam.repository.ByUsername")

@@ -357,6 +357,9 @@ func catalogRows(id string, data map[string]any, state string) ([]domain.Record,
 			if ci != 0 || oi != defaultIndex {
 				sku = fmt.Sprintf("%s--%d-%d", id, ci, oi)
 			}
+			if len(sku) > 128 {
+				return nil, bad("商品编号过长，生成的规格编号不能超过128字节")
+			}
 			v := map[string]any{"sku_id": sku, "color": color, "option": option, "price_cents": prices[oi]}
 			variants = append(variants, v)
 			p := map[string]any{}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -20,12 +21,28 @@ type aggregationCall struct {
 	command platform.Command
 }
 type aggregationCaller struct {
-	mu     sync.Mutex
-	calls  []aggregationCall
-	handle func(context.Context, string, platform.Command) (platform.Result, error)
+	mu        sync.Mutex
+	calls     []aggregationCall
+	snapshots []aggregationCall
+	handle    func(context.Context, string, platform.Command) (platform.Result, error)
 }
 
 func (c *aggregationCaller) Call(ctx context.Context, service string, cmd platform.Command) (platform.Result, error) {
+	if cmd.Action == "read_snapshot" {
+		c.mu.Lock()
+		c.snapshots = append(c.snapshots, aggregationCall{service, cmd})
+		c.mu.Unlock()
+		return platform.ApplyReadSnapshot(
+			ctx,
+			platform.Module{
+				Name: service,
+				Handle: func(ctx context.Context, child platform.Command) (platform.Result, error) {
+					return c.Call(ctx, service, child)
+				},
+			},
+			cmd,
+		)
+	}
 	c.mu.Lock()
 	c.calls = append(c.calls, aggregationCall{service, cmd})
 	c.mu.Unlock()
@@ -51,6 +68,58 @@ func (c *aggregationCaller) count(service, action string) int {
 		}
 	}
 	return count
+}
+
+func TestLargeSKUCompositionMakesOnePhysicalSnapshotPerService(t *testing.T) {
+	caller := &aggregationCaller{
+		handle: func(_ context.Context, service string, c platform.Command) (platform.Result, error) {
+			if c.Action != "batch_get" {
+				t.Fatalf("unexpected child %s/%s", service, c.Action)
+			}
+			var in struct {
+				IDs []string `json:"ids"`
+			}
+			if e := platform.Decode(c.Data, &in); e != nil || len(in.IDs) > 500 {
+				t.Fatalf("unbounded SQL batch: %v", e)
+			}
+			rows := []platform.Result{}
+			field := "id"
+			if service == "inventory" {
+				field = "sku_id"
+			}
+			for _, id := range in.IDs {
+				rows = append(rows, platform.Result{field: id, "available": 1})
+			}
+			return platform.Result{"items": rows}, nil
+		},
+	}
+	requests := []readRequest{}
+	for i := 0; i < 1200; i++ {
+		id := fmt.Sprintf("sku-%04d", i)
+		requests = append(
+			requests,
+			readRequest{Key: "c" + id, Service: "catalog", Action: "get", Command: readCommand{ID: id}},
+			readRequest{Key: "i" + id, Service: "inventory", Action: "get", Command: readCommand{ID: id}},
+		)
+	}
+	got := (&gateway{rpc: caller}).runReads(context.Background(), requests, platform.Command{})
+	if len(got) != 2400 {
+		t.Fatal("lost composition results", len(got))
+	}
+	for _, r := range got {
+		if r["error"] != nil || r["data"] == nil {
+			t.Fatal("lost SKU", r)
+		}
+	}
+	if len(caller.snapshots) != 2 || caller.count("catalog", "batch_get") != 3 ||
+		caller.count("inventory", "batch_get") != 3 {
+		t.Fatalf("physical snapshots=%d logical reads=%d", len(caller.snapshots), len(caller.calls))
+	}
+	for _, call := range caller.snapshots {
+		if call.command.Action != "read_snapshot" {
+			t.Fatal("not a transport batch", call)
+		}
+	}
 }
 func batchHTTP(t *testing.T, caller platform.Caller, action, token string, requests any) (int, platform.Result) {
 	t.Helper()
@@ -86,10 +155,10 @@ func internalBatch(t *testing.T, caller platform.Caller, token string, requests 
 	data, err := (&gateway{rpc: caller}).storefront(context.Background(), principal)
 	if err != nil {
 		return aggregateHTTPStatus(
-			status.Code(err),
-		), platform.Result{
-			"error": platform.Result{"code": status.Code(err).String()},
-		}
+				status.Code(err),
+			), platform.Result{
+				"error": platform.Result{"code": status.Code(err).String()},
+			}
 	}
 	return 200, platform.Result{"data": data}
 }

@@ -140,8 +140,8 @@
           .map((row) => row.id);
         if (missing.length) await window.LumoCommerce.hydrateProducts(missing, { active });
       }
-      if(!active())return;
-loaded = results.every((result) => result.status === 'fulfilled') && !failure;
+      if (!active()) return;
+      loaded = results.every((result) => result.status === 'fulfilled') && !failure;
       loadError = failure?.message || '';
       if (failure) throw failure;
       return { activities, sessions, groups: groupRows };
@@ -219,8 +219,8 @@ loaded = results.every((result) => result.status === 'fulfilled') && !failure;
               ? C.PromotionOfferStatus.Active
               : C.PromotionOfferStatus.Ended;
         }
-        if(row && row.startAt>now)row.status=C.PromotionOfferStatus.Upcoming;
-return row;
+        if (row && row.startAt > now) row.status = C.PromotionOfferStatus.Upcoming;
+        return row;
       })
       .filter(Boolean);
   }

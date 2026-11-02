@@ -3,6 +3,7 @@
 set -eu
 PROJECT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$PROJECT_DIR"
+LUMO_GO_WRAPPER="$PROJECT_DIR/scripts/go.sh"
 # Run this module independently unless the caller explicitly selected a workspace.
 GOWORK=${GOWORK:-off}
 export GOWORK
@@ -31,10 +32,10 @@ trap cleanup EXIT HUP INT TERM
 export FRONTEND_DIR="$PROJECT_DIR/web/dist"
 export API_BASE="http://127.0.0.1:${FRONTEND_TEST_PORT:-18080}"
 export LUMO_TEST_URL="$API_BASE"
-go run ./internal/constants/generate -source internal/constants -output web/dist/constants.js -check
+sh "$LUMO_GO_WRAPPER" run ./internal/constants/generate -source internal/constants -output web/dist/constants.js -check
 python3 scripts/generate-service-rpc.py --check
 for script in web/dist/*.js; do node --check "$script"; done
-CGO_ENABLED=1 go build -buildvcs=false -o "$TEST_TEMP/devstack" ./cmd/devstack
+CGO_ENABLED=1 sh "$LUMO_GO_WRAPPER" build -buildvcs=false -o "$TEST_TEMP/devstack" ./cmd/devstack
 for suite in web/tests/*.test.cjs; do
   [ -f "$suite" ] || continue
   [ "$suite" != web/tests/frontend-http.test.cjs ] || continue

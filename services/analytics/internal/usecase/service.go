@@ -18,10 +18,12 @@ func (s *Service) Record(ctx context.Context, c platform.Request) (traceResult p
 	kind := platform.Text(c.Data, "type")
 	if kind != constants.AnalyticsBehaviorView && kind != constants.AnalyticsBehaviorClick &&
 		kind != constants.AnalyticsBehaviorImpression &&
-		kind != constants.AnalyticsBehaviorSearch {
+		kind != constants.AnalyticsBehaviorSearch && kind != constants.AnalyticsBehaviorAddCart && kind != constants.AnalyticsBehaviorCheckout {
 		return nil, bad("unsupported behavior type")
 	}
-	if utf8.RuneCountInString(platform.Text(c.Data, "query")) > 200 || len(platform.Text(c.Data, "sku_id")) > 150 || len(platform.Text(c.Data, "page")) > 240 || len(platform.Text(c.Data, "source")) > 40 {
+	if utf8.RuneCountInString(platform.Text(c.Data, "query")) > 200 || len(platform.Text(c.Data, "sku_id")) > 150 ||
+		len(platform.Text(c.Data, "page")) > 240 ||
+		len(platform.Text(c.Data, "source")) > 40 {
 		return nil, bad("behavior metadata too long")
 	}
 	if c.IdempotencyKey == "" {
@@ -52,7 +54,7 @@ func (s *Service) Record(ctx context.Context, c platform.Request) (traceResult p
 		UserID:      c.UserID,
 		Data:        view(r),
 	}
-	inserted, e := s.repo.InsertOnce(ctx, &r, &evt)
+	inserted, e := s.repo.Track(ctx, &r, &evt, kind)
 	if e != nil {
 		return nil, e
 	}
@@ -74,6 +76,9 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 
 func (s *Service) seed(context.Context) error { return nil }
 func (s *Service) event(ctx context.Context, e platform.Event) error {
+	if err := s.projectTransaction(ctx, e); err != nil {
+		return err
+	}
 	if e.UserID == "" {
 		return nil
 	}
@@ -84,6 +89,10 @@ func (s *Service) event(ctx context.Context, e platform.Event) error {
 		data["amount_cents"] = platform.Int(e.Data, "amount_cents")
 	} else {
 		data["order_id"] = e.AggregateID
+		if e.Type == constants.EventPaymentSucceeded {
+			data["order_id"] = platform.Text(e.Data, "order_id")
+			data["payment_id"] = e.AggregateID
+		}
 	}
 	r := record(
 		stable(e.ID, e.UserID),

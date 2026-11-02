@@ -12,6 +12,19 @@ func (r *Repository) Policy(ctx context.Context) (commercepolicy.Membership, err
 	p.Version = v
 	return p, e
 }
-func (r *Repository) PolicyUpsert(ctx context.Context, c platform.Request, p commercepolicy.Membership) (platform.Result, error) {
-	return adminconfig.Save(ctx, r.db, "membership-policy", p, platform.Int(c.Data, "version"), c.UserID, platform.Text(c.Data, "reason"))
+
+func (r *Repository) PolicyUpsert(
+	ctx context.Context,
+	c platform.Request,
+	p commercepolicy.Membership,
+) (platform.Result, error) {
+	return adminconfig.Save(
+		ctx,
+		r.db,
+		"membership-policy",
+		p,
+		platform.Int(c.Data, "version"),
+		c.UserID,
+		platform.Text(c.Data, "reason"),
+	)
 }

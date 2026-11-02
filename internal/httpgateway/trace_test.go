@@ -21,6 +21,18 @@ import (
 type traceTestCaller func(context.Context, string, platform.Command) (platform.Result, error)
 
 func (call traceTestCaller) Call(ctx context.Context, service string, cmd platform.Command) (platform.Result, error) {
+	if cmd.Action == "read_snapshot" {
+		return platform.ApplyReadSnapshot(
+			ctx,
+			platform.Module{
+				Name: service,
+				Handle: func(ctx context.Context, child platform.Command) (platform.Result, error) {
+					return call(ctx, service, child)
+				},
+			},
+			cmd,
+		)
+	}
 	return call(ctx, service, cmd)
 }
 

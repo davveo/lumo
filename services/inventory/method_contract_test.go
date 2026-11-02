@@ -28,9 +28,9 @@ func TestIndependentOperationsKeepWireContractsAndAuthorization(t *testing.T) {
 		factory                  func(platform.Dependencies) platform.Module
 		denied                   codes.Code
 	}{
-		{"inventory", "get batch_get reserve confirm cancel dispatch restock adjust adjustments admin_list threshold ledger", "reserve", inventory.New, codes.Unauthenticated},
-		{"fulfillment", "list get create_exchange dispatch cancel inspect_return admin_list admin_summary", "dispatch", fulfillment.New, codes.PermissionDenied},
-		{"logistics", "quote list create get deliver policy_get policy_upsert", "create", logistics.New, codes.PermissionDenied},
+		{"inventory", "get batch_get reserve confirm cancel dispatch restock restock_batch adjust adjustments admin_list threshold ledger procurement_list procurement_get procurement_create procurement_approve procurement_receive procurement_cancel", "reserve", inventory.New, codes.Unauthenticated},
+		{"fulfillment", "list get create_exchange dispatch cancel inspect_return inspect_returns admin_list admin_summary", "dispatch", fulfillment.New, codes.PermissionDenied},
+		{"logistics", "quote list create get deliver policy_get policy_upsert tracking tracking_update exceptions exception_resolve", "create", logistics.New, codes.PermissionDenied},
 		{"aftersale", "create get list approve reject cancel return inspect refund exchange admin_list admin_summary", "create", aftersale.New, codes.Unauthenticated},
 		{"payment", "get list create submit_demo confirm_demo close admin_list admin_summary methods policy_get policy_upsert provider_get provider_upsert", "create", payment.New, codes.Unauthenticated},
 		{"refund", "get list create confirm_demo admin_list admin_summary", "create", refund.New, codes.Unauthenticated},

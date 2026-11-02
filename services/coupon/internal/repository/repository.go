@@ -125,7 +125,11 @@ func (r *Repository) TemplateSnapshot(ctx context.Context, c platform.Request) (
 	return r.templates(ctx, c, 5000)
 }
 
-func (r *Repository) templates(ctx context.Context, c platform.Request, maxSize int64) (spanResult0 platform.Result, spanErr0 error) {
+func (r *Repository) templates(
+	ctx context.Context,
+	c platform.Request,
+	maxSize int64,
+) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.coupon.Templates")
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -278,7 +282,7 @@ func (r *Repository) Claim(
 				return er
 			}
 		}
-		// Recheck the claim deadline after cross-service eligibility reads.
+		// Recheck the deadline and template under the local claim lock.
 		now = time.Now()
 		if !template.ExpiresAt.After(now) {
 			return status.Error(codes.FailedPrecondition, "领取已结束")
@@ -423,7 +427,12 @@ func (r *Repository) Confirm(ctx context.Context, c platform.Request) (platform.
 func (r *Repository) Cancel(ctx context.Context, c platform.Request) (platform.Result, error) {
 	return r.transition(ctx, c, constants.CouponHoldStateCancelled)
 }
-func (r *Repository) transition(ctx context.Context, c platform.Request, target string) (spanResult0 platform.Result, spanErr0 error) {
+
+func (r *Repository) transition(
+	ctx context.Context,
+	c platform.Request,
+	target string,
+) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.coupon.transition."+target)
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()

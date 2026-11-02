@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/davveo/lumo/internal/adminconfig"
+	"github.com/davveo/lumo/internal/constants"
 
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/logistics/internal/domain"
@@ -26,7 +27,7 @@ func (r *Repository) Migrate(ctx context.Context) (spanErr0 error) {
 	if e := adminconfig.Migrate(ctx, r.DB); e != nil {
 		return e
 	}
-	return r.DB.WithContext(ctx).AutoMigrate(&domain.Record{})
+	return r.DB.WithContext(ctx).AutoMigrate(&domain.Record{}, &domain.TrackingEvent{}, &domain.DeliveryException{})
 }
 func (r *Repository) Get(ctx context.Context, id string) (spanResult0 *domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.logistics.Get")
@@ -72,8 +73,19 @@ func (r *Repository) Create(ctx context.Context, x *domain.Record) (spanErr0 err
 				return status.Error(codes.PermissionDenied, "resource ownership mismatch")
 			}
 			*x = old
+			return nil
 		}
-		return nil
+		return tx.Create(
+			&domain.TrackingEvent{
+				ID:          "created:" + x.ID,
+				LogisticsID: x.ID,
+				TrackingID:  x.TrackingID,
+				Status:      constants.TrackingStatusCreated,
+				Description: "运单已创建",
+				Source:      x.Provider,
+				OccurredAt:  x.CreatedAt.UTC(),
+			},
+		).Error
 	})
 }
 

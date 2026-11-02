@@ -393,33 +393,40 @@ func (g *gateway) bootstrapRecent(
 	// A sparse/out-of-stock first page is not proof the catalog has <6 goods.
 	// Only scan more real pages when needed, preserving the normal bootstrap's
 	// single catalog read and inventory batch when its snapshot already suffices.
-	for len(
-		selected,
-	) < bootstrapRecentLimit && !snapshot.exhausted && snapshot.catalogOK && !snapshot.inventoryFailed &&
+	if len(selected) < bootstrapRecentLimit && !snapshot.exhausted && snapshot.catalogOK && !snapshot.inventoryFailed &&
 		ctx.Err() == nil {
-		before, offset, knownProducts := len(candidates), snapshot.offset, len(snapshot.products)
-		request := readRequest{
-			Key:     fmt.Sprintf("bootstrap-recent-page-%d", offset),
-			Service: constants.ServiceCatalog,
-			Action:  constants.ActionList,
-			Command: readCommand{Data: map[string]any{"limit": 100, "offset": offset}},
+		before := len(candidates)
+		plan := []readRequest{}
+		for page := 0; page < 20 && (snapshot.total <= 0 || snapshot.offset+100*page < snapshot.total); page++ {
+			offset := snapshot.offset + 100*page
+			plan = append(
+				plan,
+				readRequest{
+					Key:     fmt.Sprintf("bootstrap-recent-page-%d", offset),
+					Service: constants.ServiceCatalog,
+					Action:  constants.ActionList,
+					Command: readCommand{Data: map[string]any{"limit": 100, "offset": offset}},
+				},
+			)
 		}
-		loaded := g.runReads(ctx, []readRequest{request}, principal)
+		loaded := g.runReads(ctx, plan, principal)
 		fragments = append(fragments, loaded...)
 		snapshot.remember(loaded, principal)
-		if loaded[0]["error"] != nil || snapshot.offset <= offset {
-			break
-		}
-		for _, row := range resultRows(platform.Map(loaded[0]["data"])) {
-			add(row, constants.RecommendationSourceFeatured)
+		for _, fragment := range loaded {
+			if fragment["error"] != nil {
+				snapshot.degraded = true
+				continue
+			}
+			for _, row := range resultRows(platform.Map(fragment["data"])) {
+				add(row, constants.RecommendationSourceFeatured)
+			}
 		}
 		consume(before)
-		if knownProducts == len(snapshot.products) && !snapshot.exhausted {
-			// Stop a broken pagination dependency from returning the same page forever.
+		if len(selected) < bootstrapRecentLimit && !snapshot.exhausted {
 			snapshot.degraded = true
-			break
 		}
 	}
+
 	if ctx.Err() != nil {
 		return append(fragments, readResult(query, nil, status.FromContextError(ctx.Err()).Err()))
 	}

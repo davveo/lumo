@@ -18,7 +18,12 @@ func New(d platform.Dependencies) platform.Module {
 		Seed:       s.Seed,
 		Handle:     t.Handle,
 		Operations: t.Operations(),
-		Topics:     []string{constants.EventOrderCompleted, constants.EventRefundSucceeded},
-		OnEvent:    s.OnEvent,
+		Topics: []string{
+			constants.EventOrderCompleted,
+			constants.EventRefundSucceeded,
+			constants.EventOrderPaymentAccepted,
+			constants.EventPaymentSucceeded,
+		},
+		OnEvent: s.OnEvent,
 	}
 }

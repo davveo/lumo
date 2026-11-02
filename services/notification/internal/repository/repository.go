@@ -57,7 +57,12 @@ func (r *Repository) scope(ctx context.Context, owner, kind, st string) *gorm.DB
 	}
 	return q
 }
-func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, offset int) (spanResult0 []domain.Record, spanErr0 error) {
+
+func (r *Repository) List(
+	ctx context.Context,
+	owner, kind, st string,
+	limit, offset int,
+) (spanResult0 []domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "notification.repository.List")
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -73,7 +78,11 @@ func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, of
 	err := q.Order("created_at DESC, id DESC").Limit(limit).Offset(offset).Find(&vs).Error
 	return vs, err
 }
-func (r *Repository) Counts(ctx context.Context, owner, kind, st string) (spanResult0 int64, spanResult1 int64, spanErr0 error) {
+
+func (r *Repository) Counts(
+	ctx context.Context,
+	owner, kind, st string,
+) (spanResult0 int64, spanResult1 int64, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "notification.repository.Counts")
 	defer span.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -116,7 +125,12 @@ func (r *Repository) Save(ctx context.Context, v *domain.Record, event *platform
 		return nil
 	})
 }
-func (r *Repository) InsertOnce(ctx context.Context, v *domain.Record, event *platform.Event) (spanResult0 bool, spanErr0 error) {
+
+func (r *Repository) InsertOnce(
+	ctx context.Context,
+	v *domain.Record,
+	event *platform.Event,
+) (spanResult0 bool, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "notification.repository.InsertOnce")
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()

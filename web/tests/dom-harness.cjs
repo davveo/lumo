@@ -227,6 +227,7 @@ function createHarness(directory, baseURL, options = {}) {
   const evaluate = (source) => vm.runInContext(source, ctx);
   let constantsLoaded = false;
   const load = (file) => {
+    if (file === 'editor.js' && !ctx.LumoStorefrontSettings) load('storefront-settings.js');
     if (file !== 'constants.js' && !constantsLoaded) load('constants.js');
     if (file === 'constants.js') {
       if (constantsLoaded) return;
@@ -282,6 +283,13 @@ function createHarness(directory, baseURL, options = {}) {
       const target = new Element('test-button');
       target.dataset = { ...dataset };
       await fireDocument('click', target);
+    },
+    async input(id, value) {
+      const target = ids.get(id) || new Element(id);
+      target.value = value;
+      ids.set(id, target);
+      await fireDocument('input', target);
+      return target;
     },
     async submit(id, fields, dataset = {}) {
       const form = new Element(id);

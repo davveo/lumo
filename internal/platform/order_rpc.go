@@ -39,6 +39,23 @@ func orderAdminRequest(c Command) (*mallv1.AdminOrdersRequest, error) {
 }
 
 var orderRPCs = map[string]orderRPC{
+	constants.ActionBatchGet: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+		var input struct {
+			IDs []string `json:"ids"`
+		}
+		if err := Decode(c.Data, &input); err != nil {
+			return nil, err
+		}
+		out, err := client.BatchGetOrders(ctx, &mallv1.BatchGetOrdersRequest{Actor: orderActor(c), Ids: input.IDs})
+		if err != nil {
+			return nil, err
+		}
+		items := []Result{}
+		for _, row := range out.GetItems() {
+			items = append(items, orderwire.Result(row))
+		}
+		return Result{"items": items}, nil
+	},
 	constants.ActionAdminList: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		in, err := orderAdminRequest(c)
 		if err != nil {
@@ -66,7 +83,19 @@ var orderRPCs = map[string]orderRPC{
 		return result, nil
 	},
 	constants.ActionList: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
-		response, err := client.ListOrders(ctx, &mallv1.ListOrdersRequest{Actor: orderActor(c)})
+		limit, offset := Int(c.Data, "limit"), Int(c.Data, "offset")
+		if limit < 0 || limit > 100 || offset < 0 || offset > 10000 {
+			return nil, status.Error(codes.InvalidArgument, "invalid order pagination")
+		}
+		response, err := client.ListOrders(
+			ctx,
+			&mallv1.ListOrdersRequest{
+				Actor:  orderActor(c),
+				Limit:  int32(limit),
+				Offset: int32(offset),
+				Cursor: Text(c.Data, "cursor"),
+			},
+		)
 		if err != nil {
 			return nil, err
 		}

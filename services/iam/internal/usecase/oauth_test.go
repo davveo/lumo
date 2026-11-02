@@ -67,7 +67,9 @@ func TestOAuthProviderExchangeAndSingleUseCallback(t *testing.T) {
 					t.Fatal(r.URL)
 				}
 				if provider == "wechat" {
-					if r.URL.Host != "api.weixin.qq.com" || q.Get("appid") != "verified-app" || q.Get("secret") != "server-only-secret" || q.Get("code") != "server-code" {
+					if r.URL.Host != "api.weixin.qq.com" || q.Get("appid") != "verified-app" ||
+						q.Get("secret") != "server-only-secret" ||
+						q.Get("code") != "server-code" {
 						t.Fatal(r.URL)
 					}
 					body = `{"access_token":"provider-access","openid":"verified-wechat-member"}`
@@ -82,19 +84,37 @@ func TestOAuthProviderExchangeAndSingleUseCallback(t *testing.T) {
 					}
 					body = `{"client_id":"verified-app","openid":"verified-qq-member"}`
 				}
-				return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(body)), Header: make(http.Header)}, nil
+				return &http.Response{
+					StatusCode: 200,
+					Body:       io.NopCloser(strings.NewReader(body)),
+					Header:     make(http.Header),
+				}, nil
 			})}
 			proof := strings.Repeat("b", 64)
-			start, e := s.OAuthStart(ctx, platform.Request{Data: map[string]any{"provider": provider, "proof": proof, "_client_ip": "127.0.0.1"}})
+			start, e := s.OAuthStart(
+				ctx,
+				platform.Request{Data: map[string]any{"provider": provider, "proof": proof, "_client_ip": "127.0.0.1"}},
+			)
 			if e != nil {
 				t.Fatal(e)
 			}
-			callback := platform.Request{Data: map[string]any{"provider": provider, "proof": proof, "oauth_state": start["oauth_state"], "code": "server-code", "openid": "forged-member", "role": "admin"}}
+			callback := platform.Request{
+				Data: map[string]any{
+					"provider":    provider,
+					"proof":       proof,
+					"oauth_state": start["oauth_state"],
+					"code":        "server-code",
+					"openid":      "forged-member",
+					"role":        "admin",
+				},
+			}
 			result, e := s.OAuthCallback(ctx, callback)
 			if e != nil {
 				t.Fatal(e)
 			}
-			if !platform.IsBusinessID(platform.Text(result, "user_id"), "user") || platform.Text(result, "role") != "user" || platform.Text(result, "token") == "" {
+			if !platform.IsBusinessID(platform.Text(result, "user_id"), "user") ||
+				platform.Text(result, "role") != "user" ||
+				platform.Text(result, "token") == "" {
 				t.Fatal(result)
 			}
 			exchanges := calls

@@ -44,3 +44,18 @@ func (s *Service) Get(ctx context.Context, request OrderRequest) (traceResult do
 	}
 	return order, nil
 }
+
+func (s *Service) ListPage(
+	ctx context.Context,
+	actor Actor,
+	data map[string]any,
+) ([]domain.Order, platform.Result, error) {
+	if err := requireUser(actor); err != nil {
+		return nil, nil, err
+	}
+	user := actor.UserID
+	if actor.Role == constants.RoleAdmin || actor.Role == constants.RoleSystem {
+		user = ""
+	}
+	return s.r.ListPage(ctx, user, platform.Request{UserID: actor.UserID, Role: actor.Role, Data: data})
+}

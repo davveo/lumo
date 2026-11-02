@@ -162,7 +162,8 @@ func describeTask(row Result, kind, service, payload, carrier string, now time.T
 	case "audit":
 		row["stage_label"], statusLabel, description = "操作记录", "已提交", "操作已记录，执行结果请查看对应任务"
 	}
-	if failure == "" && (state == constants.InboxStateDead || state == constants.InboxStateRetry && kind == "inbox" || kind == "outbox" && Int(row, "attempts") > 0 && state != constants.OutboxStatePublished) {
+	if failure == "" &&
+		(state == constants.InboxStateDead || state == constants.InboxStateRetry && kind == "inbox" || kind == "outbox" && Int(row, "attempts") > 0 && state != constants.OutboxStatePublished) {
 		failure, advice = "历史记录未保存具体失败原因", "可根据追踪编号排查；后续失败会记录原因分类"
 	}
 	row["status_label"], row["status_description"] = statusLabel, description

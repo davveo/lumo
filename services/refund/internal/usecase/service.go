@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"time"
 
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
@@ -89,6 +90,7 @@ func (s *Service) ConfirmDemo(ctx context.Context, c platform.Request) (traceRes
 			return err
 		}
 		data := map[string]any{
+			"occurred_at":          time.Now().UTC().Format(time.RFC3339Nano),
 			"refund_id":            current.ID,
 			"order_id":             current.OrderID,
 			"payment_id":           current.PaymentID,

@@ -53,7 +53,12 @@ func (s *Service) Upsert(ctx context.Context, request platform.Request) (result 
 func (s *Service) RuleUpsert(ctx context.Context, request platform.Request) (platform.Result, error) {
 	return s.upsert(ctx, request, true)
 }
-func (s *Service) upsert(ctx context.Context, request platform.Request, dedicated bool) (result platform.Result, err error) {
+
+func (s *Service) upsert(
+	ctx context.Context,
+	request platform.Request,
+	dedicated bool,
+) (result platform.Result, err error) {
 	ctx, span := platform.Start(ctx, "campaign.usecase.Upsert")
 	defer span.End()
 	platform.TraceRequest(ctx, request)
@@ -92,7 +97,10 @@ func (s *Service) upsert(ctx context.Context, request platform.Request, dedicate
 	switch input.Kind {
 	case constants.CampaignKindFlash, constants.CampaignKindGroup:
 		if !dedicated || input.PayRateBPS != 0 || input.Threshold != 0 || input.MinQuantity != 1 {
-			return nil, status.Error(codes.InvalidArgument, "dedicated flash/group quota rules require zero threshold, fixed discount and one item")
+			return nil, status.Error(
+				codes.InvalidArgument,
+				"dedicated flash/group quota rules require zero threshold, fixed discount and one item",
+			)
 		}
 	case constants.CampaignKindReduction, constants.CampaignKindDirect:
 		if input.Discount < 1 || input.PayRateBPS != 0 {

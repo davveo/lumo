@@ -16,7 +16,10 @@ import (
 	"time"
 )
 
-func (r *Repository) AdminList(ctx context.Context, c platform.Request) (spanResult0 []domain.Record, spanResult1 int64, spanResult2 adminquery.Filters, spanErr0 error) {
+func (r *Repository) AdminList(
+	ctx context.Context,
+	c platform.Request,
+) (spanResult0 []domain.Record, spanResult1 int64, spanResult2 adminquery.Filters, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "content.repository.AdminList")
 	defer sp.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -25,9 +28,19 @@ func (r *Repository) AdminList(ctx context.Context, c platform.Request) (spanRes
 	if kind := platform.Text(c.Data, "kind"); kind != "" {
 		db = db.Where("kind = ?", kind)
 	}
-	return adminquery.Page[domain.Record](ctx, db, c.Data, adminquery.Spec{State: "status", Search: []string{"id", "payload"}})
+	return adminquery.Page[domain.Record](
+		ctx,
+		db,
+		c.Data,
+		adminquery.Spec{State: "status", Search: []string{"id", "payload"}},
+	)
 }
-func (r *Repository) AdminUpsert(ctx context.Context, next domain.Record, actor, reason string) (spanResult0 domain.Record, spanErr0 error) {
+
+func (r *Repository) AdminUpsert(
+	ctx context.Context,
+	next domain.Record,
+	actor, reason string,
+) (spanResult0 domain.Record, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "content.repository.AdminUpsert")
 	defer sp.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -67,7 +80,9 @@ func (r *Repository) AdminUpsert(ctx context.Context, next domain.Record, actor,
 		}
 		before, _ := json.Marshal(old)
 		after, _ := json.Marshal(next)
-		return tx.WithContext(ctx).Create(&adminconfig.Change{ID: platform.ID("content-change"), DocumentID: next.ID, Version: next.Version, ActorID: actor, Reason: reason, Before: string(before), After: string(after)}).Error
+		return tx.WithContext(ctx).
+			Create(&adminconfig.Change{ID: platform.ID("content-change"), DocumentID: next.ID, Version: next.Version, ActorID: actor, Reason: reason, Before: string(before), After: string(after)}).
+			Error
 	})
 	return next, e
 }

@@ -74,10 +74,18 @@ func TestReturnRefundQuantityClaimAndMoneyEvent(t *testing.T) {
 		if svc == "refund" {
 			refunds++
 		}
-		if svc == "fulfillment" && c.Action == "inspect_return" {
+		if svc == "fulfillment" && c.Action == "inspect_returns" {
 			inspections++
-			if c.Data["condition"] != "damaged" {
-				t.Fatal(c.Data)
+			var batch struct {
+				Items []struct {
+					Condition string `json:"condition"`
+					Quantity  int64  `json:"quantity"`
+				} `json:"items"`
+			}
+			if err := platform.Decode(c.Data, &batch); err != nil || len(batch.Items) != 1 ||
+				batch.Items[0].Condition != "damaged" ||
+				batch.Items[0].Quantity != 1 {
+				t.Fatal("invalid inspection batch", c.Data, err)
 			}
 		}
 		return platform.Result{}, nil

@@ -185,7 +185,28 @@ for n in names:
     if n in ['iam', 'payment']:
         env['CHANNEL_CONFIG_ENCRYPTION_KEY'] = '${CHANNEL_CONFIG_ENCRYPTION_KEY:-}'
     if n == 'iam':
-        for key in ['IAM_OTP_HASH_KEY', 'SMS_WEBHOOK_URL', 'SMS_WEBHOOK_TOKEN', 'WECHAT_LOGIN_APP_ID', 'WECHAT_LOGIN_APP_SECRET', 'WECHAT_LOGIN_REDIRECT_URI', 'QQ_LOGIN_APP_ID', 'QQ_LOGIN_APP_SECRET', 'QQ_LOGIN_REDIRECT_URI']:
+        for key in [
+            'IAM_OTP_HASH_KEY',
+            'IAM_EMAIL_WEBHOOK_URL',
+            'IAM_EMAIL_WEBHOOK_TOKEN',
+            'SMS_WEBHOOK_URL',
+            'SMS_WEBHOOK_TOKEN',
+            'WECHAT_LOGIN_APP_ID',
+            'WECHAT_LOGIN_APP_SECRET',
+            'WECHAT_LOGIN_REDIRECT_URI',
+            'QQ_LOGIN_APP_ID',
+            'QQ_LOGIN_APP_SECRET',
+            'QQ_LOGIN_REDIRECT_URI',
+        ]:
+            env[key] = '${' + key + ':-}'
+    if n == 'logistics':
+        for key in [
+            'LOGISTICS_CARRIER_PROVIDER',
+            'LOGISTICS_CARRIER_CREATE_URL',
+            'LOGISTICS_CARRIER_TOKEN',
+            'LOGISTICS_PICKUP_TIMEOUT_HOURS',
+            'LOGISTICS_STALE_TIMEOUT_HOURS',
+        ]:
             env[key] = '${' + key + ':-}'
     if n == 'media':
         env.update(
@@ -199,7 +220,14 @@ for n in names:
             }
         )
         services[n]['depends_on']['minio'] = {'condition': 'service_healthy'}
-gateway_env = dict(environment, HTTP_ADDR=':8080', CORS_ALLOWED_ORIGINS='${CORS_ALLOWED_ORIGINS:-}')
+gateway_env = dict(
+    environment,
+    HTTP_ADDR=':8080',
+    CORS_ALLOWED_ORIGINS='${CORS_ALLOWED_ORIGINS:-}',
+    TRUSTED_PROXY_HOSTS='${TRUSTED_PROXY_HOSTS:-web}',
+    TRUSTED_PROXY_CIDRS='${TRUSTED_PROXY_CIDRS:-}',
+)
+gateway_env['LOGISTICS_CARRIER_CALLBACK_KEY'] = '${LOGISTICS_CARRIER_CALLBACK_KEY:-}'
 gateway_env.pop('DB_DRIVER', None)
 services['gateway'] = {
     'image': 'lumo-mall-backend:dev',
@@ -224,7 +252,10 @@ services['web'] = {
     'build': {
         'context': './web',
         'dockerfile': 'Dockerfile',
-        'args': {'NGINX_IMAGE': '${WEB_NGINX_IMAGE:-nginx:1.30.6-alpine}'},
+        'args': {
+            'NGINX_IMAGE': '${WEB_NGINX_IMAGE:-nginx:1.30.6-alpine}',
+            'NODE_IMAGE': '${WEB_NODE_IMAGE:-public.ecr.aws/docker/library/node:22.23.4-alpine3.24}',
+        },
     },
     'environment': {'GATEWAY_UPSTREAM': '${WEB_GATEWAY_UPSTREAM:-gateway:8080}'},
     'ports': ['127.0.0.1:${WEB_PORT:-8080}:8080'],

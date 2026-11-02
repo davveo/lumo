@@ -18,6 +18,7 @@ func New(d platform.Dependencies) platform.Module {
 		Seed:    s.Seed,
 		Handle:  t.Handle, Operations: t.Operations(),
 		Topics:  nil,
+		Tick:    s.TickImports,
 		OnEvent: s.OnEvent,
 	}
 }

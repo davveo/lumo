@@ -42,6 +42,12 @@ func NewMethodHandler(
 					return nil, err
 				}
 			}
+			if IsEmployee(request.Role) {
+				if request.Data["export"] == true && !StaffCanExport(request.Role) {
+					return nil, status.Error(codes.PermissionDenied, "当前员工角色不允许导出")
+				}
+				request.Role = StaffRoleAtBoundary(request.Role, service, action)
+			}
 			return operation(ctx, request)
 		}
 	}

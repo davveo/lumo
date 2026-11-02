@@ -27,7 +27,7 @@ func (r *Repository) Migrate(ctx context.Context) (spanErr0 error) {
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
 
-	if err := r.db.WithContext(ctx).AutoMigrate(&domain.Record{}); err != nil {
+	if err := r.db.WithContext(ctx).AutoMigrate(&domain.Record{}, &domain.ImportJob{}); err != nil {
 		return err
 	}
 	if err := r.migrateAdminListing(ctx); err != nil {
@@ -50,7 +50,12 @@ func (r *Repository) Get(ctx context.Context, id string) (spanResult0 domain.Rec
 	}
 	return v, err
 }
-func (r *Repository) GetMany(ctx context.Context, ids []string, includeDisabled bool) (spanResult0 []domain.Record, spanErr0 error) {
+
+func (r *Repository) GetMany(
+	ctx context.Context,
+	ids []string,
+	includeDisabled bool,
+) (spanResult0 []domain.Record, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "catalog.repository.GetMany")
 	defer span.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -63,7 +68,12 @@ func (r *Repository) GetMany(ctx context.Context, ids []string, includeDisabled 
 	err := query.Find(&rows).Error
 	return rows, err
 }
-func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, offset int) (spanResult0 []domain.Record, spanErr0 error) {
+
+func (r *Repository) List(
+	ctx context.Context,
+	owner, kind, st string,
+	limit, offset int,
+) (spanResult0 []domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "catalog.repository.List")
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -117,7 +127,12 @@ func (r *Repository) Save(ctx context.Context, v *domain.Record, event *platform
 		return nil
 	})
 }
-func (r *Repository) InsertOnce(ctx context.Context, v *domain.Record, event *platform.Event) (spanResult0 bool, spanErr0 error) {
+
+func (r *Repository) InsertOnce(
+	ctx context.Context,
+	v *domain.Record,
+	event *platform.Event,
+) (spanResult0 bool, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "catalog.repository.InsertOnce")
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -272,6 +287,22 @@ func (r *Repository) SaveProduct(
 	defer func() { platform.TraceError(ctx, spanErr0) }()
 
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		ids := make([]string, 0, len(rows))
+		parents := make(map[string]string, len(rows))
+		for _, row := range rows {
+			ids = append(ids, row.ID)
+			parents[row.ID] = row.ParentID
+		}
+		var existing []domain.Record
+		if e := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id IN ?", ids).Order("id").Find(&existing).Error; e != nil {
+			return e
+		}
+		for _, row := range existing {
+			legacyDefault := row.ID == productID && row.ParentID == constants.CatalogParentLegacy
+			if row.Kind != constants.CatalogKindSku || row.ParentID != parents[row.ID] && !legacyDefault {
+				return status.Error(codes.AlreadyExists, "商品或规格编号已属于其他商品，请更换编号")
+			}
+		}
 		if e := tx.WithContext(ctx).Model(&domain.Record{}).Where(
 			"parent_id = ? AND kind = ?",
 			productID,

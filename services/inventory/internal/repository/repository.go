@@ -30,7 +30,7 @@ func (r *Repository) Migrate(ctx context.Context) error {
 		return e
 	}
 	return r.DB.WithContext(ctx).
-		AutoMigrate(&domain.Stock{}, &domain.Reservation{}, &domain.Ledger{}, &domain.Adjustment{})
+		AutoMigrate(&domain.Stock{}, &domain.Reservation{}, &domain.Ledger{}, &domain.Adjustment{}, &domain.PurchaseOrder{}, &domain.PurchaseReceipt{})
 }
 func (r *Repository) Seed(ctx context.Context) error {
 	ids := append([]string{"sku-phone", "sku-headphones", "sku-watch", "sku-coffee"}, democatalog.SKUs()...)
@@ -199,7 +199,11 @@ func (r *Repository) Dispatch(ctx context.Context, c platform.Request) (platform
 	return r.transition(ctx, c, constants.InventoryReservationStateDispatched)
 }
 
-func (r *Repository) transition(ctx context.Context, c platform.Request, target string) (spanResult0 platform.Result, spanErr0 error) {
+func (r *Repository) transition(
+	ctx context.Context,
+	c platform.Request,
+	target string,
+) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.inventory.transition."+target)
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -296,18 +300,21 @@ func (r *Repository) Restock(ctx context.Context, c platform.Request) (spanResul
 	}
 	l := domain.Ledger{ID: c.ID, ReferenceID: c.ID, UserID: c.UserID, SKUID: sku, Quantity: qty, Kind: condition}
 	e := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var st domain.Stock
+		if er := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&st, "sku_id = ?", sku).Error; er != nil {
+			if errors.Is(er, gorm.ErrRecordNotFound) {
+				return status.Error(codes.NotFound, "stock not found")
+			}
+			return er
+		}
 		var old domain.Ledger
-		if er := tx.WithContext(ctx).First(&old, "id = ?", c.ID).Error; er == nil {
-			if old.SKUID != sku || old.Quantity != qty || old.Kind != condition {
+		if er := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&old, "id = ?", c.ID).Error; er == nil {
+			if old.UserID != c.UserID || old.SKUID != sku || old.Quantity != qty || old.Kind != condition {
 				return status.Error(codes.AlreadyExists, "inspection payload differs")
 			}
 			return nil
 		} else if !errors.Is(er, gorm.ErrRecordNotFound) {
 			return er
-		}
-		var st domain.Stock
-		if er := tx.WithContext(ctx).First(&st, "sku_id = ?", sku).Error; er != nil {
-			return status.Error(codes.NotFound, "stock not found")
 		}
 		if er := tx.WithContext(ctx).Create(&l).Error; er != nil {
 			return er

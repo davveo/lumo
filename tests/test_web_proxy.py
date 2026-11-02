@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import http.cookiejar
 import json
+import gzip
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -22,10 +24,18 @@ import uuid
 
 PROJECT = Path(__file__).resolve().parents[1]
 PEER = r'''package main
-import ("encoding/json";"fmt";"io";"net/http";"os")
+import ("encoding/json";"fmt";"io";"net/http";"os";"time")
 func main(){
  http.HandleFunc("/",func(w http.ResponseWriter,r *http.Request){
   fmt.Println(r.URL.RequestURI())
+  if r.URL.Path=="/api/v1/notification/stream" {
+   w.Header().Set("Content-Type","text/event-stream")
+   fmt.Fprint(w,"event: notifications\n")
+   w.(http.Flusher).Flush()
+   time.Sleep(2*time.Second)
+   fmt.Fprintf(w,"data: %s|%s\n\n",r.Header.Get("Authorization"),r.Header.Get("Last-Event-ID"))
+   return
+  }
   w.Header().Set("Content-Type","application/json")
   w.Header().Set("X-Trace-Id","upstream-fixture")
   if r.URL.Path=="/api/v1/missing" {w.WriteHeader(404);fmt.Fprint(w,"api-missing");return}
@@ -180,6 +190,23 @@ class WebProxyTests(unittest.TestCase):
             self.assertEqual(json.loads(body)["uri"], path)
             self.assertEqual(headers["Cache-Control"], "no-store")
 
+    def test_notification_stream_flushes_and_preserves_session_headers(self):
+        request = urllib.request.Request(
+            self.base + "/api/v1/notification/stream",
+            headers={
+                "Authorization": "Bearer fixture-token",
+                "Last-Event-ID": "previous-frame",
+                "Accept-Encoding": "gzip",
+            },
+        )
+        started = time.monotonic()
+        with urllib.request.urlopen(request, timeout=5) as response:
+            self.assertEqual(response.headers.get_content_type(), "text/event-stream")
+            self.assertIsNone(response.headers.get("Content-Encoding"))
+            self.assertEqual(response.readline(), b"event: notifications\n")
+            self.assertLess(time.monotonic() - started, 1.5, "Nginx buffered the initial event")
+            self.assertIn(b"Bearer fixture-token|previous-frame", response.read())
+
     def test_invalid_upstream_is_rejected_before_nginx_starts(self):
         for upstream in ("gateway:0", "gateway:99999", "gateway:8080;malformed"):
             result = subprocess.run(
@@ -229,6 +256,51 @@ class WebProxyTests(unittest.TestCase):
             self.assertIn(status, (400, 404), path)
             self.assertNotIn("immutable", headers.get("Cache-Control", ""))
         self.assertEqual(before, self.docker("logs", self.peer))
+
+    def test_built_assets_are_hashed_immutable_and_gzipped(self):
+        production = self.docker(
+            "run",
+            "--rm",
+            "-d",
+            "--read-only",
+            "--no-healthcheck",
+            "--tmpfs",
+            "/tmp:size=32m",
+            "--tmpfs",
+            "/etc/nginx/conf.d:size=1m",
+            "--network",
+            self.network,
+            "-p",
+            "127.0.0.1::8080",
+            "-e",
+            "GATEWAY_UPSTREAM=gateway:8080",
+            self.image,
+        )
+        self.containers.append(production)
+        base = "http://" + self.docker("port", production, "8080").splitlines()[0]
+        deadline = time.monotonic() + 15
+        while True:
+            try:
+                response = urllib.request.urlopen(base, timeout=3)
+                break
+            except (OSError, urllib.error.URLError):
+                if time.monotonic() >= deadline:
+                    raise
+                time.sleep(0.2)
+        with response:
+            html = response.read().decode()
+            self.assertEqual(response.headers["Cache-Control"], "no-cache")
+        bundles = re.findall(r'(?:src|href)="([^"/]+\.[0-9a-f]{12}\.(?:js|css))"', html)
+        self.assertEqual(len(bundles), 2)
+        for bundle in bundles:
+            request = urllib.request.Request(base + "/" + bundle, headers={"Accept-Encoding": "gzip"})
+            with urllib.request.urlopen(request) as response:
+                self.assertEqual(response.headers["Content-Encoding"], "gzip")
+                self.assertIn("immutable", response.headers["Cache-Control"])
+                self.assertIn("Accept-Encoding", response.headers["Vary"])
+                compressed = response.read()
+            with urllib.request.urlopen(base + "/" + bundle) as response:
+                self.assertEqual(gzip.decompress(compressed), response.read())
 
     def test_z_gateway_recreation_resolves_a_new_container_address(self):
         replacement = self.start_peer("gateway-two")

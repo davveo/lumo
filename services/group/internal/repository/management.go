@@ -20,10 +20,20 @@ func (r *Repository) AdminList(ctx context.Context, c platform.Request) (spanRes
 	defer sp.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
 
-	rows, total, f, e := adminquery.Page[domain.Team](ctx, r.DB, c.Data, adminquery.Spec{State: "state", Search: []string{"id", "sku_id", "creator_id", "rule_id", "activity_id"}})
+	rows, total, f, e := adminquery.Page[domain.Team](
+		ctx,
+		r.DB,
+		c.Data,
+		adminquery.Spec{State: "state", Search: []string{"id", "sku_id", "creator_id", "rule_id", "activity_id"}},
+	)
 	return adminquery.Result(rows, total, f), e
 }
-func (r *Repository) RulesAdmin(ctx context.Context, c platform.Request, public bool) (spanResult0 platform.Result, spanErr0 error) {
+
+func (r *Repository) RulesAdmin(
+	ctx context.Context,
+	c platform.Request,
+	public bool,
+) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "group.repository.RulesAdmin")
 	defer sp.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -32,7 +42,12 @@ func (r *Repository) RulesAdmin(ctx context.Context, c platform.Request, public 
 	if public {
 		db = db.Where("active = ?", true)
 	}
-	rows, total, f, e := adminquery.Page[domain.Rule](ctx, db, c.Data, adminquery.Spec{State: "active", Search: []string{"id", "name", "sku_id", "activity_id"}})
+	rows, total, f, e := adminquery.Page[domain.Rule](
+		ctx,
+		db,
+		c.Data,
+		adminquery.Spec{State: "active", Search: []string{"id", "name", "sku_id", "activity_id"}},
+	)
 	return adminquery.Result(rows, total, f), e
 }
 func (r *Repository) Rule(ctx context.Context, id string) (spanResult0 domain.Rule, spanErr0 error) {
@@ -47,7 +62,12 @@ func (r *Repository) Rule(ctx context.Context, id string) (spanResult0 domain.Ru
 	}
 	return v, e
 }
-func (r *Repository) RuleUpsert(ctx context.Context, next domain.Rule, actor, reason string) (spanResult0 platform.Result, spanErr0 error) {
+
+func (r *Repository) RuleUpsert(
+	ctx context.Context,
+	next domain.Rule,
+	actor, reason string,
+) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "group.repository.RuleUpsert")
 	defer sp.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -84,7 +104,9 @@ func (r *Repository) RuleUpsert(ctx context.Context, next domain.Rule, actor, re
 		}
 		before, _ := json.Marshal(old)
 		after, _ := json.Marshal(next)
-		return tx.WithContext(ctx).Create(&adminconfig.Change{ID: platform.ID("group-change"), DocumentID: next.ID, Version: next.Version, ActorID: actor, Reason: reason, Before: string(before), After: string(after)}).Error
+		return tx.WithContext(ctx).
+			Create(&adminconfig.Change{ID: platform.ID("group-change"), DocumentID: next.ID, Version: next.Version, ActorID: actor, Reason: reason, Before: string(before), After: string(after)}).
+			Error
 	})
 	return platform.Map(next), e
 }

@@ -117,6 +117,7 @@
     if (!['login', 'register', 'editor', 'payment', 'checkout'].includes(route[0]))
       if (force || !window.LumoSidebars?.model?.().loaded || window.LumoSidebars?.model?.().error)
         tasks.push(() => invoke(window.LumoSidebars, 'refresh'));
+    if (!loggedIn() && route[0] === 'cart') tasks.push(() => invoke(window.LumoCommerce, 'refreshCart'));
     if (loggedIn()) {
       if (!['login', 'register', 'editor', 'payment', 'checkout'].includes(route[0])) tasks.push(() => account(force));
       if (['cart', 'checkout'].includes(route[0])) tasks.push(() => invoke(window.LumoCommerce, 'refreshCart'));

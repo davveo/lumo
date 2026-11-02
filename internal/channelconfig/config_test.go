@@ -25,12 +25,26 @@ func TestCredentialsEncryptedMaskedRetainedAndVersioned(t *testing.T) {
 	if e = adminconfig.Migrate(ctx, db); e != nil {
 		t.Fatal(e)
 	}
-	schema := Schema{ID: "qq", Name: "QQ", Fields: []Field{{Key: "app_id", Label: "应用", Required: true}, {Key: "app_secret", Label: "密钥", Secret: true, Required: true}}}
+	schema := Schema{
+		ID:   "qq",
+		Name: "QQ",
+		Fields: []Field{
+			{Key: "app_id", Label: "应用", Required: true},
+			{Key: "app_secret", Label: "密钥", Secret: true, Required: true},
+		},
+	}
 	current, e := Read(ctx, db, "iam-qq", map[string]string{"app_id": "env-app", "app_secret": "env-private-secret"})
 	if e != nil {
 		t.Fatal(e)
 	}
-	c := platform.Request{UserID: "admin", Data: map[string]any{"values": map[string]string{"app_id": "new-app", "app_secret": "saved-private-secret"}, "version": 0, "reason": "配置渠道"}}
+	c := platform.Request{
+		UserID: "admin",
+		Data: map[string]any{
+			"values":  map[string]string{"app_id": "new-app", "app_secret": "saved-private-secret"},
+			"version": 0,
+			"reason":  "配置渠道",
+		},
+	}
 	next, e := Merge(schema, current, c)
 	if e != nil {
 		t.Fatal(e)
@@ -50,7 +64,8 @@ func TestCredentialsEncryptedMaskedRetainedAndVersioned(t *testing.T) {
 	var changes []adminconfig.Change
 	db.WithContext(ctx).Find(&changes)
 	audit, _ := json.Marshal(changes)
-	if strings.Contains(doc.Payload, "saved-private-secret") || strings.Contains(string(audit), "saved-private-secret") {
+	if strings.Contains(doc.Payload, "saved-private-secret") ||
+		strings.Contains(string(audit), "saved-private-secret") {
 		t.Fatal("credential stored without encryption")
 	}
 	current, e = Read(ctx, db, "iam-qq", nil)

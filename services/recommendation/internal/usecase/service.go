@@ -359,7 +359,17 @@ func (s *Service) rank(
 	if ctx.Err() != nil {
 		return nil, nil, status.FromContextError(ctx.Err()).Err()
 	}
-	items := rankProducts(sellable, profile, contextProduct, contextOrder, metadata, in.Scene, in.Limit, time.Now(), policy)
+	items := rankProducts(
+		sellable,
+		profile,
+		contextProduct,
+		contextOrder,
+		metadata,
+		in.Scene,
+		in.Limit,
+		time.Now(),
+		policy,
+	)
 	if ctx.Err() != nil {
 		return nil, nil, status.FromContextError(ctx.Err()).Err()
 	}
@@ -428,52 +438,44 @@ func (s *Service) readSignals(ctx context.Context, c platform.Request) (signalRo
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 	clients := platform.NewClients(s.rpc)
-	reads := []struct {
-		operation   platform.Operation
-		data        map[string]any
-		destination *[]map[string]any
-	}{
-		{
-			clients.Engagement.List,
-			map[string]any{"kind": constants.RecommendationSignalFavorite, "limit": 100},
-			&out.Favorite,
-		},
-		{
-			clients.Engagement.List,
-			map[string]any{"kind": constants.RecommendationSignalHistory, "limit": 100},
-			&out.History,
-		},
-		{
-			clients.Engagement.List,
-			map[string]any{"kind": constants.RecommendationSignalCompare, "limit": 100},
-			&out.Compare,
-		},
-		{
-			clients.Engagement.List,
-			map[string]any{"kind": constants.RecommendationSignalSearch, "limit": 100},
-			&out.Search,
-		},
-		{clients.Order.List, map[string]any{"limit": 100}, &out.Orders},
+	read := func(operation platform.Operation, data map[string]any, destination *[]map[string]any) {
+		defer wg.Done()
+		rows, err := s.peerRows(
+			ctx,
+			operation,
+			platform.Request{UserID: c.UserID, Role: constants.RoleUser, Data: data},
+		)
+		mu.Lock()
+		defer mu.Unlock()
+		if err != nil {
+			degraded = true
+			return
+		}
+		*destination = rows
 	}
-	for _, read := range reads {
-		read := read
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			rows, err := s.peerRows(
-				ctx,
-				read.operation,
-				platform.Request{UserID: c.UserID, Role: constants.RoleUser, Data: read.data},
-			)
-			mu.Lock()
-			defer mu.Unlock()
-			if err != nil {
-				degraded = true
-				return
-			}
-			*read.destination = rows
-		}()
-	}
+	wg.Add(5)
+	go read(
+		clients.Engagement.List,
+		map[string]any{"kind": constants.RecommendationSignalFavorite, "limit": 100},
+		&out.Favorite,
+	)
+	go read(
+		clients.Engagement.List,
+		map[string]any{"kind": constants.RecommendationSignalHistory, "limit": 100},
+		&out.History,
+	)
+	go read(
+		clients.Engagement.List,
+		map[string]any{"kind": constants.RecommendationSignalCompare, "limit": 100},
+		&out.Compare,
+	)
+	go read(
+		clients.Engagement.List,
+		map[string]any{"kind": constants.RecommendationSignalSearch, "limit": 100},
+		&out.Search,
+	)
+	go read(clients.Order.List, map[string]any{"limit": 100}, &out.Orders)
+
 	wg.Wait()
 	return out, degraded
 }

@@ -12,7 +12,27 @@ import (
 )
 
 func legacyActor(command platform.Command) usecase.Actor {
-	return usecase.Actor{UserID: command.UserID, Role: command.Role}
+	return usecase.Actor{
+		UserID: command.UserID,
+		Role:   platform.StaffRoleAtBoundary(command.Role, "order", command.Action),
+	}
+}
+func (a legacyAdapter) batchGet(ctx context.Context, c platform.Command) (platform.Result, error) {
+	var input struct {
+		IDs []string `json:"ids"`
+	}
+	if err := platform.Decode(c.Data, &input); err != nil {
+		return nil, err
+	}
+	rows, err := a.service.BatchGet(ctx, legacyActor(c), input.IDs)
+	if err != nil {
+		return nil, err
+	}
+	items := []platform.Result{}
+	for _, row := range rows {
+		items = append(items, orderwire.Result(orderMessage(row)))
+	}
+	return platform.Result{"items": items}, nil
 }
 func legacyRequest(command platform.Command) usecase.OrderRequest {
 	return usecase.OrderRequest{Actor: legacyActor(command), ID: command.ID}
@@ -31,7 +51,7 @@ func legacyOrder(call func(context.Context, usecase.OrderRequest) (domain.Order,
 	}
 }
 func (a legacyAdapter) list(ctx context.Context, command platform.Command) (platform.Result, error) {
-	orders, err := a.service.List(ctx, legacyActor(command))
+	orders, page, err := a.service.ListPage(ctx, legacyActor(command), command.Data)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +59,8 @@ func (a legacyAdapter) list(ctx context.Context, command platform.Command) (plat
 	for _, order := range orders {
 		items = append(items, orderwire.Result(orderMessage(order)))
 	}
-	return platform.Result{"items": items}, nil
+	page["items"] = items
+	return page, nil
 }
 func (a legacyAdapter) create(ctx context.Context, command platform.Command) (platform.Result, error) {
 	quote, _ := json.Marshal(command.Data["quote"])

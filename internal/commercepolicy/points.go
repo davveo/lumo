@@ -23,7 +23,12 @@ func (p Points) Limit(subtotal int64) int64 {
 }
 func (p Points) Reward(amount int64) int64 { return amount / 100 * p.RewardPerYuan }
 func ReadPoints(ctx context.Context, caller platform.Caller) (Points, error) {
-	value, e := platform.NewClients(caller).Points.PolicyGet(ctx, platform.Request{UserID: constants.RoleSystem, Role: constants.RoleSystem})
+	value, e := platform.NewClients(
+		caller,
+	).Points.PolicyGet(
+		ctx,
+		platform.Request{UserID: constants.RoleSystem, Role: constants.RoleSystem},
+	)
 	if e != nil {
 		return Points{}, e
 	}

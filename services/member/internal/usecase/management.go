@@ -31,7 +31,8 @@ func (s *Service) PolicyUpsert(ctx context.Context, c platform.Request) (spanRes
 	if e := platform.Decode(c.Data, &in); e != nil {
 		return nil, e
 	}
-	if in.Config.GoldGrowth < 1 || in.Config.GoldGrowth > 1000000000 || in.Config.GrowthSpendCents < 1 || in.Config.GrowthSpendCents > 1000000000 {
+	if in.Config.GoldGrowth < 1 || in.Config.GoldGrowth > 1000000000 || in.Config.GrowthSpendCents < 1 ||
+		in.Config.GrowthSpendCents > 1000000000 {
 		return nil, bad("invalid membership growth rule")
 	}
 	return s.repo.PolicyUpsert(ctx, c, in.Config)

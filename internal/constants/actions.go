@@ -2,6 +2,36 @@ package constants
 
 // enum:Action
 const (
+	ActionReadSnapshot     = "read_snapshot"
+	ActionInspectReturns   = "inspect_returns"
+	ActionRestockBatch     = "restock_batch"
+	ActionSyncHistory      = "sync_history"
+	ActionTracking         = "tracking"
+	ActionTrackingUpdate   = "tracking_update"
+	ActionExceptions       = "exceptions"
+	ActionExceptionResolve = "exception_resolve"
+
+	ActionProcurementList    = "procurement_list"
+	ActionProcurementGet     = "procurement_get"
+	ActionProcurementCreate  = "procurement_create"
+	ActionProcurementApprove = "procurement_approve"
+	ActionProcurementReceive = "procurement_receive"
+	ActionProcurementCancel  = "procurement_cancel"
+
+	ActionImportPreview = "import_preview"
+	ActionImportCommit  = "import_commit"
+	ActionImportGet     = "import_get"
+
+	ActionStaffList            = "staff_list"
+	ActionStaffUpsert          = "staff_upsert"
+	ActionSecurityGet          = "security_get"
+	ActionPasswordChange       = "password_change"
+	ActionSecuritySend         = "security_send"
+	ActionSecurityVerify       = "security_verify"
+	ActionSessionRevoke        = "session_revoke"
+	ActionPasswordResetRequest = "password_reset_request"
+	ActionPasswordReset        = "password_reset"
+
 	ActionRegister                 = "register"
 	ActionProviderGet              = "provider_get"
 	ActionProviderUpsert           = "provider_upsert"

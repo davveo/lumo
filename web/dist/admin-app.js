@@ -17,6 +17,43 @@
     lastTrace = '',
     busy = false,
     epoch = 0;
+  let access = { role: '', permissions: [], can_export: false };
+  const allowedMenu = (key) =>
+    access.role === C.Role.Admin ||
+    access.permissions?.includes(
+      {
+        overview: 'management/dashboard',
+        orders: 'order/admin_list',
+        payments: 'payment/admin_list',
+        fulfillment: 'fulfillment/admin_list',
+        aftersales: 'aftersale/admin_list',
+        refunds: 'refund/admin_list',
+        invoices: 'invoice/admin_list',
+        reconciliation: 'reconciliation/admin_list',
+        inventory: 'inventory/admin_list',
+        stockwatch: 'inventory/admin_list',
+        products: 'catalog/admin_list',
+        coupons: 'coupon/templates_admin',
+        activities: 'campaign/admin_list',
+        categories: 'content/admin_upsert',
+        settings: 'content/admin_upsert',
+        popups: 'content/popup_list',
+        content: 'content/admin_list',
+        analytics: 'analytics/admin_list',
+        tickets: 'helpdesk/admin_list',
+        interactions: 'interaction/admin_list',
+        users: 'iam/admin_list',
+        points: 'points/admin_get',
+        messages: 'notification/templates_admin',
+        special: 'flash/admin_list',
+        productAlerts: 'engagement/admin_list',
+        recommendation: 'search/policy_upsert',
+        catalogImport: 'catalog/import_preview',
+        staff: 'iam/staff_list',
+        procurement: 'inventory/procurement_list',
+        shipments: 'logistics/exceptions',
+      }[key],
+    );
   const snapshots = new Map();
   const rowSnapshots = new Map();
   const listFilters = new Map();
@@ -52,12 +89,25 @@
   const groups = [
     ['总览', ['overview']],
     ['运行管理', ['tasks', 'audit']],
-    ['系统设置', ['paymentSettings', 'loginSettings']],
+    ['系统设置', ['paymentSettings', 'loginSettings', 'staff']],
     [
       '交易与履约',
-      ['orders', 'payments', 'fulfillment', 'aftersales', 'refunds', 'invoices', 'reconciliation', 'shipping'],
+      [
+        'orders',
+        'payments',
+        'fulfillment',
+        'shipments',
+        'aftersales',
+        'refunds',
+        'invoices',
+        'reconciliation',
+        'shipping',
+      ],
     ],
-    ['商品与库存', ['products', 'inventory', 'stockwatch', 'productAlerts', 'categories']],
+    [
+      '商品与库存',
+      ['products', 'catalogImport', 'procurement', 'inventory', 'stockwatch', 'productAlerts', 'categories'],
+    ],
     ['营销与装修', ['coupons', 'activities', 'special', 'recommendation', 'popups', 'settings']],
     ['运营与服务', ['users', 'points', 'content', 'messages', 'interactions', 'tickets', 'analytics']],
   ];
@@ -99,6 +149,10 @@
 
   const menus = [
     ['overview', '工作台'],
+    ['staff', '员工与权限'],
+    ['catalogImport', '商品批量导入'],
+    ['procurement', '采购与补货'],
+    ['shipments', '物流与异常件'],
     ['paymentSettings', '支付方式'],
     ['loginSettings', '登录方式'],
     ['productAlerts', '购物提醒'],
@@ -216,6 +270,10 @@
     paymentSettings: window.LumoAccessAdmin?.create('paymentSettings'),
     loginSettings: window.LumoAccessAdmin?.create('loginSettings'),
     overview: window.LumoDashboardAdmin,
+    staff: window.LumoStaffAdmin,
+    catalogImport: window.LumoCatalogImportAdmin,
+    procurement: window.LumoProcurementAdmin,
+    shipments: window.LumoShipmentsAdmin,
     reconciliation: window.LumoManagementAdmin?.create('reconciliation') || window.LumoReconciliationAdmin,
     users: window.LumoUsersAdmin,
     inventory: window.LumoInventoryAdmin,
@@ -240,7 +298,7 @@
     ),
   };
   async function navigate(next, params = {}) {
-    if (!token || !menus.some(([key]) => key === next)) return;
+    if (!token || !menus.some(([key]) => key === next) || !allowedMenu(next)) return;
     const origin = scope();
     tab = next;
     closeNavigation();
@@ -259,6 +317,8 @@
   for (const [key, editor] of Object.entries(editors))
     editor?.configure({
       isAdmin: () => !!token,
+      canExport: () => !!access.can_export,
+      can: (service, action) => access.role === C.Role.Admin || access.permissions?.includes(service + '/' + action),
       scope,
       call,
       draw: () => {
@@ -278,9 +338,11 @@
     $('#admin-nav-toggle').hidden = !token;
     $('#admin-nav').innerHTML = token
       ? groups
+          .filter(([, keys]) => keys.some(allowedMenu))
           .map(
             ([label, keys]) =>
               `<section class="admin-nav-group"><h2>${label}</h2>${keys
+                .filter(allowedMenu)
                 .map((key) => {
                   const name = menus.find(([id]) => id === key)[1];
                   return `<button class="admin-nav-btn ${tab === key ? 'active' : ''}" data-tab="${key}" ${tab === key ? 'aria-current="page"' : ''}>${icon(key)}<span>${name}</span></button>`;
@@ -288,7 +350,7 @@
                 .join('')}</section>`,
           )
           .join('') +
-        `<div class="admin-nav-bottom"><a class="admin-nav-btn" href="index.html#/editor">${icon('content')}<span>商品与页面编辑 ↗</span></a><a class="admin-nav-btn" href="index.html">${icon('arrow')}<span>返回商城</span></a></div>`
+        `<div class="admin-nav-bottom">${access.role === C.Role.Admin ? `<a class="admin-nav-btn" href="index.html#/editor">${icon('content')}<span>商品与页面编辑 ↗</span></a>` : ''}<a class="admin-nav-btn" href="index.html">${icon('arrow')}<span>返回商城</span></a></div>`
       : '';
   }
   function login() {
@@ -544,6 +606,7 @@
     }
   }
   async function load() {
+    if (token && !allowedMenu(tab)) tab = menus.find(([key]) => allowedMenu(key))?.[0] || 'overview';
     const revision = ++epoch;
     nav();
     if (!token) {
@@ -760,10 +823,11 @@
     try {
       if (form.id === 'admin-login') {
         const session = await API.call(C.Service.IAM, C.Action.Login, { data }, { auth: false, token: '' });
-        if (session.role !== C.Role.Admin) {
+        if (session.role !== C.Role.Admin && !session.staff) {
           await API.call(C.Service.IAM, C.Action.Logout, {}, { token: session.token });
           throw Error('此账号没有管理员权限');
         }
+        access = session;
         token = session.token;
         sessionStorage.setItem(tokenKey, token);
         form.reset();
@@ -806,7 +870,8 @@
       $('#admin-main').innerHTML = placeholder('profile', 1, '正在验证管理员会话');
       try {
         const principal = await call(C.Service.IAM, C.Action.Current);
-        if (principal.role !== C.Role.Admin) throw Error('管理员身份无效');
+        if (principal.role !== C.Role.Admin && !principal.staff) throw Error('员工身份无效');
+        access = principal;
       } catch (_) {
         token = '';
         sessionStorage.removeItem(tokenKey);

@@ -45,7 +45,11 @@ func (r *Repository) SavePopupSettings(ctx context.Context, v domain.PopupSettin
 		).
 		Error
 }
-func (r *Repository) PopupCampaigns(ctx context.Context, published bool) (spanResult0 []domain.PopupCampaign, spanErr0 error) {
+
+func (r *Repository) PopupCampaigns(
+	ctx context.Context,
+	published bool,
+) (spanResult0 []domain.PopupCampaign, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "content.repository.PopupCampaigns")
 	defer span.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -105,7 +109,11 @@ func (r *Repository) SavePopupCampaign(ctx context.Context, v *domain.PopupCampa
 		return nil
 	})
 }
-func (r *Repository) PopupVisitor(ctx context.Context, id, session string) (spanResult0 domain.PopupVisitor, spanErr0 error) {
+
+func (r *Repository) PopupVisitor(
+	ctx context.Context,
+	id, session string,
+) (spanResult0 domain.PopupVisitor, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "content.repository.PopupVisitor")
 	defer span.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()

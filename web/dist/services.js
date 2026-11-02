@@ -206,7 +206,11 @@
         authenticated && requested.has('messages')
           ? call(C.Service.Notification, C.Action.List, { data: { limit: 100 } })
           : null,
-        authenticated && requested.has('invoices') ? call(C.Service.Invoice, C.Action.List) : null,
+        authenticated && requested.has('invoices')
+          ? window.LumoAPI.listAll
+            ? window.LumoAPI.listAll(C.Service.Invoice)
+            : call(C.Service.Invoice, C.Action.List)
+          : null,
         authenticated && requested.has('tickets')
           ? call(C.Service.Helpdesk, C.Action.List, { data: { limit: 100 } })
           : null,
@@ -922,6 +926,13 @@
     }
   });
   window.LumoServices = {
+    applyPush(data) {
+      if (!loggedIn()) return;
+      if (memoryScope !== serviceScope()) reset();
+      memory.unreadTotal = Number(data.unread_total) || 0;
+      if (location.hash.startsWith('#/member/messages')) void refreshForView(true).catch(() => {});
+      redraw();
+    },
     readState,
     openFeedback: () => {
       if (guard('#/member/support')) newTicket(true);

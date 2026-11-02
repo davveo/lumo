@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/davveo/lumo/internal/constants"
 	"time"
@@ -85,6 +86,12 @@ func (s *Service) AcceptPayment(
 			return err
 		}
 		if emit != "" {
+			var snapshot struct {
+				Items []map[string]any `json:"items"`
+			}
+			if err := json.Unmarshal([]byte(order.Quote), &snapshot); err != nil {
+				return err
+			}
 			return tx.Emit(
 				platform.Event{
 					ID:          emit + "-" + request.PaymentID,
@@ -92,6 +99,8 @@ func (s *Service) AcceptPayment(
 					AggregateID: order.ID,
 					UserID:      order.UserID,
 					Data: map[string]any{
+						"occurred_at":  time.Now().UTC().Format(time.RFC3339Nano),
+						"items":        snapshot.Items,
 						"order_id":     order.ID,
 						"payment_id":   request.PaymentID,
 						"amount_cents": request.AmountCents,

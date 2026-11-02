@@ -228,7 +228,12 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 		return nil, status.Error(codes.FailedPrecondition, "group must use its group campaign")
 	}
 	if kind == constants.CampaignKindFlash {
-		session, e := platform.NewClients(s.rpc).Flash.SessionGet(ctx, platform.Request{Data: map[string]any{"activity_id": in.Activity}})
+		session, e := platform.NewClients(
+			s.rpc,
+		).Flash.SessionGet(
+			ctx,
+			platform.Request{Data: map[string]any{"activity_id": in.Activity}},
+		)
 		if e != nil {
 			return nil, e
 		}
@@ -253,7 +258,15 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 	var couponDiscount int64
 	if in.Group == "" && kind != constants.CampaignKindFlash && kind != constants.CampaignKindGroup {
 		var e error
-		in.CouponID, couponDiscount, couponOptions, e = s.chooseCoupon(ctx, c, in.CouponMode, in.CouponID, mainSubtotal, subtotal-discount, couponItems)
+		in.CouponID, couponDiscount, couponOptions, e = s.chooseCoupon(
+			ctx,
+			c,
+			in.CouponMode,
+			in.CouponID,
+			mainSubtotal,
+			subtotal-discount,
+			couponItems,
+		)
 		if e != nil {
 			return nil, e
 		}
@@ -299,13 +312,27 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 		shippingAddress = value
 	}
 	if id := platform.Text(c.Data, "address_id"); id != "" {
-		value, err := platform.NewClients(s.rpc).Address.Get(ctx, platform.Request{ID: id, UserID: c.UserID, Role: c.Role})
+		value, err := platform.NewClients(
+			s.rpc,
+		).Address.Get(
+			ctx,
+			platform.Request{ID: id, UserID: c.UserID, Role: c.Role},
+		)
 		if err != nil {
 			return nil, err
 		}
 		shippingAddress = map[string]any(value)
 	}
-	shipping, e := platform.NewClients(s.rpc).Logistics.Quote(ctx, platform.Request{UserID: constants.RoleSystem, Role: constants.RoleSystem, Data: map[string]any{"address": shippingAddress, "subtotal_cents": subtotal, "quantity": quantity}})
+	shipping, e := platform.NewClients(
+		s.rpc,
+	).Logistics.Quote(
+		ctx,
+		platform.Request{
+			UserID: constants.RoleSystem,
+			Role:   constants.RoleSystem,
+			Data:   map[string]any{"address": shippingAddress, "subtotal_cents": subtotal, "quantity": quantity},
+		},
+	)
 	if e != nil {
 		return nil, e
 	}

@@ -9,6 +9,15 @@ import (
 // New binds transport operations to independent business methods.
 func New(s *usecase.Service) *platform.MethodHandler {
 	return platform.NewMethodHandler(constants.ServiceIAM, map[string]platform.Operation{
+		constants.ActionStaffList: s.StaffList, constants.ActionStaffUpsert: s.StaffUpsert,
+		constants.ActionSecurityGet:          s.SecurityGet,
+		constants.ActionPasswordChange:       s.PasswordChange,
+		constants.ActionSecuritySend:         s.SecuritySend,
+		constants.ActionSecurityVerify:       s.SecurityVerify,
+		constants.ActionSessionRevoke:        s.SessionRevoke,
+		constants.ActionPasswordResetRequest: s.PasswordResetRequest,
+		constants.ActionPasswordReset:        s.PasswordReset,
+
 		constants.ActionProviderGet: s.ProviderGet, constants.ActionProviderUpsert: s.ProviderUpsert, constants.ActionOAuthStart: s.OAuthStart, constants.ActionOAuthCallback: s.OAuthCallback, constants.ActionLoginMethods: s.LoginMethods, constants.ActionPolicyGet: s.PolicyGet, constants.ActionPolicyUpsert: s.PolicyUpsert, constants.ActionOtpSend: s.OtpSend, constants.ActionOtpLogin: s.OtpLogin,
 		constants.ActionAuditList: s.AuditList, constants.ActionAdminGet: s.AdminGet,
 		constants.ActionSetActive:    s.SetActive,

@@ -29,7 +29,8 @@ compose() {
     -f "$PROJECT_DIR/compose.yaml" "$@"
 }
 fingerprint() {
-  LUMO_WEB_BASE_IMAGE="$WEB_BASE_IMAGE" sh "$PROJECT_DIR/scripts/source-fingerprint.sh" "$1"
+  LUMO_WEB_BASE_IMAGE="$WEB_BASE_IMAGE" LUMO_WEB_NODE_IMAGE="$WEB_NODE_IMAGE" \
+    sh "$PROJECT_DIR/scripts/source-fingerprint.sh" "$1"
 }
 cleanup() {
   result=$?
@@ -74,13 +75,18 @@ compose config | awk '
   active && name=="web" && /^        NGINX_IMAGE:/ {
     base=$2; gsub(/"/, "", base); print "@web-base", base
   }
+  active && name=="web" && /^        NODE_IMAGE:/ {
+    base=$2; gsub(/"/, "", base); print "@web-node", base
+  }
 ' >"$RUN_DIR/images"
 APP_IMAGE=$(awk '$1=="gateway"{print $2;exit}' "$RUN_DIR/images")
 WEB_IMAGE=$(awk '$1=="web"{print $2;exit}' "$RUN_DIR/images")
 WEB_BASE_IMAGE=$(awk '$1=="@web-base"{print $2;exit}' "$RUN_DIR/images")
+WEB_NODE_IMAGE=$(awk '$1=="@web-node"{print $2;exit}' "$RUN_DIR/images")
 MINIO_IMAGE=$(awk '$1=="minio"{print $2;exit}' "$RUN_DIR/images")
 [ -n "$APP_IMAGE" ] && [ -n "$WEB_IMAGE" ] && [ -n "$MINIO_IMAGE" ] || fail '无法读取Compose后端/前端/MinIO镜像名'
 [ -n "$WEB_BASE_IMAGE" ] || fail '无法读取Compose前端Nginx基础镜像'
+[ -n "$WEB_NODE_IMAGE" ] || fail '无法读取Compose前端Node构建镜像'
 config_hash() { awk -v name="$1" '$1==name{print $2;exit}' "$RUN_DIR/config.hashes"; }
 container() {
   SERVICE_ID=$(compose ps --all -q "$1") || fail "无法读取$1容器"

@@ -98,6 +98,7 @@ function setup(file, backend) {
   };
   vm.createContext(ctx);
   require('./load-constants.cjs')(ctx, source);
+  if (file === 'editor.js') vm.runInContext(fs.readFileSync(source + 'storefront-settings.js', 'utf8'), ctx);
   vm.runInContext(fs.readFileSync(source + file, 'utf8'), ctx);
   return {
     ctx,

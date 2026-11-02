@@ -15,7 +15,9 @@ func (s *Service) AdminList(ctx context.Context, c platform.Request) (spanResult
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
-	if st := platform.Text(c.Data, "status"); st != "" && st != constants.HelpdeskStatusOpen && st != constants.HelpdeskStatusReplied && st != constants.HelpdeskStatusClosed {
+	if st := platform.Text(c.Data, "status"); st != "" && st != constants.HelpdeskStatusOpen &&
+		st != constants.HelpdeskStatusReplied &&
+		st != constants.HelpdeskStatusClosed {
 		return nil, bad("unsupported ticket status")
 	}
 	rows, total, f, e := s.repo.AdminList(ctx, c)

@@ -59,7 +59,35 @@ func businessNode(prefix string) (int64, error) {
 	// Types have distinct stable node bits; replicas of one domain additionally
 	// share the persisted cursor. An explicit node supports separately allocated
 	// writer groups without relying on a random or hashed machine identity.
-	known := []string{"ORD", "RFND", "PAY", "AFS", "INV", "SHP", "TRK", "GRP", "FLS", "QTE", "CPN", "ADR", "TKT", "MED", "RCN", "INS", "EXC", "RVW", "QST", "CNT", "POP", "CPT", "USR", "RVS", "ALT", "NTF", "STK"}
+	known := []string{
+		"ORD",
+		"RFND",
+		"PAY",
+		"AFS",
+		"INV",
+		"SHP",
+		"TRK",
+		"GRP",
+		"FLS",
+		"QTE",
+		"CPN",
+		"ADR",
+		"TKT",
+		"MED",
+		"RCN",
+		"INS",
+		"EXC",
+		"RVW",
+		"QST",
+		"CNT",
+		"POP",
+		"CPT",
+		"USR",
+		"RVS",
+		"ALT",
+		"NTF",
+		"STK",
+	}
 	if raw := os.Getenv("SNOWFLAKE_NODE_ID"); raw != "" {
 		n, e := strconv.ParseInt(raw, 10, 64)
 		if e != nil || n < 0 || n > 1023 {
@@ -129,7 +157,8 @@ func NextBusinessID(ctx context.Context, db *gorm.DB, prefix string) (string, er
 		return "", e
 	}
 	var id string
-	e = db.WithContext(ctx).Transaction(func(tx *gorm.DB) error { var err error; id, err = nextBusinessID(ctx, tx, canonical); return err })
+	e = db.WithContext(ctx).
+		Transaction(func(tx *gorm.DB) error { var err error; id, err = nextBusinessID(ctx, tx, canonical); return err })
 	return id, e
 }
 func assignmentKey(prefix, key string) string {
@@ -178,7 +207,11 @@ func ResolveBusinessID(ctx context.Context, db *gorm.DB, prefix, key, legacyID, 
 				return e
 			}
 		}
-		return tx.WithContext(ctx).Model(&BusinessIDAssignment{}).Where("`key` = ?", row.Key).Update("business_id", id).Error
+		return tx.WithContext(ctx).
+			Model(&BusinessIDAssignment{}).
+			Where("`key` = ?", row.Key).
+			Update("business_id", id).
+			Error
 	})
 	return id, e
 }

@@ -77,7 +77,10 @@ func (r *Repository) Get(ctx context.Context, id string) (spanResult0 platform.R
 }
 
 // ExistingCreate returns the immutable team before consulting a changed policy.
-func (r *Repository) ExistingCreate(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanResult1 bool, spanErr0 error) {
+func (r *Repository) ExistingCreate(
+	ctx context.Context,
+	c platform.Request,
+) (spanResult0 platform.Result, spanResult1 bool, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "group.repository.ExistingCreate")
 	defer span.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -129,7 +132,10 @@ func (r *Repository) Create(ctx context.Context, c platform.Request) (spanResult
 	}
 
 	t := domain.Team{
-		RuleID: platform.Text(c.Data, "rule_id"), ActivityID: platform.Text(c.Data, "activity_id"), RuleVersion: platform.Int(c.Data, "rule_version"),
+		RuleID: platform.Text(
+			c.Data,
+			"rule_id",
+		), ActivityID: platform.Text(c.Data, "activity_id"), RuleVersion: platform.Int(c.Data, "rule_version"),
 		ID:        id,
 		SKUID:     sku,
 		CreatorID: c.UserID,

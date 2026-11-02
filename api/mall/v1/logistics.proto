@@ -16,4 +16,8 @@ service LogisticsService {
   rpc Quote(ServiceRequest) returns (ServiceResponse);
   rpc PolicyGet(ServiceRequest) returns (ServiceResponse);
   rpc PolicyUpsert(ServiceRequest) returns (ServiceResponse);
+  rpc Tracking(ServiceRequest) returns (ServiceResponse);
+  rpc TrackingUpdate(ServiceRequest) returns (ServiceResponse);
+  rpc Exceptions(ServiceRequest) returns (ServiceResponse);
+  rpc ExceptionResolve(ServiceRequest) returns (ServiceResponse);
 }

@@ -13,6 +13,8 @@ const (
 
 // enum:AnalyticsBehavior
 const (
+	AnalyticsBehaviorAddCart    = "add_cart"
+	AnalyticsBehaviorCheckout   = "checkout"
 	AnalyticsBehaviorView       = "view"
 	AnalyticsBehaviorClick      = "click"
 	AnalyticsBehaviorImpression = "impression"

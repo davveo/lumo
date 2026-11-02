@@ -44,7 +44,10 @@ func WithAdministration(m Module, db *gorm.DB) Module {
 	if db == nil {
 		return m
 	}
-	m.Administration = map[string]Operation{constants.ActionTasks: func(ctx context.Context, c Request) (Result, error) { return serviceTasks(ctx, db, m.Name, c) }, constants.ActionRetry: func(ctx context.Context, c Request) (Result, error) { return retryServiceTask(ctx, db, m, c) }}
+	m.Administration = map[string]Operation{
+		constants.ActionTasks: func(ctx context.Context, c Request) (Result, error) { return serviceTasks(ctx, db, m.Name, c) },
+		constants.ActionRetry: func(ctx context.Context, c Request) (Result, error) { return retryServiceTask(ctx, db, m, c) },
+	}
 	original := m.Handle
 	m.Handle = func(ctx context.Context, c Command) (Result, error) {
 		if op := m.Administration[c.Action]; op != nil {
@@ -116,11 +119,27 @@ func serviceTasks(ctx context.Context, db *gorm.DB, name string, c Request) (Res
 	if state == "attention" {
 		switch kind {
 		case "outbox":
-			q = q.Where("state <> ? AND lease_until <= ? AND (attempts > 0 OR created_at < ?)", constants.OutboxStatePublished, now, now.Add(-5*time.Minute))
+			q = q.Where(
+				"state <> ? AND lease_until <= ? AND (attempts > 0 OR created_at < ?)",
+				constants.OutboxStatePublished,
+				now,
+				now.Add(-5*time.Minute),
+			)
 		case "inbox":
-			q = q.Where("state IN ? OR (state = ? AND lease_until <= ?)", []string{constants.InboxStateDead, constants.InboxStateRetry}, constants.InboxStateProcessing, now)
+			q = q.Where(
+				"state IN ? OR (state = ? AND lease_until <= ?)",
+				[]string{constants.InboxStateDead, constants.InboxStateRetry},
+				constants.InboxStateProcessing,
+				now,
+			)
 		case "recovery":
-			q = q.Where("state = ? OR (state = ? AND lease_until <= ? AND created_at < ?)", constants.InboxStateDead, constants.InboxStateRetry, now, now.Add(-5*time.Minute))
+			q = q.Where(
+				"state = ? OR (state = ? AND lease_until <= ? AND created_at < ?)",
+				constants.InboxStateDead,
+				constants.InboxStateRetry,
+				now,
+				now.Add(-5*time.Minute),
+			)
 		}
 	} else if state != "" && kind != "audit" {
 		q = q.Where("state = ?", state)
@@ -128,7 +147,12 @@ func serviceTasks(ctx context.Context, db *gorm.DB, name string, c Request) (Res
 	if keyword != "" {
 		pattern := "%" + strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(keyword) + "%"
 		if kind == "outbox" {
-			q = q.Where("id LIKE ? ESCAPE '!' OR event_type LIKE ? ESCAPE '!' OR payload_json LIKE ? ESCAPE '!'", pattern, pattern, pattern)
+			q = q.Where(
+				"id LIKE ? ESCAPE '!' OR event_type LIKE ? ESCAPE '!' OR payload_json LIKE ? ESCAPE '!'",
+				pattern,
+				pattern,
+				pattern,
+			)
 		} else if kind == "inbox" {
 			q = q.Where("event_id LIKE ? ESCAPE '!' OR payload_json LIKE ? ESCAPE '!'", pattern, pattern)
 		} else {
@@ -148,7 +172,21 @@ func serviceTasks(ctx context.Context, db *gorm.DB, name string, c Request) (Res
 			return nil, e
 		}
 		for _, v := range rows {
-			row := Result{"id": v.ID, "event_type": v.EventType, "state": v.State, "attempts": v.Attempts, "next_attempt_at": v.NextAttemptAt, "lease_until": v.LeaseUntil, "created_at": v.CreatedAt, "updated_at": v.UpdatedAt, "published_at": v.PublishedAt, "last_error_code": v.LastErrorCode, "last_error_at": v.LastErrorAt, "retryable": (v.State == constants.OutboxStatePending || v.State == constants.OutboxStatePublishing) && !v.LeaseUntil.After(now)}
+			row := Result{
+				"id":              v.ID,
+				"event_type":      v.EventType,
+				"state":           v.State,
+				"attempts":        v.Attempts,
+				"next_attempt_at": v.NextAttemptAt,
+				"lease_until":     v.LeaseUntil,
+				"created_at":      v.CreatedAt,
+				"updated_at":      v.UpdatedAt,
+				"published_at":    v.PublishedAt,
+				"last_error_code": v.LastErrorCode,
+				"last_error_at":   v.LastErrorAt,
+				"retryable": (v.State == constants.OutboxStatePending || v.State == constants.OutboxStatePublishing) &&
+					!v.LeaseUntil.After(now),
+			}
 			items = append(items, describeTask(row, kind, name, v.PayloadJSON, v.CarrierJSON, now))
 		}
 	case "inbox":
@@ -157,7 +195,18 @@ func serviceTasks(ctx context.Context, db *gorm.DB, name string, c Request) (Res
 			return nil, e
 		}
 		for _, v := range rows {
-			row := Result{"id": v.EventID, "consumer": v.Consumer, "state": v.State, "attempts": v.Attempts, "updated_at": v.UpdatedAt, "lease_until": v.LeaseUntil, "last_error_code": v.LastErrorCode, "last_error_at": v.LastErrorAt, "retryable": v.PayloadJSON != "" && !v.LeaseUntil.After(now) && (v.State == constants.InboxStateDead || v.State == constants.InboxStateRetry || v.State == constants.InboxStateProcessing)}
+			row := Result{
+				"id":              v.EventID,
+				"consumer":        v.Consumer,
+				"state":           v.State,
+				"attempts":        v.Attempts,
+				"updated_at":      v.UpdatedAt,
+				"lease_until":     v.LeaseUntil,
+				"last_error_code": v.LastErrorCode,
+				"last_error_at":   v.LastErrorAt,
+				"retryable": v.PayloadJSON != "" && !v.LeaseUntil.After(now) &&
+					(v.State == constants.InboxStateDead || v.State == constants.InboxStateRetry || v.State == constants.InboxStateProcessing),
+			}
 			items = append(items, describeTask(row, kind, name, v.PayloadJSON, v.CarrierJSON, now))
 		}
 	case "recovery":
@@ -222,7 +271,9 @@ func retryServiceTask(ctx context.Context, db *gorm.DB, m Module, c Request) (Re
 	}
 	reason := strings.TrimSpace(Text(c.Data, "reason"))
 	kind := Text(c.Data, "kind")
-	if c.ID == "" || len([]rune(c.ID)) > 80 || c.IdempotencyKey == "" || len(c.IdempotencyKey) > 120 || reason == "" || len([]rune(reason)) > 240 || (kind != "outbox" && kind != "inbox") {
+	if c.ID == "" || len([]rune(c.ID)) > 80 || c.IdempotencyKey == "" || len(c.IdempotencyKey) > 120 || reason == "" ||
+		len([]rune(reason)) > 240 ||
+		(kind != "outbox" && kind != "inbox") {
 		return nil, status.Error(codes.InvalidArgument, "event id, kind, reason and idempotency key required")
 	}
 	hash := sha256.Sum256([]byte(c.UserID + ":" + c.IdempotencyKey))
@@ -240,7 +291,10 @@ func retryServiceTask(ctx context.Context, db *gorm.DB, m Module, c Request) (Re
 		}
 		now := time.Now().UTC()
 		if kind == "outbox" {
-			v := tx.WithContext(ctx).Model(&Outbox{}).Where("id = ? AND state IN ? AND lease_until <= ?", c.ID, []string{constants.OutboxStatePending, constants.OutboxStatePublishing}, now).Updates(map[string]any{"state": constants.OutboxStatePending, "next_attempt_at": now, "claim_token": "", "lease_until": now})
+			v := tx.WithContext(ctx).
+				Model(&Outbox{}).
+				Where("id = ? AND state IN ? AND lease_until <= ?", c.ID, []string{constants.OutboxStatePending, constants.OutboxStatePublishing}, now).
+				Updates(map[string]any{"state": constants.OutboxStatePending, "next_attempt_at": now, "claim_token": "", "lease_until": now})
 			if v.Error != nil {
 				return v.Error
 			}
@@ -262,7 +316,9 @@ func retryServiceTask(ctx context.Context, db *gorm.DB, m Module, c Request) (Re
 				return e
 			}
 		}
-		return tx.WithContext(ctx).Create(&TaskAudit{ID: id, EventID: c.ID, Kind: kind, ActorID: c.UserID, Reason: reason}).Error
+		return tx.WithContext(ctx).
+			Create(&TaskAudit{ID: id, EventID: c.ID, Kind: kind, ActorID: c.UserID, Reason: reason}).
+			Error
 	})
 	return Result{"id": id, "event_id": c.ID, "queued": e == nil}, e
 }
@@ -274,7 +330,11 @@ func processRecovery(ctx context.Context, db *gorm.DB, m Module) error {
 	defer sp.End()
 	var job Recovery
 	now := time.Now().UTC()
-	e := db.WithContext(ctx).Where("state = ? AND lease_until <= ?", constants.InboxStateRetry, now).Order("created_at").First(&job).Error
+	e := db.WithContext(ctx).
+		Where("state = ? AND lease_until <= ?", constants.InboxStateRetry, now).
+		Order("created_at").
+		First(&job).
+		Error
 	if errors.Is(e, gorm.ErrRecordNotFound) {
 		return nil
 	}
@@ -282,7 +342,10 @@ func processRecovery(ctx context.Context, db *gorm.DB, m Module) error {
 		return e
 	}
 	token := ID("recovery-claim")
-	v := db.WithContext(ctx).Model(&Recovery{}).Where("id = ? AND state = ? AND lease_until <= ?", job.ID, constants.InboxStateRetry, now).Updates(map[string]any{"claim": token, "lease_until": now.Add(time.Minute)})
+	v := db.WithContext(ctx).
+		Model(&Recovery{}).
+		Where("id = ? AND state = ? AND lease_until <= ?", job.ID, constants.InboxStateRetry, now).
+		Updates(map[string]any{"claim": token, "lease_until": now.Add(time.Minute)})
 	if v.Error != nil {
 		return v.Error
 	}
@@ -290,7 +353,11 @@ func processRecovery(ctx context.Context, db *gorm.DB, m Module) error {
 		return nil
 	}
 	finish := func(state, message string) error {
-		return db.WithContext(ctx).Model(&Recovery{}).Where("id = ? AND claim = ?", job.ID, token).Updates(map[string]any{"state": state, "error": message, "claim": ""}).Error
+		return db.WithContext(ctx).
+			Model(&Recovery{}).
+			Where("id = ? AND claim = ?", job.ID, token).
+			Updates(map[string]any{"state": state, "error": message, "claim": ""}).
+			Error
 	}
 	var in Inbox
 	if e = db.WithContext(ctx).Where("consumer = ? AND event_id = ?", m.Name, job.EventID).First(&in).Error; e != nil {
@@ -303,11 +370,15 @@ func processRecovery(ctx context.Context, db *gorm.DB, m Module) error {
 		return nil
 	}
 	var event Event
-	if json.Unmarshal([]byte(in.PayloadJSON), &event) != nil || validateEventMetadata(event) != nil || !moduleWants(m, event.Type) {
+	if json.Unmarshal([]byte(in.PayloadJSON), &event) != nil || validateEventMetadata(event) != nil ||
+		!moduleWants(m, event.Type) {
 		return finish(constants.InboxStateDead, "event envelope is not replayable")
 	}
 	if in.State == constants.InboxStateDead {
-		v := db.WithContext(ctx).Model(&Inbox{}).Where("consumer = ? AND event_id = ? AND state = ? AND claim_token = ?", m.Name, in.EventID, in.State, in.ClaimToken).Update("state", constants.InboxStateRetry)
+		v := db.WithContext(ctx).
+			Model(&Inbox{}).
+			Where("consumer = ? AND event_id = ? AND state = ? AND claim_token = ?", m.Name, in.EventID, in.State, in.ClaimToken).
+			Update("state", constants.InboxStateRetry)
 		if v.Error != nil {
 			return v.Error
 		}

@@ -21,8 +21,21 @@ func (r *Repository) Policy(ctx context.Context) (commercepolicy.Points, error) 
 	v.Version = version
 	return v, e
 }
-func (r *Repository) PolicyUpsert(ctx context.Context, c platform.Request, p commercepolicy.Points) (platform.Result, error) {
-	return adminconfig.Save(ctx, r.DB, "points-policy", p, platform.Int(c.Data, "version"), c.UserID, platform.Text(c.Data, "reason"))
+
+func (r *Repository) PolicyUpsert(
+	ctx context.Context,
+	c platform.Request,
+	p commercepolicy.Points,
+) (platform.Result, error) {
+	return adminconfig.Save(
+		ctx,
+		r.DB,
+		"points-policy",
+		p,
+		platform.Int(c.Data, "version"),
+		c.UserID,
+		platform.Text(c.Data, "reason"),
+	)
 }
 func (r *Repository) AdminGet(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "points.repository.AdminGet")
@@ -42,7 +55,12 @@ func (r *Repository) Ledger(ctx context.Context, c platform.Request) (spanResult
 	defer sp.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
 
-	rows, total, f, e := adminquery.Page[domain.Ledger](ctx, r.DB.WithContext(ctx).Where("user_id = ?", c.ID), c.Data, adminquery.Spec{State: "kind", Search: []string{"id", "order_id", "reason", "actor_id"}})
+	rows, total, f, e := adminquery.Page[domain.Ledger](
+		ctx,
+		r.DB.WithContext(ctx).Where("user_id = ?", c.ID),
+		c.Data,
+		adminquery.Spec{State: "kind", Search: []string{"id", "order_id", "reason", "actor_id"}},
+	)
 	return adminquery.Result(rows, total, f), e
 }
 func (r *Repository) Adjust(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
@@ -58,8 +76,16 @@ func (r *Repository) Adjust(ctx context.Context, c platform.Request) (spanResult
 	if e := platform.Decode(c.Data, &input); e != nil {
 		return nil, e
 	}
-	if c.ID == "" || len(c.ID) > 80 || c.IdempotencyKey == "" || len(c.IdempotencyKey) > 120 || amount == 0 || amount < -1000000 || amount > 1000000 || reason == "" || len([]rune(reason)) > 240 || input.Expected == nil {
-		return nil, status.Error(codes.InvalidArgument, "member, nonzero adjustment up to 1000000, expected balance, reason and idempotency key required")
+	if c.ID == "" || len(c.ID) > 80 || c.IdempotencyKey == "" || len(c.IdempotencyKey) > 120 || amount == 0 ||
+		amount < -1000000 ||
+		amount > 1000000 ||
+		reason == "" ||
+		len([]rune(reason)) > 240 ||
+		input.Expected == nil {
+		return nil, status.Error(
+			codes.InvalidArgument,
+			"member, nonzero adjustment up to 1000000, expected balance, reason and idempotency key required",
+		)
 	}
 	hash := sha256.Sum256([]byte(c.UserID + "\x00" + c.IdempotencyKey))
 	id := fmt.Sprintf("manual:%x", hash[:16])
@@ -82,7 +108,10 @@ func (r *Repository) Adjust(ctx context.Context, c platform.Request) (spanResult
 			return status.Error(codes.Aborted, "points balance changed; reload before adjusting")
 		}
 		if amount < 0 && a.Available < -amount {
-			return status.Error(codes.FailedPrecondition, "cannot deduct frozen points or create a negative available balance")
+			return status.Error(
+				codes.FailedPrecondition,
+				"cannot deduct frozen points or create a negative available balance",
+			)
 		}
 		if a.Available > 9007199254740991-amount {
 			return status.Error(codes.OutOfRange, "points balance exceeds supported range")
@@ -101,7 +130,9 @@ func (r *Repository) Adjust(ctx context.Context, c platform.Request) (spanResult
 		if e = tx.WithContext(ctx).Model(&domain.Account{}).Where("user_id = ?", c.ID).Updates(map[string]any{"available": a.Available + credited, "debt": debt}).Error; e != nil {
 			return e
 		}
-		return tx.WithContext(ctx).Create(&domain.Ledger{ID: id, UserID: c.ID, Amount: amount, Kind: constants.PointsLedgerKindManual, ActorID: c.UserID, Reason: reason}).Error
+		return tx.WithContext(ctx).
+			Create(&domain.Ledger{ID: id, UserID: c.ID, Amount: amount, Kind: constants.PointsLedgerKindManual, ActorID: c.UserID, Reason: reason}).
+			Error
 	})
 	if e != nil {
 		return nil, e

@@ -18,6 +18,7 @@ type Record struct {
 	// MySQL owns this generated, indexed projection. The explicit repository
 	// migration verifies its expression; GORM must never write or alter it.
 	SearchCategoryV1 string `gorm:"column:search_category_v1;->;-:migration" json:"-"`
+	SearchSortValue  int64  `gorm:"column:search_sort_value;->;-:migration" json:"-"`
 }
 
 func (Record) TableName() string { return "catalog_records" }

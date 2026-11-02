@@ -275,7 +275,12 @@ func (r *Repository) Confirm(ctx context.Context, c platform.Request) (platform.
 func (r *Repository) Cancel(ctx context.Context, c platform.Request) (platform.Result, error) {
 	return r.transition(ctx, c, constants.CampaignHoldStateCancelled)
 }
-func (r *Repository) transition(ctx context.Context, c platform.Request, target string) (spanResult0 platform.Result, spanErr0 error) {
+
+func (r *Repository) transition(
+	ctx context.Context,
+	c platform.Request,
+	target string,
+) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.campaign.transition."+target)
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()

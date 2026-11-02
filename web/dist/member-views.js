@@ -364,7 +364,7 @@
       )
       .join(
         '',
-      )}</section><section class="mem-panel"><div class="mem-section-head"><h2>账户与服务</h2></div><div class="mem-setting-row"><div><h3>收货地址管理</h3><p>维护常用地址，结算时一键选择。</p></div>${smallLink('#/member/addresses', '管理地址')}</div><div class="mem-setting-row"><div><h3>隐私与数据</h3><p>个人资料、地址与订单保存在服务端账户中。</p></div><button class="mem-text-button" data-action="privacy">查看说明${icon('chevron')}</button></div><div class="mem-setting-row"><div><h3>购物帮助</h3><p>了解订单、优惠、积分和售后规则。</p></div>${button('帮助中心', 'service-help', '', false, 'data-value="faq"')}</div></section><section class="mem-panel auth-exit-panel"><div><h2>登录管理</h2><p>退出会撤销当前服务端会话；再次登录后可查看账户记录。</p></div><button class="mem-outline" data-auth-action="logout">退出登录</button></section>`;
+      )}</section><section class="mem-panel"><div class="mem-section-head"><h2>账户与服务</h2></div><div class="mem-setting-row"><div><h3>账号安全中心</h3><p>修改密码、验证联系方式与管理登录设备。</p></div><button class="mem-outline" data-security-action="open">管理账号安全</button></div><div class="mem-setting-row"><div><h3>收货地址管理</h3><p>维护常用地址，结算时一键选择。</p></div>${smallLink('#/member/addresses', '管理地址')}</div><div class="mem-setting-row"><div><h3>隐私与数据</h3><p>个人资料、地址与订单保存在服务端账户中。</p></div><button class="mem-text-button" data-action="privacy">查看说明${icon('chevron')}</button></div><div class="mem-setting-row"><div><h3>购物帮助</h3><p>了解订单、优惠、积分和售后规则。</p></div>${button('帮助中心', 'service-help', '', false, 'data-value="faq"')}</div></section><section class="mem-panel auth-exit-panel"><div><h2>登录管理</h2><p>退出会撤销当前服务端会话；再次登录后可查看账户记录。</p></div><button class="mem-outline" data-auth-action="logout">退出登录</button></section>`;
   }
   function page(tab = 'overview', filter = 'all') {
     if (!member()) return '';

@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	DomainService_Execute_FullMethodName = "/mall.v1.DomainService/Execute"
+	DomainService_Execute_FullMethodName      = "/mall.v1.DomainService/Execute"
+	DomainService_ReadSnapshot_FullMethodName = "/mall.v1.DomainService/ReadSnapshot"
 )
 
 // DomainServiceClient is the client API for DomainService service.
@@ -27,6 +28,9 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DomainServiceClient interface {
 	Execute(ctx context.Context, in *Command, opts ...grpc.CallOption) (*Result, error)
+	// Transport-only coalescing for explicitly allowed local reads. A child may
+	// not call another domain; derived reads use independent named RPC methods.
+	ReadSnapshot(ctx context.Context, in *Command, opts ...grpc.CallOption) (*Result, error)
 }
 
 type domainServiceClient struct {
@@ -46,11 +50,23 @@ func (c *domainServiceClient) Execute(ctx context.Context, in *Command, opts ...
 	return out, nil
 }
 
+func (c *domainServiceClient) ReadSnapshot(ctx context.Context, in *Command, opts ...grpc.CallOption) (*Result, error) {
+	out := new(Result)
+	err := c.cc.Invoke(ctx, DomainService_ReadSnapshot_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DomainServiceServer is the server API for DomainService service.
 // All implementations must embed UnimplementedDomainServiceServer
 // for forward compatibility
 type DomainServiceServer interface {
 	Execute(context.Context, *Command) (*Result, error)
+	// Transport-only coalescing for explicitly allowed local reads. A child may
+	// not call another domain; derived reads use independent named RPC methods.
+	ReadSnapshot(context.Context, *Command) (*Result, error)
 	mustEmbedUnimplementedDomainServiceServer()
 }
 
@@ -60,6 +76,9 @@ type UnimplementedDomainServiceServer struct {
 
 func (UnimplementedDomainServiceServer) Execute(context.Context, *Command) (*Result, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Execute not implemented")
+}
+func (UnimplementedDomainServiceServer) ReadSnapshot(context.Context, *Command) (*Result, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReadSnapshot not implemented")
 }
 func (UnimplementedDomainServiceServer) mustEmbedUnimplementedDomainServiceServer() {}
 
@@ -92,6 +111,24 @@ func _DomainService_Execute_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DomainService_ReadSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Command)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DomainServiceServer).ReadSnapshot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DomainService_ReadSnapshot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DomainServiceServer).ReadSnapshot(ctx, req.(*Command))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DomainService_ServiceDesc is the grpc.ServiceDesc for DomainService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -102,6 +139,10 @@ var DomainService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Execute",
 			Handler:    _DomainService_Execute_Handler,
+		},
+		{
+			MethodName: "ReadSnapshot",
+			Handler:    _DomainService_ReadSnapshot_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

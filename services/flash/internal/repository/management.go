@@ -20,15 +20,29 @@ func (r *Repository) AdminList(ctx context.Context, c platform.Request) (spanRes
 	defer sp.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
 
-	rows, total, f, err := adminquery.Page[domain.Session](ctx, r.DB, c.Data, adminquery.Spec{State: "active", Search: []string{"id", "name", "sku_id", "activity_id"}})
+	rows, total, f, err := adminquery.Page[domain.Session](
+		ctx,
+		r.DB,
+		c.Data,
+		adminquery.Spec{State: "active", Search: []string{"id", "name", "sku_id", "activity_id"}},
+	)
 	return adminquery.Result(rows, total, f), err
 }
-func (r *Repository) RequestsAdmin(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
+
+func (r *Repository) RequestsAdmin(
+	ctx context.Context,
+	c platform.Request,
+) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "flash.repository.RequestsAdmin")
 	defer sp.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
 
-	rows, total, f, err := adminquery.Page[domain.Request](ctx, r.DB, c.Data, adminquery.Spec{State: "state", Search: []string{"id", "user_id", "order_id", "session_id", "error"}})
+	rows, total, f, err := adminquery.Page[domain.Request](
+		ctx,
+		r.DB,
+		c.Data,
+		adminquery.Spec{State: "state", Search: []string{"id", "user_id", "order_id", "session_id", "error"}},
+	)
 	return adminquery.Result(rows, total, f), err
 }
 func (r *Repository) SessionForActivity(ctx context.Context, id string) (spanResult0 domain.Session, spanErr0 error) {
@@ -43,7 +57,12 @@ func (r *Repository) SessionForActivity(ctx context.Context, id string) (spanRes
 	}
 	return row, err
 }
-func (r *Repository) Upsert(ctx context.Context, next domain.Session, actor, reason string) (spanResult0 platform.Result, spanErr0 error) {
+
+func (r *Repository) Upsert(
+	ctx context.Context,
+	next domain.Session,
+	actor, reason string,
+) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "flash.repository.Upsert")
 	defer sp.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -83,7 +102,9 @@ func (r *Repository) Upsert(ctx context.Context, next domain.Session, actor, rea
 		}
 		before, _ := json.Marshal(old)
 		after, _ := json.Marshal(next)
-		return tx.WithContext(ctx).Create(&adminconfig.Change{ID: platform.ID("flash-change"), DocumentID: next.ID, Version: next.Version, ActorID: actor, Reason: reason, Before: string(before), After: string(after)}).Error
+		return tx.WithContext(ctx).
+			Create(&adminconfig.Change{ID: platform.ID("flash-change"), DocumentID: next.ID, Version: next.Version, ActorID: actor, Reason: reason, Before: string(before), After: string(after)}).
+			Error
 	})
 	return platform.Map(next), err
 }

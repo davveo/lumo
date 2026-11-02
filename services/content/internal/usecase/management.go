@@ -12,7 +12,9 @@ import (
 
 func visibleContent(r domain.Record) bool {
 	now := time.Now().UTC()
-	return (r.Status == constants.ContentStatusPublished || (r.Status == constants.ContentStatusScheduled && r.PublishAt != nil && !now.Before(*r.PublishAt))) && (r.PublishAt == nil || !now.Before(*r.PublishAt)) && (r.UnpublishAt == nil || now.Before(*r.UnpublishAt))
+	return (r.Status == constants.ContentStatusPublished || (r.Status == constants.ContentStatusScheduled && r.PublishAt != nil && !now.Before(*r.PublishAt))) &&
+		(r.PublishAt == nil || !now.Before(*r.PublishAt)) &&
+		(r.UnpublishAt == nil || now.Before(*r.UnpublishAt))
 }
 func (s *Service) AdminList(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "content.usecase.AdminList")
@@ -49,7 +51,16 @@ func (s *Service) AdminUpsert(ctx context.Context, c platform.Request) (spanResu
 	if e := platform.Decode(c.Data, &in); e != nil {
 		return nil, e
 	}
-	if c.ID == "storefront-main" || c.ID == categoryNavigationID || c.ID == "" || len(c.ID) > 128 || (in.Kind != constants.ContentKindNotice && in.Kind != constants.ContentKindFaq) || strings.TrimSpace(in.Title) == "" || len([]rune(in.Title)) > 120 || strings.TrimSpace(in.Body) == "" || len(in.Body) > 20000 || in.Version < 0 || in.Version > 9007199254740990 || strings.TrimSpace(in.Reason) == "" || len([]rune(in.Reason)) > 240 {
+	if c.ID == "storefront-main" || c.ID == categoryNavigationID || c.ID == "" || len(c.ID) > 128 ||
+		(in.Kind != constants.ContentKindNotice && in.Kind != constants.ContentKindFaq) ||
+		strings.TrimSpace(in.Title) == "" ||
+		len([]rune(in.Title)) > 120 ||
+		strings.TrimSpace(in.Body) == "" ||
+		len(in.Body) > 20000 ||
+		in.Version < 0 ||
+		in.Version > 9007199254740990 ||
+		strings.TrimSpace(in.Reason) == "" ||
+		len([]rune(in.Reason)) > 240 {
 		return nil, bad("content kind, title, body, version and change reason required")
 	}
 	switch in.Status {

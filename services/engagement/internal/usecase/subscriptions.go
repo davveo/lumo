@@ -52,14 +52,16 @@ func (s *Service) Subscribe(ctx context.Context, c platform.Request) (result pla
 	}
 	sku, kind := platform.Text(c.Data, "sku_id"), platform.Text(c.Data, "kind")
 	target := platform.Int(c.Data, "target_cents")
-	if sku == "" || len(sku) > 128 || (kind != constants.SubscriptionKindPrice && kind != constants.SubscriptionKindStock) {
+	if sku == "" || len(sku) > 128 ||
+		(kind != constants.SubscriptionKindPrice && kind != constants.SubscriptionKindStock) {
 		return nil, bad("valid sku_id and price/stock kind required")
 	}
 	policy, _, err := s.repo.AlertPolicy(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if kind == constants.SubscriptionKindPrice && !policy.PriceEnabled || kind == constants.SubscriptionKindStock && !policy.StockEnabled {
+	if kind == constants.SubscriptionKindPrice && !policy.PriceEnabled ||
+		kind == constants.SubscriptionKindStock && !policy.StockEnabled {
 		return nil, status.Error(codes.FailedPrecondition, "this subscription method is disabled")
 	}
 	clients := platform.NewClients(s.rpc)
@@ -87,7 +89,22 @@ func (s *Service) Subscribe(ctx context.Context, c platform.Request) (result pla
 		target = 0
 	}
 	now := time.Now().UTC()
-	row, e := s.repo.Subscribe(ctx, domain.Subscription{SlotKey: stable(c.UserID, kind, sku), UserID: c.UserID, SKUID: sku, ProductName: platform.Text(p, "name"), Kind: kind, Status: constants.SubscriptionStatusActive, TargetCents: target, PriceCents: price, ExpiresAt: now.Add(time.Duration(policy.TTLDays) * 24 * time.Hour), NextCheckAt: now}, policy.MaxPerUser)
+	row, e := s.repo.Subscribe(
+		ctx,
+		domain.Subscription{
+			SlotKey:     stable(c.UserID, kind, sku),
+			UserID:      c.UserID,
+			SKUID:       sku,
+			ProductName: platform.Text(p, "name"),
+			Kind:        kind,
+			Status:      constants.SubscriptionStatusActive,
+			TargetCents: target,
+			PriceCents:  price,
+			ExpiresAt:   now.Add(time.Duration(policy.TTLDays) * 24 * time.Hour),
+			NextCheckAt: now,
+		},
+		policy.MaxPerUser,
+	)
 	if e != nil {
 		return nil, e
 	}
@@ -125,7 +142,9 @@ func (s *Service) subscriptionList(ctx context.Context, c platform.Request, owne
 	if kind != "" && kind != constants.SubscriptionKindPrice && kind != constants.SubscriptionKindStock {
 		return nil, bad("invalid subscription kind")
 	}
-	if state != "" && state != constants.SubscriptionStatusActive && state != constants.SubscriptionStatusTriggered && state != constants.SubscriptionStatusCancelled && state != constants.SubscriptionStatusExpired {
+	if state != "" && state != constants.SubscriptionStatusActive && state != constants.SubscriptionStatusTriggered &&
+		state != constants.SubscriptionStatusCancelled &&
+		state != constants.SubscriptionStatusExpired {
 		return nil, bad("invalid subscription status")
 	}
 	rows, total, e := s.repo.Subscriptions(ctx, owner, sku, kind, state, limit, offset)
@@ -190,7 +209,11 @@ func (s *Service) Tick(ctx context.Context) (spanErr0 error) {
 	products, stocks := map[string]map[string]any{}, map[string]map[string]any{}
 	if len(ids) > 0 {
 		clients := platform.NewClients(s.rpc)
-		request := platform.Request{Role: constants.RoleSystem, UserID: constants.RoleSystem, Data: map[string]any{"ids": ids}}
+		request := platform.Request{
+			Role:   constants.RoleSystem,
+			UserID: constants.RoleSystem,
+			Data:   map[string]any{"ids": ids},
+		}
 		catalog, e := clients.Catalog.BatchGet(ctx, request)
 		if e != nil {
 			return e

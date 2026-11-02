@@ -72,7 +72,7 @@ add_file() { if [ -f "$1" ]; then printf '%s\n' "$1" >>"$WORK_DIR/paths"; fi; }
 add_tree() {
   [ -d "$1" ] || return 0
   # Test and documentation edits do not change the service executable.
-  find "$1" \( -name .git -o -name tests -o -name testdata -o -name docs -o -name __pycache__ \) -prune -o \
+  find "$1" \( -name .git -o -name tests -o -name testdata -o -name docs -o -name __pycache__ -o -name node_modules -o -path '*/pkg/mod' \) -prune -o \
     \( -type f -o -type l \) ! -name '*_test.go' ! -name '*.md' ! -name '.DS_Store' ! -name '*.pyc' \
     -exec sh -c '
       marker=$1; shift
@@ -152,6 +152,7 @@ case "$SCOPE" in
   web)
     [ -f web/Dockerfile ] && [ -f web/nginx/default.conf.template ] || fail '缺少前端Dockerfile或Nginx配置'
     add_file web/Dockerfile
+    add_file web/build.cjs
     add_file web/entrypoint.sh
     add_file web/.dockerignore
     add_tree web/nginx
@@ -169,6 +170,7 @@ sort -u "$WORK_DIR/paths" >"$WORK_DIR/sorted"
   printf 'lumo-runtime-source-fingerprint-v1\nscope:%s\n' "$SCOPE"
   if [ "$SCOPE" = web ]; then
     printf 'nginx-base:%s\n' "${LUMO_WEB_BASE_IMAGE:-nginx:1.30.6-alpine}"
+    printf 'node-base:%s\n' "${LUMO_WEB_NODE_IMAGE:-public.ecr.aws/docker/library/node:22.23.4-alpine3.24}"
   fi
   while IFS= read -r source_path; do
     # A newline in a path cannot be represented in this line-based manifest;

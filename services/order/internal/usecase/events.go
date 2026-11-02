@@ -7,9 +7,6 @@ import (
 	"time"
 
 	"github.com/davveo/lumo/internal/platform"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func (s *Service) Topics() []string {
@@ -93,18 +90,18 @@ func (s *Service) Tick(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	events := []platform.Event{}
 	for _, order := range rows {
-		_, err = platform.NewClients(s.rpc).Checkout.Cancel(
-			ctx,
-			platform.Request{
-				ID:     order.ID,
-				UserID: order.UserID,
-				Role:   constants.RoleSystem,
-			},
+		events = append(
+			events,
+			platform.RecoveryEvent(
+				constants.EventOrderExpiryRequested,
+				order.ID,
+				order.UserID,
+				order.Status,
+				order.Version,
+			),
 		)
-		if err != nil && status.Code(err) != codes.FailedPrecondition {
-			return err
-		}
 	}
-	return nil
+	return s.r.QueueWork(ctx, events)
 }

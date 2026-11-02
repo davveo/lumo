@@ -3,6 +3,7 @@
   "private": true,
   "description": "Development-only source formatting tools for LUMO",
   "scripts": {
+    "build:web": "node web/build.cjs",
     "format": "python3 scripts/format.py",
     "format:check": "python3 scripts/format.py --check"
   },
@@ -12,6 +13,7 @@
     "blackVersion": "26.10.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "prettier": "3.9.10"
   },
   "engines": {

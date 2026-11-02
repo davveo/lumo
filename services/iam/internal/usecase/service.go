@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/iam/internal/domain"
@@ -12,6 +13,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"gorm.io/gorm"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -68,31 +71,58 @@ func (s *Service) Login(ctx context.Context, c platform.Request) (traceResult pl
 	if username == "" || len(username) > 128 || password == "" || len(password) > 1024 {
 		return nil, status.Error(codes.InvalidArgument, "username and password required")
 	}
+	if err := s.repo.BeginPasswordLogin(ctx, username, platform.Text(c.Data, "_client_ip")); err != nil {
+		return nil, err
+	}
 	a, e := s.repo.ByUsername(ctx, username)
-	if e != nil || !a.Active || bcrypt.CompareHashAndPassword([]byte(a.PasswordHash), []byte(password)) != nil {
+	if e != nil && !errors.Is(e, gorm.ErrRecordNotFound) {
+		return nil, e
+	}
+	// A valid cost-10 dummy hash makes unknown and disabled accounts do the
+	// same expensive comparison, without making the dummy an accepted login.
+	comparisonHash := "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"
+	valid := e == nil && a.Active && a.PasswordHash != ""
+	if valid {
+		comparisonHash = a.PasswordHash
+	}
+	matched := bcrypt.CompareHashAndPassword([]byte(comparisonHash), []byte(password)) == nil
+	if err := s.repo.FinishPasswordLogin(ctx, username, valid && matched); err != nil {
+		return nil, err
+	}
+	if !valid || !matched {
+		platform.Log(ctx, slog.LevelWarn, "password login rejected", "reason", "invalid_credentials")
 		return nil, status.Error(codes.Unauthenticated, "invalid credentials")
 	}
 	policy, _, policyErr := s.repo.LoginPolicy(ctx)
 	if policyErr != nil {
 		return nil, policyErr
 	}
-	if a.Role != constants.RoleAdmin && !policy.Password {
+	if a.Role != constants.RoleAdmin && !platform.IsEmployee(a.Role) && !policy.Password {
 		return nil, status.Error(codes.PermissionDenied, "账号密码登录已关闭，请使用其他登录方式")
 	}
 	raw, e := token()
 	if e != nil {
 		return nil, e
 	}
-	sess := domain.Session{Digest: hash(raw), UserID: a.ID, ExpiresAt: time.Now().UTC().Add(24 * time.Hour)}
-	if e = s.repo.CreateSession(ctx, &sess); e != nil {
+	sess := domain.Session{
+		Device:    platform.Text(c.Data, "_user_agent"),
+		ClientIP:  platform.Text(c.Data, "_client_ip"),
+		Digest:    hash(raw),
+		UserID:    a.ID,
+		ExpiresAt: time.Now().UTC().Add(24 * time.Hour),
+	}
+	if e = s.repo.CreatePasswordSession(ctx, &sess, a.PasswordHash); e != nil {
 		return nil, e
 	}
 	return platform.Result{
-		"token":         raw,
-		"token_type":    constants.IAMTokenTypeBearer,
-		"expires_at":    sess.ExpiresAt.Format(time.RFC3339),
-		"user_id":       a.ID,
-		"role":          a.Role,
+		"token":      raw,
+		"token_type": constants.IAMTokenTypeBearer,
+		"expires_at": sess.ExpiresAt.Format(time.RFC3339),
+		"user_id":    a.ID,
+		"role":       a.Role,
+		"staff": platform.IsEmployee(
+			a.Role,
+		), "permissions": platform.StaffGrants(a.Role), "can_export": platform.StaffCanExport(a.Role),
 		"registered_at": a.CreatedAt.UTC().Format(time.RFC3339),
 	}, nil
 }
@@ -115,8 +145,11 @@ func (s *Service) Validate(ctx context.Context, c platform.Request) (traceResult
 	}
 
 	return platform.Result{
-		"user_id":       a.ID,
-		"role":          a.Role,
+		"user_id": a.ID,
+		"role":    a.Role,
+		"staff": platform.IsEmployee(
+			a.Role,
+		), "permissions": platform.StaffGrants(a.Role), "can_export": platform.StaffCanExport(a.Role),
 		"session_valid": true,
 		"expires_at":    sess.ExpiresAt.Format(time.RFC3339),
 		"registered_at": a.CreatedAt.UTC().Format(time.RFC3339),
@@ -144,15 +177,24 @@ func (s *Service) Refresh(ctx context.Context, c platform.Request) (traceResult 
 	if e != nil {
 		return nil, e
 	}
-	v := domain.Session{Digest: hash(next), UserID: a.ID, ExpiresAt: time.Now().UTC().Add(24 * time.Hour)}
+	v := domain.Session{
+		Digest:    hash(next),
+		UserID:    a.ID,
+		Device:    sess.Device,
+		ClientIP:  sess.ClientIP,
+		ExpiresAt: time.Now().UTC().Add(24 * time.Hour),
+	}
 	if e = s.repo.Rotate(ctx, sess.Digest, &v); e != nil {
 		return nil, e
 	}
 	return platform.Result{
-		"token":         next,
-		"token_type":    constants.IAMTokenTypeBearer,
-		"user_id":       a.ID,
-		"role":          a.Role,
+		"token":      next,
+		"token_type": constants.IAMTokenTypeBearer,
+		"user_id":    a.ID,
+		"role":       a.Role,
+		"staff": platform.IsEmployee(
+			a.Role,
+		), "permissions": platform.StaffGrants(a.Role), "can_export": platform.StaffCanExport(a.Role),
 		"expires_at":    v.ExpiresAt.Format(time.RFC3339),
 		"registered_at": a.CreatedAt.UTC().Format(time.RFC3339),
 	}, nil

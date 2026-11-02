@@ -45,6 +45,8 @@
   let session = stored[0] || null;
   let verified = false,
     refreshPromise = null;
+  // Draft credentials live only in this closure, never in model/storage/HTML.
+  const loginDraft = { username: '', password: '' };
   const ui = {
     tab: 'password',
     methods: [{ id: 'password', name: '账号密码' }],
@@ -131,6 +133,8 @@
     } catch (_) {}
   }
   function clearSession(reason = '', broadcast = false) {
+    loginDraft.username = '';
+    loginDraft.password = '';
     const previous = session;
     session = null;
     verified = false;
@@ -161,6 +165,8 @@
     emit('lumo:logout', { userId: previous?.userId, reason });
   }
   function persistSession(next, remember) {
+    loginDraft.username = '';
+    loginDraft.password = '';
     remove(localStorage, SESSION_KEY);
     remove(sessionStorage, SESSION_KEY);
     session = {
@@ -250,6 +256,13 @@
     if (menu) menu.hidden = true;
     document.querySelector('[data-auth-menu-trigger]')?.setAttribute('aria-expanded', 'false');
   }
+  async function mergeGuestCart() {
+    try {
+      await window.LumoGuestCart?.merge();
+    } catch (error) {
+      message(error.message);
+    }
+  }
   async function login(username, password, remember = false, method = 'password') {
     if (ui.busy) return null;
     ui.busy = true;
@@ -270,6 +283,7 @@
       );
       memory.clear();
       persistSession(result, remember);
+      await mergeGuestCart();
       remove(sessionStorage, RETURN_KEY);
       ui.busy = false;
       emit('lumo:login', { user: user() });
@@ -281,6 +295,7 @@
       throw error;
     } finally {
       ui.busy = false;
+      loginDraft.password = '';
       redraw();
     }
   }
@@ -393,6 +408,7 @@
       );
       memory.clear();
       persistSession(result, flow.remember);
+      await mergeGuestCart();
       emit('lumo:login', { user: user() });
       location.hash = safeHash(flow.returnTo);
     } catch (error) {
@@ -482,11 +498,7 @@
           return;
         }
         if (action === 'forgot-password') {
-          if (typeof modal === 'function')
-            modal(
-              '账号帮助',
-              '<p class="modal-desc">请联系商城管理员重置账号密码。</p><button class="primary" data-action="close-modal">知道了</button>',
-            );
+          window.LumoSecurity?.recover();
           return;
         }
         if (action === 'toggle-menu') {
@@ -544,8 +556,6 @@
         'coupons',
         'address',
         'choose-address',
-        'quick-add',
-        'detail-add',
         'checkout',
         'buy-now',
       ];
@@ -560,7 +570,9 @@
         if (!ensureSession()) {
           event.preventDefault();
           event.stopImmediatePropagation();
-          requireLogin(editorButton ? '#/editor' : location.hash);
+          requireLogin(
+            editorButton ? '#/editor' : appButton?.dataset.action === 'checkout' ? '#/checkout' : location.hash,
+          );
         } else if (editorButton && user()?.role !== C.Role.Admin) {
           event.preventDefault();
           event.stopImmediatePropagation();
@@ -646,6 +658,8 @@
     true,
   );
   document.addEventListener('input', (event) => {
+    if (event.target.id === 'auth-username') loginDraft.username = event.target.value;
+    if (event.target.id === 'auth-password') loginDraft.password = event.target.value;
     if (event.target.id === 'auth-phone') ui.phone = event.target.value;
     if (event.target.id === 'auth-code') ui.code = event.target.value;
   });
@@ -657,6 +671,12 @@
     if (event.key === 'Escape') closeMenu();
   });
   window.addEventListener('hashchange', closeMenu);
+  window.addEventListener('hashchange', () => {
+    if (location.hash !== '#/login') {
+      loginDraft.username = '';
+      loginDraft.password = '';
+    }
+  });
   window.addEventListener('lumo:session-expired', () => {
     const current = location.hash;
     clearSession('登录状态已失效，请重新登录');
@@ -714,6 +734,12 @@
     gate,
     ensureSession,
     afterRender: () => {
+      if (location.hash === '#/login') {
+        for (const name of ['username', 'password']) {
+          const input = document.getElementById('auth-' + name);
+          if (input && !input.value) input.value = loginDraft[name];
+        }
+      }
       if (
         ['#/login', '#/register'].includes(location.hash) &&
         !ui.methodsLoaded &&

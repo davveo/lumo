@@ -1,18 +1,23 @@
 GOWORK ?= off
 export GOWORK
+GO = sh scripts/go.sh
 
-.PHONY: up down test test-web build smoke proto format-tools format format-check
+.PHONY: up down test test-web test-browser build build-web smoke proto format-tools format format-check
 up:
 	sh start.sh
 down:
 	sh scripts/down.sh
 test:
-	go test ./...
+	$(GO) test ./...
 test-web:
 	sh scripts/test-frontend.sh
+test-browser:
+	sh scripts/test-browser.sh
+build-web:
+	node web/build.cjs
 build:
-	go build -buildvcs=false -o bin/server ./cmd/server
-	go build -buildvcs=false -o bin/gateway ./cmd/gateway
+	$(GO) build -buildvcs=false -o bin/server ./cmd/server
+	$(GO) build -buildvcs=false -o bin/gateway ./cmd/gateway
 smoke:
 	sh scripts/smoke.sh
 proto:

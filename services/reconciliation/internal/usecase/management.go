@@ -42,7 +42,14 @@ func (s *Service) start(ctx context.Context, c platform.Request) (spanResult0 pl
 	if e != nil {
 		return nil, e
 	}
-	row := domain.Run{ID: id, From: from, To: to, ActorID: c.UserID, Reason: reason, Status: constants.ReconciliationStatusQueued}
+	row := domain.Run{
+		ID:      id,
+		From:    from,
+		To:      to,
+		ActorID: c.UserID,
+		Reason:  reason,
+		Status:  constants.ReconciliationStatusQueued,
+	}
 	return s.r.Start(ctx, &row)
 }
 func (s *Service) AdminList(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
@@ -69,7 +76,9 @@ func (s *Service) Note(ctx context.Context, c platform.Request) (platform.Result
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
-	if text := strings.TrimSpace(platform.Text(c.Data, "body")); text == "" || len([]rune(text)) > 2000 || c.IdempotencyKey == "" || len(c.IdempotencyKey) > 120 {
+	if text := strings.TrimSpace(platform.Text(c.Data, "body")); text == "" || len([]rune(text)) > 2000 ||
+		c.IdempotencyKey == "" ||
+		len(c.IdempotencyKey) > 120 {
 		return nil, status.Error(codes.InvalidArgument, "follow-up note of 1..2000 characters required")
 	}
 	return s.r.Note(ctx, c)
@@ -83,7 +92,22 @@ func (s *Service) process(ctx context.Context) (spanErr0 error) {
 	if e != nil || run == nil {
 		return e
 	}
-	result, e := platform.NewClients(s.rpc).Payment.AdminList(ctx, platform.Request{UserID: run.ActorID, Role: constants.RoleAdmin, Data: map[string]any{"from": run.From, "to": run.To, "as_of": run.CreatedAt.UTC().Format(time.RFC3339Nano), "page": run.Offset/100 + 1, "page_size": 100}})
+	result, e := platform.NewClients(
+		s.rpc,
+	).Payment.AdminList(
+		ctx,
+		platform.Request{
+			UserID: run.ActorID,
+			Role:   constants.RoleAdmin,
+			Data: map[string]any{
+				"from":      run.From,
+				"to":        run.To,
+				"as_of":     run.CreatedAt.UTC().Format(time.RFC3339Nano),
+				"page":      run.Offset/100 + 1,
+				"page_size": 100,
+			},
+		},
+	)
 	if e != nil {
 		return s.r.Progress(ctx, *run, nil, 0, run.Total, false, e)
 	}
@@ -94,17 +118,36 @@ func (s *Service) process(ctx context.Context) (spanErr0 error) {
 	if e = platform.Decode(result, &batch); e != nil {
 		return s.r.Progress(ctx, *run, nil, 0, run.Total, false, e)
 	}
+	ids := []string{}
+	for _, p := range batch.Items {
+		if platform.Text(p, "status") == constants.PaymentStatusSucceeded {
+			ids = append(ids, platform.Text(p, "order_id"))
+		}
+	}
+	orders := map[string]platform.Result{}
+	if len(ids) > 0 {
+		result, err := platform.NewClients(
+			s.rpc,
+		).Order.BatchGet(
+			ctx,
+			platform.Request{UserID: run.ActorID, Role: constants.RoleSystem, Data: map[string]any{"ids": ids}},
+		)
+		if err != nil {
+			return s.r.Progress(ctx, *run, nil, 0, batch.Total, false, err)
+		}
+		orders, err = platform.IndexResults(result, "id")
+		if err != nil {
+			return s.r.Progress(ctx, *run, nil, 0, batch.Total, false, err)
+		}
+	}
 	diffs := []domain.Difference{}
 	for _, p := range batch.Items {
 		if platform.Text(p, "status") != constants.PaymentStatusSucceeded {
 			continue
 		}
-		order, err := platform.NewClients(s.rpc).Order.Get(ctx, platform.Request{ID: platform.Text(p, "order_id"), UserID: run.ActorID, Role: constants.RoleAdmin})
+		order := orders[platform.Text(p, "order_id")]
 		kinds := []string{}
-		if err != nil {
-			if status.Code(err) != codes.NotFound {
-				return s.r.Progress(ctx, *run, nil, 0, batch.Total, false, err)
-			}
+		if order == nil {
 			kinds = append(kinds, constants.ReconciliationDifferenceKindOrderUnavailable)
 		} else {
 			if platform.Int(order, "payable_cents") != platform.Int(p, "amount_cents") {
@@ -116,9 +159,26 @@ func (s *Service) process(ctx context.Context) (spanErr0 error) {
 		}
 		for _, kind := range kinds {
 			key := sha256.Sum256([]byte(run.ID + ":" + platform.Text(p, "id") + ":" + kind))
-			diffs = append(diffs, domain.Difference{ID: fmt.Sprintf("diff-%x", key[:16]), RunID: run.ID, PaymentID: platform.Text(p, "id"), OrderID: platform.Text(p, "order_id"), Kind: kind})
+			diffs = append(
+				diffs,
+				domain.Difference{
+					ID:        fmt.Sprintf("diff-%x", key[:16]),
+					RunID:     run.ID,
+					PaymentID: platform.Text(p, "id"),
+					OrderID:   platform.Text(p, "order_id"),
+					Kind:      kind,
+				},
+			)
 		}
 	}
 	processed := int64(len(batch.Items))
-	return s.r.Progress(ctx, *run, diffs, processed, batch.Total, processed == 0 || run.Offset+processed >= batch.Total, nil)
+	return s.r.Progress(
+		ctx,
+		*run,
+		diffs,
+		processed,
+		batch.Total,
+		processed == 0 || run.Offset+processed >= batch.Total,
+		nil,
+	)
 }

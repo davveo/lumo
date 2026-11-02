@@ -12,7 +12,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type Service struct{ Repo *repository.Repository }
+type Service struct {
+	Repo *repository.Repository
+	RPC  platform.Caller
+}
 
 func (s *Service) Adjust(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
 	ctx, sp := platform.Start(ctx, "usecase.inventory.adjust")

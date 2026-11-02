@@ -51,7 +51,12 @@ func (r *Repository) Get(ctx context.Context, id string) (spanResult0 domain.Rec
 	}
 	return v, err
 }
-func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, offset int) (spanResult0 []domain.Record, spanErr0 error) {
+
+func (r *Repository) List(
+	ctx context.Context,
+	owner, kind, st string,
+	limit, offset int,
+) (spanResult0 []domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "content.repository.List")
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -66,7 +71,14 @@ func (r *Repository) List(ctx context.Context, owner, kind, st string, limit, of
 	if st != "" {
 		if st == constants.ContentStatusPublished {
 			now := time.Now().UTC()
-			q = q.Where("(status = ? OR (status = ? AND publish_at <= ?)) AND (publish_at IS NULL OR publish_at <= ?) AND (unpublish_at IS NULL OR unpublish_at > ?)", st, constants.ContentStatusScheduled, now, now, now)
+			q = q.Where(
+				"(status = ? OR (status = ? AND publish_at <= ?)) AND (publish_at IS NULL OR publish_at <= ?) AND (unpublish_at IS NULL OR unpublish_at > ?)",
+				st,
+				constants.ContentStatusScheduled,
+				now,
+				now,
+				now,
+			)
 		} else {
 			q = q.Where("status = ?", st)
 		}
@@ -108,7 +120,12 @@ func (r *Repository) Save(ctx context.Context, v *domain.Record, event *platform
 		return nil
 	})
 }
-func (r *Repository) InsertOnce(ctx context.Context, v *domain.Record, event *platform.Event) (spanResult0 bool, spanErr0 error) {
+
+func (r *Repository) InsertOnce(
+	ctx context.Context,
+	v *domain.Record,
+	event *platform.Event,
+) (spanResult0 bool, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "content.repository.InsertOnce")
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()

@@ -35,7 +35,12 @@ func (s *Service) PolicyUpsert(ctx context.Context, c platform.Request) (spanRes
 	}
 	p := in.Config
 	switch p.DefaultSort {
-	case "", constants.CatalogSortPriceAsc, constants.CatalogSortPriceDesc, constants.CatalogSortSales, constants.CatalogSortSalesDesc, constants.CatalogSortNewest:
+	case "",
+		constants.CatalogSortPriceAsc,
+		constants.CatalogSortPriceDesc,
+		constants.CatalogSortSales,
+		constants.CatalogSortSalesDesc,
+		constants.CatalogSortNewest:
 	default:
 		return nil, bad("invalid default search order")
 	}

@@ -34,7 +34,10 @@ func (r *Repository) AdminList(ctx context.Context, c platform.Request) (spanRes
 	}
 	q := r.DB.WithContext(ctx).Model(&domain.Stock{})
 	if f.Keyword != "" {
-		q = q.Where("sku_id LIKE ? ESCAPE '!'", "%"+strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(strings.TrimSpace(f.Keyword))+"%")
+		q = q.Where(
+			"sku_id LIKE ? ESCAPE '!'",
+			"%"+strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(strings.TrimSpace(f.Keyword))+"%",
+		)
 	}
 	switch f.Status {
 	case "low":
@@ -96,7 +99,9 @@ func (r *Repository) Threshold(ctx context.Context, c platform.Request) (spanRes
 		}
 		before, _ := json.Marshal(map[string]any{"threshold": old.Threshold})
 		after, _ := json.Marshal(map[string]any{"threshold": in.Threshold})
-		return tx.WithContext(ctx).Create(&adminconfig.Change{ID: platform.ID("threshold-change"), DocumentID: c.ID, ActorID: c.UserID, Reason: reason, Before: string(before), After: string(after)}).Error
+		return tx.WithContext(ctx).
+			Create(&adminconfig.Change{ID: platform.ID("threshold-change"), DocumentID: c.ID, ActorID: c.UserID, Reason: reason, Before: string(before), After: string(after)}).
+			Error
 	})
 	if err != nil {
 		return nil, err
@@ -113,6 +118,11 @@ func (r *Repository) Ledger(ctx context.Context, c platform.Request) (spanResult
 	if c.ID != "" {
 		db = db.Where("sku_id = ?", c.ID)
 	}
-	rows, total, f, e := adminquery.Page[domain.Ledger](ctx, db, c.Data, adminquery.Spec{State: "kind", Search: []string{"id", "sku_id", "reference_id", "user_id"}})
+	rows, total, f, e := adminquery.Page[domain.Ledger](
+		ctx,
+		db,
+		c.Data,
+		adminquery.Spec{State: "kind", Search: []string{"id", "sku_id", "reference_id", "user_id"}},
+	)
 	return adminquery.Result(rows, total, f), e
 }

@@ -14,18 +14,26 @@ import (
 type ProductSearch struct {
 	Query, Category, Brand, Sort string
 	Limit                        int
+	Cursor                       string
 }
 
 // SearchProducts applies the browse constraints before its bounded result page,
 // so older matching products are not lost behind the default catalog listing.
 // It reads one service-owned table, without COUNT, cross-service stock joins or
 // offset walks. Query values remain parameters and LIKE metacharacters literal.
-func (r *Repository) SearchProducts(ctx context.Context, input ProductSearch) (spanResult0 []domain.Record, spanErr0 error) {
+func (r *Repository) SearchProducts(
+	ctx context.Context,
+	input ProductSearch,
+) (spanResult0 []domain.Record, spanErr0 error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	ctx, span := platform.Start(ctx, "catalog.repository.SearchProducts")
 	defer span.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
+	position, cursorErr := searchCursor(input)
+	if cursorErr != nil {
+		return nil, cursorErr
+	}
 
 	if r.searchDocumentIndexed {
 		rows, err := r.searchProjectedProducts(ctx, input)
@@ -71,14 +79,22 @@ func (r *Repository) SearchProducts(ctx context.Context, input ProductSearch) (s
 		}
 		return "CAST(COALESCE(" + text(path) + ",0) AS " + kind + ")"
 	}
+	rank := "0"
 	switch input.Sort {
 	case constants.CatalogSortPriceAsc:
+		rank = number("$.price_cents")
 		query = query.Order(number("$.price_cents") + " ASC")
 	case constants.CatalogSortPriceDesc:
+		rank = number("$.price_cents")
 		query = query.Order(number("$.price_cents") + " DESC")
 	case constants.CatalogSortSales, constants.CatalogSortSalesDesc:
+		rank = number("$.sales")
 		query = query.Order(number("$.sales") + " DESC")
 	}
+	if condition, args := searchAfter(rank, input.Sort == constants.CatalogSortPriceAsc, position); condition != "" {
+		query = query.Where(condition, args...)
+	}
+	query = query.Select("catalog_records.*, " + rank + " AS search_sort_value")
 	rows := []domain.Record{}
 	err := query.Order("created_at DESC,id DESC").Limit(input.Limit).Find(&rows).Error
 	if ctx.Err() != nil {

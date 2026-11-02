@@ -28,6 +28,9 @@ const (
 	CatalogService_SearchProducts_FullMethodName           = "/mall.v1.CatalogService/SearchProducts"
 	CatalogService_Upsert_FullMethodName                   = "/mall.v1.CatalogService/Upsert"
 	CatalogService_AdminList_FullMethodName                = "/mall.v1.CatalogService/AdminList"
+	CatalogService_ImportPreview_FullMethodName            = "/mall.v1.CatalogService/ImportPreview"
+	CatalogService_ImportCommit_FullMethodName             = "/mall.v1.CatalogService/ImportCommit"
+	CatalogService_ImportGet_FullMethodName                = "/mall.v1.CatalogService/ImportGet"
 )
 
 // CatalogServiceClient is the client API for CatalogService service.
@@ -41,6 +44,9 @@ type CatalogServiceClient interface {
 	SearchProducts(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Upsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ImportPreview(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ImportCommit(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ImportGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type catalogServiceClient struct {
@@ -114,6 +120,33 @@ func (c *catalogServiceClient) AdminList(ctx context.Context, in *ServiceRequest
 	return out, nil
 }
 
+func (c *catalogServiceClient) ImportPreview(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ImportPreview_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) ImportCommit(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ImportCommit_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) ImportGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ImportGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CatalogServiceServer is the server API for CatalogService service.
 // All implementations must embed UnimplementedCatalogServiceServer
 // for forward compatibility
@@ -125,6 +158,9 @@ type CatalogServiceServer interface {
 	SearchProducts(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Upsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ImportPreview(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ImportCommit(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ImportGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedCatalogServiceServer()
 }
 
@@ -152,6 +188,15 @@ func (UnimplementedCatalogServiceServer) Upsert(context.Context, *ServiceRequest
 }
 func (UnimplementedCatalogServiceServer) AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AdminList not implemented")
+}
+func (UnimplementedCatalogServiceServer) ImportPreview(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ImportPreview not implemented")
+}
+func (UnimplementedCatalogServiceServer) ImportCommit(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ImportCommit not implemented")
+}
+func (UnimplementedCatalogServiceServer) ImportGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ImportGet not implemented")
 }
 func (UnimplementedCatalogServiceServer) mustEmbedUnimplementedCatalogServiceServer() {}
 
@@ -292,6 +337,60 @@ func _CatalogService_AdminList_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CatalogService_ImportPreview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ImportPreview(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ImportPreview_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ImportPreview(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_ImportCommit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ImportCommit(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ImportCommit_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ImportCommit(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_ImportGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ImportGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ImportGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ImportGet(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CatalogService_ServiceDesc is the grpc.ServiceDesc for CatalogService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -326,6 +425,18 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AdminList",
 			Handler:    _CatalogService_AdminList_Handler,
+		},
+		{
+			MethodName: "ImportPreview",
+			Handler:    _CatalogService_ImportPreview_Handler,
+		},
+		{
+			MethodName: "ImportCommit",
+			Handler:    _CatalogService_ImportCommit_Handler,
+		},
+		{
+			MethodName: "ImportGet",
+			Handler:    _CatalogService_ImportGet_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

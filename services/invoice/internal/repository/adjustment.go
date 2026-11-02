@@ -13,7 +13,11 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func (r *Repository) ApplyRefund(ctx context.Context, orderID, refundID, userID string, amount, total int64) (spanErr0 error) {
+func (r *Repository) ApplyRefund(
+	ctx context.Context,
+	orderID, refundID, userID string,
+	amount, total int64,
+) (spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.invoice.ApplyRefund")
 	defer span.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -141,7 +145,11 @@ func (r *Repository) Reversals(ctx context.Context, id string) (spanResult0 []do
 	err := r.DB.WithContext(ctx).Where("invoice_id = ?", id).Order("created_at asc").Find(&rows).Error
 	return rows, err
 }
-func (r *Repository) CompleteDemoAdjustments(ctx context.Context, id string) (spanResult0 *domain.Record, spanErr0 error) {
+
+func (r *Repository) CompleteDemoAdjustments(
+	ctx context.Context,
+	id string,
+) (spanResult0 *domain.Record, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.invoice.CompleteDemoAdjustments")
 	defer span.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()

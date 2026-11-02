@@ -24,14 +24,37 @@ func paymentSchema(id string) (channelconfig.Schema, error) {
 	switch id {
 	case "wechat":
 		s.Name = "微信支付"
-		s.Fields = []channelconfig.Field{f("app_id", "应用 App ID", "text", true, false, "商户号关联的应用编号"), f("merchant_id", "商户号 mchid", "text", true, false, "微信支付商户平台提供"), f("merchant_serial", "商户证书序列号", "text", true, false, "用于识别商户签名证书"), f("api_v3_key", "API v3 密钥", "password", true, true, "32位密钥，留空保留原值"), f("merchant_private_key", "商户 API 私钥", "textarea", true, true, "RSA 2048位及以上，支持PKCS8或PKCS1 PEM"), f("platform_key_id", "微信支付公钥 ID", "text", false, false, "使用公钥验签时填写平台公钥编号"), f("platform_public_key", "微信支付公钥 / 平台证书", "textarea", false, false, "用于验签的公开材料"), f("notify_url", "支付结果通知地址", "url", true, false, "填写已部署并在支付平台登记的HTTPS通知地址"), f("refund_notify_url", "退款结果通知地址", "url", false, false, "接收退款回执的HTTPS地址")}
+		s.Fields = []channelconfig.Field{
+			f("app_id", "应用 App ID", "text", true, false, "商户号关联的应用编号"),
+			f("merchant_id", "商户号 mchid", "text", true, false, "微信支付商户平台提供"),
+			f("merchant_serial", "商户证书序列号", "text", true, false, "用于识别商户签名证书"),
+			f("api_v3_key", "API v3 密钥", "password", true, true, "32位密钥，留空保留原值"),
+			f("merchant_private_key", "商户 API 私钥", "textarea", true, true, "RSA 2048位及以上，支持PKCS8或PKCS1 PEM"),
+			f("platform_key_id", "微信支付公钥 ID", "text", false, false, "使用公钥验签时填写平台公钥编号"),
+			f("platform_public_key", "微信支付公钥 / 平台证书", "textarea", false, false, "用于验签的公开材料"),
+			f("notify_url", "支付结果通知地址", "url", true, false, "填写已部署并在支付平台登记的HTTPS通知地址"),
+			f("refund_notify_url", "退款结果通知地址", "url", false, false, "接收退款回执的HTTPS地址"),
+		}
 	case "alipay":
 		s.Name = "支付宝"
-		s.Fields = []channelconfig.Field{f("app_id", "应用 App ID", "text", true, false, "支付宝开放平台的应用编号"), f("environment", "运行环境", "select", true, false, "生产与沙箱使用各自的应用密钥"), f("app_private_key", "应用私钥", "textarea", true, true, "RSA2签名，支持PEM或base64编码的RSA私钥"), f("alipay_public_key", "支付宝公钥", "textarea", true, false, "用于验证支付宝响应与回调签名"), f("notify_url", "异步通知地址", "url", true, false, "支付结果应以验签后的异步通知或查询为准"), f("return_url", "支付完成返回地址", "url", false, false, "浏览器返回商城的HTTPS地址，不作为收款凭证")}
+		s.Fields = []channelconfig.Field{
+			f("app_id", "应用 App ID", "text", true, false, "支付宝开放平台的应用编号"),
+			f("environment", "运行环境", "select", true, false, "生产与沙箱使用各自的应用密钥"),
+			f("app_private_key", "应用私钥", "textarea", true, true, "RSA2签名，支持PEM或base64编码的RSA私钥"),
+			f("alipay_public_key", "支付宝公钥", "textarea", true, false, "用于验证支付宝响应与回调签名"),
+			f("notify_url", "异步通知地址", "url", true, false, "支付结果应以验签后的异步通知或查询为准"),
+			f("return_url", "支付完成返回地址", "url", false, false, "浏览器返回商城的HTTPS地址，不作为收款凭证"),
+		}
 		s.Fields[1].Options = []string{"production", "sandbox"}
 	case "card":
 		s.Name = "银行卡收单渠道"
-		s.Fields = []channelconfig.Field{f("provider_name", "收单服务商", "text", true, false, "填写实际签约的收单机构"), f("merchant_id", "收单商户号", "text", true, false, "由对应服务商分配"), f("app_id", "接入应用编号", "text", false, false, "按服务商要求填写"), f("signing_key", "签名密钥", "password", true, true, "服务商分配的签名凭据，留空保留原值"), f("notify_url", "交易结果通知地址", "url", true, false, "填写实际部署的交易通知地址")}
+		s.Fields = []channelconfig.Field{
+			f("provider_name", "收单服务商", "text", true, false, "填写实际签约的收单机构"),
+			f("merchant_id", "收单商户号", "text", true, false, "由对应服务商分配"),
+			f("app_id", "接入应用编号", "text", false, false, "按服务商要求填写"),
+			f("signing_key", "签名密钥", "password", true, true, "服务商分配的签名凭据，留空保留原值"),
+			f("notify_url", "交易结果通知地址", "url", true, false, "填写实际部署的交易通知地址"),
+		}
 	default:
 		return s, status.Error(codes.InvalidArgument, "不支持的支付渠道")
 	}
@@ -40,7 +63,8 @@ func paymentSchema(id string) (channelconfig.Schema, error) {
 func validPaymentURL(raw string) bool {
 	u, e := url.Parse(raw)
 	demo := os.Getenv("DEMO_MODE") == "true" || os.Getenv("DEMO_MODE") == "1"
-	return e == nil && u.Host != "" && u.User == nil && u.Fragment == "" && (u.Scheme == "https" || demo && u.Scheme == "http" && (u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1"))
+	return e == nil && u.Host != "" && u.User == nil && u.Fragment == "" &&
+		(u.Scheme == "https" || demo && u.Scheme == "http" && (u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1"))
 }
 func rsaPrivate(raw string) bool {
 	var der []byte
@@ -93,7 +117,11 @@ func (s *Service) ProviderGet(ctx context.Context, c platform.Request) (spanResu
 	}
 	return platform.Result{"items": items}, nil
 }
-func (s *Service) ProviderUpsert(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
+
+func (s *Service) ProviderUpsert(
+	ctx context.Context,
+	c platform.Request,
+) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "payment.usecase.ProviderUpsert")
 	defer sp.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()

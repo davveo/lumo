@@ -22,6 +22,18 @@ type popupTestCaller struct {
 }
 
 func (c *popupTestCaller) Call(ctx context.Context, service string, command platform.Command) (platform.Result, error) {
+	if command.Action == "read_snapshot" {
+		return platform.ApplyReadSnapshot(
+			ctx,
+			platform.Module{
+				Name: service,
+				Handle: func(ctx context.Context, child platform.Command) (platform.Result, error) {
+					return c.Call(ctx, service, child)
+				},
+			},
+			command,
+		)
+	}
 	c.mu.Lock()
 	c.calls = append(c.calls, aggregationCall{service, command})
 	c.mu.Unlock()

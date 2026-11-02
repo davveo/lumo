@@ -254,15 +254,14 @@ func (s *Service) PopupDecide(ctx context.Context, c platform.Request) (traceRes
 		}
 	}
 	templates := map[string]platform.Result{}
-	for offset := 0; offset < len(templateIDs); offset += 50 {
-		end := offset + 50
-		if end > len(templateIDs) {
-			end = len(templateIDs)
-		}
+	if len(templateIDs) > 5000 {
+		return nil, status.Error(codes.ResourceExhausted, "too many eligible popup coupon templates")
+	}
+	if len(templateIDs) > 0 {
 		result, e := platform.NewClients(s.rpc).Coupon.TemplatesByIds(ctx, platform.Request{
 			UserID: c.UserID,
 			Role:   constants.RoleSystem,
-			Data:   map[string]any{"ids": templateIDs[offset:end]},
+			Data:   map[string]any{"ids": templateIDs},
 		},
 		)
 		if e != nil {

@@ -118,7 +118,13 @@ func paidOrder(row map[string]any) bool {
 	}
 	return false
 }
-func buildProfile(rows signalRows, metadata map[string]product, now time.Time, policies ...repository.Policy) preference {
+
+func buildProfile(
+	rows signalRows,
+	metadata map[string]product,
+	now time.Time,
+	policies ...repository.Policy,
+) preference {
 	policy := repository.DefaultPolicy()
 	if len(policies) > 0 {
 		policy = policies[0]
@@ -361,7 +367,15 @@ func rankProducts(
 	for index, p := range products {
 		// Popularity and freshness are modest exploration factors; the stable
 		// source position only breaks otherwise identical cold-start candidates.
-		score := policy.PopularityWeight*math.Log1p(math.Max(0, p.sales)) + policy.FreshnessWeight*decay(now, p.created, 45) + .001/float64(index+1)
+		score := policy.PopularityWeight*math.Log1p(
+			math.Max(0, p.sales),
+		) + policy.FreshnessWeight*decay(
+			now,
+			p.created,
+			45,
+		) + .001/float64(
+			index+1,
+		)
 		reason := "精选在售好物"
 		reasons := []string{constants.RecommendationReasonCatalogDiscovery}
 		bestWeight := 0.

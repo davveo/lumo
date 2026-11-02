@@ -131,7 +131,7 @@ func TestInternalTemplateLookupRejectsBrowserPrincipalsAndMalformedIDs(t *testin
 			t.Fatalf("non-service principal accepted: %s %v", role, err)
 		}
 	}
-	tooMany := make([]string, 51)
+	tooMany := make([]string, 5001)
 	for i := range tooMany {
 		tooMany[i] = "welcome-100"
 	}

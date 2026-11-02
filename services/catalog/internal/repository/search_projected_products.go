@@ -84,6 +84,11 @@ func projectedProductQuery(input ProductSearch) (string, []any) {
 			rank = "CAST(" + expression + " AS SIGNED)"
 		}
 		conditions, args := where(long)
+		position, _ := searchCursor(input)
+		if after, afterArgs := searchAfter(rank, input.Sort == constants.CatalogSortPriceAsc, position); after != "" {
+			conditions += " AND " + after
+			args = append(args, afterArgs...)
+		}
 		sql := "(SELECT id, created_at, " + rank + " AS sort_value FROM catalog_records FORCE INDEX (" +
 			searchDocumentIndex +
 			") WHERE " +
@@ -105,7 +110,7 @@ func projectedProductQuery(input ProductSearch) (string, []any) {
 	if field != "" {
 		finalOrder = "hits.sort_value " + direction + ", " + finalOrder
 	}
-	columns := "catalog_records.id, catalog_records.user_id, catalog_records.parent_id, catalog_records.kind, catalog_records.status, catalog_records.payload, catalog_records.created_at, catalog_records.updated_at"
+	columns := "catalog_records.id, catalog_records.user_id, catalog_records.parent_id, catalog_records.kind, catalog_records.status, catalog_records.payload, catalog_records.created_at, catalog_records.updated_at, hits.sort_value AS search_sort_value"
 	return "SELECT " + columns + " FROM (" + candidates +
 		") AS hits JOIN catalog_records ON catalog_records.id = hits.id ORDER BY " +
 		finalOrder, args

@@ -16,7 +16,12 @@ import (
 
 // Claim serializes all aftersale applications for one order in the owning schema.
 // Pending and completed applications consume quantity; rejected/cancelled ones do not.
-func (r *Repository) Claim(ctx context.Context, row *domain.Record, purchased map[string]int64, payable int64) (spanErr0 error) {
+func (r *Repository) Claim(
+	ctx context.Context,
+	row *domain.Record,
+	purchased map[string]int64,
+	payable int64,
+) (spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.aftersale.ClaimQuantity")
 	defer span.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()

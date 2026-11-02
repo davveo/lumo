@@ -549,12 +549,22 @@ func TestOrderTickDelegatesExpirationToCheckout(t *testing.T) {
 	if err := f.m.Tick(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	if len(f.rpc.commands) != 1 || f.rpc.services[0] != "checkout" || f.rpc.commands[0].Action != "cancel" ||
-		f.rpc.commands[0].ID != "expired-unpaid" ||
-		f.rpc.commands[0].UserID != "buyer" ||
-		f.rpc.commands[0].Role != "system" {
-		t.Fatalf("expiration bypassed checkout resource release: %+v %+v", f.rpc.services, f.rpc.commands)
+	if len(f.rpc.commands) != 0 {
+		t.Fatal("expiry scan called remote services", f.rpc.commands)
 	}
+	expiry := 0
+	for _, event := range f.events(t, "expired-unpaid") {
+		if event.Type == "OrderExpiryRequested" {
+			expiry++
+			if event.UserID != "buyer" || event.AggregateID != "expired-unpaid" {
+				t.Fatal(event)
+			}
+		}
+	}
+	if expiry != 1 {
+		t.Fatalf("expected one durable checkout expiry task, got %d", expiry)
+	}
+
 	if row := f.row(t, "expired-unpaid"); row.Status != "PENDING_PAYMENT" {
 		t.Fatalf("tick independently mutated the order: %+v", row)
 	}
@@ -563,7 +573,7 @@ func TestOrderTickDelegatesExpirationToCheckout(t *testing.T) {
 		t.Fatalf("normal close race should be retried later: %v", err)
 	}
 	f.rpc.err = errors.New("checkout unavailable")
-	if err := f.m.Tick(context.Background()); !errors.Is(err, f.rpc.err) {
-		t.Fatalf("checkout failure was swallowed: %v", err)
+	if err := f.m.Tick(context.Background()); err != nil {
+		t.Fatalf("local durable enqueue should not call unavailable checkout: %v", err)
 	}
 }

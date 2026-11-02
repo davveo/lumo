@@ -68,6 +68,13 @@ func (s *Service) Claim(ctx context.Context, c platform.Request) (traceResult pl
 		return nil, err
 	}
 	check := &eligibility{rpc: s.RPC, user: c.UserID, role: c.Role}
+	template, claimed, err := s.Repo.ClaimTemplate(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	if !claimed {
+		check.prepare(ctx, template.MinPoints, template.MinGrowth)
+	}
 	return s.Repo.Claim(ctx, c, check.check)
 }
 func (s *Service) Reserve(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
@@ -133,6 +140,14 @@ func (s *Service) readTemplates(
 		return nil, err
 	}
 	check := &eligibility{rpc: s.RPC, user: c.UserID, role: c.Role}
+	var minPoints, minGrowth int64
+	for _, item := range out["items"].([]platform.Result) {
+		if item["claim_status"] == constants.CouponClaimStatusAvailable {
+			minPoints = max(minPoints, platform.Int(item, "min_points"))
+			minGrowth = max(minGrowth, platform.Int(item, "min_growth"))
+		}
+	}
+	check.prepare(ctx, minPoints, minGrowth)
 	for _, item := range out["items"].([]platform.Result) {
 		if item["claim_status"] != constants.CouponClaimStatusAvailable {
 			continue
@@ -203,8 +218,7 @@ func (e *eligibility) read(ctx context.Context, read platform.Operation, field s
 func (e *eligibility) check(ctx context.Context, t domain.Template) error {
 	if t.MinPoints > 0 {
 		if !e.pointsRead {
-			e.points, e.pointsErr = e.read(ctx, platform.NewClients(e.rpc).Points.Get, "available")
-			e.pointsRead = true
+			return status.Error(codes.Aborted, "领取条件已变化，请重新核验")
 		}
 		if e.pointsErr != nil {
 			return e.pointsErr
@@ -218,8 +232,7 @@ func (e *eligibility) check(ctx context.Context, t domain.Template) error {
 	}
 	if t.MinGrowth > 0 {
 		if !e.growthRead {
-			e.growth, e.growthErr = e.read(ctx, platform.NewClients(e.rpc).Member.Get, "growth")
-			e.growthRead = true
+			return status.Error(codes.Aborted, "领取条件已变化，请重新核验")
 		}
 		if e.growthErr != nil {
 			return e.growthErr
@@ -229,4 +242,17 @@ func (e *eligibility) check(ctx context.Context, t domain.Template) error {
 		}
 	}
 	return nil
+}
+
+// Fetch request-scoped eligibility before row iteration or the claim transaction.
+// check only compares the current locked template with this immutable snapshot.
+func (e *eligibility) prepare(ctx context.Context, minPoints, minGrowth int64) {
+	if minPoints > 0 {
+		e.points, e.pointsErr = e.read(ctx, platform.NewClients(e.rpc).Points.Get, "available")
+		e.pointsRead = true
+	}
+	if minGrowth > 0 {
+		e.growth, e.growthErr = e.read(ctx, platform.NewClients(e.rpc).Member.Get, "growth")
+		e.growthRead = true
+	}
 }

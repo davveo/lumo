@@ -37,7 +37,13 @@ func (s *Service) PolicyUpsert(ctx context.Context, c platform.Request) (spanRes
 	p := in.Config
 	validMoney := func(v int64) bool { return v >= 0 && v <= 1000000000 }
 	validRegion := func(v string) bool { return strings.TrimSpace(v) != "" && len([]rune(v)) <= 100 }
-	if strings.TrimSpace(p.Name) == "" || len([]rune(p.Name)) > 120 || (p.Mode != "flat" && p.Mode != "per_item") || !validMoney(p.BaseFee) || !validMoney(p.AdditionalFee) || !validMoney(p.FreeThreshold) || len(p.AllowedRegions) > 100 || len(p.BlockedRegions) > 100 || len(p.Regions) > 40 {
+	if strings.TrimSpace(p.Name) == "" || len([]rune(p.Name)) > 120 || (p.Mode != "flat" && p.Mode != "per_item") ||
+		!validMoney(p.BaseFee) ||
+		!validMoney(p.AdditionalFee) ||
+		!validMoney(p.FreeThreshold) ||
+		len(p.AllowedRegions) > 100 ||
+		len(p.BlockedRegions) > 100 ||
+		len(p.Regions) > 40 {
 		return nil, status.Error(codes.InvalidArgument, "invalid shipping template")
 	}
 	for _, v := range append(append([]string{}, p.AllowedRegions...), p.BlockedRegions...) {
@@ -47,7 +53,8 @@ func (s *Service) PolicyUpsert(ctx context.Context, c platform.Request) (spanRes
 	}
 	seen := map[string]bool{}
 	for _, r := range p.Regions {
-		if !validRegion(r.Region) || seen[r.Region] || !validMoney(r.BaseFee) || !validMoney(r.AdditionalFee) || !validMoney(r.FreeThreshold) {
+		if !validRegion(r.Region) || seen[r.Region] || !validMoney(r.BaseFee) || !validMoney(r.AdditionalFee) ||
+			!validMoney(r.FreeThreshold) {
 			return nil, status.Error(codes.InvalidArgument, "invalid or duplicate regional shipping rule")
 		}
 		seen[r.Region] = true

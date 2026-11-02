@@ -74,7 +74,7 @@ func applyCORS(w http.ResponseWriter, r *http.Request, allowed map[string]bool) 
 	if r.Method == http.MethodOptions {
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().
-			Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Idempotency-Key, traceparent, tracestate")
+			Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Idempotency-Key, Last-Event-ID, traceparent, tracestate")
 		w.Header().Set("Access-Control-Max-Age", "600")
 		traceHTTPResponse(r.Context(), map[string]any{"status": http.StatusNoContent}, nil)
 		w.WriteHeader(http.StatusNoContent)

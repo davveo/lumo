@@ -159,7 +159,18 @@ func Public(schema Schema, p Profile) platform.Result {
 			missing = append(missing, f.Label)
 		}
 	}
-	return platform.Result{"id": schema.ID, "name": schema.Name, "fields": schema.Fields, "values": values, "secret_configured": configured, "version": p.Version, "source": p.Source, "missing": missing, "configured": len(missing) == 0, "secure_storage_ready": CryptReady()}
+	return platform.Result{
+		"id":                   schema.ID,
+		"name":                 schema.Name,
+		"fields":               schema.Fields,
+		"values":               values,
+		"secret_configured":    configured,
+		"version":              p.Version,
+		"source":               p.Source,
+		"missing":              missing,
+		"configured":           len(missing) == 0,
+		"secure_storage_ready": CryptReady(),
+	}
 }
 func Merge(schema Schema, current Profile, c platform.Request) (Profile, error) {
 	var input struct {
@@ -217,7 +228,15 @@ func Merge(schema Schema, current Profile, c platform.Request) (Profile, error) 
 	}
 	return next, nil
 }
-func Save(ctx context.Context, db *gorm.DB, id string, schema Schema, p Profile, c platform.Request) (platform.Result, error) {
+
+func Save(
+	ctx context.Context,
+	db *gorm.DB,
+	id string,
+	schema Schema,
+	p Profile,
+	c platform.Request,
+) (platform.Result, error) {
 	ctx, sp := platform.Start(ctx, "channelconfig.repository.Save")
 	defer sp.End()
 	public, secrets := map[string]string{}, map[string]string{}
@@ -232,7 +251,15 @@ func Save(ctx context.Context, db *gorm.DB, id string, schema Schema, p Profile,
 	if e != nil {
 		return nil, e
 	}
-	r, e := adminconfig.Save(ctx, db, id, Document{Values: public, CredentialsCiphertext: encoded}, platform.Int(c.Data, "version"), c.UserID, platform.Text(c.Data, "reason"))
+	r, e := adminconfig.Save(
+		ctx,
+		db,
+		id,
+		Document{Values: public, CredentialsCiphertext: encoded},
+		platform.Int(c.Data, "version"),
+		c.UserID,
+		platform.Text(c.Data, "reason"),
+	)
 	if e != nil {
 		return nil, e
 	}

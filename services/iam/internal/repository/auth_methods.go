@@ -28,10 +28,23 @@ type LoginPolicy struct {
 }
 
 func (r *Repository) LoginPolicy(ctx context.Context) (LoginPolicy, int64, error) {
-	return adminconfig.Read(ctx, r.db, "login-methods", LoginPolicy{Password: true, Registration: true, OTPTTL: 300, OTPCooldown: 60})
+	return adminconfig.Read(
+		ctx,
+		r.db,
+		"login-methods",
+		LoginPolicy{Password: true, Registration: true, OTPTTL: 300, OTPCooldown: 60},
+	)
 }
 func (r *Repository) SaveLoginPolicy(ctx context.Context, c platform.Request, p LoginPolicy) (platform.Result, error) {
-	return adminconfig.Save(ctx, r.db, "login-methods", p, platform.Int(c.Data, "version"), c.UserID, platform.Text(c.Data, "reason"))
+	return adminconfig.Save(
+		ctx,
+		r.db,
+		"login-methods",
+		p,
+		platform.Int(c.Data, "version"),
+		c.UserID,
+		platform.Text(c.Data, "reason"),
+	)
 }
 func authKey(text string) string { h := sha256.Sum256([]byte(text)); return hex.EncodeToString(h[:]) }
 func (r *Repository) NewOTP(ctx context.Context, row domain.AuthChallenge, ip string, cooldown int64) (spanErr0 error) {
@@ -61,11 +74,12 @@ func (r *Repository) NewOTP(ctx context.Context, row domain.AuthChallenge, ip st
 			if rate.Count >= limit.Max {
 				return status.Error(codes.ResourceExhausted, "今日验证码请求过多，请稍后再试")
 			}
-			if limit.Max == 10 && now.Sub(rate.LastSent) < time.Duration(cooldown)*time.Second {
+			if limit.Max == 10 && rate.LastSent != nil &&
+				now.Sub(*rate.LastSent) < time.Duration(cooldown)*time.Second {
 				return status.Error(codes.ResourceExhausted, "验证码发送过于频繁，请稍后再试")
 			}
 			rate.Count++
-			rate.LastSent = now
+			rate.LastSent = &now
 			if e := tx.WithContext(ctx).Save(&rate).Error; e != nil {
 				return e
 			}
@@ -74,7 +88,11 @@ func (r *Repository) NewOTP(ctx context.Context, row domain.AuthChallenge, ip st
 	})
 }
 func (r *Repository) Delivered(ctx context.Context, id string) error {
-	return r.db.WithContext(ctx).Model(&domain.AuthChallenge{}).Where("id = ? AND consumed_at IS NULL", id).Update("delivered", true).Error
+	return r.db.WithContext(ctx).
+		Model(&domain.AuthChallenge{}).
+		Where("id = ? AND consumed_at IS NULL", id).
+		Update("delivered", true).
+		Error
 }
 func (r *Repository) NewOAuth(ctx context.Context, row domain.AuthChallenge, ip string) (spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "iam.repository.NewOAuth")
@@ -99,7 +117,7 @@ func (r *Repository) NewOAuth(ctx context.Context, row domain.AuthChallenge, ip 
 			return status.Error(codes.ResourceExhausted, "授权请求过多，请稍后再试")
 		}
 		rate.Count++
-		rate.LastSent = now
+		rate.LastSent = &now
 		if e := tx.WithContext(ctx).Save(&rate).Error; e != nil {
 			return e
 		}
@@ -118,14 +136,21 @@ func (r *Repository) ConsumeOAuth(ctx context.Context, id, provider, binding str
 
 			return status.Error(codes.Unauthenticated, "登录授权已失效，请重新发起")
 		}
-		if row.Provider != provider || row.ConsumedAt != nil || !time.Now().Before(row.ExpiresAt) || subtle.ConstantTimeCompare([]byte(row.Binding), []byte(binding)) != 1 {
+		if row.Provider != provider || row.ConsumedAt != nil || !time.Now().Before(row.ExpiresAt) ||
+			subtle.ConstantTimeCompare([]byte(row.Binding), []byte(binding)) != 1 {
 			return status.Error(codes.Unauthenticated, "登录授权校验失败")
 		}
 		now := time.Now().UTC()
 		return tx.WithContext(ctx).Model(&row).Update("consumed_at", now).Error
 	})
 }
-func identityAccount(ctx context.Context, tx *gorm.DB, provider, subject string, register bool) (domain.Account, error) {
+
+func identityAccount(
+	ctx context.Context,
+	tx *gorm.DB,
+	provider, subject string,
+	register bool,
+) (domain.Account, error) {
 	identity := domain.Identity{ID: authKey(provider + "\x00" + subject), Provider: provider, Subject: subject}
 	if e := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&identity).Error; e != nil {
 		return domain.Account{}, e
@@ -159,7 +184,12 @@ func identityAccount(ctx context.Context, tx *gorm.DB, provider, subject string,
 	}
 	return account, nil
 }
-func (r *Repository) IdentityAccount(ctx context.Context, provider, subject string, register bool) (domain.Account, error) {
+
+func (r *Repository) IdentityAccount(
+	ctx context.Context,
+	provider, subject string,
+	register bool,
+) (domain.Account, error) {
 	var account domain.Account
 	e := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var e error
@@ -168,7 +198,12 @@ func (r *Repository) IdentityAccount(ctx context.Context, provider, subject stri
 	})
 	return account, e
 }
-func (r *Repository) ConsumeOTP(ctx context.Context, id, phone, digest string, register bool) (spanResult0 domain.Account, spanErr0 error) {
+
+func (r *Repository) ConsumeOTP(
+	ctx context.Context,
+	id, phone, digest string,
+	register bool,
+) (spanResult0 domain.Account, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "iam.repository.ConsumeOTP")
 	defer span.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -185,7 +220,9 @@ func (r *Repository) ConsumeOTP(ctx context.Context, id, phone, digest string, r
 		if e != nil {
 			return e
 		}
-		if row.Provider != "phone" || row.Subject != phone || !row.Delivered || row.ConsumedAt != nil || !time.Now().Before(row.ExpiresAt) || row.Attempts >= 5 {
+		if row.Provider != "phone" || row.Subject != phone || !row.Delivered || row.ConsumedAt != nil ||
+			!time.Now().Before(row.ExpiresAt) ||
+			row.Attempts >= 5 {
 			rejected = status.Error(codes.Unauthenticated, "验证码无效或已过期")
 			return nil
 		}

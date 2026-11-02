@@ -101,7 +101,9 @@ elif command=='config':
         print('name: '+state.get('project_name','lumo-mall')+'\nservices:')
         for n in services:
             print('  '+n+':\n    image: '+images[n])
-            if n=='web':print('    build:\n      args:\n        NGINX_IMAGE: '+state.get('web_base_image','nginx:1.30.6-alpine'))
+            if n=='web':
+                print('    build:\n      args:\n        NGINX_IMAGE: '+state.get('web_base_image','nginx:1.30.6-alpine'))
+                print('        NODE_IMAGE: '+state.get('web_node_image','public.ecr.aws/docker/library/node:22.23.4-alpine3.24'))
 elif command=='up' and '--help' in tail:
     print('Usage: docker compose up [OPTIONS] [SERVICE...]\n--no-deps --no-recreate --force-recreate --wait')
     if failure!='wait_support':print('--wait-timeout int')
@@ -501,6 +503,27 @@ class DockerStartupTests(unittest.TestCase):
         self.assertEqual(self.app_targets(), {"web"})
         self.assertEqual([self.selected(c) for c in self.builds()], [{"web"}])
         self.assertEqual(self.read_runtime()["images"][APP_IMAGE], original_backend)
+
+    def test_changing_only_the_node_build_image_rebuilds_web_and_preserves_other_containers(self):
+        self.establish_baseline()
+        before = self.read_runtime()
+        state = self.read_runtime()
+        state["web_node_image"] = "local-node:22"
+        state["config_overrides"]["web"] = "node-image-updated"
+        self.write_runtime(state)
+        self.assert_success(self.run_start())
+        self.assertEqual(self.app_targets(), {"web"})
+        self.assertEqual([self.selected(c) for c in self.builds()], [{"web"}])
+        after = self.read_runtime()
+        self.assertNotEqual(after["images"][WEB_IMAGE], before["images"][WEB_IMAGE])
+        self.assertEqual(after["images"][APP_IMAGE], before["images"][APP_IMAGE])
+        for service in BACKENDS:
+            self.assertEqual(after["containers"][service], before["containers"][service], service)
+        self.assert_infra_preserved(before)
+        self.clear_calls()
+        self.assert_success(self.run_start())
+        self.assertEqual(self.builds(), [])
+        self.assertEqual(self.app_targets(), set())
 
     def test_legacy_gateway_port_moves_to_web_with_an_exact_private_backup(self):
         legacy = (

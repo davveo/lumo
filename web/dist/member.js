@@ -220,7 +220,10 @@
           call(C.Service.Interaction, C.Action.List, {
             data: { kind: C.InteractionKind.Review, mine: true, limit: 100 },
           }),
-        () => call(C.Service.Aftersale, C.Action.List),
+        () =>
+          window.LumoAPI.listAll
+            ? window.LumoAPI.listAll(C.Service.Aftersale)
+            : call(C.Service.Aftersale, C.Action.List),
         async () => {
           const favorites = await call(C.Service.Engagement, C.Action.List, {
             data: { kind: C.EngagementKind.Favorite, limit: 100 },
@@ -951,6 +954,10 @@
       return;
     }
     if (value === 'logistics' && id) {
+      if (window.LumoShipmentTracking) {
+        await window.LumoShipmentTracking.open(id);
+        return;
+      }
       await readDialog(
         '物流详情',
         'rows',

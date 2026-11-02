@@ -14,7 +14,15 @@
   ];
   const m = U.controller(
     'dashboard-admin-root',
-    () => ({ days: 7, data: null, busy: false, error: '' }),
+    () => ({
+      days: 7,
+      data: null,
+      busy: false,
+      error: '',
+      historyPhase: 'payment',
+      historyCursor: '',
+      historyCount: 0,
+    }),
     async (module) => ({
       data: await module.adapter.call(C.Service.Management, C.Action.Dashboard, { data: { days: module.state.days } }),
     }),
@@ -29,7 +37,7 @@
     const head = U.heading(
       '经营工作台',
       '掌握收款、履约与售后进度，及时处理待办事项。',
-      `<div class="db-range" role="group" aria-label="看板统计范围">${[7, 30].map((days) => `<button data-db-days="${days}" class="${s.days === days ? 'primary' : 'outline'}" ${s.busy ? 'disabled' : ''}>近 ${days} 天</button>`).join('')}</div><button class="outline" data-db="refresh" ${s.busy ? 'disabled' : ''}>刷新看板</button>`,
+      `<div class="db-range" role="group" aria-label="看板统计范围">${[7, 30, 90].map((days) => `<button data-db-days="${days}" class="${s.days === days ? 'primary' : 'outline'}" ${s.busy ? 'disabled' : ''}>近 ${days} 天</button>`).join('')}</div><button class="outline" data-db="refresh" ${s.busy ? 'disabled' : ''}>刷新看板</button>`,
     );
     if (!data && s.error && !s.busy) return head + U.empty('看板读取失败', '请点击重试，稍后重新读取统计。');
     if (!data)
@@ -66,7 +74,7 @@
             .map(([, name]) => esc(name))
             .join('、')}。可点击刷新重试。</div>`
         : '') +
-      `<div class="db-metrics">${cards.map(([name, value, tab, type, note]) => `<button class="db-metric" data-db-tab="${tab}"><span>${name}</span><strong>${value == null ? '—' : type === 'money' ? money(value) : value.toLocaleString('zh-CN')}</strong><small>${note}</small><i aria-hidden="true">↗</i></button>`).join('')}</div><div class="db-panels"><section class="admin-section db-trend"><div class="admin-panel-heading"><h2>收款与退款趋势</h2><span>近 ${s.days} 天 · 按单据创建日期统计成功金额</span></div>${trend(data, s.days)}<div class="db-legend"><span><i></i>成功支付</span><span><i></i>成功退款</span></div></section><section class="admin-section"><div class="admin-panel-heading"><h2>待办事项</h2><span>实时状态汇总</span></div><div class="db-tasks">${[
+      `<div class="db-metrics">${cards.map(([name, value, tab, type, note]) => `<button class="db-metric" data-db-tab="${tab}"><span>${name}</span><strong>${value == null ? '—' : type === 'money' ? money(value) : value.toLocaleString('zh-CN')}</strong><small>${note}</small><i aria-hidden="true">↗</i></button>`).join('')}</div>${insights(data.insights)}<div class="db-panels"><section class="admin-section db-trend"><div class="admin-panel-heading"><h2>收款与退款趋势</h2><span>近 ${s.days} 天 · 按单据创建日期统计成功金额</span></div>${trend(data, s.days)}<div class="db-legend"><span><i></i>成功支付</span><span><i></i>成功退款</span></div></section><section class="admin-section"><div class="admin-panel-heading"><h2>待办事项</h2><span>实时状态汇总</span></div><div class="db-tasks">${[
         ['payments', '支付回执待确认', count(data, 'payment', C.PaymentStatus.Pending)],
         ['fulfillment', '仓库待出库', count(data, 'fulfillment', C.FulfillmentStatus.Ready)],
         ['aftersales', '售后申请待审核', count(data, 'aftersale', C.AftersaleStatus.Requested)],
@@ -102,6 +110,19 @@
         )}</div></section></div><p class="db-footnote">金额单位：人民币 · 统计时区：UTC+8 · 退款金额独立展示，不与收款金额重复相加。</p>`
     );
   }
+  function insights(data) {
+    if (!data) return '<p class="admin-error">经营分析暂不可用，请刷新重试。</p>';
+    const labels = { view: '浏览商品', add_cart: '加入购物车', checkout: '进入结算', paid: '完成支付' };
+    const cards = [
+      ['期间实付', money(data.paid_cents)],
+      ['期间退款', money(data.refund_cents)],
+      ['净收款', money(data.net_cents)],
+      ['客单价', money(data.average_order_cents)],
+      ['付费顾客', data.buyers],
+      ['期间复购率', (data.repeat_purchase_bps / 100).toFixed(1) + '%'],
+    ];
+    return `<section class="admin-section"><h2>经营分析</h2><button class="outline" data-db="history">同步或继续同步历史交易</button><div class="db-metrics">${cards.map(([label, value]) => `<div class="db-metric"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')}</div><h3>登录顾客转化漏斗</h3><div class="db-tasks">${(data.funnel || []).map((row) => `<div><strong>${labels[row.stage]}</strong> ${row.users} 人 · 同时到达此前阶段 ${row.cohort_users} 人</div>`).join('')}</div><p>${esc(data.funnel_scope)}</p><h3>销售数量排行</h3><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>商品</th><th>规格</th><th>已支付件数</th></tr></thead><tbody>${(data.top_products || []).map((row) => `<tr><td>${esc(row.name)}</td><td>${esc(row.sku_id)}</td><td>${esc(row.quantity)}</td></tr>`).join('')}</tbody></table></div><p>按实际收款和退款事件发生时间统计，UTC+8。复购指期间内至少两笔已支付订单。${data.historical_backfill ? '' : '当前为启用分析后的事件数据，可点击同步历史交易补全。'}</p></section>`;
+  }
   function trend(data, days) {
     if (!data.payment || !data.refund) return U.empty('趋势暂不可用', '支付或退款统计服务未返回，请刷新重试。');
     const fmt = new Intl.DateTimeFormat('sv-SE', {
@@ -132,6 +153,22 @@
     if (!el || !m.active() || m.state.busy) return;
     if (el.dataset.dbTab) {
       m.adapter.navigate?.(el.dataset.dbTab);
+      return;
+    }
+    if (el.dataset.db === 'history') {
+      await m.run(async () => {
+        for (let page = 0; page < 40 && m.active(); page++) {
+          const value = await m.adapter.call('analytics', 'sync_history', {
+            data: { phase: m.state.historyPhase || 'payment', cursor: m.state.historyCursor || '' },
+          });
+          m.state.historyCount = (m.state.historyCount || 0) + Number(value.processed || 0);
+          m.state.historyPhase = value.phase === 'done' ? 'payment' : value.phase;
+          m.state.historyCursor = value.next_cursor || '';
+          m.adapter.notify?.('已同步 ' + m.state.historyCount + ' 条交易');
+          if (value.done) break;
+        }
+      });
+      await m.refresh();
       return;
     }
     if (el.dataset.dbDays) m.state.days = Number(el.dataset.dbDays);

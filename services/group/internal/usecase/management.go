@@ -52,7 +52,18 @@ func (s *Service) RuleUpsert(ctx context.Context, c platform.Request) (spanResul
 	}
 	row.ID = c.ID
 	reason := strings.TrimSpace(platform.Text(c.Data, "reason"))
-	if row.ID == "" || len(row.ID) > 120 || len(row.SKUID) > 80 || row.ActivityID == "" || len(row.ActivityID) > 120 || strings.TrimSpace(row.Name) == "" || len([]rune(row.Name)) > 120 || row.Required < 2 || row.Required > 10 || row.DurationMinutes < 1 || row.DurationMinutes > 10080 || row.Version < 0 || row.Version > 9007199254740990 || reason == "" || len([]rune(reason)) > 240 || (row.StartsAt != nil && row.EndsAt != nil && !row.StartsAt.Before(*row.EndsAt)) {
+	if row.ID == "" || len(row.ID) > 120 || len(row.SKUID) > 80 || row.ActivityID == "" || len(row.ActivityID) > 120 ||
+		strings.TrimSpace(row.Name) == "" ||
+		len([]rune(row.Name)) > 120 ||
+		row.Required < 2 ||
+		row.Required > 10 ||
+		row.DurationMinutes < 1 ||
+		row.DurationMinutes > 10080 ||
+		row.Version < 0 ||
+		row.Version > 9007199254740990 ||
+		reason == "" ||
+		len([]rune(reason)) > 240 ||
+		(row.StartsAt != nil && row.EndsAt != nil && !row.StartsAt.Before(*row.EndsAt)) {
 		return nil, status.Error(codes.InvalidArgument, "valid group rule, size, duration, version and reason required")
 	}
 	if row.SKUID != "" {
@@ -60,7 +71,16 @@ func (s *Service) RuleUpsert(ctx context.Context, c platform.Request) (spanResul
 			return nil, e
 		}
 	}
-	activities, e := platform.NewClients(s.RPC).Campaign.AdminList(ctx, platform.Request{UserID: c.UserID, Role: c.Role, Data: map[string]any{"keyword": row.ActivityID, "page_size": 100}})
+	activities, e := platform.NewClients(
+		s.RPC,
+	).Campaign.AdminList(
+		ctx,
+		platform.Request{
+			UserID: c.UserID,
+			Role:   c.Role,
+			Data:   map[string]any{"keyword": row.ActivityID, "page_size": 100},
+		},
+	)
 	if e != nil {
 		return nil, e
 	}
@@ -93,7 +113,9 @@ func (s *Service) applyRule(ctx context.Context, c platform.Request) (spanResult
 		return c, e
 	}
 	now := time.Now().UTC()
-	if !rule.Active || (rule.StartsAt != nil && now.Before(*rule.StartsAt)) || (rule.EndsAt != nil && !now.Before(*rule.EndsAt)) || (rule.SKUID != "" && rule.SKUID != platform.Text(c.Data, "sku_id")) {
+	if !rule.Active || (rule.StartsAt != nil && now.Before(*rule.StartsAt)) ||
+		(rule.EndsAt != nil && !now.Before(*rule.EndsAt)) ||
+		(rule.SKUID != "" && rule.SKUID != platform.Text(c.Data, "sku_id")) {
 		return c, status.Error(codes.FailedPrecondition, "group rule is inactive or SKU does not match")
 	}
 	if c.Data == nil {

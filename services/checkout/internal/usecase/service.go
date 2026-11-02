@@ -98,6 +98,9 @@ func validateQuoteBenefits(q map[string]any) error {
 }
 func (s *Service) Topics() []string {
 	return []string{
+		constants.EventCheckoutRecoveryRequested,
+		constants.EventCheckoutGroupResolution,
+		constants.EventOrderExpiryRequested,
 		constants.EventOrderPaymentAccepted,
 		constants.EventOrderClosed,
 		constants.EventGroupFormed,
@@ -366,7 +369,9 @@ func (s *Service) Submit(ctx context.Context, c platform.Request) (traceResult p
 			return nil, e
 		}
 		policy = decoded.Policy
-		destination := commercepolicy.Region(map[string]any{"province": ship.Province, "city": ship.City, "district": ship.District})
+		destination := commercepolicy.Region(
+			map[string]any{"province": ship.Province, "city": ship.City, "district": ship.District},
+		)
 		region := platform.Text(q, "shipping_region")
 		if policy.Version > 0 && destination != region {
 			return nil, status.Error(codes.FailedPrecondition, "shipping address changed; requote required")
@@ -468,52 +473,56 @@ func (s *Service) resumeWorkflow(ctx context.Context, id, user, mode string) (pl
 			reserve platform.Operation
 			data    map[string]any
 		}
-		resources := []reservation{{
+		resources := map[string]reservation{constants.ServiceInventory: {
 			name:    constants.ServiceInventory,
 			reserve: clients.Inventory.Reserve,
 			data:    map[string]any{"order_id": id, "lines": q["items"]},
 		}}
 		if platform.Text(q, "activity_id") != "" {
-			resources = append(resources, reservation{
+			resources[constants.ServiceCampaign] = reservation{
 				name:    constants.ServiceCampaign,
 				reserve: clients.Campaign.Reserve,
 				data:    map[string]any{"order_id": id, "activity_id": q["activity_id"], "quantity": int64(1)},
-			})
+			}
 		}
 		if platform.Text(q, "group_id") != "" {
-			resources = append(resources, reservation{
+			resources[constants.ServiceGroup] = reservation{
 				name:    constants.ServiceGroup,
 				reserve: clients.Group.Reserve,
 				data:    map[string]any{"order_id": id, "group_id": q["group_id"]},
-			})
+			}
 		}
 		if platform.Text(q, "coupon_id") != "" {
 			mainSubtotal, e := quoteMainSubtotal(q)
 			if e != nil {
 				return nil, e
 			}
-			resources = append(resources, reservation{
+			resources[constants.ServiceCoupon] = reservation{
 				name:    constants.ServiceCoupon,
 				reserve: clients.Coupon.Reserve,
 				data: map[string]any{
 					"order_id": id, "coupon_id": q["coupon_id"], "subtotal_cents": mainSubtotal, "items": q["coupon_items"],
 				},
-			})
+			}
 		}
 		if platform.Int(q, "points") > 0 {
-			resources = append(resources, reservation{
+			resources[constants.ServicePoints] = reservation{
 				name:    constants.ServicePoints,
 				reserve: clients.Points.Reserve,
 				data:    map[string]any{"order_id": id, "amount": q["points"]},
-			})
+			}
 		}
-		for _, resource := range resources {
+		reserveResource := func(name string) error {
+			resource, exists := resources[name]
+			if !exists {
+				return nil
+			}
 			if steps[resource.name] == constants.CheckoutStepStatusReserved {
-				continue
+				return nil
 			}
 			steps[resource.name] = constants.CheckoutStepStatusTrying
 			if err = save(); err != nil {
-				return nil, err
+				return err
 			}
 			reserved, e := resource.reserve(ctx, platform.Request{
 				ID:     id,
@@ -530,7 +539,7 @@ func (s *Service) resumeWorkflow(ctx context.Context, id, user, mode string) (pl
 				a.State = constants.CheckoutStateCancelling
 				a.LastError = status.Code(e).String()
 				if err = save(); err != nil {
-					return nil, err
+					return err
 				}
 				_ = s.releaseResources(ctx, &a, q, steps, save)
 				_, _ = platform.NewClients(
@@ -544,13 +553,30 @@ func (s *Service) resumeWorkflow(ctx context.Context, id, user, mode string) (pl
 						Data:   nil,
 					},
 				)
-				return nil, e
+				return e
 			}
 			steps[resource.name] = constants.CheckoutStepStatusReserved
 			if err = save(); err != nil {
-				return nil, err
+				return err
 			}
+			return nil
 		}
+		if err = reserveResource(constants.ServiceInventory); err != nil {
+			return nil, err
+		}
+		if err = reserveResource(constants.ServiceCampaign); err != nil {
+			return nil, err
+		}
+		if err = reserveResource(constants.ServiceGroup); err != nil {
+			return nil, err
+		}
+		if err = reserveResource(constants.ServiceCoupon); err != nil {
+			return nil, err
+		}
+		if err = reserveResource(constants.ServicePoints); err != nil {
+			return nil, err
+		}
+
 		if _, err = platform.NewClients(s.rpc).Order.Pending(ctx, platform.Request{
 			ID:     id,
 			UserID: user,
@@ -601,29 +627,33 @@ func (s *Service) resumeWorkflow(ctx context.Context, id, user, mode string) (pl
 			return nil, err
 		}
 		clients := platform.NewClients(s.rpc)
-		for _, resource := range []struct {
-			name    string
-			confirm platform.Operation
-		}{
-			{constants.ServiceCoupon, clients.Coupon.Confirm},
-			{constants.ServicePoints, clients.Points.Confirm},
-			{constants.ServiceCampaign, clients.Campaign.Confirm},
-		} {
-			if steps[resource.name] == "" || steps[resource.name] == constants.CheckoutStepStatusConfirmed {
-				continue
+		confirmResource := func(name string, confirm platform.Operation) error {
+			if steps[name] == "" || steps[name] == constants.CheckoutStepStatusConfirmed {
+				return nil
 			}
-			if _, err = resource.confirm(ctx, platform.Request{
+			if _, err = confirm(ctx, platform.Request{
 				ID:     id,
 				UserID: user,
 				Role:   constants.RoleSystem,
 			}); err != nil {
-				return nil, err
+				return err
 			}
-			steps[resource.name] = constants.CheckoutStepStatusConfirmed
+			steps[name] = constants.CheckoutStepStatusConfirmed
 			if err = save(); err != nil {
-				return nil, err
+				return err
 			}
+			return nil
 		}
+		if err = confirmResource(constants.ServiceCoupon, clients.Coupon.Confirm); err != nil {
+			return nil, err
+		}
+		if err = confirmResource(constants.ServicePoints, clients.Points.Confirm); err != nil {
+			return nil, err
+		}
+		if err = confirmResource(constants.ServiceCampaign, clients.Campaign.Confirm); err != nil {
+			return nil, err
+		}
+
 		if gid := platform.Text(q, "group_id"); gid != "" {
 			team, e := platform.NewClients(
 				s.rpc,
@@ -732,24 +762,15 @@ func (s *Service) releaseResources(
 	save func() error,
 ) error {
 	clients := platform.NewClients(s.rpc)
-	for _, resource := range []struct {
-		name   string
-		cancel platform.Operation
-	}{
-		{constants.ServicePoints, clients.Points.Cancel},
-		{constants.ServiceCoupon, clients.Coupon.Cancel},
-		{constants.ServiceGroup, clients.Group.Cancel},
-		{constants.ServiceCampaign, clients.Campaign.Cancel},
-		{constants.ServiceInventory, clients.Inventory.Cancel},
-	} {
-		st := steps[resource.name]
+	cancelResource := func(name string, cancel platform.Operation) error {
+		st := steps[name]
 		if st == "" || st == constants.CheckoutStepStatusCancelled {
-			continue
+			return nil
 		}
-		if st == constants.CheckoutStepStatusConfirmed && resource.name != constants.ServiceInventory {
-			continue
+		if st == constants.CheckoutStepStatusConfirmed && name != constants.ServiceInventory {
+			return nil
 		}
-		if resource.name == constants.ServiceInventory && st == constants.CheckoutStepStatusConfirmed {
+		if name == constants.ServiceInventory && st == constants.CheckoutStepStatusConfirmed {
 			if _, err := platform.NewClients(s.rpc).Fulfillment.Cancel(ctx, platform.Request{
 				ID:     a.ID,
 				UserID: a.UserID,
@@ -759,20 +780,37 @@ func (s *Service) releaseResources(
 				return err
 			}
 		}
-		if _, err := resource.cancel(ctx, platform.Request{
+		if _, err := cancel(ctx, platform.Request{
 			ID:     a.ID,
 			UserID: a.UserID,
 			Role:   constants.RoleSystem,
 		}); err != nil {
-			if resource.name != constants.ServiceGroup || status.Code(err) != codes.FailedPrecondition {
+			if name != constants.ServiceGroup || status.Code(err) != codes.FailedPrecondition {
 				return err
 			}
 		}
-		steps[resource.name] = constants.CheckoutStepStatusCancelled
+		steps[name] = constants.CheckoutStepStatusCancelled
 		if err := save(); err != nil {
 			return err
 		}
+		return nil
 	}
+	if err := cancelResource(constants.ServicePoints, clients.Points.Cancel); err != nil {
+		return err
+	}
+	if err := cancelResource(constants.ServiceCoupon, clients.Coupon.Cancel); err != nil {
+		return err
+	}
+	if err := cancelResource(constants.ServiceGroup, clients.Group.Cancel); err != nil {
+		return err
+	}
+	if err := cancelResource(constants.ServiceCampaign, clients.Campaign.Cancel); err != nil {
+		return err
+	}
+	if err := cancelResource(constants.ServiceInventory, clients.Inventory.Cancel); err != nil {
+		return err
+	}
+
 	a.State = constants.CheckoutStateCancelled
 	return save()
 }
@@ -858,6 +896,19 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 	defer sp.End()
 	platform.TraceRequest(ctx, e)
 	defer func() { platform.TraceResponse(ctx, nil, traceErr) }()
+	if e.Type == constants.EventCheckoutRecoveryRequested {
+		return s.recoverOne(ctx, e)
+	}
+	if e.Type == constants.EventCheckoutGroupResolution {
+		return s.resolveGroupOne(ctx, e)
+	}
+	if e.Type == constants.EventOrderExpiryRequested {
+		_, err := s.Cancel(ctx, platform.Request{ID: e.AggregateID, UserID: e.UserID, Role: constants.RoleSystem})
+		if status.Code(err) == codes.FailedPrecondition {
+			return nil
+		}
+		return err
+	}
 	if e.Type == constants.EventOrderPaymentAccepted {
 		id := platform.Text(e.Data, "order_id")
 		if id == "" {
@@ -890,53 +941,7 @@ func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error
 		if len(ids) == 0 {
 			ids = append(ids, e.AggregateID)
 		}
-		for _, id := range ids {
-			a, err := s.r.Get(ctx, id)
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				continue
-			}
-			if err != nil {
-				return err
-			}
-			if e.Type == constants.EventGroupFormed {
-				if _, err = platform.NewClients(s.rpc).Order.GroupFormed(ctx, platform.Request{
-					ID:     id,
-					UserID: a.UserID,
-					Role:   constants.RoleSystem,
-					Data:   nil,
-				}); err != nil {
-					return err
-				}
-				if _, err = s.Paid(ctx, platform.Request{
-					ID:     id,
-					UserID: a.UserID,
-					Role:   constants.RoleSystem,
-				}); err != nil {
-					return err
-				}
-			} else {
-				if _, err = platform.NewClients(s.rpc).Order.GroupFailed(ctx, platform.Request{
-					ID:     id,
-					UserID: a.UserID,
-					Role:   constants.RoleSystem,
-					Data:   nil,
-				}); err != nil {
-					return err
-				}
-				if _, err = platform.NewClients(s.rpc).Payment.Close(ctx, platform.Request{
-					ID:     id,
-					UserID: a.UserID,
-					Role:   constants.RoleSystem,
-					Data:   nil,
-				}); err != nil {
-					return err
-				}
-				if _, err = s.resumeWorkflow(ctx, id, a.UserID, constants.CheckoutModeRelease); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
+		return s.r.QueueGroupResolution(ctx, e, ids)
 	}
 	return nil
 }
@@ -945,28 +950,18 @@ func (s *Service) Tick(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	for _, a := range rows {
-		mode := constants.CheckoutModeCreate
-		switch a.State {
-		case constants.CheckoutStateCancelling:
-			mode = constants.CheckoutModeRelease
-		case constants.CheckoutStatePaidConfirming, constants.CheckoutStatePaidWaitGroup:
-			mode = constants.CheckoutModePaid
-		}
-		var resumeErr error
-		if mode == constants.CheckoutModePaid {
-			_, resumeErr = s.Paid(ctx, platform.Request{
-				ID:     a.ID,
-				UserID: a.UserID,
-				Role:   constants.RoleSystem,
-			})
-		} else {
-			_, resumeErr = s.resumeWorkflow(ctx, a.ID, a.UserID, mode)
-		}
-		if resumeErr != nil && status.Code(resumeErr) != codes.Aborted &&
-			status.Code(resumeErr) != codes.FailedPrecondition {
-			return resumeErr
-		}
+	events := []platform.Event{}
+	for _, row := range rows {
+		events = append(
+			events,
+			platform.RecoveryEvent(
+				constants.EventCheckoutRecoveryRequested,
+				row.ID,
+				row.UserID,
+				row.State,
+				row.UpdatedAt.UnixMilli(),
+			),
+		)
 	}
-	return nil
+	return s.r.QueueWork(ctx, events)
 }

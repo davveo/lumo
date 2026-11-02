@@ -12,7 +12,13 @@ import (
 	"time"
 )
 
-func (s *Service) chooseCoupon(ctx context.Context, c platform.Request, mode, id string, subtotal, remaining int64, lines []couponrules.Line) (spanResult0 string, spanResult1 int64, spanResult2 []platform.Result, spanErr0 error) {
+func (s *Service) chooseCoupon(
+	ctx context.Context,
+	c platform.Request,
+	mode, id string,
+	subtotal, remaining int64,
+	lines []couponrules.Line,
+) (spanResult0 string, spanResult1 int64, spanResult2 []platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "pricing.usecase.ChooseCoupon")
 	defer span.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -75,7 +81,17 @@ func (s *Service) chooseCoupon(ctx context.Context, c platform.Request, mode, id
 		if why == "" && discount >= remaining {
 			why = "优惠后需保留有效商品实付金额"
 		}
-		options = append(options, platform.Result{"id": cid, "name": platform.Text(row, "template_name"), "eligible": why == "", "reason": why, "discount_cents": discount, "expires_at": expires})
+		options = append(
+			options,
+			platform.Result{
+				"id":             cid,
+				"name":           platform.Text(row, "template_name"),
+				"eligible":       why == "",
+				"reason":         why,
+				"discount_cents": discount,
+				"expires_at":     expires,
+			},
+		)
 		if cid == id {
 			found = true
 			if mode != "auto" {

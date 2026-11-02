@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/davveo/lumo/internal/adminconfig"
 	"github.com/davveo/lumo/internal/platform"
@@ -87,3 +88,21 @@ func (r *Repository) List(ctx context.Context, user string, all bool) (spanResul
 }
 
 func (t *Tx) BusinessID() (string, error) { return platform.NextBusinessID(t.ctx, t.db, "payment") }
+
+func (r *Repository) ListPage(
+	ctx context.Context,
+	user string,
+	c platform.Request,
+) ([]domain.Payment, platform.Result, error) {
+	q := r.db.Model(&domain.Payment{})
+	if user != "" {
+		q = q.Where("user_id = ?", user)
+	}
+	return platform.ReadListPage(
+		ctx,
+		q,
+		c,
+		"payment",
+		func(row domain.Payment) (string, time.Time) { return row.ID, row.CreatedAt },
+	)
+}

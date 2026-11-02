@@ -8,6 +8,14 @@ import (
 
 func New(s *usecase.Service) *platform.MethodHandler {
 	return platform.NewMethodHandler(constants.ServiceInventory, map[string]platform.Operation{
+		constants.ActionRestockBatch:       s.RestockBatch,
+		constants.ActionProcurementList:    s.ProcurementList,
+		constants.ActionProcurementGet:     s.ProcurementGet,
+		constants.ActionProcurementCreate:  s.ProcurementCreate,
+		constants.ActionProcurementApprove: s.ProcurementApprove,
+		constants.ActionProcurementReceive: s.ProcurementReceive,
+		constants.ActionProcurementCancel:  s.ProcurementCancel,
+
 		constants.ActionAdminList: s.AdminList, constants.ActionThreshold: s.Threshold, constants.ActionLedger: s.Ledger,
 		constants.ActionGet:         s.Get,
 		constants.ActionBatchGet:    s.BatchGet,

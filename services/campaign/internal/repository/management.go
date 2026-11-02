@@ -52,7 +52,12 @@ func (r *Repository) AdminList(
 	return platform.Result{"items": items, "total": total, "page": page, "page_size": size}, nil
 }
 
-func (r *Repository) Upsert(ctx context.Context, next domain.Activity, dedicated bool, actor, reason string) (spanResult0 platform.Result, spanErr0 error) {
+func (r *Repository) Upsert(
+	ctx context.Context,
+	next domain.Activity,
+	dedicated bool,
+	actor, reason string,
+) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.campaign.Upsert")
 	defer span.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -64,7 +69,9 @@ func (r *Repository) Upsert(ctx context.Context, next domain.Activity, dedicated
 			}
 			before, _ := json.Marshal(prior)
 			after, _ := json.Marshal(next)
-			return tx.WithContext(ctx).Create(&adminconfig.Change{ID: platform.ID("campaign-change"), DocumentID: next.ID, Version: next.Version, ActorID: actor, Reason: reason, Before: string(before), After: string(after)}).Error
+			return tx.WithContext(ctx).
+				Create(&adminconfig.Change{ID: platform.ID("campaign-change"), DocumentID: next.ID, Version: next.Version, ActorID: actor, Reason: reason, Before: string(before), After: string(after)}).
+				Error
 		}
 		var prior domain.Activity
 		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&prior, "id = ?", next.ID).Error
@@ -92,7 +99,8 @@ func (r *Repository) Upsert(ctx context.Context, next domain.Activity, dedicated
 			return status.Error(codes.FailedPrecondition, "activity version exhausted; create a new rule")
 		}
 		// System-backed offers cannot be repurposed through a generic rule editor.
-		if !editable(prior.Kind) && !(dedicated && (prior.Kind == constants.CampaignKindFlash || prior.Kind == constants.CampaignKindGroup) && next.Kind == prior.Kind) {
+		if !editable(prior.Kind) &&
+			!(dedicated && (prior.Kind == constants.CampaignKindFlash || prior.Kind == constants.CampaignKindGroup) && next.Kind == prior.Kind) {
 			return status.Error(codes.FailedPrecondition, "system activity is not editable here")
 		}
 		if prior.Held > 0 || prior.Used > 0 {

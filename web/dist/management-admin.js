@@ -890,6 +890,7 @@
     }
   }
   async function exportCSV(m) {
+    if (m.adapter.canExport && !m.adapter.canExport()) throw Error('当前员工角色不允许导出');
     const s = m.state,
       snapshot = copy({
         key: s.key,
@@ -916,6 +917,7 @@
           expectedTotal;
         const seen = new Set();
         do {
+          command.data.export = true;
           command.data.page = Math.floor(rows.length / 100) + 1;
           const result = await m.adapter.call(service, action, command),
             page = snapshot.key === 'reconciliation' && snapshot.detailId ? result.differences : result;

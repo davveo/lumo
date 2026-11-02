@@ -16,5 +16,13 @@ func (r *Repository) Template(ctx context.Context, id string, defaults Template)
 	return adminconfig.Read(ctx, r.db, "notification:"+id, defaults)
 }
 func (r *Repository) TemplateUpsert(ctx context.Context, c platform.Request, v Template) (platform.Result, error) {
-	return adminconfig.Save(ctx, r.db, "notification:"+c.ID, v, platform.Int(c.Data, "version"), c.UserID, platform.Text(c.Data, "reason"))
+	return adminconfig.Save(
+		ctx,
+		r.db,
+		"notification:"+c.ID,
+		v,
+		platform.Int(c.Data, "version"),
+		c.UserID,
+		platform.Text(c.Data, "reason"),
+	)
 }

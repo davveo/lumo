@@ -159,7 +159,10 @@ func TestRPCPayloadTraceRecordsErrorsAndRejectsSensitiveStatusText(t *testing.T)
 					if rejection {
 						t.Error("rejected credential reached business handler")
 					}
-					return nil, status.Error(codes.InvalidArgument, "stock unavailable; password=request-secret-private")
+					return nil, status.Error(
+						codes.InvalidArgument,
+						"stock unavailable; password=request-secret-private",
+					)
 				}},
 			)
 			token, expectedCode, count := "trace-internal-token", codes.InvalidArgument, 4

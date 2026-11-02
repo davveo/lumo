@@ -12,4 +12,6 @@ service AnalyticsService {
   rpc AdminList(ServiceRequest) returns (ServiceResponse);
   rpc List(ServiceRequest) returns (ServiceResponse);
   rpc Record(ServiceRequest) returns (ServiceResponse);
+  rpc Dashboard(ServiceRequest) returns (ServiceResponse);
+  rpc SyncHistory(ServiceRequest) returns (ServiceResponse);
 }

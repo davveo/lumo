@@ -140,7 +140,15 @@ var services = []string{
 }
 
 func queueName(service string) string { return "lumo." + service + ".events" }
-func declareTopology(ch *amqp.Channel, service string) error {
+
+type topologyChannel interface {
+	ExchangeDeclare(string, string, bool, bool, bool, bool, amqp.Table) error
+	QueueDeclare(string, bool, bool, bool, bool, amqp.Table) (amqp.Queue, error)
+	QueueBind(string, string, string, bool, amqp.Table) error
+	QueueUnbind(string, string, string, amqp.Table) error
+}
+
+func declareTopology(ch topologyChannel, service string, localTopics ...[]string) error {
 	if err := ch.ExchangeDeclare(constants.MessageExchangeEvents, "topic", true, false, false, false, nil); err != nil {
 		return err
 	}
@@ -169,7 +177,18 @@ func declareTopology(ch *amqp.Channel, service string) error {
 		); err != nil {
 			return err
 		}
-		if err := ch.QueueBind(q, "#", constants.MessageExchangeEvents, false, nil); err != nil {
+		topics := EventTopics(name)
+		if name == service && len(localTopics) > 0 {
+			topics = localTopics[0]
+		}
+		for _, topic := range topics {
+			if err := ch.QueueBind(q, topic, constants.MessageExchangeEvents, false, nil); err != nil {
+				return err
+			}
+		}
+		// Bind precise routes before removing the legacy catch-all. Existing
+		// queue contents are retained; RabbitMQ unbind is idempotent.
+		if err := ch.QueueUnbind(q, "#", constants.MessageExchangeEvents, nil); err != nil {
 			return err
 		}
 		if _, err := ch.QueueDeclare("lumo."+name+".dead", true, false, false, false, nil); err != nil {
@@ -211,7 +230,12 @@ func publishConfirmed(
 	body []byte,
 	headers amqp.Table,
 	messageID string,
+	mandatory ...bool,
 ) error {
+	required := true
+	if len(mandatory) > 0 {
+		required = mandatory[0]
+	}
 drain:
 	for {
 		select {
@@ -227,7 +251,7 @@ drain:
 		ctx,
 		exchange,
 		key,
-		true,
+		required,
 		false,
 		amqp.Publishing{
 			ContentType:  "application/json",
@@ -320,6 +344,7 @@ func publishOne(ctx context.Context, db *gorm.DB, ch *confirmedPublisher, row Ou
 		[]byte(row.PayloadJSON),
 		headers,
 		row.ID,
+		eventRequiresRoute(row.EventType),
 	)
 	if err != nil {
 		TraceError(ctx, err)
@@ -329,7 +354,12 @@ func publishOne(ctx context.Context, db *gorm.DB, ch *confirmedPublisher, row Ou
 			db,
 			row.ID,
 			claim,
-			map[string]any{"state": constants.OutboxStatePending, "next_attempt_at": time.Now().UTC().Add(backoff), "last_error_code": taskErrorCode(err), "last_error_at": time.Now().UTC()},
+			map[string]any{
+				"state":           constants.OutboxStatePending,
+				"next_attempt_at": time.Now().UTC().Add(backoff),
+				"last_error_code": taskErrorCode(err),
+				"last_error_at":   time.Now().UTC(),
+			},
 		)
 		return err
 	}
@@ -340,7 +370,12 @@ func publishOne(ctx context.Context, db *gorm.DB, ch *confirmedPublisher, row Ou
 		db,
 		row.ID,
 		claim,
-		map[string]any{"state": constants.OutboxStatePublished, "published_at": published, "last_error_code": "", "last_error_at": nil},
+		map[string]any{
+			"state":           constants.OutboxStatePublished,
+			"published_at":    published,
+			"last_error_code": "",
+			"last_error_at":   nil,
+		},
 	)
 	outcome["outbox_recorded"] = err == nil
 	return err
@@ -519,10 +554,17 @@ func traceRejectedDelivery(ctx context.Context, m Module, delivery amqp.Delivery
 	ctx = NewTraceErrorContext(otel.GetTextMapPropagator().Extract(ctx, carrier))
 	ctx, span := Start(ctx, "mq.consume.rejected")
 	defer span.End()
-	span.SetAttributes(attribute.String("lumo.target_service", m.Name), attribute.String("messaging.destination.name", queueName(m.Name)))
+	span.SetAttributes(
+		attribute.String("lumo.target_service", m.Name),
+		attribute.String("messaging.destination.name", queueName(m.Name)),
+	)
 	TraceRequest(ctx, event)
 	TraceError(ctx, err)
-	TraceResponse(ctx, Result{"handled": false, "disposition": "rejected"}, status.Error(codes.InvalidArgument, "message rejected before business handling"))
+	TraceResponse(
+		ctx,
+		Result{"handled": false, "disposition": "rejected"},
+		status.Error(codes.InvalidArgument, "message rejected before business handling"),
+	)
 }
 
 func consumeOne(
@@ -654,7 +696,7 @@ func brokerSession(ctx context.Context, db *gorm.DB, url string, m Module) error
 	if err != nil {
 		return err
 	}
-	if err = declareTopology(admin, m.Name); err != nil {
+	if err = declareTopology(admin, m.Name, m.Topics); err != nil {
 		admin.Close()
 		return err
 	}

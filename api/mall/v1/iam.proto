@@ -29,4 +29,13 @@ service IAMService {
   rpc Register(ServiceRequest) returns (ServiceResponse);
   rpc SetActive(ServiceRequest) returns (ServiceResponse);
   rpc Validate(ServiceRequest) returns (ServiceResponse);
+  rpc SecurityGet(ServiceRequest) returns (ServiceResponse);
+  rpc PasswordChange(ServiceRequest) returns (ServiceResponse);
+  rpc SecuritySend(ServiceRequest) returns (ServiceResponse);
+  rpc SecurityVerify(ServiceRequest) returns (ServiceResponse);
+  rpc SessionRevoke(ServiceRequest) returns (ServiceResponse);
+  rpc PasswordResetRequest(ServiceRequest) returns (ServiceResponse);
+  rpc PasswordReset(ServiceRequest) returns (ServiceResponse);
+  rpc StaffList(ServiceRequest) returns (ServiceResponse);
+  rpc StaffUpsert(ServiceRequest) returns (ServiceResponse);
 }

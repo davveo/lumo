@@ -21,26 +21,35 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	IAMService_AdminGet_FullMethodName       = "/mall.v1.IAMService/AdminGet"
-	IAMService_AdminList_FullMethodName      = "/mall.v1.IAMService/AdminList"
-	IAMService_AdminSummary_FullMethodName   = "/mall.v1.IAMService/AdminSummary"
-	IAMService_AuditList_FullMethodName      = "/mall.v1.IAMService/AuditList"
-	IAMService_Login_FullMethodName          = "/mall.v1.IAMService/Login"
-	IAMService_LoginMethods_FullMethodName   = "/mall.v1.IAMService/LoginMethods"
-	IAMService_Logout_FullMethodName         = "/mall.v1.IAMService/Logout"
-	IAMService_LogoutAll_FullMethodName      = "/mall.v1.IAMService/LogoutAll"
-	IAMService_OAuthCallback_FullMethodName  = "/mall.v1.IAMService/OAuthCallback"
-	IAMService_OAuthStart_FullMethodName     = "/mall.v1.IAMService/OAuthStart"
-	IAMService_OtpLogin_FullMethodName       = "/mall.v1.IAMService/OtpLogin"
-	IAMService_OtpSend_FullMethodName        = "/mall.v1.IAMService/OtpSend"
-	IAMService_PolicyGet_FullMethodName      = "/mall.v1.IAMService/PolicyGet"
-	IAMService_PolicyUpsert_FullMethodName   = "/mall.v1.IAMService/PolicyUpsert"
-	IAMService_ProviderGet_FullMethodName    = "/mall.v1.IAMService/ProviderGet"
-	IAMService_ProviderUpsert_FullMethodName = "/mall.v1.IAMService/ProviderUpsert"
-	IAMService_Refresh_FullMethodName        = "/mall.v1.IAMService/Refresh"
-	IAMService_Register_FullMethodName       = "/mall.v1.IAMService/Register"
-	IAMService_SetActive_FullMethodName      = "/mall.v1.IAMService/SetActive"
-	IAMService_Validate_FullMethodName       = "/mall.v1.IAMService/Validate"
+	IAMService_AdminGet_FullMethodName             = "/mall.v1.IAMService/AdminGet"
+	IAMService_AdminList_FullMethodName            = "/mall.v1.IAMService/AdminList"
+	IAMService_AdminSummary_FullMethodName         = "/mall.v1.IAMService/AdminSummary"
+	IAMService_AuditList_FullMethodName            = "/mall.v1.IAMService/AuditList"
+	IAMService_Login_FullMethodName                = "/mall.v1.IAMService/Login"
+	IAMService_LoginMethods_FullMethodName         = "/mall.v1.IAMService/LoginMethods"
+	IAMService_Logout_FullMethodName               = "/mall.v1.IAMService/Logout"
+	IAMService_LogoutAll_FullMethodName            = "/mall.v1.IAMService/LogoutAll"
+	IAMService_OAuthCallback_FullMethodName        = "/mall.v1.IAMService/OAuthCallback"
+	IAMService_OAuthStart_FullMethodName           = "/mall.v1.IAMService/OAuthStart"
+	IAMService_OtpLogin_FullMethodName             = "/mall.v1.IAMService/OtpLogin"
+	IAMService_OtpSend_FullMethodName              = "/mall.v1.IAMService/OtpSend"
+	IAMService_PolicyGet_FullMethodName            = "/mall.v1.IAMService/PolicyGet"
+	IAMService_PolicyUpsert_FullMethodName         = "/mall.v1.IAMService/PolicyUpsert"
+	IAMService_ProviderGet_FullMethodName          = "/mall.v1.IAMService/ProviderGet"
+	IAMService_ProviderUpsert_FullMethodName       = "/mall.v1.IAMService/ProviderUpsert"
+	IAMService_Refresh_FullMethodName              = "/mall.v1.IAMService/Refresh"
+	IAMService_Register_FullMethodName             = "/mall.v1.IAMService/Register"
+	IAMService_SetActive_FullMethodName            = "/mall.v1.IAMService/SetActive"
+	IAMService_Validate_FullMethodName             = "/mall.v1.IAMService/Validate"
+	IAMService_SecurityGet_FullMethodName          = "/mall.v1.IAMService/SecurityGet"
+	IAMService_PasswordChange_FullMethodName       = "/mall.v1.IAMService/PasswordChange"
+	IAMService_SecuritySend_FullMethodName         = "/mall.v1.IAMService/SecuritySend"
+	IAMService_SecurityVerify_FullMethodName       = "/mall.v1.IAMService/SecurityVerify"
+	IAMService_SessionRevoke_FullMethodName        = "/mall.v1.IAMService/SessionRevoke"
+	IAMService_PasswordResetRequest_FullMethodName = "/mall.v1.IAMService/PasswordResetRequest"
+	IAMService_PasswordReset_FullMethodName        = "/mall.v1.IAMService/PasswordReset"
+	IAMService_StaffList_FullMethodName            = "/mall.v1.IAMService/StaffList"
+	IAMService_StaffUpsert_FullMethodName          = "/mall.v1.IAMService/StaffUpsert"
 )
 
 // IAMServiceClient is the client API for IAMService service.
@@ -67,6 +76,15 @@ type IAMServiceClient interface {
 	Register(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	SetActive(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Validate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	SecurityGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PasswordChange(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	SecuritySend(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	SecurityVerify(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	SessionRevoke(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PasswordResetRequest(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PasswordReset(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	StaffList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	StaffUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type iAMServiceClient struct {
@@ -257,6 +275,87 @@ func (c *iAMServiceClient) Validate(ctx context.Context, in *ServiceRequest, opt
 	return out, nil
 }
 
+func (c *iAMServiceClient) SecurityGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, IAMService_SecurityGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iAMServiceClient) PasswordChange(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, IAMService_PasswordChange_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iAMServiceClient) SecuritySend(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, IAMService_SecuritySend_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iAMServiceClient) SecurityVerify(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, IAMService_SecurityVerify_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iAMServiceClient) SessionRevoke(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, IAMService_SessionRevoke_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iAMServiceClient) PasswordResetRequest(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, IAMService_PasswordResetRequest_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iAMServiceClient) PasswordReset(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, IAMService_PasswordReset_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iAMServiceClient) StaffList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, IAMService_StaffList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iAMServiceClient) StaffUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, IAMService_StaffUpsert_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IAMServiceServer is the server API for IAMService service.
 // All implementations must embed UnimplementedIAMServiceServer
 // for forward compatibility
@@ -281,6 +380,15 @@ type IAMServiceServer interface {
 	Register(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	SetActive(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Validate(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	SecurityGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PasswordChange(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	SecuritySend(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	SecurityVerify(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	SessionRevoke(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PasswordResetRequest(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PasswordReset(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	StaffList(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	StaffUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedIAMServiceServer()
 }
 
@@ -347,6 +455,33 @@ func (UnimplementedIAMServiceServer) SetActive(context.Context, *ServiceRequest)
 }
 func (UnimplementedIAMServiceServer) Validate(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Validate not implemented")
+}
+func (UnimplementedIAMServiceServer) SecurityGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SecurityGet not implemented")
+}
+func (UnimplementedIAMServiceServer) PasswordChange(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PasswordChange not implemented")
+}
+func (UnimplementedIAMServiceServer) SecuritySend(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SecuritySend not implemented")
+}
+func (UnimplementedIAMServiceServer) SecurityVerify(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SecurityVerify not implemented")
+}
+func (UnimplementedIAMServiceServer) SessionRevoke(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SessionRevoke not implemented")
+}
+func (UnimplementedIAMServiceServer) PasswordResetRequest(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PasswordResetRequest not implemented")
+}
+func (UnimplementedIAMServiceServer) PasswordReset(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PasswordReset not implemented")
+}
+func (UnimplementedIAMServiceServer) StaffList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StaffList not implemented")
+}
+func (UnimplementedIAMServiceServer) StaffUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StaffUpsert not implemented")
 }
 func (UnimplementedIAMServiceServer) mustEmbedUnimplementedIAMServiceServer() {}
 
@@ -721,6 +856,168 @@ func _IAMService_Validate_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IAMService_SecurityGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IAMServiceServer).SecurityGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IAMService_SecurityGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IAMServiceServer).SecurityGet(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IAMService_PasswordChange_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IAMServiceServer).PasswordChange(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IAMService_PasswordChange_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IAMServiceServer).PasswordChange(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IAMService_SecuritySend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IAMServiceServer).SecuritySend(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IAMService_SecuritySend_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IAMServiceServer).SecuritySend(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IAMService_SecurityVerify_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IAMServiceServer).SecurityVerify(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IAMService_SecurityVerify_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IAMServiceServer).SecurityVerify(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IAMService_SessionRevoke_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IAMServiceServer).SessionRevoke(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IAMService_SessionRevoke_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IAMServiceServer).SessionRevoke(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IAMService_PasswordResetRequest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IAMServiceServer).PasswordResetRequest(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IAMService_PasswordResetRequest_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IAMServiceServer).PasswordResetRequest(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IAMService_PasswordReset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IAMServiceServer).PasswordReset(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IAMService_PasswordReset_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IAMServiceServer).PasswordReset(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IAMService_StaffList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IAMServiceServer).StaffList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IAMService_StaffList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IAMServiceServer).StaffList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IAMService_StaffUpsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IAMServiceServer).StaffUpsert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IAMService_StaffUpsert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IAMServiceServer).StaffUpsert(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // IAMService_ServiceDesc is the grpc.ServiceDesc for IAMService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -807,6 +1104,42 @@ var IAMService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Validate",
 			Handler:    _IAMService_Validate_Handler,
+		},
+		{
+			MethodName: "SecurityGet",
+			Handler:    _IAMService_SecurityGet_Handler,
+		},
+		{
+			MethodName: "PasswordChange",
+			Handler:    _IAMService_PasswordChange_Handler,
+		},
+		{
+			MethodName: "SecuritySend",
+			Handler:    _IAMService_SecuritySend_Handler,
+		},
+		{
+			MethodName: "SecurityVerify",
+			Handler:    _IAMService_SecurityVerify_Handler,
+		},
+		{
+			MethodName: "SessionRevoke",
+			Handler:    _IAMService_SessionRevoke_Handler,
+		},
+		{
+			MethodName: "PasswordResetRequest",
+			Handler:    _IAMService_PasswordResetRequest_Handler,
+		},
+		{
+			MethodName: "PasswordReset",
+			Handler:    _IAMService_PasswordReset_Handler,
+		},
+		{
+			MethodName: "StaffList",
+			Handler:    _IAMService_StaffList_Handler,
+		},
+		{
+			MethodName: "StaffUpsert",
+			Handler:    _IAMService_StaffUpsert_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

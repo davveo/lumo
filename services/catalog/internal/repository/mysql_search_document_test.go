@@ -22,11 +22,15 @@ func mysqlSearchScratch(t *testing.T) (context.Context, *gorm.DB) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	t.Cleanup(cancel)
+	address := os.Getenv("LUMO_MYSQL_TEST_ADDR")
+	if address == "" {
+		address = "127.0.0.1:3306"
+	}
 	password := os.Getenv("MYSQL_ROOT_PASSWORD")
 	if password == "" {
 		t.Fatal("local MySQL test credential missing")
 	}
-	dsn := "root:" + password + "@tcp(127.0.0.1:3306)/"
+	dsn := "root:" + password + "@tcp(" + address + ")/"
 	admin, err := platform.OpenDB(ctx, "mysql", dsn+"?charset=utf8mb4&parseTime=true&loc=UTC")
 	if err != nil {
 		t.Fatal("connect scratch administrator", err)
@@ -176,6 +180,33 @@ func TestMySQLSearchDocumentPreservesExactSearchAndUpdates(t *testing.T) {
 					)
 				}
 			}
+		}
+	}
+	// Keyset pagination must keep the normal and long-document SQL branches
+	// interleaved correctly, including equal ranks and saturated numeric casts.
+	for _, order := range []string{"", "newest", "price_asc", "price_desc", "sales"} {
+		input := ProductSearch{Sort: order, Limit: 100}
+		r.searchDocumentIndexed = false
+		baseline, err := r.SearchProducts(ctx, input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		r.searchDocumentIndexed = true
+		input.Limit = 2
+		paged := []domain.Record{}
+		for page := 0; page < 100; page++ {
+			rows, err := r.SearchProducts(ctx, input)
+			if err != nil {
+				t.Fatal("cursor query", order, err)
+			}
+			if len(rows) == 0 {
+				break
+			}
+			paged = append(paged, rows...)
+			input.Cursor = ProductSearchCursor(input, rows[len(rows)-1])
+		}
+		if !reflect.DeepEqual(ids(baseline), ids(paged)) {
+			t.Fatalf("cursor ordering changed for %s: %v vs %v", order, ids(baseline), ids(paged))
 		}
 	}
 	for _, input := range []ProductSearch{

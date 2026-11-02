@@ -21,7 +21,9 @@ func (c *catalog) Call(ctx context.Context, name string, in platform.Command) (p
 		return platform.Result{"config": map[string]any{"gold_growth": 1000, "growth_spend_cents": 10000}}, nil
 	}
 	if name == "points" && in.Action == "policy_get" {
-		return platform.Result{"config": map[string]any{"checkin_points": 20, "deduction_bps": 1000, "reward_per_yuan": 1}}, nil
+		return platform.Result{
+			"config": map[string]any{"checkin_points": 20, "deduction_bps": 1000, "reward_per_yuan": 1},
+		}, nil
 	}
 	if name == "logistics" {
 		return platform.Result{"shipping_cents": int64(0), "serviceable": true}, nil

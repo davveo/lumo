@@ -19,6 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
+	OrderService_BatchGetOrders_FullMethodName   = "/mall.v1.OrderService/BatchGetOrders"
 	OrderService_AdminList_FullMethodName        = "/mall.v1.OrderService/AdminList"
 	OrderService_AdminSummary_FullMethodName     = "/mall.v1.OrderService/AdminSummary"
 	OrderService_ListOrders_FullMethodName       = "/mall.v1.OrderService/ListOrders"
@@ -42,6 +43,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OrderServiceClient interface {
+	BatchGetOrders(ctx context.Context, in *BatchGetOrdersRequest, opts ...grpc.CallOption) (*BatchGetOrdersResponse, error)
 	AdminList(ctx context.Context, in *AdminOrdersRequest, opts ...grpc.CallOption) (*AdminOrdersResponse, error)
 	AdminSummary(ctx context.Context, in *AdminOrdersRequest, opts ...grpc.CallOption) (*OrderSummaryResponse, error)
 	ListOrders(ctx context.Context, in *ListOrdersRequest, opts ...grpc.CallOption) (*ListOrdersResponse, error)
@@ -67,6 +69,15 @@ type orderServiceClient struct {
 
 func NewOrderServiceClient(cc grpc.ClientConnInterface) OrderServiceClient {
 	return &orderServiceClient{cc}
+}
+
+func (c *orderServiceClient) BatchGetOrders(ctx context.Context, in *BatchGetOrdersRequest, opts ...grpc.CallOption) (*BatchGetOrdersResponse, error) {
+	out := new(BatchGetOrdersResponse)
+	err := c.cc.Invoke(ctx, OrderService_BatchGetOrders_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *orderServiceClient) AdminList(ctx context.Context, in *AdminOrdersRequest, opts ...grpc.CallOption) (*AdminOrdersResponse, error) {
@@ -226,6 +237,7 @@ func (c *orderServiceClient) RecordRefund(ctx context.Context, in *RecordRefundR
 // All implementations must embed UnimplementedOrderServiceServer
 // for forward compatibility
 type OrderServiceServer interface {
+	BatchGetOrders(context.Context, *BatchGetOrdersRequest) (*BatchGetOrdersResponse, error)
 	AdminList(context.Context, *AdminOrdersRequest) (*AdminOrdersResponse, error)
 	AdminSummary(context.Context, *AdminOrdersRequest) (*OrderSummaryResponse, error)
 	ListOrders(context.Context, *ListOrdersRequest) (*ListOrdersResponse, error)
@@ -250,6 +262,9 @@ type OrderServiceServer interface {
 type UnimplementedOrderServiceServer struct {
 }
 
+func (UnimplementedOrderServiceServer) BatchGetOrders(context.Context, *BatchGetOrdersRequest) (*BatchGetOrdersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchGetOrders not implemented")
+}
 func (UnimplementedOrderServiceServer) AdminList(context.Context, *AdminOrdersRequest) (*AdminOrdersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AdminList not implemented")
 }
@@ -312,6 +327,24 @@ type UnsafeOrderServiceServer interface {
 
 func RegisterOrderServiceServer(s grpc.ServiceRegistrar, srv OrderServiceServer) {
 	s.RegisterService(&OrderService_ServiceDesc, srv)
+}
+
+func _OrderService_BatchGetOrders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchGetOrdersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrderServiceServer).BatchGetOrders(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrderService_BatchGetOrders_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrderServiceServer).BatchGetOrders(ctx, req.(*BatchGetOrdersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _OrderService_AdminList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -627,6 +660,10 @@ var OrderService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "mall.v1.OrderService",
 	HandlerType: (*OrderServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "BatchGetOrders",
+			Handler:    _OrderService_BatchGetOrders_Handler,
+		},
 		{
 			MethodName: "AdminList",
 			Handler:    _OrderService_AdminList_Handler,

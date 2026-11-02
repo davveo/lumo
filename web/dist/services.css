@@ -1144,3 +1144,42 @@
     transition: none;
   }
 }
+
+.tracking-shipment + .tracking-shipment {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line, #e7e7e7);
+}
+.tracking-timeline {
+  list-style: none;
+  padding: 0 0 0 12px;
+  margin: 24px 0;
+  border-left: 2px solid var(--line, #e7e7e7);
+}
+.tracking-timeline li {
+  position: relative;
+  padding: 0 0 24px 18px;
+}
+.tracking-timeline li::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--red, #ff443d);
+  position: absolute;
+  left: -17px;
+  top: 5px;
+}
+.tracking-timeline time {
+  display: block;
+  font-size: 12px;
+  color: #777;
+  margin: 5px 0;
+}
+.tracking-timeline p {
+  line-height: 1.65;
+  margin: 6px 0;
+}
+.tracking-timeline small {
+  color: #777;
+}

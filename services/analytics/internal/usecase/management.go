@@ -7,7 +7,17 @@ import (
 	"github.com/davveo/lumo/internal/platform"
 )
 
-var behaviorLabels = map[string]string{constants.AnalyticsBehaviorView: "浏览商品", constants.AnalyticsBehaviorClick: "点击商品", constants.AnalyticsBehaviorImpression: "商品曝光", constants.AnalyticsBehaviorSearch: "搜索商品", constants.EventOrderCompleted: "完成订单", constants.EventRefundSucceeded: "退款成功"}
+var behaviorLabels = map[string]string{
+	constants.EventPaymentSucceeded:    "支付成功",
+	constants.AnalyticsBehaviorAddCart: "加入购物车", constants.AnalyticsBehaviorCheckout: "进入结算",
+	constants.EventOrderPaymentAccepted:   "订单收款",
+	constants.AnalyticsBehaviorView:       "浏览商品",
+	constants.AnalyticsBehaviorClick:      "点击商品",
+	constants.AnalyticsBehaviorImpression: "商品曝光",
+	constants.AnalyticsBehaviorSearch:     "搜索商品",
+	constants.EventOrderCompleted:         "完成订单",
+	constants.EventRefundSucceeded:        "退款成功",
+}
 
 func (s *Service) AdminList(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "analytics.usecase.AdminList")
@@ -20,7 +30,8 @@ func (s *Service) AdminList(ctx context.Context, c platform.Request) (spanResult
 	if v := platform.Text(c.Data, "event_type"); v != "" && behaviorLabels[v] == "" {
 		return nil, bad("unsupported behavior filter")
 	}
-	if v := platform.Text(c.Data, "status"); v != "" && v != constants.AnalyticsKindBehavior && v != constants.AnalyticsKindPurchaseEvent {
+	if v := platform.Text(c.Data, "status"); v != "" && v != constants.AnalyticsKindBehavior &&
+		v != constants.AnalyticsKindPurchaseEvent {
 		return nil, bad("unsupported record category")
 	}
 	rows, total, f, e := s.repo.AdminList(ctx, c)
@@ -39,7 +50,12 @@ func (s *Service) AdminList(ctx context.Context, c platform.Request) (spanResult
 	products := map[string]string{}
 	catalogError := false
 	if len(ids) > 0 && s.rpc != nil {
-		v, e := platform.NewClients(s.rpc).Catalog.BatchGet(ctx, platform.Request{UserID: c.UserID, Role: c.Role, Data: map[string]any{"ids": ids}})
+		v, e := platform.NewClients(
+			s.rpc,
+		).Catalog.BatchGet(
+			ctx,
+			platform.Request{UserID: c.UserID, Role: c.Role, Data: map[string]any{"ids": ids}},
+		)
 		if e != nil {
 			catalogError = true
 		} else {

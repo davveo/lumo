@@ -19,6 +19,10 @@ func TestMySQLCategoryProjectionOnlineMigration(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
 	defer cancel()
+	address := os.Getenv("LUMO_MYSQL_TEST_ADDR")
+	if address == "" {
+		address = "127.0.0.1:3306"
+	}
 	password := os.Getenv("MYSQL_ROOT_PASSWORD")
 	if password == "" {
 		t.Fatal("local MySQL test credential missing")
@@ -26,7 +30,7 @@ func TestMySQLCategoryProjectionOnlineMigration(t *testing.T) {
 	admin, err := platform.OpenDB(
 		ctx,
 		"mysql",
-		"root:"+password+"@tcp(127.0.0.1:3306)/?charset=utf8mb4&parseTime=true&loc=UTC",
+		"root:"+password+"@tcp("+address+")/?charset=utf8mb4&parseTime=true&loc=UTC",
 	)
 	if err != nil {
 		t.Fatal("connect scratch-schema administrator", err)
@@ -47,7 +51,7 @@ func TestMySQLCategoryProjectionOnlineMigration(t *testing.T) {
 	db, err := platform.OpenDB(
 		ctx,
 		"mysql",
-		"root:"+password+"@tcp(127.0.0.1:3306)/"+name+"?charset=utf8mb4&parseTime=true&loc=UTC",
+		"root:"+password+"@tcp("+address+")/"+name+"?charset=utf8mb4&parseTime=true&loc=UTC",
 	)
 	if err != nil {
 		t.Fatal(err)

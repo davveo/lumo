@@ -17,8 +17,8 @@ type aggregateObservedCall struct {
 	command platform.Command
 }
 
-// Only wrap the gateway's caller: these counts measure outer domain RPCs,
-// independently of legitimate downstream calls made within domain services.
+// Record physical gateway RPCs. snapshot expands local snapshot children for
+// existing logical-read assertions; physicalSnapshot asserts network batching.
 type aggregateCountingCaller struct {
 	next  platform.Caller
 	mu    sync.Mutex
@@ -36,6 +36,11 @@ func (c *aggregateCountingCaller) Call(
 	return c.next.Call(ctx, service, command)
 }
 
+func (c *aggregateCountingCaller) physicalSnapshot() []aggregateObservedCall {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return append([]aggregateObservedCall(nil), c.calls...)
+}
 func (c *aggregateCountingCaller) reset() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -45,7 +50,23 @@ func (c *aggregateCountingCaller) reset() {
 func (c *aggregateCountingCaller) snapshot() []aggregateObservedCall {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return append([]aggregateObservedCall(nil), c.calls...)
+	out := []aggregateObservedCall{}
+	for _, call := range c.calls {
+		if call.command.Action != "read_snapshot" {
+			out = append(out, call)
+			continue
+		}
+		var in struct {
+			Requests []platform.Command `json:"requests"`
+		}
+		if err := platform.Decode(call.command.Data, &in); err != nil {
+			panic(err)
+		}
+		for _, child := range in.Requests {
+			out = append(out, aggregateObservedCall{service: call.service, command: child})
+		}
+	}
+	return out
 }
 
 func (c *aggregateCountingCaller) expectCount(t *testing.T, service, action string, want int) {
@@ -146,6 +167,10 @@ func TestHTTPReadSectionsBatchOnlyRelatedReadsAndIsolatePrincipals(t *testing.T)
 		t.Fatal("shell fetched unrelated data", shell, counted.snapshot())
 	}
 	counted.expectCount(t, "content", "get", 2)
+	physical := counted.physicalSnapshot()
+	if len(physical) != 1 || physical[0].service != "content" || physical[0].command.Action != "read_snapshot" {
+		t.Fatalf("shell did not use one real transport batch: %#v", physical)
+	}
 	counted.reset()
 	alias := readSection("", "bootstrap")
 	if len(alias) != 2 || len(counted.snapshot()) != 2 {
@@ -200,6 +225,15 @@ func TestHTTPReadSectionsBatchOnlyRelatedReadsAndIsolatePrincipals(t *testing.T)
 		}
 	}
 	counted.expectCount(t, "inventory", "batch_get", (len(stocks)+499)/500)
+	physical = counted.physicalSnapshot()
+	if len(physical) != 2 {
+		t.Fatalf("product composition physical RPCs=%d, want catalog+inventory", len(physical))
+	}
+	for _, call := range physical {
+		if call.command.Action != "read_snapshot" || (call.service != "catalog" && call.service != "inventory") {
+			t.Fatalf("unexpected physical RPC: %#v", call)
+		}
+	}
 
 	counted.reset()
 	activities := readSection("", "activities")

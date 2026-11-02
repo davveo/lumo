@@ -65,10 +65,10 @@ func TestRPCTraceReachesEveryLayerAndSQL(t *testing.T) {
 		ctx, repository := Start(ctx, "catalog.repository.Save")
 		defer repository.End()
 		return Result{
-			"id": c.ID,
-		}, db.WithContext(ctx).
-			Create(&privateRecord{ID: c.ID, Secret: "do-not-export-password"}).
-			Error
+				"id": c.ID,
+			}, db.WithContext(ctx).
+				Create(&privateRecord{ID: c.ID, Secret: "do-not-export-password"}).
+				Error
 	}}
 	server, err := NewRPCServer("test-internal-credential", module)
 	if err != nil {
