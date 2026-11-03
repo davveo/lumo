@@ -117,6 +117,7 @@ func (s *Service) Approve(ctx context.Context, c platform.Request) (traceResult 
 	if !staff(c) {
 		return nil, status.Error(codes.PermissionDenied, "aftersale approval permission required")
 	}
+	if r.Type==constants.AftersaleTypeRefund{return s.approveRefund(ctx,r)}
 	r, err = s.Repo.Transition(
 		ctx,
 		r.ID,
@@ -149,6 +150,7 @@ func (s *Service) Cancel(ctx context.Context, c platform.Request) (traceResult p
 		return nil, err
 	}
 
+	if r.Type==constants.AftersaleTypeRefund{return s.releaseRefund(ctx,r,false)}
 	r, err = s.Repo.Transition(
 		ctx,
 		r.ID,
@@ -318,6 +320,7 @@ func (s *Service) Reject(ctx context.Context, c platform.Request) (traceResult p
 	if !staff(c) {
 		return nil, status.Error(codes.PermissionDenied, "aftersale approval permission required")
 	}
+	if r.Type==constants.AftersaleTypeRefund{return s.releaseRefund(ctx,r,true)}
 	r, err = s.Repo.Transition(
 		ctx,
 		r.ID,
@@ -496,7 +499,7 @@ func (s *Service) create(ctx context.Context, c platform.Request) (platform.Resu
 	}
 	rawPolicy, _ := json.Marshal(policy)
 	row.PolicyJSON = string(rawPolicy)
-	if err = s.Repo.Claim(ctx, row, purchased, payable); err != nil {
+	if err = s.Repo.Claim(ctx, row, purchased, payable, stageLimits(o,purchased,typ)); err != nil {
 		return nil, err
 	}
 	return platform.Map(row), nil
@@ -566,39 +569,6 @@ func (s *Service) refund(ctx context.Context, r *domain.Record) (platform.Result
 	if r.Status == constants.AftersaleStatusCompleted || r.Status == constants.AftersaleStatusRefunding {
 		return platform.Map(r), nil
 	}
-	if r.Type == constants.AftersaleTypeRefund {
-		// Revalidate stored applications too: earlier versions accepted partial
-		// refund-only requests, while the warehouse cancellation is order-wide.
-		o, err := platform.NewClients(s.RPC).Order.Get(
-			ctx, platform.Request{ID: r.OrderID, UserID: r.UserID, Role: constants.RoleSystem},
-		)
-		if err != nil {
-			return nil, err
-		}
-		var items []orderLine
-		encoded, _ := json.Marshal(o["items"])
-		if err = json.Unmarshal(encoded, &items); err != nil || len(items) == 0 {
-			return nil, status.Error(codes.FailedPrecondition, "order lines unavailable")
-		}
-		purchased := map[string]int64{}
-		for _, item := range items {
-			purchased[item.SKUID] += item.Quantity
-		}
-		var lines []domain.Line
-		if err = json.Unmarshal([]byte(r.LinesJSON), &lines); err != nil {
-			return nil, err
-		}
-		requested := map[string]int64{}
-		for _, line := range lines {
-			requested[line.SKUID] += line.Quantity
-		}
-		if !wholeOrder(requested, purchased) {
-			return nil, status.Error(
-				codes.FailedPrecondition,
-				"partial refund before shipment requires partial warehouse cancellation; only whole-order refund is supported",
-			)
-		}
-	}
 	allowed := []string{constants.AftersaleStatusInspected}
 	if r.Type == constants.AftersaleTypeRefund {
 		allowed = []string{constants.AftersaleStatusApproved}
@@ -607,17 +577,11 @@ func (s *Service) refund(ctx context.Context, r *domain.Record) (platform.Result
 	if err != nil {
 		return nil, err
 	}
-	if r.Type == constants.AftersaleTypeRefund {
-		if _, err = platform.NewClients(s.RPC).Fulfillment.Cancel(
-			ctx, platform.Request{
-				ID:     r.OrderID,
-				UserID: r.UserID,
-				Role:   constants.RoleSystem,
-			},
-		); err != nil {
-			return nil, err
-		}
-	}
+ if r.Type==constants.AftersaleTypeRefund {
+  // Older approved applications may not yet have a warehouse line hold.
+  if _,err=platform.NewClients(s.RPC).Fulfillment.HoldLines(ctx,holdRequest(r));err!=nil{return nil,err}
+  confirmation,callErr:=platform.NewClients(s.RPC).Fulfillment.CancelLines(ctx,holdRequest(r));if callErr!=nil{return nil,callErr};if yes,_:=confirmation["warehouse_confirmed"].(bool);!yes{return nil,status.Error(codes.FailedPrecondition,"等待仓库行取消确认")}
+ }
 	refundID := "refund:" + r.ID
 	refundResult, err := platform.NewClients(s.RPC).Refund.Create(
 		ctx, platform.Request{

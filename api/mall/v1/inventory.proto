@@ -31,4 +31,6 @@ service InventoryService {
   rpc SupplierList(ServiceRequest) returns (ServiceResponse);
   rpc SupplierUpsert(ServiceRequest) returns (ServiceResponse);
   rpc ReplenishmentGet(ServiceRequest) returns (ServiceResponse);
+  rpc CancelLines(ServiceRequest) returns (ServiceResponse);
+  rpc DispatchLines(ServiceRequest) returns (ServiceResponse);
 }

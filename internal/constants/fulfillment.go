@@ -2,7 +2,12 @@ package constants
 
 // enum:FulfillmentStatus
 const (
-	FulfillmentStatusReady                    = "READY"
+	FulfillmentStatusPartial = "PARTIALLY_DISPATCHED"
+ FulfillmentStatusDelivered = "DELIVERED"
+ FulfillmentStatusInvalidated = "PLAN_INVALIDATED"
+ FulfillmentStatusHeld = "HELD"
+ FulfillmentStatusReleased = "RELEASED"
+ FulfillmentStatusReady                    = "READY"
 	FulfillmentStatusDispatching              = "DISPATCHING"
 	FulfillmentStatusDispatched               = "DISPATCHED"
 	FulfillmentStatusCancelRequested          = "CANCEL_REQUESTED"
@@ -14,7 +19,9 @@ const (
 
 // enum:FulfillmentKind
 const (
-	FulfillmentKindGift     = "GIFT"
+	FulfillmentKindParcel = "PARCEL"
+ FulfillmentKindCancellation = "LINE_CANCELLATION"
+ FulfillmentKindGift     = "GIFT"
 	FulfillmentKindOrder    = "ORDER"
 	FulfillmentKindExchange = "EXCHANGE"
 	FulfillmentKindReturn   = "RETURN"

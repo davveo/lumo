@@ -43,6 +43,8 @@ const (
 	InventoryService_SupplierList_FullMethodName       = "/mall.v1.InventoryService/SupplierList"
 	InventoryService_SupplierUpsert_FullMethodName     = "/mall.v1.InventoryService/SupplierUpsert"
 	InventoryService_ReplenishmentGet_FullMethodName   = "/mall.v1.InventoryService/ReplenishmentGet"
+	InventoryService_CancelLines_FullMethodName        = "/mall.v1.InventoryService/CancelLines"
+	InventoryService_DispatchLines_FullMethodName      = "/mall.v1.InventoryService/DispatchLines"
 )
 
 // InventoryServiceClient is the client API for InventoryService service.
@@ -71,6 +73,8 @@ type InventoryServiceClient interface {
 	SupplierList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	SupplierUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	ReplenishmentGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	CancelLines(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	DispatchLines(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type inventoryServiceClient struct {
@@ -279,6 +283,24 @@ func (c *inventoryServiceClient) ReplenishmentGet(ctx context.Context, in *Servi
 	return out, nil
 }
 
+func (c *inventoryServiceClient) CancelLines(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, InventoryService_CancelLines_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inventoryServiceClient) DispatchLines(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, InventoryService_DispatchLines_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InventoryServiceServer is the server API for InventoryService service.
 // All implementations must embed UnimplementedInventoryServiceServer
 // for forward compatibility
@@ -305,6 +327,8 @@ type InventoryServiceServer interface {
 	SupplierList(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	SupplierUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	ReplenishmentGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	CancelLines(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	DispatchLines(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedInventoryServiceServer()
 }
 
@@ -377,6 +401,12 @@ func (UnimplementedInventoryServiceServer) SupplierUpsert(context.Context, *Serv
 }
 func (UnimplementedInventoryServiceServer) ReplenishmentGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReplenishmentGet not implemented")
+}
+func (UnimplementedInventoryServiceServer) CancelLines(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CancelLines not implemented")
+}
+func (UnimplementedInventoryServiceServer) DispatchLines(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DispatchLines not implemented")
 }
 func (UnimplementedInventoryServiceServer) mustEmbedUnimplementedInventoryServiceServer() {}
 
@@ -787,6 +817,42 @@ func _InventoryService_ReplenishmentGet_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _InventoryService_CancelLines_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).CancelLines(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_CancelLines_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).CancelLines(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InventoryService_DispatchLines_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).DispatchLines(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_DispatchLines_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).DispatchLines(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // InventoryService_ServiceDesc is the grpc.ServiceDesc for InventoryService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -881,6 +947,14 @@ var InventoryService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReplenishmentGet",
 			Handler:    _InventoryService_ReplenishmentGet_Handler,
+		},
+		{
+			MethodName: "CancelLines",
+			Handler:    _InventoryService_CancelLines_Handler,
+		},
+		{
+			MethodName: "DispatchLines",
+			Handler:    _InventoryService_DispatchLines_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

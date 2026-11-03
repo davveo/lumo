@@ -21,6 +21,7 @@ func (r *Repository) Claim(
 	row *domain.Record,
 	purchased map[string]int64,
 	payable int64,
+ stages ...map[string]int64,
 ) (spanErr0 error) {
 	ctx, span := platform.Start(ctx, "repository.aftersale.ClaimQuantity")
 	defer span.End()
@@ -64,7 +65,7 @@ func (r *Repository) Claim(
 		).Error; err != nil {
 			return err
 		}
-		if err = adjustClaim(row, purchased, payable, existing); err != nil {
+		if err = adjustClaim(row, purchased, payable, existing,stages...); err != nil {
 			return err
 		}
 
@@ -92,8 +93,9 @@ func (r *Repository) ByReplacement(ctx context.Context, id string) (spanResult0 
 }
 
 // adjustClaim is shared by the non-reserving preview and the locked commit.
-func adjustClaim(row *domain.Record, purchased map[string]int64, payable int64, existing []domain.Record) error {
+func adjustClaim(row *domain.Record, purchased map[string]int64, payable int64, existing []domain.Record,stages ...map[string]int64) error {
 	used := map[string]int64{}
+ stageUsed:=map[string]int64{}
 	var claimedCash int64
 	hasExchange := false
 	for _, a := range existing {
@@ -107,7 +109,8 @@ func adjustClaim(row *domain.Record, purchased map[string]int64, payable int64, 
 		}
 		for _, l := range lines {
 			used[l.SKUID] += l.Quantity
-		}
+   if (row.Type==constants.AftersaleTypeRefund)==(a.Type==constants.AftersaleTypeRefund){stageUsed[l.SKUID]+=l.Quantity}
+  }
 	}
 	var requested []domain.Line
 	if err := json.Unmarshal([]byte(row.LinesJSON), &requested); err != nil {
@@ -120,8 +123,10 @@ func adjustClaim(row *domain.Record, purchased map[string]int64, payable int64, 
 		if l.Quantity <= 0 || purchased[l.SKUID] <= 0 || used[l.SKUID]+l.Quantity > purchased[l.SKUID] {
 			return status.Error(codes.FailedPrecondition, "aftersale quantity exceeds purchased unclaimed quantity")
 		}
-		used[l.SKUID] += l.Quantity
-	}
+  if len(stages)>0 && stageUsed[l.SKUID]+l.Quantity>stages[0][l.SKUID]{return status.Error(codes.FailedPrecondition,"申请数量超出该商品可取消或已发货的剩余数量")}
+  stageUsed[l.SKUID]+=l.Quantity
+  used[l.SKUID] += l.Quantity
+ }
 	// The last cash-return application absorbs integer allocation rounding.
 	all := true
 	for sku, qty := range purchased {
@@ -143,10 +148,11 @@ func (r *Repository) PreviewClaim(
 	row *domain.Record,
 	purchased map[string]int64,
 	payable int64,
+ stages ...map[string]int64,
 ) error {
 	var existing []domain.Record
 	if e := r.DB.WithContext(ctx).Where("order_id = ? AND status NOT IN ?", row.OrderID, []string{constants.AftersaleStatusRejected, constants.AftersaleStatusCancelled}).Find(&existing).Error; e != nil {
 		return e
 	}
-	return adjustClaim(row, purchased, payable, existing)
+	return adjustClaim(row, purchased, payable, existing,stages...)
 }

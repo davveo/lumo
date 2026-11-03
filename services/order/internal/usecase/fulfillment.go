@@ -22,7 +22,7 @@ func (s *Service) Ready(ctx context.Context, request OrderRequest) (domain.Order
 			if order.GroupFailed {
 				return transition{}, status.Error(codes.FailedPrecondition, "group already failed")
 			}
-			if order.Status == constants.OrderStatusReadyToFulfill || order.Status == constants.OrderStatusShipped ||
+			if order.Status == constants.OrderStatusReadyToFulfill || order.Status==constants.OrderStatusPartiallyShipped || order.Status == constants.OrderStatusShipped ||
 				order.Status == constants.OrderStatusCompleted {
 				return transition{unchanged: true}, nil
 			}

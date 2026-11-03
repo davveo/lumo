@@ -239,3 +239,13 @@ const (
 	ActionTasks         = "tasks"
 	ActionRetry         = "retry"
 )
+
+const (
+ ActionLineState = "line_state"
+ ActionHoldLines = "hold_lines"
+ ActionReleaseHold = "release_hold"
+ ActionCancelLines = "cancel_lines"
+ ActionDispatchLines = "dispatch_lines"
+ ActionParcelCreate = "parcel_create"
+ ActionParcelCancel = "parcel_cancel"
+)

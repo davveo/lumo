@@ -35,7 +35,9 @@ func number(value int64) json.Number { return json.Number(strconv.FormatInt(valu
 // explicit protobuf fields. Quote/address are immutable historical documents.
 func Result(order *mallv1.Order) map[string]any {
 	quote, address := snapshot(order.GetQuoteSnapshotJson()), snapshot(order.GetAddressSnapshotJson())
-	history := []any{}
+	var progress []any
+ decoder:=json.NewDecoder(bytes.NewReader(order.GetFulfillmentProgressJson()));decoder.UseNumber();_ = decoder.Decode(&progress)
+ history := []any{}
 	for _, h := range order.GetServiceHistory() {
 		history = append(
 			history,
@@ -43,7 +45,8 @@ func Result(order *mallv1.Order) map[string]any {
 		)
 	}
 	result := map[string]any{
-		"dispatch_started": order.GetDispatchStarted(), "last_urged_at": timestamp(order.GetLastUrgedAt()), "service_history": history,
+		"fulfillment_progress":progress,"fulfillment_version":number(order.GetFulfillmentVersion()),
+ "dispatch_started": order.GetDispatchStarted(), "last_urged_at": timestamp(order.GetLastUrgedAt()), "service_history": history,
 		"id": order.GetId(), "user_id": order.GetUserId(), "status": order.GetStatus(),
 		"version": number(order.GetVersion()), "payable_cents": number(order.GetPayableCents()),
 		"refunded_total_cents": number(order.GetRefundedTotalCents()),

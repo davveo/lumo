@@ -37,7 +37,7 @@ var eventRoutes = map[string][]string{
 	},
 	constants.ServiceCoupon:      {constants.EventRefundSucceeded},
 	constants.ServiceFlash:       {constants.EventFlashOrderRequested},
-	constants.ServiceFulfillment: {constants.EventFulfillmentRecoveryRequested, constants.EventOrderReadyToFulfill},
+	constants.ServiceFulfillment: {constants.EventFulfillmentRecoveryRequested, constants.EventOrderReadyToFulfill, constants.EventDeliveryConfirmed},
 	constants.ServiceGroup:       {constants.EventOrderPaymentAccepted},
 	constants.ServiceInvoice:     {constants.EventRefundSucceeded},
 	constants.ServiceHelpdesk:    {constants.EventOrderUrged},
@@ -61,6 +61,7 @@ var eventRoutes = map[string][]string{
 		constants.EventTicketReplied,
 	},
 	constants.ServiceOrder: {
+ constants.EventFulfillmentProgress,
 		constants.EventPaymentSucceeded,
 		constants.EventRefundSucceeded,
 		constants.EventShipmentDispatched,

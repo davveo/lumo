@@ -26,7 +26,7 @@ var employeeGrants = map[string]map[string]string{
 		"analytics":   "sku_sales",
 		"management":  "global_search",
 		"helpdesk":    "work_queue work_detail assign_work save_view views policy_get",
-		"fulfillment": "list get admin_list admin_summary dispatch inspect_return",
+		"fulfillment": "list get admin_list admin_summary dispatch inspect_return line_state parcel_create parcel_cancel",
 		"inventory": "get batch_get admin_list adjust adjustments threshold ledger procurement_list " +
 			"procurement_get procurement_create procurement_approve procurement_receive " +
 			"procurement_cancel supplier_list supplier_upsert replenishment_get",

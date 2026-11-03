@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/davveo/lumo/internal/platform"
+"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/services/fulfillment/internal/domain"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -42,7 +43,7 @@ func (r *Repository) List(ctx context.Context, user string) (spanResult0 []domai
 	defer func() { platform.TraceError(ctx, spanErr0) }()
 
 	out := []domain.Record{}
-	q := r.DB.WithContext(ctx)
+	q := r.DB.WithContext(ctx).Where("parent_id = ? OR parent_id IS NULL", "")
 	if user != "" {
 		q = q.Where("user_id = ?", user)
 	}
@@ -94,6 +95,7 @@ func (r *Repository) Transition(
 		).Error; err != nil {
 			return err
 		}
+        if row.Parcelized && row.Kind == constants.FulfillmentKindOrder && (next==constants.FulfillmentStatusDispatching || next==constants.FulfillmentStatusCancelRequested){return status.Error(codes.FailedPrecondition,"该订单已按行履约，请在包裹明细中处理")}
 		if row.Status == next {
 			return nil
 		}

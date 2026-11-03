@@ -122,7 +122,7 @@ test('reviews show an honest empty score and support moderation reasons and resu
     return (await response.json()).data;
   };
   const quote = await call('checkout', 'quote', {
-    data: { items: [{ sku_id: 'sku-coffee', quantity: 1 }], coupon_mode: 'none' },
+    data: { items: [{ sku_id: 'coffee', quantity: 1 }], coupon_mode: 'none' },
   });
   const order = await call('checkout', 'submit', {
     idempotency_key: 'browser-photo-review-order',

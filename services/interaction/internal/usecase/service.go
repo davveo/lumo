@@ -95,6 +95,9 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 		if !found {
 			return nil, bad("SKU not purchased in order")
 		}
+  var fulfillment struct{Lines []struct{SKU string `json:"sku_id"`;Quantity int64 `json:"quantity"`;Cancelled int64 `json:"cancelled"`} `json:"fulfillment_progress"`}
+  _=platform.Decode(o,&fulfillment)
+  for _,l:=range fulfillment.Lines{if l.SKU==sku&&l.Quantity<=l.Cancelled{return nil,status.Error(codes.FailedPrecondition,"已取消且未收货的商品不能评价")}}
 		c.ID = stable(c.UserID, constants.InteractionKindReview, oid, sku)
 	} else if kind == constants.InteractionKindQuestion {
 		if _, e := platform.NewClients(s.rpc).Catalog.Get(ctx, platform.Request{ID: sku, UserID: c.UserID, Role: c.Role}); e != nil {

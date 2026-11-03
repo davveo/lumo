@@ -30,7 +30,7 @@ func (r *Repository) Migrate(ctx context.Context) error {
 		return e
 	}
 	return r.DB.WithContext(ctx).
-		AutoMigrate(&domain.Stock{}, &domain.Supplier{}, &domain.Reservation{}, &domain.Ledger{}, &domain.Adjustment{}, &domain.PurchaseOrder{}, &domain.PurchaseReceipt{})
+		AutoMigrate(&domain.LineOperation{}, &domain.Stock{}, &domain.Supplier{}, &domain.Reservation{}, &domain.Ledger{}, &domain.Adjustment{}, &domain.PurchaseOrder{}, &domain.PurchaseReceipt{})
 }
 func (r *Repository) Seed(ctx context.Context) error {
 	ids := append([]string{"sku-phone", "sku-headphones", "sku-watch", "sku-coffee"}, democatalog.SKUs()...)
@@ -239,6 +239,9 @@ func (r *Repository) transition(
 			out.State == constants.InventoryReservationStateDispatched {
 			return status.Error(codes.FailedPrecondition, "terminal reservation")
 		}
+        var operations int64
+        if er=tx.WithContext(ctx).Model(&domain.LineOperation{}).Where("reservation_id = ?",out.ID).Count(&operations).Error;er!=nil{return er}
+        if operations>0 {return status.Error(codes.FailedPrecondition,"该预留已按行处理，请通过包裹或行取消操作")}
 		var ls []domain.Line
 		if er = json.Unmarshal([]byte(out.LinesJSON), &ls); er != nil {
 			return er

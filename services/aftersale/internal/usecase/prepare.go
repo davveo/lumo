@@ -22,15 +22,8 @@ func prepareClaim(c platform.Request, o platform.Result, typ string) (preparedCl
 	var err error
 	state := platform.Text(o, "status")
 	if state != constants.OrderStatusReadyToFulfill && state != constants.OrderStatusShipped &&
-		state != constants.OrderStatusCompleted {
+		state != constants.OrderStatusCompleted && state!=constants.OrderStatusPartiallyShipped {
 		return preparedClaim{}, status.Error(codes.FailedPrecondition, "order is not eligible for aftersale")
-	}
-	if typ == constants.AftersaleTypeRefund &&
-		(state == constants.OrderStatusShipped || state == constants.OrderStatusCompleted) {
-		return preparedClaim{}, status.Error(
-			codes.FailedPrecondition,
-			"shipped order requires physical return or staff-reviewed return policy",
-		)
 	}
 	var items []orderLine
 	b, _ := json.Marshal(o["items"])
@@ -86,12 +79,6 @@ func prepareClaim(c platform.Request, o platform.Result, typ string) (preparedCl
 			return preparedClaim{}, status.Error(codes.FailedPrecondition, "quantity exceeds original purchase")
 		}
 		requested = append(requested, domain.Line{SKUID: k, Quantity: q})
-	}
-	if typ == constants.AftersaleTypeRefund && !wholeOrder(normalized, purchased) {
-		return preparedClaim{}, status.Error(
-			codes.FailedPrecondition,
-			"partial refund before shipment requires partial warehouse cancellation; only whole-order refund is supported",
-		)
 	}
 	sort.Slice(requested, func(i, j int) bool { return requested[i].SKUID < requested[j].SKUID })
 	payable := platform.Int(o, "payable_cents")

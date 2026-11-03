@@ -30,7 +30,7 @@ func TestIndependentOperationsKeepWireContractsAndAuthorization(t *testing.T) {
 	}{
 		{
 			"inventory",
-			"get batch_get reserve confirm cancel dispatch restock restock_batch adjust " +
+			"cancel_lines dispatch_lines get batch_get reserve confirm cancel dispatch restock restock_batch adjust " +
 				"adjustments admin_list threshold ledger procurement_list procurement_get " +
 				"procurement_create procurement_approve procurement_receive procurement_cancel supplier_list supplier_upsert replenishment_get",
 			"reserve",
@@ -39,7 +39,7 @@ func TestIndependentOperationsKeepWireContractsAndAuthorization(t *testing.T) {
 		},
 		{
 			"fulfillment",
-			"list get create_exchange create_gift dispatch cancel inspect_return inspect_returns admin_list admin_summary",
+			"line_state hold_lines release_hold cancel_lines parcel_create parcel_cancel list get create_exchange create_gift dispatch cancel inspect_return inspect_returns admin_list admin_summary",
 			"dispatch",
 			fulfillment.New,
 			codes.PermissionDenied,

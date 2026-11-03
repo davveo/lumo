@@ -212,6 +212,9 @@ func (s *Service) JourneyRun(ctx context.Context, c platform.Request) (platform.
 	return platform.Result{"queued_for_check": e == nil, "due_at": seed.DueAt, "scope": "投递前再次检查营销通知偏好、当前业务状态与跨规则频控"}, e
 }
 func orderHasSKU(order platform.Result, sku string) bool {
+ var progress struct{Lines []struct{SKU string `json:"sku_id"`;Quantity int64 `json:"quantity"`;Cancelled int64 `json:"cancelled"`} `json:"fulfillment_progress"`}
+ _=platform.Decode(order,&progress);for _,l:=range progress.Lines{if l.SKU==sku&&l.Cancelled>=l.Quantity{return false}}
+
 	var input struct {
 		Items []journeyLine `json:"items"`
 	}

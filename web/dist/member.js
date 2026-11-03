@@ -507,17 +507,19 @@
       return C.OrderViewStatus.Pending;
     if (s === C.OrderStatus.PaidWaitGroup) return C.OrderViewStatus.Group;
     if (s === C.OrderStatus.Completed)
-      return order.items?.every((item) =>
+      return order.items?.filter(item=>!(order.fulfillment_progress||[]).some(l=>l.sku_id===skuFor(item)&&l.cancelled>=l.quantity)).every((item) =>
         memory.reviews.some((r) => r.orderId === order.id && r.sku_id === skuFor(item)),
       )
         ? C.OrderViewStatus.Completed
         : C.OrderViewStatus.Review;
-    if (s === C.OrderStatus.Shipped) return C.OrderViewStatus.Receiving;
+    if (s === C.OrderStatus.PartiallyShipped) return C.OrderViewStatus.Shipping;
+ if (s === C.OrderStatus.Shipped) return C.OrderViewStatus.Receiving;
     if (s === C.OrderStatus.Delivered) return C.OrderViewStatus.Review;
     return C.OrderViewStatus.Shipping;
   }
   function orderLabel(order) {
-    if ((order?.backendStatus || order?.status) === C.OrderStatus.PaidConfirming) return '支付已确认 · 资源处理中';
+    if((order?.backendStatus||order?.status)===C.OrderStatus.PartiallyShipped)return '部分发货 · 仍有商品待发';
+ if ((order?.backendStatus || order?.status) === C.OrderStatus.PaidConfirming) return '支付已确认 · 资源处理中';
     return (
       {
         [C.OrderViewStatus.Pending]: '待付款',
@@ -733,6 +735,7 @@
     return (order.items || []).filter(
       (item, index, all) =>
         all.findIndex((v) => skuFor(v) === skuFor(item)) === index &&
+ !(order.fulfillment_progress||[]).some(l=>l.sku_id===skuFor(item)&&l.cancelled>=l.quantity)&&
         !memory.reviews.some((r) => r.orderId === order.id && r.sku_id === skuFor(item)),
     );
   }
@@ -818,7 +821,7 @@
     }
     modal(
       '申请售后',
-      `<p class="modal-desc">订单 ${esc(id)}${orderState(order) === C.OrderViewStatus.Shipping ? ' · 未发货订单仅支持整单退款' : ' · 可选择商品和数量，未选商品填 0'}</p><form id="member-aftersale-form" data-id="${esc(id)}"><label class="field">服务类型<select name="type">${(orderState(order) === C.OrderViewStatus.Shipping ? ['仅退款'] : ['退货退款', '换货']).map((v) => `<option>${v}</option>`).join('')}</select></label><fieldset class="after-items"><legend>申请商品与数量</legend><p>每件商品独立选择数量${orderState(order) === C.OrderViewStatus.Shipping ? '；未发货订单按整单退款。' : '，不申请的商品填 0。'}</p><div class="after-items-list">${order.items.map((item, index) => `<label class="after-item"><span><strong>${esc(item.name || findProduct(item.id)?.name || item.id)}</strong><small>${esc(item.color || '')} ${esc(item.option || '')} · 已购 ${Number(item.qty)} 件</small></span><span class="after-item-quantity"><span>申请数量</span><input type="number" name="line-${index}" min="${orderState(order) === C.OrderViewStatus.Shipping ? item.qty : 0}" max="${item.qty}" value="${item.qty}" step="1" ${orderState(order) === C.OrderViewStatus.Shipping ? 'readonly' : ''} aria-label="${esc(item.name || item.id)} 售后数量"></span></label>`).join('')}</div></fieldset><section class="after-preview-section"><button class="outline" type="button" data-after-preview>重新核算退款与返还资产</button><div id="after-preview" aria-live="polite"></div></section><label class="field">申请原因<select name="reason"><option>不喜欢 / 不想要</option><option>商品与描述不符</option><option>质量问题</option><option>商品破损 / 少件</option><option>其他原因</option></select></label><label class="field">补充说明<textarea name="note" rows="3" maxlength="300" placeholder="选填，描述你的问题"></textarea></label><label class="field">图片凭证（选填）<input type="file" name="evidence_upload" accept="image/png,image/jpeg,image/webp"><small>每次添加 1 张，最多 5 张，每张不超过 10 MiB；仅用于此售后申请。</small></label><p id="after-evidence-status" class="secure-note" role="status"></p><div id="after-evidence-list" class="after-evidence-list"></div><button class="primary" type="submit">提交售后申请</button></form>`,
+      `<p class="modal-desc">订单 ${esc(id)}${orderState(order) === C.OrderViewStatus.Shipping ? ' · 可按商品和数量取消未发货商品' : ' · 可选择商品和数量，未选商品填 0'}</p><form id="member-aftersale-form" data-id="${esc(id)}"><label class="field">服务类型<select name="type">${(order.backendStatus===C.OrderStatus.PartiallyShipped?['仅退款','退货退款','换货']:orderState(order) === C.OrderViewStatus.Shipping ? ['仅退款'] : ['退货退款', '换货']).map((v) => `<option>${v}</option>`).join('')}</select></label><fieldset class="after-items"><legend>申请商品与数量</legend><p>每件商品独立选择数量${orderState(order) === C.OrderViewStatus.Shipping ? '，仅退款会拦截所选的未发货数量。' : '，不申请的商品填 0。'}</p><div class="after-items-list">${order.items.map((item, index) => `<label class="after-item"><span><strong>${esc(item.name || findProduct(item.id)?.name || item.id)}</strong><small>${esc(item.color || '')} ${esc(item.option || '')} · 已购 ${Number(item.qty)} 件${(order.fulfillment_progress||[]).some(l=>l.sku_id===skuFor(item))?` · 已发 ${(order.fulfillment_progress||[]).find(l=>l.sku_id===skuFor(item)).shipped} · 已取消 ${(order.fulfillment_progress||[]).find(l=>l.sku_id===skuFor(item)).cancelled}`:''}</small></span><span class="after-item-quantity"><span>申请数量</span><input type="number" name="line-${index}" min="0" max="${item.qty}" value="${item.qty}" step="1"  aria-label="${esc(item.name || item.id)} 售后数量"></span></label>`).join('')}</div></fieldset><section class="after-preview-section"><button class="outline" type="button" data-after-preview>重新核算退款与返还资产</button><div id="after-preview" aria-live="polite"></div></section><label class="field">申请原因<select name="reason"><option>不喜欢 / 不想要</option><option>商品与描述不符</option><option>质量问题</option><option>商品破损 / 少件</option><option>其他原因</option></select></label><label class="field">补充说明<textarea name="note" rows="3" maxlength="300" placeholder="选填，描述你的问题"></textarea></label><label class="field">图片凭证（选填）<input type="file" name="evidence_upload" accept="image/png,image/jpeg,image/webp"><small>每次添加 1 张，最多 5 张，每张不超过 10 MiB；仅用于此售后申请。</small></label><p id="after-evidence-status" class="secure-note" role="status"></p><div id="after-evidence-list" class="after-evidence-list"></div><button class="primary" type="submit">提交售后申请</button></form>`,
     );
     window.LumoAftersale?.attach(order);
   }

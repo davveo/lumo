@@ -241,7 +241,9 @@
     },
     "AftersaleStatus": {
       "Approved": "APPROVED",
+      "Approving": "APPROVING",
       "Cancelled": "CANCELLED",
+      "Cancelling": "CANCELLING",
       "Completed": "COMPLETED",
       "ExchangePreparing": "EXCHANGE_PREPARING",
       "Exchanged": "EXCHANGED",
@@ -251,6 +253,7 @@
       "RefundRequested": "REFUND_REQUESTED",
       "Refunding": "REFUNDING",
       "Rejected": "REJECTED",
+      "Rejecting": "REJECTING",
       "Requested": "REQUESTED",
       "Returning": "RETURNING"
     },
@@ -525,19 +528,26 @@
       "Succeeded": "SUCCEEDED"
     },
     "FulfillmentKind": {
+      "Cancellation": "LINE_CANCELLATION",
       "Exchange": "EXCHANGE",
       "Gift": "GIFT",
       "Order": "ORDER",
+      "Parcel": "PARCEL",
       "Return": "RETURN"
     },
     "FulfillmentStatus": {
       "CancelRequested": "CANCEL_REQUESTED",
       "Cancelled": "CANCELLED",
+      "Delivered": "DELIVERED",
       "Dispatched": "DISPATCHED",
       "Dispatching": "DISPATCHING",
+      "Held": "HELD",
       "Inspected": "INSPECTED",
       "Inspecting": "INSPECTING",
+      "Invalidated": "PLAN_INVALIDATED",
+      "Partial": "PARTIALLY_DISPATCHED",
       "Ready": "READY",
+      "Released": "RELEASED",
       "WarehouseCancelConfirmed": "WAREHOUSE_CANCEL_CONFIRMED"
     },
     "GroupPurchaseMode": {
@@ -750,6 +760,7 @@
       "PaidConfirming": "PAID_CONFIRMING",
       "PaidWaitGroup": "PAID_WAIT_GROUP",
       "PartiallyRefunded": "PARTIALLY_REFUNDED",
+      "PartiallyShipped": "PARTIALLY_SHIPPED",
       "PendingPayment": "PENDING_PAYMENT",
       "ReadyToFulfill": "READY_TO_FULFILL",
       "Refunded": "REFUNDED",

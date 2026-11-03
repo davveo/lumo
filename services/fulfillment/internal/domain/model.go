@@ -3,7 +3,9 @@ package domain
 import "time"
 
 type Record struct {
-	ID            string    `gorm:"primaryKey;size:100" json:"id"`
+	ParentID string `gorm:"index;size:100" json:"parent_id,omitempty"`
+ Parcelized bool `json:"parcelized"`
+ ID            string    `gorm:"primaryKey;size:100" json:"id"`
 	UserID        string    `gorm:"index;size:80"       json:"user_id"`
 	OrderID       string    `gorm:"index;size:100"      json:"order_id"`
 	ReservationID string    `gorm:"size:100"            json:"reservation_id"`

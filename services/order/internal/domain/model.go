@@ -3,6 +3,8 @@ package domain
 import "time"
 
 type Order struct {
+ FulfillmentProgress string `gorm:"type:longtext" json:"-"`
+ FulfillmentVersion int64 `json:"fulfillment_version"`
 	DispatchStarted    bool       `json:"dispatch_started"`
 	LastUrgedAt        *time.Time `json:"last_urged_at,omitempty"`
 	ServiceHistory     string     `gorm:"type:longtext" json:"-"`

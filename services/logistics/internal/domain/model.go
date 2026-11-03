@@ -3,6 +3,7 @@ package domain
 import "time"
 
 type Record struct {
+ LinesJSON string `gorm:"type:text" json:"lines_json,omitempty"`
 	LastEventAt *time.Time `json:"last_event_at"`
 	ID          string     `gorm:"primaryKey;size:100"  json:"id"`
 	UserID      string     `gorm:"index;size:80"        json:"user_id"`

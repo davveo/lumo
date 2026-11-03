@@ -621,6 +621,30 @@
         {
           "action": "ActionCreateGift",
           "method": "CreateGift"
+        },
+        {
+          "action": "ActionLineState",
+          "method": "LineState"
+        },
+        {
+          "action": "ActionHoldLines",
+          "method": "HoldLines"
+        },
+        {
+          "action": "ActionReleaseHold",
+          "method": "ReleaseHold"
+        },
+        {
+          "action": "ActionCancelLines",
+          "method": "CancelLines"
+        },
+        {
+          "action": "ActionParcelCreate",
+          "method": "ParcelCreate"
+        },
+        {
+          "action": "ActionParcelCancel",
+          "method": "ParcelCancel"
         }
       ]
     },
@@ -1021,6 +1045,14 @@
         {
           "action": "ActionReplenishmentGet",
           "method": "ReplenishmentGet"
+        },
+        {
+          "action": "ActionCancelLines",
+          "method": "CancelLines"
+        },
+        {
+          "action": "ActionDispatchLines",
+          "method": "DispatchLines"
         }
       ]
     },

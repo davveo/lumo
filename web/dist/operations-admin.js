@@ -131,7 +131,8 @@
       [C.OrderStatus.PaidWaitGroup]: '已支付待成团',
       [C.OrderStatus.Paid]: '已支付',
       [C.OrderStatus.PaidConfirming]: '收款确认中',
-      [C.OrderStatus.ReadyToFulfill]: '待履约',
+      [C.OrderStatus.PartiallyShipped]: '部分发货',
+ [C.OrderStatus.ReadyToFulfill]: '待履约',
       [C.OrderStatus.Fulfilling]: '履约中',
       [C.OrderStatus.Shipped]: '已发货',
       [C.OrderStatus.Delivered]: '已送达',
@@ -149,7 +150,9 @@
       [C.PaymentStatus.Closed]: '已关闭',
     },
     fulfillment: {
-      [C.FulfillmentStatus.Ready]: '待出库',
+      [C.FulfillmentStatus.Partial]: '部分发货',
+ [C.FulfillmentStatus.Delivered]: '已签收',
+ [C.FulfillmentStatus.Ready]: '待出库',
       [C.FulfillmentStatus.Dispatching]: '出库中',
       [C.FulfillmentStatus.Dispatched]: '已发货',
       [C.FulfillmentStatus.CancelRequested]: '申请拦截',
@@ -159,7 +162,10 @@
       [C.FulfillmentStatus.Inspected]: '已验收',
     },
     aftersales: {
-      [C.AftersaleStatus.Requested]: '待审核',
+      [C.AftersaleStatus.Approving]: '仓库拦截中',
+ [C.AftersaleStatus.Cancelling]: '释放拦截中',
+ [C.AftersaleStatus.Rejecting]: '驳回处理中',
+ [C.AftersaleStatus.Requested]: '待审核',
       [C.AftersaleStatus.Approved]: '已批准',
       [C.AftersaleStatus.Returning]: '退货中',
       [C.AftersaleStatus.Inspecting]: '验收中',
@@ -208,6 +214,7 @@
   function available(key, row) {
     if (key === 'payments' && row.status === C.PaymentStatus.Pending) return [[C.Action.ConfirmDemo, '确认演示收款']];
     if (key === 'fulfillment') {
+ if(row.parcelized) return [];
       if (row.status === C.FulfillmentStatus.Ready && row.kind === C.FulfillmentKind.Gift)
         return [[C.Action.Dispatch, '确认礼品出库']];
       if (row.status === C.FulfillmentStatus.Ready)
@@ -240,6 +247,13 @@
         [C.Action.AdjustDemo, '处理红冲'],
       ];
     return [];
+  }
+  function parcelPanel(plan,order,busy) {
+    if (!plan) return '';
+    const products=order?.items||order?.quote?.items||[], title=(sku)=>products.find(p=>p.sku_id===sku)?.name||sku;
+    const labels={READY:'待出库',DISPATCHING:'出库中',DISPATCHED:'已发货',DELIVERED:'已签收',CANCELLED:'已取消计划',PLAN_INVALIDATED:'需重新装包'};
+    const selectable=plan.lines.filter(l=>l.remaining-l.planned>0);
+    return `<section class="admin-section op-wide parcel-workspace"><div class="admin-panel-heading"><div><h2>按商品装包发货</h2><p class="admin-muted">每个包裹独立出库和签收；售后拦截中的商品不能装包。</p></div><button class="outline" data-op="parcel-refresh" ${busy?'disabled':''}>刷新包裹</button></div><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>商品</th><th>购买</th><th>已取消</th><th>售后拦截</th><th>已发货</th><th>待发货</th></tr></thead><tbody>${plan.lines.map(l=>`<tr><td>${esc(title(l.sku_id))}<small>${esc(l.sku_id)}</small></td><td>${l.quantity}</td><td>${l.cancelled}</td><td>${l.held}</td><td>${l.shipped}</td><td>${Math.max(0,l.quantity-l.cancelled-l.shipped)}${l.dispatching?'（出库中 '+l.dispatching+'）':''}</td></tr>`).join('')}</tbody></table></div>${selectable.length?`<form data-parcel-create class="parcel-create"><h3>新建包裹</h3><p class="admin-muted">填写本次发货数量，不装入此包裹的商品填 0。</p><div class="parcel-quantity-list">${selectable.map(l=>`<label class="field"><span>${esc(title(l.sku_id))}<small>可装包 ${l.remaining-l.planned} 件</small></span><input type="number" data-parcel-sku="${esc(l.sku_id)}" aria-label="${esc(l.sku_id)} 装包数量" min="0" max="${l.remaining-l.planned}" step="1" value="0" ${busy?'disabled':''}></label>`).join('')}</div><div class="admin-actions admin-form-actions"><button class="primary" ${busy?'disabled':''}>创建包裹计划</button></div></form>`:'<p class="admin-inline-note">当前可发商品已装包，或正等待售后处理。</p>'}<div class="parcel-card-grid">${plan.parcels.map((p,i)=>`<article class="parcel-card"><header><strong>包裹 ${i+1}</strong><span class="admin-badge">${labels[p.status]||esc(p.status)}</span></header><small>${esc(p.id)}</small><ul>${(parse(p.lines_json)||[]).map(l=>`<li><span>${esc(title(l.sku_id))}</span><strong>× ${l.quantity}</strong></li>`).join('')}</ul>${p.tracking_id?`<p>运单 ${esc(p.tracking_id)}</p>`:''}${p.status===C.FulfillmentStatus.Invalidated?'<p class="admin-inline-note">商品进入售后拦截，此计划已失效，请重新选择剩余数量装包。</p>':''}<div class="admin-actions">${p.status===C.FulfillmentStatus.Ready?`<button class="primary" data-op="parcel-prepare" data-id="${esc(p.id)}" data-op-operation="dispatch">确认出库</button><button class="outline" data-op="parcel-prepare" data-id="${esc(p.id)}" data-op-operation="parcel_cancel">取消装包</button>`:''}${p.status===C.FulfillmentStatus.Dispatched?`<button class="outline" data-op="parcel-prepare" data-id="${esc(p.id)}" data-op-operation="deliver">确认演示签收</button>`:''}</div></article>`).join('')||'<p class="admin-muted">尚未拆包，可按数量创建多个包裹。</p>'}</div></section>`;
   }
   function create(key) {
     const spec = specs[key],
@@ -307,14 +321,14 @@
       const address = parse(order.address) || order.address || {};
       const quote = parse(order.quote) || order.quote || {};
       const items = Array.isArray(quote.items) ? quote.items : Array.isArray(quote.lines) ? quote.lines : lines(row);
-      return `<div class="op-detail-heading"><button class="outline" data-op="back">← 返回列表</button><span>${badge(key, row.status)}</span></div><div class="op-detail-grid"><section class="admin-section"><div class="admin-panel-heading"><h2>业务单据</h2><span>${esc(row.id)}</span></div><dl class="op-definition">${pair('业务单号', row.id)}${pair('关联订单', row.order_id || (key === 'orders' ? row.id : '—'))}${pair('用户编号', row.user_id)}${key !== 'fulfillment' ? pair(key === 'orders' ? '订单应付' : '单据金额', money(row.amount_cents ?? row.payable_cents)) : ''}${spec.fields.map(([name, field, type]) => pair(name, type === 'money' ? money(row[field]) : type === 'date' ? date(row[field]) : label(row[field]))).join('')}${pair('创建时间', date(row.created_at))}${pair('更新时间', date(row.updated_at))}</dl></section><section class="admin-section"><div class="admin-panel-heading"><h2>关联订单与收货信息</h2><span>读取订单快照</span></div>${s.orderError ? `<p class="admin-inline-note">${esc(s.orderError)}</p>` : s.order ? `<dl class="op-definition">${pair('订单状态', statusText('orders', order.status))}${pair('订单应付', money(order.payable_cents))}${pair('累计退款', money(order.refunded_total_cents))}${pair('商品金额', money(quote.subtotal_cents))}${pair('活动优惠', money(quote.campaign_discount_cents))}${pair('优惠券抵扣', money(quote.coupon_discount_cents))}${pair('积分抵扣', money(quote.points))}${pair('订单来源', label(order.source))}${pair('备注', order.note || '—')}${pair('收货人', address.name || address.recipient || address.receiver)}${pair('联系电话', address.phone)}${pair('收货地址', [address.region, address.province, address.city, address.district, address.detail, address.address].filter(Boolean).join(' '))}</dl>` : U.empty('暂无关联订单快照', '此单据未关联订单或订单尚未读取。')}</section><section class="admin-section op-wide"><div class="admin-panel-heading"><h2>商品与数量</h2><span>${items.length} 行</span></div>${items.length ? `<div class="admin-table-wrap" tabindex="0" role="region" aria-label="可滚动数据列表"><table class="admin-table"><thead><tr><th>商品 / SKU</th><th>数量</th><th>单价</th></tr></thead><tbody>${items.map((line) => `<tr><td><strong>${esc(line.name || line.title || line.sku_id)}</strong><small>${esc(line.sku_id)}</small></td><td>${esc(line.quantity)}</td><td>${line.unit_price_cents != null ? money(line.unit_price_cents) : line.price_cents != null ? money(line.price_cents) : '—'}</td></tr>`).join('')}</tbody></table></div>` : U.empty('此单据没有商品行', '可通过关联订单核对商品。')}</section>${key === 'aftersales' ? `<section class="admin-section op-wide"><h2>申请图片凭证</h2><div class="admin-actions">${(parse(row.evidence_json) || []).map((f) => `<button class="outline" data-op="evidence" data-id="${esc(f.file_id)}">查看图片：${esc(f.file_name)}</button>`).join('') || '<span class="admin-muted">顾客未上传图片凭证</span>'}</div></section>` : ''}<section class="admin-section op-wide"><div class="admin-panel-heading"><h2>处理操作</h2><span>仅展示当前状态允许的操作</span></div><div class="admin-actions">${
+      return `<div class="op-detail-heading"><button class="outline" data-op="back">← 返回列表</button><span>${badge(key, row.status)}</span></div><div class="op-detail-grid"><section class="admin-section"><div class="admin-panel-heading"><h2>业务单据</h2><span>${esc(row.id)}</span></div><dl class="op-definition">${pair('业务单号', row.id)}${pair('关联订单', row.order_id || (key === 'orders' ? row.id : '—'))}${pair('用户编号', row.user_id)}${key !== 'fulfillment' ? pair(key === 'orders' ? '订单应付' : '单据金额', money(row.amount_cents ?? row.payable_cents)) : ''}${spec.fields.map(([name, field, type]) => pair(name, type === 'money' ? money(row[field]) : type === 'date' ? date(row[field]) : label(row[field]))).join('')}${pair('创建时间', date(row.created_at))}${pair('更新时间', date(row.updated_at))}</dl></section><section class="admin-section"><div class="admin-panel-heading"><h2>关联订单与收货信息</h2><span>读取订单快照</span></div>${s.orderError ? `<p class="admin-inline-note">${esc(s.orderError)}</p>` : s.order ? `<dl class="op-definition">${pair('订单状态', statusText('orders', order.status))}${pair('订单应付', money(order.payable_cents))}${pair('累计退款', money(order.refunded_total_cents))}${pair('商品金额', money(quote.subtotal_cents))}${pair('活动优惠', money(quote.campaign_discount_cents))}${pair('优惠券抵扣', money(quote.coupon_discount_cents))}${pair('积分抵扣', money(quote.points))}${pair('订单来源', label(order.source))}${pair('备注', order.note || '—')}${pair('收货人', address.name || address.recipient || address.receiver)}${pair('联系电话', address.phone)}${pair('收货地址', [address.region, address.province, address.city, address.district, address.detail, address.address].filter(Boolean).join(' '))}</dl>` : U.empty('暂无关联订单快照', '此单据未关联订单或订单尚未读取。')}</section><section class="admin-section op-wide"><div class="admin-panel-heading"><h2>商品与数量</h2><span>${items.length} 行</span></div>${items.length ? `<div class="admin-table-wrap" tabindex="0" role="region" aria-label="可滚动数据列表"><table class="admin-table"><thead><tr><th>商品 / SKU</th><th>数量</th><th>单价</th></tr></thead><tbody>${items.map((line) => `<tr><td><strong>${esc(line.name || line.title || line.sku_id)}</strong><small>${esc(line.sku_id)}</small></td><td>${esc(line.quantity)}</td><td>${line.unit_price_cents != null ? money(line.unit_price_cents) : line.price_cents != null ? money(line.price_cents) : '—'}</td></tr>`).join('')}</tbody></table></div>` : U.empty('此单据没有商品行', '可通过关联订单核对商品。')}</section>${key==='fulfillment'?parcelPanel(s.plan,s.order,s.busy):''}${key === 'aftersales' ? `<section class="admin-section op-wide"><h2>申请图片凭证</h2><div class="admin-actions">${(parse(row.evidence_json) || []).map((f) => `<button class="outline" data-op="evidence" data-id="${esc(f.file_id)}">查看图片：${esc(f.file_name)}</button>`).join('') || '<span class="admin-muted">顾客未上传图片凭证</span>'}</div></section>` : ''}<section class="admin-section op-wide"><div class="admin-panel-heading"><h2>处理操作</h2><span>仅展示当前状态允许的操作</span></div><div class="admin-actions">${
         available(key, row)
           .map(
             ([action, name]) =>
               `<button class="outline" data-op="prepare" data-op-operation="${esc(action)}">${esc(name)}</button>`,
           )
           .join('') || '<span class="admin-muted">当前无需人工处理</span>'
-      }${key === 'invoices' ? '<button class="outline" data-op="reversals">查看红冲记录</button>' : ''}</div>${s.action ? `<form data-op-confirm class="op-confirm"><h3>${esc(s.action.name)}</h3><p>业务单 ${esc(row.id)}${row.amount_cents != null || row.payable_cents != null ? ' · ' + money(row.amount_cents ?? row.payable_cents) : ''}。提交后将更新实际业务状态。</p>${s.action.operation === C.Action.Inspect ? '<label class="field">退货品质<select name="condition"><option value="sellable">可售</option><option value="damaged">破损</option><option value="unsellable">不可售</option></select></label>' : ''}<div class="admin-actions admin-form-actions"><button class="primary" ${s.busy ? 'disabled' : ''}>${s.busy ? '正在处理…' : '确认提交'}</button><button type="button" class="outline" data-op="cancel-action" ${s.busy ? 'disabled' : ''}>取消</button></div></form>` : ''}${s.reversals ? `<dl class="op-definition">${s.reversals.map((item) => pair(item.id, `${money(item.amount_cents)} · ${item.status}`)).join('') || '<p>暂无红冲记录</p>'}</dl>` : ''}</section></div>`;
+      }${key === 'invoices' ? '<button class="outline" data-op="reversals">查看红冲记录</button>' : ''}</div>${s.action ? `<form data-op-confirm class="op-confirm"><h3>${esc(s.action.name)}</h3><p>业务单 ${esc(s.action.id||row.id)}${row.amount_cents != null || row.payable_cents != null ? ' · ' + money(row.amount_cents ?? row.payable_cents) : ''}。提交后将更新实际业务状态。</p>${s.action.operation === C.Action.Inspect ? '<label class="field">退货品质<select name="condition"><option value="sellable">可售</option><option value="damaged">破损</option><option value="unsellable">不可售</option></select></label>' : ''}<div class="admin-actions admin-form-actions"><button class="primary" ${s.busy ? 'disabled' : ''}>${s.busy ? '正在处理…' : '确认提交'}</button><button type="button" class="outline" data-op="cancel-action" ${s.busy ? 'disabled' : ''}>取消</button></div></form>` : ''}${s.reversals ? `<dl class="op-definition">${s.reversals.map((item) => pair(item.id, `${money(item.amount_cents)} · ${item.status}`)).join('') || '<p>暂无红冲记录</p>'}</dl>` : ''}</section></div>`;
     }
     m.openDetail = async (id) => {
       return m.run(async () => {
@@ -338,7 +352,9 @@
             orderError = '关联订单暂不可用：' + e.message;
           }
         }
-        return { detail, order, orderError, action: null, reversals: null };
+        let plan=null;
+ if(key==='fulfillment'&&detail.kind===C.FulfillmentKind.Order) plan=await m.adapter.call(C.Service.Fulfillment,C.Action.LineState,{id:detail.id});
+ return { detail, order, orderError, plan, action: null, reversals: null };
       });
     };
     document.addEventListener('click', async (event) => {
@@ -369,6 +385,13 @@
       if (action === 'cancel-action') {
         s.action = null;
         m.draw();
+      }
+      if(action==='parcel-refresh'){await m.openDetail(s.detail.id);return;}
+      if(action==='parcel-prepare'){
+        const p=s.plan?.parcels.find(p=>p.id===el.dataset.id),op=el.dataset.opOperation;
+        if(!p)return;
+        const valid=(p.status===C.FulfillmentStatus.Ready&&['dispatch','parcel_cancel'].includes(op))||(p.status===C.FulfillmentStatus.Dispatched&&op==='deliver');
+        if(valid){s.action={operation:op,id:p.id,name:op==='dispatch'?'确认包裹出库':op==='deliver'?'确认包裹演示签收':'取消此装包计划'};m.draw();}return;
       }
       if (action === 'prepare') {
         const item = available(key, s.detail).find(([a]) => a === el.dataset.opOperation);
@@ -404,6 +427,14 @@
     });
     document.addEventListener('submit', async (event) => {
       if (!m.active() || !event.target.closest('#' + prefix)) return;
+      if(event.target.matches('[data-parcel-create]')){
+        event.preventDefault();const form=event.target,s=m.state;if(s.busy||!s.detail)return;
+        const lines=[...form.querySelectorAll('[data-parcel-sku]')].map(i=>({sku_id:i.dataset.parcelSku,quantity:Number(i.value)})).filter(l=>l.quantity>0);
+        if(!lines.length){m.adapter.notify?.('请至少选择一件商品');return;}
+        form.dataset.key ||= crypto.randomUUID();const root=s.detail.id;
+        const ok=await m.run(()=>m.adapter.call(C.Service.Fulfillment,C.Action.ParcelCreate,{id:root,idempotency_key:form.dataset.key,data:{lines}}));
+        if(ok!==false&&!m.state.error){await m.openDetail(root);m.adapter.notify?.('包裹计划已创建，核对后可确认出库');}return;
+      }
       if (event.target.matches('[data-op-filter]')) {
         event.preventDefault();
         if (m.state.busy) return;
@@ -420,15 +451,17 @@
         if (s.busy || !s.action || !s.detail) return;
         const form = new FormData(event.target),
           operation = s.action.operation,
-          id = s.detail.id;
+          id = s.action.id || s.detail.id;
+ const rootID=s.detail.id;
         await m.run(async () => {
           await m.adapter.call(operation === C.Action.Deliver ? C.Service.Logistics : spec.service, operation, {
             id,
             idempotency_key: crypto.randomUUID(),
             data: operation === C.Action.Inspect ? { condition: String(form.get('condition')) } : {},
           });
-          const detail = await m.adapter.call(spec.service, C.Action.Get, { id });
-          return { detail, action: null, ready: false };
+          const detail = await m.adapter.call(spec.service, C.Action.Get, { id:rootID });
+ const plan=key==='fulfillment'&&detail.kind===C.FulfillmentKind.Order?await m.adapter.call(C.Service.Fulfillment,C.Action.LineState,{id:rootID}):null;
+ return { detail, plan, action: null, ready: false };
         });
         if (!m.state.error) {
           m.adapter.notify?.('处理成功，业务状态已更新');

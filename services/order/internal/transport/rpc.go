@@ -75,7 +75,8 @@ func orderMessage(order domain.Order) *mallv1.Order {
 		urged = timestamppb.New(*order.LastUrgedAt)
 	}
 	return &mallv1.Order{
-		DispatchStarted: order.DispatchStarted, LastUrgedAt: urged, ServiceHistory: events,
+		FulfillmentProgressJson: []byte(order.FulfillmentProgress), FulfillmentVersion: order.FulfillmentVersion,
+ DispatchStarted: order.DispatchStarted, LastUrgedAt: urged, ServiceHistory: events,
 		Id:                  order.ID,
 		UserId:              order.UserID,
 		Status:              order.Status,

@@ -107,6 +107,8 @@ message Order {
  bool dispatch_started=19;
  google.protobuf.Timestamp last_urged_at=20;
  repeated OrderServiceEvent service_history=21;
+ bytes fulfillment_progress_json=22;
+ int64 fulfillment_version=23;
 }
 
 // One RPC per order use case. The legacy DomainService.Execute endpoint is

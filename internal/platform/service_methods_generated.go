@@ -234,6 +234,12 @@ var namedOperationActions = map[string]map[string]string{
 		"AdminSummary":   constants.ActionAdminSummary,
 		"InspectReturns": constants.ActionInspectReturns,
 		"CreateGift":     constants.ActionCreateGift,
+		"LineState":      constants.ActionLineState,
+		"HoldLines":      constants.ActionHoldLines,
+		"ReleaseHold":    constants.ActionReleaseHold,
+		"CancelLines":    constants.ActionCancelLines,
+		"ParcelCreate":   constants.ActionParcelCreate,
+		"ParcelCancel":   constants.ActionParcelCancel,
 	},
 	constants.ServiceGroup: {
 		"Cancel":     constants.ActionCancel,
@@ -334,6 +340,8 @@ var namedOperationActions = map[string]map[string]string{
 		"SupplierList":       constants.ActionSupplierList,
 		"SupplierUpsert":     constants.ActionSupplierUpsert,
 		"ReplenishmentGet":   constants.ActionReplenishmentGet,
+		"CancelLines":        constants.ActionCancelLines,
+		"DispatchLines":      constants.ActionDispatchLines,
 	},
 	constants.ServiceInvoice: {
 		"AdjustDemo":   constants.ActionAdjustDemo,
@@ -1572,6 +1580,54 @@ func (client FulfillmentMethods) CreateGift(
 		constants.ActionCreateGift, request,
 	)
 }
+func (client FulfillmentMethods) LineState(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceFulfillment, "LineState",
+		constants.ActionLineState, request,
+	)
+}
+func (client FulfillmentMethods) HoldLines(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceFulfillment, "HoldLines",
+		constants.ActionHoldLines, request,
+	)
+}
+func (client FulfillmentMethods) ReleaseHold(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceFulfillment, "ReleaseHold",
+		constants.ActionReleaseHold, request,
+	)
+}
+func (client FulfillmentMethods) CancelLines(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceFulfillment, "CancelLines",
+		constants.ActionCancelLines, request,
+	)
+}
+func (client FulfillmentMethods) ParcelCreate(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceFulfillment, "ParcelCreate",
+		constants.ActionParcelCreate, request,
+	)
+}
+func (client FulfillmentMethods) ParcelCancel(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceFulfillment, "ParcelCancel",
+		constants.ActionParcelCancel, request,
+	)
+}
 
 type GroupMethods struct{ caller Caller }
 
@@ -2305,6 +2361,22 @@ func (client InventoryMethods) ReplenishmentGet(
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceInventory, "ReplenishmentGet",
 		constants.ActionReplenishmentGet, request,
+	)
+}
+func (client InventoryMethods) CancelLines(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInventory, "CancelLines",
+		constants.ActionCancelLines, request,
+	)
+}
+func (client InventoryMethods) DispatchLines(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInventory, "DispatchLines",
+		constants.ActionDispatchLines, request,
 	)
 }
 
@@ -4112,6 +4184,42 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewFulfillmentServiceClient(connection).CreateGift(ctx, request)
 			}},
+		constants.ActionLineState: {
+			fullMethod: mallv1.FulfillmentService_LineState_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewFulfillmentServiceClient(connection).LineState(ctx, request)
+			}},
+		constants.ActionHoldLines: {
+			fullMethod: mallv1.FulfillmentService_HoldLines_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewFulfillmentServiceClient(connection).HoldLines(ctx, request)
+			}},
+		constants.ActionReleaseHold: {
+			fullMethod: mallv1.FulfillmentService_ReleaseHold_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewFulfillmentServiceClient(connection).ReleaseHold(ctx, request)
+			}},
+		constants.ActionCancelLines: {
+			fullMethod: mallv1.FulfillmentService_CancelLines_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewFulfillmentServiceClient(connection).CancelLines(ctx, request)
+			}},
+		constants.ActionParcelCreate: {
+			fullMethod: mallv1.FulfillmentService_ParcelCreate_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewFulfillmentServiceClient(connection).ParcelCreate(ctx, request)
+			}},
+		constants.ActionParcelCancel: {
+			fullMethod: mallv1.FulfillmentService_ParcelCancel_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewFulfillmentServiceClient(connection).ParcelCancel(ctx, request)
+			}},
 	},
 	constants.ServiceGroup: {
 		constants.ActionCancel: {
@@ -4661,6 +4769,18 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewInventoryServiceClient(connection).ReplenishmentGet(ctx, request)
+			}},
+		constants.ActionCancelLines: {
+			fullMethod: mallv1.InventoryService_CancelLines_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInventoryServiceClient(connection).CancelLines(ctx, request)
+			}},
+		constants.ActionDispatchLines: {
+			fullMethod: mallv1.InventoryService_DispatchLines_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInventoryServiceClient(connection).DispatchLines(ctx, request)
 			}},
 	},
 	constants.ServiceInvoice: {
@@ -6002,6 +6122,36 @@ func (server *fulfillmentRPCServer) CreateGift(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionCreateGift], request)
 }
+func (server *fulfillmentRPCServer) LineState(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionLineState], request)
+}
+func (server *fulfillmentRPCServer) HoldLines(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionHoldLines], request)
+}
+func (server *fulfillmentRPCServer) ReleaseHold(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionReleaseHold], request)
+}
+func (server *fulfillmentRPCServer) CancelLines(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionCancelLines], request)
+}
+func (server *fulfillmentRPCServer) ParcelCreate(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionParcelCreate], request)
+}
+func (server *fulfillmentRPCServer) ParcelCancel(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionParcelCancel], request)
+}
 
 type groupRPCServer struct {
 	mallv1.UnimplementedGroupServiceServer
@@ -6481,6 +6631,16 @@ func (server *inventoryRPCServer) ReplenishmentGet(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionReplenishmentGet], request)
+}
+func (server *inventoryRPCServer) CancelLines(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionCancelLines], request)
+}
+func (server *inventoryRPCServer) DispatchLines(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionDispatchLines], request)
 }
 
 type invoiceRPCServer struct {

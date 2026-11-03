@@ -31,6 +31,12 @@ const (
 	FulfillmentService_AdminSummary_FullMethodName   = "/mall.v1.FulfillmentService/AdminSummary"
 	FulfillmentService_InspectReturns_FullMethodName = "/mall.v1.FulfillmentService/InspectReturns"
 	FulfillmentService_CreateGift_FullMethodName     = "/mall.v1.FulfillmentService/CreateGift"
+	FulfillmentService_LineState_FullMethodName      = "/mall.v1.FulfillmentService/LineState"
+	FulfillmentService_HoldLines_FullMethodName      = "/mall.v1.FulfillmentService/HoldLines"
+	FulfillmentService_ReleaseHold_FullMethodName    = "/mall.v1.FulfillmentService/ReleaseHold"
+	FulfillmentService_CancelLines_FullMethodName    = "/mall.v1.FulfillmentService/CancelLines"
+	FulfillmentService_ParcelCreate_FullMethodName   = "/mall.v1.FulfillmentService/ParcelCreate"
+	FulfillmentService_ParcelCancel_FullMethodName   = "/mall.v1.FulfillmentService/ParcelCancel"
 )
 
 // FulfillmentServiceClient is the client API for FulfillmentService service.
@@ -47,6 +53,12 @@ type FulfillmentServiceClient interface {
 	AdminSummary(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	InspectReturns(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	CreateGift(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	LineState(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	HoldLines(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ReleaseHold(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	CancelLines(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ParcelCreate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ParcelCancel(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type fulfillmentServiceClient struct {
@@ -147,6 +159,60 @@ func (c *fulfillmentServiceClient) CreateGift(ctx context.Context, in *ServiceRe
 	return out, nil
 }
 
+func (c *fulfillmentServiceClient) LineState(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, FulfillmentService_LineState_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *fulfillmentServiceClient) HoldLines(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, FulfillmentService_HoldLines_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *fulfillmentServiceClient) ReleaseHold(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, FulfillmentService_ReleaseHold_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *fulfillmentServiceClient) CancelLines(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, FulfillmentService_CancelLines_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *fulfillmentServiceClient) ParcelCreate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, FulfillmentService_ParcelCreate_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *fulfillmentServiceClient) ParcelCancel(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, FulfillmentService_ParcelCancel_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // FulfillmentServiceServer is the server API for FulfillmentService service.
 // All implementations must embed UnimplementedFulfillmentServiceServer
 // for forward compatibility
@@ -161,6 +227,12 @@ type FulfillmentServiceServer interface {
 	AdminSummary(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	InspectReturns(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	CreateGift(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	LineState(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	HoldLines(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ReleaseHold(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	CancelLines(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ParcelCreate(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ParcelCancel(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedFulfillmentServiceServer()
 }
 
@@ -197,6 +269,24 @@ func (UnimplementedFulfillmentServiceServer) InspectReturns(context.Context, *Se
 }
 func (UnimplementedFulfillmentServiceServer) CreateGift(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateGift not implemented")
+}
+func (UnimplementedFulfillmentServiceServer) LineState(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LineState not implemented")
+}
+func (UnimplementedFulfillmentServiceServer) HoldLines(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method HoldLines not implemented")
+}
+func (UnimplementedFulfillmentServiceServer) ReleaseHold(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReleaseHold not implemented")
+}
+func (UnimplementedFulfillmentServiceServer) CancelLines(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CancelLines not implemented")
+}
+func (UnimplementedFulfillmentServiceServer) ParcelCreate(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ParcelCreate not implemented")
+}
+func (UnimplementedFulfillmentServiceServer) ParcelCancel(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ParcelCancel not implemented")
 }
 func (UnimplementedFulfillmentServiceServer) mustEmbedUnimplementedFulfillmentServiceServer() {}
 
@@ -391,6 +481,114 @@ func _FulfillmentService_CreateGift_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FulfillmentService_LineState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FulfillmentServiceServer).LineState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FulfillmentService_LineState_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FulfillmentServiceServer).LineState(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FulfillmentService_HoldLines_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FulfillmentServiceServer).HoldLines(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FulfillmentService_HoldLines_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FulfillmentServiceServer).HoldLines(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FulfillmentService_ReleaseHold_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FulfillmentServiceServer).ReleaseHold(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FulfillmentService_ReleaseHold_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FulfillmentServiceServer).ReleaseHold(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FulfillmentService_CancelLines_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FulfillmentServiceServer).CancelLines(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FulfillmentService_CancelLines_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FulfillmentServiceServer).CancelLines(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FulfillmentService_ParcelCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FulfillmentServiceServer).ParcelCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FulfillmentService_ParcelCreate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FulfillmentServiceServer).ParcelCreate(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FulfillmentService_ParcelCancel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FulfillmentServiceServer).ParcelCancel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FulfillmentService_ParcelCancel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FulfillmentServiceServer).ParcelCancel(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // FulfillmentService_ServiceDesc is the grpc.ServiceDesc for FulfillmentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -437,6 +635,30 @@ var FulfillmentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateGift",
 			Handler:    _FulfillmentService_CreateGift_Handler,
+		},
+		{
+			MethodName: "LineState",
+			Handler:    _FulfillmentService_LineState_Handler,
+		},
+		{
+			MethodName: "HoldLines",
+			Handler:    _FulfillmentService_HoldLines_Handler,
+		},
+		{
+			MethodName: "ReleaseHold",
+			Handler:    _FulfillmentService_ReleaseHold_Handler,
+		},
+		{
+			MethodName: "CancelLines",
+			Handler:    _FulfillmentService_CancelLines_Handler,
+		},
+		{
+			MethodName: "ParcelCreate",
+			Handler:    _FulfillmentService_ParcelCreate_Handler,
+		},
+		{
+			MethodName: "ParcelCancel",
+			Handler:    _FulfillmentService_ParcelCancel_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

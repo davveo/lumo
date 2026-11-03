@@ -19,4 +19,10 @@ service FulfillmentService {
   rpc AdminSummary(ServiceRequest) returns (ServiceResponse);
   rpc InspectReturns(ServiceRequest) returns (ServiceResponse);
   rpc CreateGift(ServiceRequest) returns (ServiceResponse);
+  rpc LineState(ServiceRequest) returns (ServiceResponse);
+  rpc HoldLines(ServiceRequest) returns (ServiceResponse);
+  rpc ReleaseHold(ServiceRequest) returns (ServiceResponse);
+  rpc CancelLines(ServiceRequest) returns (ServiceResponse);
+  rpc ParcelCreate(ServiceRequest) returns (ServiceResponse);
+  rpc ParcelCancel(ServiceRequest) returns (ServiceResponse);
 }
