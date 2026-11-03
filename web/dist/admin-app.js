@@ -24,6 +24,9 @@
       {
         overview: 'management/dashboard',
         diagnostics: 'analytics/drilldown',
+        segments: 'member/segment_preview',
+        exports: 'helpdesk/export_list',
+        journeys: 'engagement/journey_rules',
         rewards: 'points/offers_admin',
         workqueue: 'helpdesk/work_queue',
         orders: 'order/admin_list',
@@ -91,7 +94,7 @@
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.overview}</svg>`;
   const groups = [
     ['总览', ['overview', 'diagnostics']],
-    ['运行管理', ['workqueue', 'tasks', 'audit']],
+    ['运行管理', ['workqueue', 'tasks', 'audit', 'exports']],
     ['系统设置', ['paymentSettings', 'loginSettings', 'staff']],
     [
       '交易与履约',
@@ -112,7 +115,21 @@
       ['products', 'catalogImport', 'procurement', 'inventory', 'stockwatch', 'productAlerts', 'categories'],
     ],
     ['营销与装修', ['coupons', 'activities', 'special', 'recommendation', 'popups', 'settings']],
-    ['运营与服务', ['users', 'points', 'rewards', 'content', 'messages', 'interactions', 'tickets', 'analytics']],
+    [
+      '运营与服务',
+      [
+        'users',
+        'segments',
+        'journeys',
+        'points',
+        'rewards',
+        'content',
+        'messages',
+        'interactions',
+        'tickets',
+        'analytics',
+      ],
+    ],
   ];
   const descriptions = {
     overview: '查看业务动态，快速进入日常管理。',
@@ -153,6 +170,9 @@
   const menus = [
     ['overview', '工作台'],
     ['diagnostics', '经营明细'],
+    ['segments', '客户分群'],
+    ['exports', '导出任务'],
+    ['journeys', '顾客触达'],
     ['workqueue', '待办工作台'],
     ['rewards', '积分兑换'],
     ['staff', '员工与权限'],
@@ -262,6 +282,7 @@
     } catch (error) {
       if (error.status === 401 && session === token) {
         token = '';
+        window.LumoReviewMedia?.close();
         sessionStorage.removeItem(tokenKey);
         epoch++;
         login();
@@ -285,6 +306,9 @@
     shipments: window.LumoShipmentsAdmin,
     reconciliation: window.LumoManagementAdmin?.create('reconciliation') || window.LumoReconciliationAdmin,
     users: window.LumoUsersAdmin,
+    segments: window.LumoCustomerSegments,
+    exports: window.LumoExportsAdmin,
+    journeys: window.LumoJourneysAdmin,
     inventory: window.LumoInventoryAdmin,
     ...Object.fromEntries(
       ['orders', 'payments', 'fulfillment', 'aftersales', 'refunds', 'invoices'].map((key) => [
@@ -338,10 +362,20 @@
       notify: message,
       navigate,
     });
+  window.LumoReviewMedia?.configureAdmin({ call, scope });
+  window.LumoAdminSearch?.configure({
+    call,
+    scope,
+    navigate,
+    allowed: allowedMenu,
+    authenticated: () => !!token,
+    identity: () => JSON.stringify([API.getBase(), access.user_id || access.id || '']),
+  });
   function errorHTML(error) {
     return `<div class="admin-error">${esc(error.message || '请求失败')}${error.traceID || error.traceId ? `<div class="admin-trace">Trace ID: ${esc(error.traceID || error.traceId)}</div>` : ''}</div>`;
   }
   function nav() {
+    window.LumoAdminSearch?.sync();
     document.body.dataset.adminAuth = token ? 'true' : 'false';
     const name = menus.find(([key]) => key === tab)?.[1] || '工作台';
     $('#admin-breadcrumb').textContent = token ? name : '管理员登录';
@@ -511,7 +545,7 @@
       );
     return (
       summary +
-      `<div class="admin-table-wrap" tabindex="0" role="region" aria-label="可滚动数据列表"><table class="admin-table"><thead><tr><th scope="col">业务对象</th><th scope="col">内容 / 金额</th><th scope="col">状态</th><th scope="col">操作</th></tr></thead><tbody>${visible.map((row) => `<tr><td><strong>${esc(row.title || row.name || row.kind || row.type || '业务记录')}</strong><small>${esc(row.id)}</small><small>${row.order_id ? '订单 ' + esc(row.order_id) : esc(row.user_id || '')}</small></td><td>${row.amount_cents != null ? `<strong class="admin-amount">${currency(row.amount_cents)}</strong>` : ''}${copyPreview(row.body || row.reason || row.tracking_id || row.number)}${row.details ? `<details class="admin-record-details"><summary>查看明细</summary>${window.LumoAdminDetails?.render(row.details) || '明细暂不可用'}</details>` : ''}${row.answer ? `<div class="admin-answer">回复：${copyPreview(row.answer)}</div>` : ''}</td><td>${stateBadge(row.status)}</td><td><div class="admin-actions">${rowActions(row) || '<span class="admin-muted">—</span>'}</div></td></tr>`).join('')}</tbody></table></div><div class="admin-pagination"><span>第 ${(state.page - 1) * pageSize + 1}–${Math.min(state.page * pageSize, filtered.length)} 条，共 ${filtered.length} 条</span><div><button class="outline" data-list-page="${state.page - 1}" ${state.page === 1 ? 'disabled' : ''}>上一页</button><span>${state.page} / ${pages}</span><button class="outline" data-list-page="${state.page + 1}" ${state.page === pages ? 'disabled' : ''}>下一页</button></div></div>`
+      `<div class="admin-table-wrap" tabindex="0" role="region" aria-label="可滚动数据列表"><table class="admin-table"><thead><tr><th scope="col">业务对象</th><th scope="col">内容 / 金额</th><th scope="col">状态</th><th scope="col">操作</th></tr></thead><tbody>${visible.map((row) => `<tr><td><strong>${esc(row.title || row.name || (row.kind === C.InteractionKind.Review ? '商品评价' : row.kind === C.InteractionKind.ReviewFollowup ? '追加评价' : row.kind === C.InteractionKind.Question ? '商品提问' : row.kind) || row.type || '业务记录')}</strong><small>${esc(row.id)}</small><small>${row.order_id ? '订单 ' + esc(row.order_id) : esc(row.user_id || '')}</small></td><td>${row.amount_cents != null ? `<strong class="admin-amount">${currency(row.amount_cents)}</strong>` : ''}${copyPreview(row.body || row.reason || row.tracking_id || row.number)}${tab === 'interactions' ? window.LumoReviewMedia?.grid(row, { mode: 'admin', part: row.kind === C.InteractionKind.ReviewFollowup ? 'followup' : 'review', published: row.status === C.InteractionStatus.Published && (!row.base_status || row.base_status === C.InteractionStatus.Published) }) || '' : ''}${row.details ? `<details class="admin-record-details"><summary>查看明细</summary>${window.LumoAdminDetails?.render(row.details) || '明细暂不可用'}</details>` : ''}${row.answer ? `<div class="admin-answer">回复：${copyPreview(row.answer)}</div>` : ''}</td><td>${stateBadge(row.status)}</td><td><div class="admin-actions">${rowActions(row) || '<span class="admin-muted">—</span>'}</div></td></tr>`).join('')}</tbody></table></div><div class="admin-pagination"><span>第 ${(state.page - 1) * pageSize + 1}–${Math.min(state.page * pageSize, filtered.length)} 条，共 ${filtered.length} 条</span><div><button class="outline" data-list-page="${state.page - 1}" ${state.page === 1 ? 'disabled' : ''}>上一页</button><span>${state.page} / ${pages}</span><button class="outline" data-list-page="${state.page + 1}" ${state.page === pages ? 'disabled' : ''}>下一页</button></div></div>`
     );
   }
   function listPage(name) {
@@ -671,7 +705,21 @@
             data: { kind: C.InteractionKind.Question, include_pending: true },
           }),
         ]);
-        fetched = [...(reviews.items || []), ...(questions.items || [])];
+        fetched = [
+          ...(reviews.items || []),
+          ...(reviews.items || [])
+            .filter((r) => r.followup)
+            .map((r) => ({
+              ...r.followup,
+              id: r.id + '::followup',
+              review_id: r.id,
+              user_id: r.user_id,
+              order_id: r.order_id,
+              base_status: r.status,
+              kind: C.InteractionKind.ReviewFollowup,
+            })),
+          ...(questions.items || []),
+        ];
       } else {
         const [service, action] = specs[tab];
         const result = await call(service, action);
@@ -698,10 +746,12 @@
   function openOperationEditor(service, action, command) {
     const row = rows.find((r) => r.id === command.id) || {},
       title = action === C.Action.Moderate ? '审核内容' : action === C.Action.Inspect ? '验收退货' : '回复问题';
-    operationDraft = { service, action, command, owner: scope(), epoch };
+    const reviewScope = row.kind === C.InteractionKind.ReviewFollowup ? 'followup' : 'review';
+    if (row.review_id) command = { ...command, id: row.review_id };
+    operationDraft = { service, action, command, owner: scope(), epoch, version: row.version, reviewScope };
     const target = $('#operation-result') || $('#admin-result');
     if (!target) return;
-    target.innerHTML = `<form id="admin-operation-form" class="admin-section admin-operation-editor admin-form-stack"><div class="admin-panel-heading"><h2>${esc(title)}</h2><button class="outline" type="button" data-action="cancel-operation">取消</button></div><p class="admin-muted">${esc(row.kind === C.InteractionKind.Question ? '商品问答' : row.kind === C.InteractionKind.Review ? '商品评价' : '业务单据')} · ${esc(command.id)}</p><blockquote>${esc(row.body || row.reason || '请核对业务记录后处理。')}</blockquote>${action === C.Action.Moderate ? '<label class="field">审核结果<select name="approved"><option value="true">通过并公开</option><option value="false">驳回，不对外展示</option></select></label>' : action === C.Action.Inspect ? '<label class="field">退货品质<select name="condition"><option value="sellable">可售</option><option value="damaged">破损</option><option value="unsellable">不可售</option></select></label>' : `<label class="field">${esc(title)}<textarea name="body" maxlength="2000" rows="5" required placeholder="填写清晰、完整的答复">${esc(row.answer || '')}</textarea></label>`}<div class="admin-error" role="alert" data-operation-error></div><div class="admin-actions admin-form-actions"><button class="primary" type="submit">${action === C.Action.Moderate ? '提交审核结果' : '确认提交'}</button><button class="outline" type="button" data-action="cancel-operation">取消</button></div></form>`;
+    target.innerHTML = `<form id="admin-operation-form" class="admin-section admin-operation-editor admin-form-stack"><div class="admin-panel-heading"><h2>${esc(title)}</h2><button class="outline" type="button" data-action="cancel-operation">取消</button></div><p class="admin-muted">${esc(row.kind === C.InteractionKind.Question ? '商品问答' : row.kind === C.InteractionKind.Review ? '商品评价' : '业务单据')} · ${esc(command.id)}</p><blockquote>${esc(row.body || row.reason || '请核对业务记录后处理。')}</blockquote>${action === C.Action.Moderate ? `${window.LumoReviewMedia?.grid(row, { mode: 'admin', part: reviewScope, published: row.status === C.InteractionStatus.Published && (!row.base_status || row.base_status === C.InteractionStatus.Published) }) || ''}<label class="field">审核结果<select name="approved"><option value="true">通过并公开</option><option value="false">驳回，不对外展示</option></select></label><label class="field">审核说明（驳回时请说明原因）<textarea name="reason" maxlength="500" rows="3" placeholder="说明需要修改的内容，顾客可在评价详情查看"></textarea></label>` : action === C.Action.Inspect ? '<label class="field">退货品质<select name="condition"><option value="sellable">可售</option><option value="damaged">破损</option><option value="unsellable">不可售</option></select></label>' : `<label class="field">${esc(title)}<textarea name="body" maxlength="2000" rows="5" required placeholder="填写清晰、完整的答复">${esc(row.answer || '')}</textarea></label>`}<div class="admin-error" role="alert" data-operation-error></div><div class="admin-actions admin-form-actions"><button class="primary" type="submit">${action === C.Action.Moderate ? '提交审核结果' : '确认提交'}</button><button class="outline" type="button" data-action="cancel-operation">取消</button></div></form>`;
     target.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
     target.querySelector('textarea,select')?.focus();
   }
@@ -723,7 +773,12 @@
     if ([C.Action.Answer, C.Action.Reply].includes(d.action) && !body) return;
     d.command.data =
       d.action === C.Action.Moderate
-        ? { approved: data.get('approved') === 'true' }
+        ? {
+            approved: data.get('approved') === 'true',
+            reason: String(data.get('reason') || ''),
+            scope: d.reviewScope,
+            ...(d.version !== undefined ? { version: d.version } : {}),
+          }
         : d.action === C.Action.Inspect
           ? { condition: String(data.get('condition')) }
           : { [d.action === C.Action.Answer ? 'answer' : 'body']: body };
@@ -791,6 +846,7 @@
       try {
         await call(C.Service.IAM, C.Action.Logout);
         token = '';
+        window.LumoReviewMedia?.close();
         sessionStorage.removeItem(tokenKey);
         login();
       } catch (error) {
@@ -923,6 +979,7 @@
         access = principal;
       } catch (_) {
         token = '';
+        window.LumoReviewMedia?.close();
         sessionStorage.removeItem(tokenKey);
       }
     }

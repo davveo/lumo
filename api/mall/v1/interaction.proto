@@ -14,4 +14,8 @@ service InteractionService {
   rpc Like(ServiceRequest) returns (ServiceResponse);
   rpc List(ServiceRequest) returns (ServiceResponse);
   rpc Moderate(ServiceRequest) returns (ServiceResponse);
+  rpc ReviewGet(ServiceRequest) returns (ServiceResponse);
+  rpc ReviewRevise(ServiceRequest) returns (ServiceResponse);
+  rpc FollowupSave(ServiceRequest) returns (ServiceResponse);
+  rpc ReviewImage(ServiceRequest) returns (ServiceResponse);
 }

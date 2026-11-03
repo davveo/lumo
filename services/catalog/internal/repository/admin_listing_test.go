@@ -47,7 +47,7 @@ func TestAdminListingMigratesOrderedIndexAndPreservesAllStatuses(t *testing.T) {
 			Payload:   `{}`,
 		},
 	}
-	if err = db.Create(&fixtures).Error; err != nil {
+	if err = db.Omit("ProductVersion").Create(&fixtures).Error; err != nil {
 		t.Fatal(err)
 	}
 	repo := New(db)

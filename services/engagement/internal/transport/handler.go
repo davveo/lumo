@@ -9,6 +9,14 @@ import (
 // New binds transport operations to independent business methods.
 func New(s *usecase.Service) *platform.MethodHandler {
 	return platform.NewMethodHandler(constants.ServiceEngagement, map[string]platform.Operation{
+		constants.ActionJourneyRules:         s.JourneyRules,
+		constants.ActionJourneyRuleSave:      s.JourneyRuleSave,
+		constants.ActionJourneyList:          s.JourneyList,
+		constants.ActionJourneyRun:           s.JourneyRun,
+		constants.ActionJourneyCancel:        s.JourneyCancel,
+		constants.ActionJourneyOpen:          s.JourneyOpen,
+		constants.ActionJourneyDeliveryCheck: s.JourneyDeliveryCheck,
+
 		constants.ActionSubscribe:     s.Subscribe,
 		constants.ActionSubscriptions: s.Subscriptions,
 		constants.ActionUnsubscribe:   s.Unsubscribe,

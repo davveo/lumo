@@ -59,9 +59,7 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 	if sku == "" || body == "" || len(body) > 4000 {
 		return nil, bad("sku_id and body required")
 	}
-	if _, e := platform.NewClients(s.rpc).Catalog.Get(ctx, platform.Request{ID: sku, UserID: c.UserID, Role: c.Role, IdempotencyKey: c.IdempotencyKey, Data: nil}); e != nil {
-		return nil, e
-	}
+
 	if kind == constants.InteractionKindReview {
 		rating := platform.Int(c.Data, "rating")
 		if rating < 1 || rating > 5 {
@@ -99,12 +97,27 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 		}
 		c.ID = stable(c.UserID, constants.InteractionKindReview, oid, sku)
 	} else if kind == constants.InteractionKindQuestion {
+		if _, e := platform.NewClients(s.rpc).Catalog.Get(ctx, platform.Request{ID: sku, UserID: c.UserID, Role: c.Role}); e != nil {
+			return nil, e
+		}
 		if c.IdempotencyKey == "" {
 			return nil, bad("question idempotency_key required")
 		}
 		c.ID = stable(c.UserID, constants.InteractionKindQuestion, c.IdempotencyKey)
 	} else {
 		return nil, bad("kind must be review or question")
+	}
+	ids, e := photoIDs(c.Data)
+	if e != nil {
+		return nil, e
+	}
+	if kind == constants.InteractionKindQuestion && len(ids) > 0 {
+		return nil, bad("提问暂不支持图片附件")
+	}
+	if kind == constants.InteractionKindReview {
+		if e = s.verifyReviewPhotos(ctx, c.UserID, ids); e != nil {
+			return nil, e
+		}
 	}
 	var idErr error
 	c.ID, idErr = s.repo.BusinessID(ctx, kind, c.ID, c.ID)
@@ -117,10 +130,11 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 		kind,
 		constants.InteractionStatusPending,
 		map[string]any{
-			"sku_id":   sku,
-			"body":     body,
-			"rating":   platform.Int(c.Data, "rating"),
-			"order_id": platform.Text(c.Data, "order_id"),
+			"sku_id":    sku,
+			"body":      body,
+			"rating":    platform.Int(c.Data, "rating"),
+			"order_id":  platform.Text(c.Data, "order_id"),
+			"photo_ids": ids,
 		},
 	)
 	r.ParentID = sku
@@ -144,38 +158,9 @@ func (s *Service) Moderate(ctx context.Context, c platform.Request) (traceResult
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
 	}
-	r, e := s.repo.Mutate(
-		ctx,
-		domain.Record{ID: c.ID},
-		false,
-		func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
-			approved, ok := c.Data["approved"].(bool)
-
-			if !ok {
-				return nil, nil, bad("approved boolean required")
-			}
-			v.Status = constants.InteractionStatusRejected
-			if approved {
-				v.Status = constants.InteractionStatusPublished
-			}
-			evt := &platform.Event{
-				ID:          platform.ID("evt"),
-				Type:        "QAChanged",
-				AggregateID: v.ID,
-				UserID:      v.UserID,
-				Data:        view(*v),
-			}
-			if v.Kind == constants.InteractionKindReview {
-				evt.Type = constants.EventReviewPublished
-			}
-			return nil, evt, nil
-		},
-	)
-	if e != nil {
-		return nil, e
-	}
-	return view(r), nil
+	return s.moderateContent(ctx, c)
 }
+
 func (s *Service) Answer(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {
 	ctx, span := platform.Start(ctx, "interaction.usecase.answer")
 	defer span.End()
@@ -189,6 +174,12 @@ func (s *Service) Answer(ctx context.Context, c platform.Request) (traceResult p
 		domain.Record{ID: c.ID},
 		false,
 		func(v *domain.Record) ([]domain.Record, *platform.Event, error) {
+			if v.Kind != constants.InteractionKindQuestion {
+				return nil, nil, status.Error(codes.FailedPrecondition, "只能回复商品提问，评价请使用审核操作")
+			}
+			if _, exists := c.Data["version"]; exists && v.Version != platform.Int(c.Data, "version") {
+				return nil, nil, status.Error(codes.Aborted, "提问已更新，请重新读取")
+			}
 			if platform.Text(c.Data, "answer") == "" {
 				return nil, nil, bad("answer required")
 			}
@@ -198,7 +189,7 @@ func (s *Service) Answer(ctx context.Context, c platform.Request) (traceResult p
 			v.Status = constants.InteractionStatusPublished
 			evt := &platform.Event{
 				ID:          platform.ID("evt"),
-				Type:        "QAChanged",
+				Type:        constants.EventQAChanged,
 				AggregateID: v.ID,
 				UserID:      v.UserID,
 				Data:        view(*v),

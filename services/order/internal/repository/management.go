@@ -7,7 +7,7 @@ import (
 	"github.com/davveo/lumo/services/order/internal/domain"
 )
 
-var managementSpec = adminquery.Spec{
+var managementSpec = adminquery.Spec{Owner: "user_id",
 	State:  "status",
 	Amount: "payable",
 	Search: []string{"id", "user_id", "payment_id", "note"},

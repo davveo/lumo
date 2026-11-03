@@ -43,6 +43,8 @@ func view(r domain.Record) platform.Result {
 	v["user_id"] = r.UserID
 	v["status"] = r.Status
 	v["kind"] = r.Kind
+	v["version"] = r.Version
+	v["updated_at"] = r.UpdatedAt.UTC().Format(time.RFC3339)
 	v["created_at"] = r.CreatedAt.Format(time.RFC3339)
 	return v
 }
@@ -91,26 +93,19 @@ func (s *Service) list(ctx context.Context, c platform.Request, owner, kind, st 
 	if err != nil {
 		return nil, err
 	}
-	items := make([]platform.Result, 0, len(vs))
-	for _, v := range vs {
-		item := view(v)
-		if v.Kind == constants.InteractionKindReview {
-			count, e := s.repo.Count(ctx, v.ID, constants.InteractionKindLike)
-			if e != nil {
-				return nil, e
-			}
-			item["helpful_count"] = count
-			if c.UserID != "" {
-				liked, e := s.repo.HasLike(ctx, v.ID, c.UserID)
-				if e != nil {
-					return nil, e
-				}
-				item["liked"] = liked
-			}
-		}
-		items = append(items, item)
+	items, e := s.decorateReviews(ctx, c, vs)
+	if e != nil {
+		return nil, e
 	}
-	return platform.Result{"items": items, "limit": len(items)}, nil
+	out := platform.Result{"items": items, "limit": len(items)}
+	if kind == constants.InteractionKindReview && owner == "" && st == constants.InteractionStatusPublished {
+		summary, e := s.repo.ReviewSummary(ctx, skus)
+		if e != nil {
+			return nil, e
+		}
+		out["summary"] = summary
+	}
+	return out, nil
 }
 
 func demo() bool {

@@ -132,7 +132,7 @@ func (s *Service) Merge(ctx context.Context, c platform.Request) (traceResult pl
 				d["quantity"] = it.Quantity
 				v.Payload = record(v.ID, v.UserID, v.Kind, v.Status, d).Payload
 			}
-			return nil, nil, nil
+			return nil, cartChanged(c.UserID), nil
 		}); e != nil {
 			return nil, e
 		}
@@ -208,7 +208,7 @@ func (s *Service) changeQuantity(ctx context.Context, c platform.Request, absolu
 		}
 		d["quantity"] = next
 		v.Payload = record(v.ID, v.UserID, v.Kind, v.Status, d).Payload
-		return nil, nil, nil
+		return nil, cartChanged(c.UserID), nil
 	})
 	if e != nil {
 		return nil, e

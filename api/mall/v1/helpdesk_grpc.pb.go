@@ -21,20 +21,25 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	HelpdeskService_AdminList_FullMethodName    = "/mall.v1.HelpdeskService/AdminList"
-	HelpdeskService_Close_FullMethodName        = "/mall.v1.HelpdeskService/Close"
-	HelpdeskService_Create_FullMethodName       = "/mall.v1.HelpdeskService/Create"
-	HelpdeskService_Faq_FullMethodName          = "/mall.v1.HelpdeskService/Faq"
-	HelpdeskService_Get_FullMethodName          = "/mall.v1.HelpdeskService/Get"
-	HelpdeskService_List_FullMethodName         = "/mall.v1.HelpdeskService/List"
-	HelpdeskService_Reply_FullMethodName        = "/mall.v1.HelpdeskService/Reply"
-	HelpdeskService_WorkQueue_FullMethodName    = "/mall.v1.HelpdeskService/WorkQueue"
-	HelpdeskService_WorkDetail_FullMethodName   = "/mall.v1.HelpdeskService/WorkDetail"
-	HelpdeskService_AssignWork_FullMethodName   = "/mall.v1.HelpdeskService/AssignWork"
-	HelpdeskService_SaveView_FullMethodName     = "/mall.v1.HelpdeskService/SaveView"
-	HelpdeskService_Views_FullMethodName        = "/mall.v1.HelpdeskService/Views"
-	HelpdeskService_PolicyGet_FullMethodName    = "/mall.v1.HelpdeskService/PolicyGet"
-	HelpdeskService_PolicyUpsert_FullMethodName = "/mall.v1.HelpdeskService/PolicyUpsert"
+	HelpdeskService_AdminList_FullMethodName      = "/mall.v1.HelpdeskService/AdminList"
+	HelpdeskService_Close_FullMethodName          = "/mall.v1.HelpdeskService/Close"
+	HelpdeskService_Create_FullMethodName         = "/mall.v1.HelpdeskService/Create"
+	HelpdeskService_Faq_FullMethodName            = "/mall.v1.HelpdeskService/Faq"
+	HelpdeskService_Get_FullMethodName            = "/mall.v1.HelpdeskService/Get"
+	HelpdeskService_List_FullMethodName           = "/mall.v1.HelpdeskService/List"
+	HelpdeskService_Reply_FullMethodName          = "/mall.v1.HelpdeskService/Reply"
+	HelpdeskService_WorkQueue_FullMethodName      = "/mall.v1.HelpdeskService/WorkQueue"
+	HelpdeskService_WorkDetail_FullMethodName     = "/mall.v1.HelpdeskService/WorkDetail"
+	HelpdeskService_AssignWork_FullMethodName     = "/mall.v1.HelpdeskService/AssignWork"
+	HelpdeskService_SaveView_FullMethodName       = "/mall.v1.HelpdeskService/SaveView"
+	HelpdeskService_Views_FullMethodName          = "/mall.v1.HelpdeskService/Views"
+	HelpdeskService_PolicyGet_FullMethodName      = "/mall.v1.HelpdeskService/PolicyGet"
+	HelpdeskService_PolicyUpsert_FullMethodName   = "/mall.v1.HelpdeskService/PolicyUpsert"
+	HelpdeskService_ExportCreate_FullMethodName   = "/mall.v1.HelpdeskService/ExportCreate"
+	HelpdeskService_ExportList_FullMethodName     = "/mall.v1.HelpdeskService/ExportList"
+	HelpdeskService_ExportGet_FullMethodName      = "/mall.v1.HelpdeskService/ExportGet"
+	HelpdeskService_ExportRetry_FullMethodName    = "/mall.v1.HelpdeskService/ExportRetry"
+	HelpdeskService_ExportDownload_FullMethodName = "/mall.v1.HelpdeskService/ExportDownload"
 )
 
 // HelpdeskServiceClient is the client API for HelpdeskService service.
@@ -55,6 +60,11 @@ type HelpdeskServiceClient interface {
 	Views(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	PolicyGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	PolicyUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ExportCreate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ExportList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ExportGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ExportRetry(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ExportDownload(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type helpdeskServiceClient struct {
@@ -191,6 +201,51 @@ func (c *helpdeskServiceClient) PolicyUpsert(ctx context.Context, in *ServiceReq
 	return out, nil
 }
 
+func (c *helpdeskServiceClient) ExportCreate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, HelpdeskService_ExportCreate_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *helpdeskServiceClient) ExportList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, HelpdeskService_ExportList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *helpdeskServiceClient) ExportGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, HelpdeskService_ExportGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *helpdeskServiceClient) ExportRetry(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, HelpdeskService_ExportRetry_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *helpdeskServiceClient) ExportDownload(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, HelpdeskService_ExportDownload_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // HelpdeskServiceServer is the server API for HelpdeskService service.
 // All implementations must embed UnimplementedHelpdeskServiceServer
 // for forward compatibility
@@ -209,6 +264,11 @@ type HelpdeskServiceServer interface {
 	Views(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	PolicyGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ExportCreate(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ExportList(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ExportGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ExportRetry(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ExportDownload(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedHelpdeskServiceServer()
 }
 
@@ -257,6 +317,21 @@ func (UnimplementedHelpdeskServiceServer) PolicyGet(context.Context, *ServiceReq
 }
 func (UnimplementedHelpdeskServiceServer) PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PolicyUpsert not implemented")
+}
+func (UnimplementedHelpdeskServiceServer) ExportCreate(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExportCreate not implemented")
+}
+func (UnimplementedHelpdeskServiceServer) ExportList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExportList not implemented")
+}
+func (UnimplementedHelpdeskServiceServer) ExportGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExportGet not implemented")
+}
+func (UnimplementedHelpdeskServiceServer) ExportRetry(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExportRetry not implemented")
+}
+func (UnimplementedHelpdeskServiceServer) ExportDownload(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExportDownload not implemented")
 }
 func (UnimplementedHelpdeskServiceServer) mustEmbedUnimplementedHelpdeskServiceServer() {}
 
@@ -523,6 +598,96 @@ func _HelpdeskService_PolicyUpsert_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _HelpdeskService_ExportCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HelpdeskServiceServer).ExportCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HelpdeskService_ExportCreate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HelpdeskServiceServer).ExportCreate(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _HelpdeskService_ExportList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HelpdeskServiceServer).ExportList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HelpdeskService_ExportList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HelpdeskServiceServer).ExportList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _HelpdeskService_ExportGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HelpdeskServiceServer).ExportGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HelpdeskService_ExportGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HelpdeskServiceServer).ExportGet(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _HelpdeskService_ExportRetry_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HelpdeskServiceServer).ExportRetry(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HelpdeskService_ExportRetry_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HelpdeskServiceServer).ExportRetry(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _HelpdeskService_ExportDownload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HelpdeskServiceServer).ExportDownload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HelpdeskService_ExportDownload_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HelpdeskServiceServer).ExportDownload(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // HelpdeskService_ServiceDesc is the grpc.ServiceDesc for HelpdeskService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -585,6 +750,26 @@ var HelpdeskService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PolicyUpsert",
 			Handler:    _HelpdeskService_PolicyUpsert_Handler,
+		},
+		{
+			MethodName: "ExportCreate",
+			Handler:    _HelpdeskService_ExportCreate_Handler,
+		},
+		{
+			MethodName: "ExportList",
+			Handler:    _HelpdeskService_ExportList_Handler,
+		},
+		{
+			MethodName: "ExportGet",
+			Handler:    _HelpdeskService_ExportGet_Handler,
+		},
+		{
+			MethodName: "ExportRetry",
+			Handler:    _HelpdeskService_ExportRetry_Handler,
+		},
+		{
+			MethodName: "ExportDownload",
+			Handler:    _HelpdeskService_ExportDownload_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

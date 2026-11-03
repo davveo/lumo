@@ -11,15 +11,25 @@
     };
   const m = U.controller(
     'procurement-admin-root',
-    () => ({ data: null, detail: null, detailID: '', busy: false, error: '', page: 1 }),
-    async (module) => ({
-      data: await module.adapter.call('inventory', 'procurement_list', {
-        data: { page: module.state.page, page_size: 20 },
-      }),
-      ...(module.state.detailID
-        ? { detail: await module.adapter.call('inventory', 'procurement_get', { id: module.state.detailID }) }
-        : {}),
+    () => ({
+      ...window.LumoProcurementComposer?.initial(),
+      data: null,
+      detail: null,
+      detailID: '',
+      busy: false,
+      error: '',
+      page: 1,
     }),
+    async (module) => {
+      const [data, suppliers, detail] = await Promise.all([
+        module.adapter.call('inventory', 'procurement_list', { data: { page: module.state.page, page_size: 20 } }),
+        module.adapter.call('inventory', 'supplier_list', { data: { page: 1, page_size: 100 } }),
+        module.state.detailID
+          ? module.adapter.call('inventory', 'procurement_get', { id: module.state.detailID })
+          : null,
+      ]);
+      return { data, suppliers, detail };
+    },
     (module) => {
       if (!module.state.data)
         return U.heading('正在读取管理数据', '') + window.LumoSkeleton.render('rows', { count: 4 });
@@ -27,7 +37,7 @@
         order = module.state.detail;
       return (
         U.heading('采购与补货', '从供应商采购、审批到到货验收；合格品入库，损坏品单独登记。') +
-        `<section class="admin-section"><h2>采购单</h2><table class="admin-table"><thead><tr><th>编号 / 供应商</th><th>采购成本</th><th>状态</th><th>操作</th></tr></thead><tbody>${data.items.map((row) => `<tr><td>${U.esc(row.id)}<br>${U.esc(row.supplier)}</td><td>${U.money(row.total_cost_cents)}</td><td>${statuses[row.status]}</td><td><button class="outline" data-po-open="${U.esc(row.id)}">查看</button></td></tr>`).join('')}</tbody></table><div><button class="outline" data-po-page="${module.state.page - 1}" ${module.state.page <= 1 ? 'disabled' : ''}>上一页</button><span>第 ${module.state.page} 页，共 ${data.total || 0} 单</span><button class="outline" data-po-page="${module.state.page + 1}" ${module.state.page * 20 >= Number(data.total || 0) ? 'disabled' : ''}>下一页</button></div></section>${order ? detail(order) : ''}<section class="admin-section"><h2>新建采购单</h2><form id="procurement-create-form" class="admin-form-stack"><label class="field">供应商<input name="supplier" required maxlength="120"></label><label class="field">供应商联系方式<input name="supplier_contact" maxlength="160"></label><label class="field">采购明细（每行：SKU编号,数量,单价分）<textarea name="lines" required rows="5" placeholder="coffee,100,6000"></textarea></label><label class="field">备注<input name="note" maxlength="500"></label><div class="admin-form-actions"><button class="primary">创建待审批采购单</button></div></form></section>`
+        `<section class="admin-section"><h2>采购单</h2><table class="admin-table"><thead><tr><th>编号 / 供应商</th><th>采购成本</th><th>状态</th><th>操作</th></tr></thead><tbody>${data.items.map((row) => `<tr><td>${U.esc(row.id)}<br>${U.esc(row.supplier)}</td><td>${U.money(row.total_cost_cents)}</td><td>${statuses[row.status]}</td><td><button class="outline" data-po-open="${U.esc(row.id)}">查看</button></td></tr>`).join('')}</tbody></table><div><button class="outline" data-po-page="${module.state.page - 1}" ${module.state.page <= 1 ? 'disabled' : ''}>上一页</button><span>第 ${module.state.page} 页，共 ${data.total || 0} 单</span><button class="outline" data-po-page="${module.state.page + 1}" ${module.state.page * 20 >= Number(data.total || 0) ? 'disabled' : ''}>下一页</button></div></section>${order ? detail(order) : ''}${window.LumoProcurementComposer?.render(module.state) || ''}`
       );
     },
   );
@@ -69,21 +79,20 @@
     event.preventDefault();
     const form = event.target;
     const ok = await m.run(async () => {
-      form.dataset.key ||= crypto.randomUUID();
+      form.dataset.key ||=
+        form.id === 'procurement-create-form' ? m.state.createKey || crypto.randomUUID() : crypto.randomUUID();
       const data = Object.fromEntries(new FormData(form));
       if (form.id === 'procurement-create-form') {
-        data.lines = data.lines
-          .split(/\r?\n/)
-          .filter((s) => s.trim())
-          .map((s) => {
-            const [sku_id, q, cost] = s.split(',').map((x) => x.trim());
-            return { sku_id, quantity: Number(q), unit_cost_cents: Number(cost) };
-          });
+        Object.assign(
+          data,
+          window.LumoProcurementComposer ? window.LumoProcurementComposer.build(m.state, data) : { lines: [] },
+        );
         const value = await m.adapter.call('inventory', 'procurement_create', {
           idempotency_key: form.dataset.key,
           data,
         });
         m.state.detailID = value.id;
+        if (window.LumoProcurementComposer) Object.assign(m.state, window.LumoProcurementComposer.initial());
       } else {
         data.expected_version = m.state.detail.version;
         data.lines = [...form.querySelectorAll('[data-po-sku]')]
@@ -105,5 +114,6 @@
     });
     if (ok) await m.refresh();
   });
+  window.LumoProcurementComposer?.bind(m);
   window.LumoProcurementAdmin = m;
 })();

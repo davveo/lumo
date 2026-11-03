@@ -36,13 +36,22 @@ func (s *Service) ProcurementCreate(ctx context.Context, c platform.Request) (pl
 		return nil, e
 	}
 	var in struct {
-		Supplier string                `json:"supplier"`
-		Contact  string                `json:"supplier_contact"`
-		Note     string                `json:"note"`
-		Lines    []domain.PurchaseLine `json:"lines"`
+		SupplierID string                `json:"supplier_id"`
+		Supplier   string                `json:"supplier"`
+		Contact    string                `json:"supplier_contact"`
+		Note       string                `json:"note"`
+		Lines      []domain.PurchaseLine `json:"lines"`
 	}
 	if e := platform.Decode(c.Data, &in); e != nil {
 		return nil, e
+	}
+	leadDays := int64(0)
+	if in.SupplierID != "" {
+		row, e := s.Repo.Supplier(ctx, in.SupplierID)
+		if e != nil {
+			return nil, e
+		}
+		in.Supplier, in.Contact, leadDays = row.Name, row.Contact, row.LeadDays
 	}
 	in.Supplier = strings.TrimSpace(in.Supplier)
 	if in.Supplier == "" || len(in.Supplier) > 120 || len(in.Contact) > 160 || len(in.Note) > 500 ||
@@ -92,6 +101,8 @@ func (s *Service) ProcurementCreate(ctx context.Context, c platform.Request) (pl
 		&domain.PurchaseOrder{
 			ID:              id,
 			Supplier:        in.Supplier,
+			SupplierID:      in.SupplierID,
+			LeadDays:        leadDays,
 			SupplierContact: in.Contact,
 			Note:            in.Note,
 			Status:          constants.PurchaseStatusDraft,

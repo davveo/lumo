@@ -125,5 +125,4 @@ func (s *Service) Clear(ctx context.Context, c platform.Request) (traceResult pl
 	return platform.Result{"cleared": true}, nil
 }
 
-func (s *Service) seed(context.Context) error                  { return nil }
-func (s *Service) event(context.Context, platform.Event) error { return nil }
+func (s *Service) seed(context.Context) error { return nil }

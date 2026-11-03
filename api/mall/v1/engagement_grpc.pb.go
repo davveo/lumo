@@ -21,17 +21,24 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	EngagementService_AdminCancel_FullMethodName   = "/mall.v1.EngagementService/AdminCancel"
-	EngagementService_AdminList_FullMethodName     = "/mall.v1.EngagementService/AdminList"
-	EngagementService_Clear_FullMethodName         = "/mall.v1.EngagementService/Clear"
-	EngagementService_Delete_FullMethodName        = "/mall.v1.EngagementService/Delete"
-	EngagementService_List_FullMethodName          = "/mall.v1.EngagementService/List"
-	EngagementService_PolicyGet_FullMethodName     = "/mall.v1.EngagementService/PolicyGet"
-	EngagementService_PolicyUpsert_FullMethodName  = "/mall.v1.EngagementService/PolicyUpsert"
-	EngagementService_Put_FullMethodName           = "/mall.v1.EngagementService/Put"
-	EngagementService_Subscribe_FullMethodName     = "/mall.v1.EngagementService/Subscribe"
-	EngagementService_Subscriptions_FullMethodName = "/mall.v1.EngagementService/Subscriptions"
-	EngagementService_Unsubscribe_FullMethodName   = "/mall.v1.EngagementService/Unsubscribe"
+	EngagementService_AdminCancel_FullMethodName          = "/mall.v1.EngagementService/AdminCancel"
+	EngagementService_AdminList_FullMethodName            = "/mall.v1.EngagementService/AdminList"
+	EngagementService_Clear_FullMethodName                = "/mall.v1.EngagementService/Clear"
+	EngagementService_Delete_FullMethodName               = "/mall.v1.EngagementService/Delete"
+	EngagementService_List_FullMethodName                 = "/mall.v1.EngagementService/List"
+	EngagementService_PolicyGet_FullMethodName            = "/mall.v1.EngagementService/PolicyGet"
+	EngagementService_PolicyUpsert_FullMethodName         = "/mall.v1.EngagementService/PolicyUpsert"
+	EngagementService_Put_FullMethodName                  = "/mall.v1.EngagementService/Put"
+	EngagementService_Subscribe_FullMethodName            = "/mall.v1.EngagementService/Subscribe"
+	EngagementService_Subscriptions_FullMethodName        = "/mall.v1.EngagementService/Subscriptions"
+	EngagementService_Unsubscribe_FullMethodName          = "/mall.v1.EngagementService/Unsubscribe"
+	EngagementService_JourneyRules_FullMethodName         = "/mall.v1.EngagementService/JourneyRules"
+	EngagementService_JourneyRuleSave_FullMethodName      = "/mall.v1.EngagementService/JourneyRuleSave"
+	EngagementService_JourneyList_FullMethodName          = "/mall.v1.EngagementService/JourneyList"
+	EngagementService_JourneyRun_FullMethodName           = "/mall.v1.EngagementService/JourneyRun"
+	EngagementService_JourneyCancel_FullMethodName        = "/mall.v1.EngagementService/JourneyCancel"
+	EngagementService_JourneyOpen_FullMethodName          = "/mall.v1.EngagementService/JourneyOpen"
+	EngagementService_JourneyDeliveryCheck_FullMethodName = "/mall.v1.EngagementService/JourneyDeliveryCheck"
 )
 
 // EngagementServiceClient is the client API for EngagementService service.
@@ -49,6 +56,13 @@ type EngagementServiceClient interface {
 	Subscribe(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Subscriptions(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Unsubscribe(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	JourneyRules(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	JourneyRuleSave(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	JourneyList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	JourneyRun(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	JourneyCancel(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	JourneyOpen(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	JourneyDeliveryCheck(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type engagementServiceClient struct {
@@ -158,6 +172,69 @@ func (c *engagementServiceClient) Unsubscribe(ctx context.Context, in *ServiceRe
 	return out, nil
 }
 
+func (c *engagementServiceClient) JourneyRules(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, EngagementService_JourneyRules_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *engagementServiceClient) JourneyRuleSave(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, EngagementService_JourneyRuleSave_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *engagementServiceClient) JourneyList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, EngagementService_JourneyList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *engagementServiceClient) JourneyRun(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, EngagementService_JourneyRun_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *engagementServiceClient) JourneyCancel(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, EngagementService_JourneyCancel_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *engagementServiceClient) JourneyOpen(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, EngagementService_JourneyOpen_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *engagementServiceClient) JourneyDeliveryCheck(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, EngagementService_JourneyDeliveryCheck_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // EngagementServiceServer is the server API for EngagementService service.
 // All implementations must embed UnimplementedEngagementServiceServer
 // for forward compatibility
@@ -173,6 +250,13 @@ type EngagementServiceServer interface {
 	Subscribe(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Subscriptions(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Unsubscribe(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	JourneyRules(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	JourneyRuleSave(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	JourneyList(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	JourneyRun(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	JourneyCancel(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	JourneyOpen(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	JourneyDeliveryCheck(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedEngagementServiceServer()
 }
 
@@ -212,6 +296,27 @@ func (UnimplementedEngagementServiceServer) Subscriptions(context.Context, *Serv
 }
 func (UnimplementedEngagementServiceServer) Unsubscribe(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Unsubscribe not implemented")
+}
+func (UnimplementedEngagementServiceServer) JourneyRules(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method JourneyRules not implemented")
+}
+func (UnimplementedEngagementServiceServer) JourneyRuleSave(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method JourneyRuleSave not implemented")
+}
+func (UnimplementedEngagementServiceServer) JourneyList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method JourneyList not implemented")
+}
+func (UnimplementedEngagementServiceServer) JourneyRun(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method JourneyRun not implemented")
+}
+func (UnimplementedEngagementServiceServer) JourneyCancel(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method JourneyCancel not implemented")
+}
+func (UnimplementedEngagementServiceServer) JourneyOpen(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method JourneyOpen not implemented")
+}
+func (UnimplementedEngagementServiceServer) JourneyDeliveryCheck(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method JourneyDeliveryCheck not implemented")
 }
 func (UnimplementedEngagementServiceServer) mustEmbedUnimplementedEngagementServiceServer() {}
 
@@ -424,6 +529,132 @@ func _EngagementService_Unsubscribe_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EngagementService_JourneyRules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EngagementServiceServer).JourneyRules(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EngagementService_JourneyRules_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EngagementServiceServer).JourneyRules(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EngagementService_JourneyRuleSave_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EngagementServiceServer).JourneyRuleSave(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EngagementService_JourneyRuleSave_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EngagementServiceServer).JourneyRuleSave(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EngagementService_JourneyList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EngagementServiceServer).JourneyList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EngagementService_JourneyList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EngagementServiceServer).JourneyList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EngagementService_JourneyRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EngagementServiceServer).JourneyRun(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EngagementService_JourneyRun_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EngagementServiceServer).JourneyRun(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EngagementService_JourneyCancel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EngagementServiceServer).JourneyCancel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EngagementService_JourneyCancel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EngagementServiceServer).JourneyCancel(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EngagementService_JourneyOpen_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EngagementServiceServer).JourneyOpen(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EngagementService_JourneyOpen_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EngagementServiceServer).JourneyOpen(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EngagementService_JourneyDeliveryCheck_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EngagementServiceServer).JourneyDeliveryCheck(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EngagementService_JourneyDeliveryCheck_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EngagementServiceServer).JourneyDeliveryCheck(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // EngagementService_ServiceDesc is the grpc.ServiceDesc for EngagementService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -474,6 +705,34 @@ var EngagementService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Unsubscribe",
 			Handler:    _EngagementService_Unsubscribe_Handler,
+		},
+		{
+			MethodName: "JourneyRules",
+			Handler:    _EngagementService_JourneyRules_Handler,
+		},
+		{
+			MethodName: "JourneyRuleSave",
+			Handler:    _EngagementService_JourneyRuleSave_Handler,
+		},
+		{
+			MethodName: "JourneyList",
+			Handler:    _EngagementService_JourneyList_Handler,
+		},
+		{
+			MethodName: "JourneyRun",
+			Handler:    _EngagementService_JourneyRun_Handler,
+		},
+		{
+			MethodName: "JourneyCancel",
+			Handler:    _EngagementService_JourneyCancel_Handler,
+		},
+		{
+			MethodName: "JourneyOpen",
+			Handler:    _EngagementService_JourneyOpen_Handler,
+		},
+		{
+			MethodName: "JourneyDeliveryCheck",
+			Handler:    _EngagementService_JourneyDeliveryCheck_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

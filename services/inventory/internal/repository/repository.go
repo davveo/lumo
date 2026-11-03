@@ -30,7 +30,7 @@ func (r *Repository) Migrate(ctx context.Context) error {
 		return e
 	}
 	return r.DB.WithContext(ctx).
-		AutoMigrate(&domain.Stock{}, &domain.Reservation{}, &domain.Ledger{}, &domain.Adjustment{}, &domain.PurchaseOrder{}, &domain.PurchaseReceipt{})
+		AutoMigrate(&domain.Stock{}, &domain.Supplier{}, &domain.Reservation{}, &domain.Ledger{}, &domain.Adjustment{}, &domain.PurchaseOrder{}, &domain.PurchaseReceipt{})
 }
 func (r *Repository) Seed(ctx context.Context) error {
 	ids := append([]string{"sku-phone", "sku-headphones", "sku-watch", "sku-coffee"}, democatalog.SKUs()...)

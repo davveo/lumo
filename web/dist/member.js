@@ -339,6 +339,7 @@
       }
       if (reviews)
         memory.reviews = (reviews.items || []).map((r) => ({
+          ...r,
           id: r.id,
           orderId: r.order_id,
           productId: viewId(r.sku_id),
@@ -720,6 +721,44 @@
   function orderById(id) {
     return listOrders().find((o) => o.id === id);
   }
+  function reviewBadge(status) {
+    const labels = {
+      [C.InteractionStatus.Pending]: '审核中',
+      [C.InteractionStatus.Published]: '已公开',
+      [C.InteractionStatus.Rejected]: '未通过审核',
+    };
+    return `<span class="review-status is-${status === C.InteractionStatus.Published ? 'published' : status === C.InteractionStatus.Rejected ? 'rejected' : 'pending'}">${esc(labels[status] || status)}</span>`;
+  }
+  function unreviewedItems(order) {
+    return (order.items || []).filter(
+      (item, index, all) =>
+        all.findIndex((v) => skuFor(v) === skuFor(item)) === index &&
+        !memory.reviews.some((r) => r.orderId === order.id && r.sku_id === skuFor(item)),
+    );
+  }
+  async function reviewDetails(id) {
+    const owner = memberScope(),
+      row = await call(C.Service.Interaction, C.Action.ReviewGet, { id });
+    if (owner !== memberScope()) return;
+    const follow = row.followup;
+    modal(
+      '我的商品评价',
+      `<p class="modal-desc">订单 ${esc(row.order_id)} · ${date(timestamp(row.created_at))}</p><section class="review-detail-section"><div class="review-detail-meta"><strong>首次评价</strong>${reviewBadge(row.status)}</div><p aria-label="${row.rating} 星评价">${'★'.repeat(Math.max(1, Math.min(5, Number(row.rating) || 5)))}</p><p class="review-detail-body">${esc(row.body)}</p>${window.LumoReviewMedia?.grid(row) || ''}${row.moderation_reason ? `<p class="review-reason">审核说明：${esc(row.moderation_reason)}</p>` : ''}${row.status === C.InteractionStatus.Rejected ? `<div class="review-detail-actions"><button class="primary" data-member-action="review-revise" data-id="${esc(id)}">修改后重新提交</button></div>` : ''}</section>${follow ? `<section class="review-detail-section"><div class="review-detail-meta"><strong>追加使用体验</strong>${reviewBadge(follow.status)}</div><p class="review-detail-body">${esc(follow.body)}</p>${window.LumoReviewMedia?.grid({ ...follow, id: row.id }, { part: 'followup', published: row.status === C.InteractionStatus.Published && follow.status === C.InteractionStatus.Published }) || ''}${follow.reason ? `<p class="review-reason">审核说明：${esc(follow.reason)}</p>` : ''}<small>${date(timestamp(follow.created_at))}</small></section>` : ''}${row.can_followup ? `<div class="review-detail-actions"><button class="primary" data-member-action="review-followup" data-id="${esc(id)}">${follow ? '修改追评并重新提交' : '追加使用体验'}</button></div>` : row.status === C.InteractionStatus.Published && !follow ? `<p class="modal-desc">初评提交满7天后可追评，可用时间 ${date(timestamp(row.followup_available_at))}。</p>` : ''}`,
+    );
+  }
+  async function reviewEditor(id, part) {
+    const owner = memberScope(),
+      row = await call(C.Service.Interaction, C.Action.ReviewGet, { id });
+    if (owner !== memberScope()) return;
+    const followup = part === 'followup',
+      source = followup ? row.followup : row;
+    if (followup && !row.can_followup) throw Error('当前暂不可追评，请查看评价状态与可用时间');
+    if (!followup && row.status !== C.InteractionStatus.Rejected) throw Error('仅未通过审核的初评可修改');
+    modal(
+      followup ? '追加使用体验' : '修改商品评价',
+      `<p class="modal-desc">${followup ? '分享使用一段时间后的体验，提交后独立审核。' : '调整文字或图片后重新提交，审核通过后展示。'}</p><form id="${followup ? 'member-followup-form' : 'member-review-revision-form'}" data-id="${esc(id)}" data-version="${Number(source?.version) || 0}">${!followup ? `<label class="field">满意度<select name="rating">${[5, 4, 3, 2, 1].map((n) => `<option value="${n}" ${Number(row.rating) === n ? 'selected' : ''}>${n} 星</option>`).join('')}</select></label>` : ''}<label class="field">${followup ? '使用体验' : '评价内容'}<textarea name="body" rows="5" maxlength="2000" required>${esc(source?.body || '')}</textarea></label>${window.LumoReviewMedia?.uploader(source?.photo_ids || [], row, part) || ''}<div class="review-form-actions"><button class="primary" type="submit">提交审核</button></div></form>`,
+    );
+  }
   function reviewOrder(id) {
     const reviewedOrder = orderById(id);
     const existing = reviewedOrder?.items?.every((item) =>
@@ -728,9 +767,10 @@
       ? memory.reviews.find((row) => row.orderId === id)
       : null;
     if (existing) {
+      const ownReviews = memory.reviews.filter((row) => row.orderId === id);
       modal(
         '我的评价',
-        `<p class="modal-desc">订单 ${esc(id)} · ${date(existing.at)}</p><p style="color:var(--red);font-size:22px;letter-spacing:5px" aria-label="${existing.rating} 星评价">${'★'.repeat(existing.rating)}${'☆'.repeat(5 - existing.rating)}</p><p class="modal-desc" style="white-space:pre-wrap;line-height:1.9">${esc(existing.text)}</p><button class="outline" data-action="close-modal">关闭</button>`,
+        `<p class="modal-desc">订单 ${esc(id)} · 首评与追评分开审核</p>${ownReviews.map((row) => `<section class="review-detail-section"><div class="review-detail-meta"><span>${esc(products.find((p) => p.id === row.productId)?.name || row.sku_id)}</span>${reviewBadge(row.status)}</div><p class="review-detail-body">${esc(row.text)}</p>${window.LumoReviewMedia?.grid(row) || ''}${row.moderation_reason ? `<p class="review-reason">${esc(row.moderation_reason)}</p>` : ''}<div class="review-detail-actions"><button class="outline" data-member-action="review-details" data-id="${esc(row.id)}">查看详情与追评</button></div></section>`).join('')}`,
       );
       return;
     }
@@ -741,7 +781,16 @@
     }
     modal(
       '分享你的购物体验',
-      `<p class="modal-desc">${esc(order.id)} · 评价提交后由商家审核展示。</p><form id="member-review-form" data-id="${esc(id)}"><label class="field">满意度<select name="rating">${[
+      `<p class="modal-desc">${esc(order.id)} · 评价提交后由商家审核展示。</p><form id="member-review-form" data-id="${esc(id)}"><label class="field">本次评价商品<select name="sku_id">${unreviewedItems(
+        order,
+      )
+        .map(
+          (item) =>
+            `<option value="${esc(skuFor(item))}">${esc(item.name || item.product?.name || skuFor(item))}</option>`,
+        )
+        .join(
+          '',
+        )}</select><small>每件商品分别提交评分、文字和实拍图。</small></label><label class="field">满意度<select name="rating">${[
         [5, '5 星 · 非常满意'],
         [4, '4 星 · 满意'],
         [3, '3 星 · 一般'],
@@ -751,7 +800,7 @@
         .map(([value, label]) => `<option value="${value}">${label}</option>`)
         .join(
           '',
-        )}</select></label><label class="field">评价内容<textarea name="text" rows="4" maxlength="300" required placeholder="商品、包装或购物体验，有什么想分享的？"></textarea></label><button class="primary" type="submit">提交评价</button></form>`,
+        )}</select></label><label class="field">评价内容<textarea name="text" rows="4" maxlength="300" required placeholder="商品、包装或购物体验，有什么想分享的？"></textarea></label>${window.LumoReviewMedia?.uploader() || ''}<div class="review-form-actions"><button class="primary" type="submit">提交这件商品的评价</button></div></form>`,
     );
   }
   function aftersale(id) {
@@ -1169,6 +1218,15 @@
           redraw();
           toast('收货结果已同步');
           break;
+        case 'review-details':
+          await reviewDetails(id);
+          break;
+        case 'review-followup':
+          await reviewEditor(id, 'followup');
+          break;
+        case 'review-revise':
+          await reviewEditor(id, 'review');
+          break;
         case 'review-order':
           reviewOrder(id);
           break;
@@ -1265,6 +1323,8 @@
         'member-address-form',
         'member-profile-form',
         'member-review-form',
+        'member-followup-form',
+        'member-review-revision-form',
         'member-aftersale-form',
         'member-return-form',
       ].includes(form.id)
@@ -1325,21 +1385,41 @@
         if (!order) throw Error('订单不存在');
         const body = text(data.text, 300);
         if (!body) throw Error('请填写评价内容');
-        for (const item of order.items)
-          await call(C.Service.Interaction, C.Action.Create, {
-            data: {
-              kind: C.InteractionKind.Review,
-              sku_id: skuFor(item),
-              order_id: order.id,
-              rating: Math.max(1, Math.min(5, Number(data.rating) || 5)),
-              body,
-            },
-          });
+        const candidates = unreviewedItems(order),
+          item = candidates.find((v) => skuFor(v) === data.sku_id) || candidates[0];
+        if (!item) throw Error('这件商品已评价，请刷新后查看');
+        await call(C.Service.Interaction, C.Action.Create, {
+          data: {
+            kind: C.InteractionKind.Review,
+            sku_id: skuFor(item),
+            order_id: order.id,
+            rating: Math.max(1, Math.min(5, Number(data.rating) || 5)),
+            body,
+            photo_ids: window.LumoReviewMedia?.ids(form) || [],
+          },
+        });
         await refresh(true);
         await window.LumoProductExtras?.refresh?.();
         closeModal();
         redraw();
         toast('评价已提交，等待审核');
+      }
+      if (['member-followup-form', 'member-review-revision-form'].includes(form.id)) {
+        const followup = form.id === 'member-followup-form';
+        await call(C.Service.Interaction, followup ? C.Action.FollowupSave : C.Action.ReviewRevise, {
+          id: form.dataset.id,
+          data: {
+            version: Number(form.dataset.version) || 0,
+            body: text(data.body, 2000),
+            ...(!followup ? { rating: Number(data.rating) } : {}),
+            photo_ids: window.LumoReviewMedia?.ids(form) || [],
+          },
+        });
+        await refresh(true, ['reviews']);
+        await window.LumoProductExtras?.refresh?.();
+        closeModal();
+        redraw();
+        toast('已提交，等待商家审核');
       }
       if (form.id === 'member-aftersale-form') {
         const order = orderById(form.dataset.id);

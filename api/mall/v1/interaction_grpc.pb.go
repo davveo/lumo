@@ -21,11 +21,15 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	InteractionService_Answer_FullMethodName   = "/mall.v1.InteractionService/Answer"
-	InteractionService_Create_FullMethodName   = "/mall.v1.InteractionService/Create"
-	InteractionService_Like_FullMethodName     = "/mall.v1.InteractionService/Like"
-	InteractionService_List_FullMethodName     = "/mall.v1.InteractionService/List"
-	InteractionService_Moderate_FullMethodName = "/mall.v1.InteractionService/Moderate"
+	InteractionService_Answer_FullMethodName       = "/mall.v1.InteractionService/Answer"
+	InteractionService_Create_FullMethodName       = "/mall.v1.InteractionService/Create"
+	InteractionService_Like_FullMethodName         = "/mall.v1.InteractionService/Like"
+	InteractionService_List_FullMethodName         = "/mall.v1.InteractionService/List"
+	InteractionService_Moderate_FullMethodName     = "/mall.v1.InteractionService/Moderate"
+	InteractionService_ReviewGet_FullMethodName    = "/mall.v1.InteractionService/ReviewGet"
+	InteractionService_ReviewRevise_FullMethodName = "/mall.v1.InteractionService/ReviewRevise"
+	InteractionService_FollowupSave_FullMethodName = "/mall.v1.InteractionService/FollowupSave"
+	InteractionService_ReviewImage_FullMethodName  = "/mall.v1.InteractionService/ReviewImage"
 )
 
 // InteractionServiceClient is the client API for InteractionService service.
@@ -37,6 +41,10 @@ type InteractionServiceClient interface {
 	Like(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	List(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Moderate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ReviewGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ReviewRevise(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	FollowupSave(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ReviewImage(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type interactionServiceClient struct {
@@ -92,6 +100,42 @@ func (c *interactionServiceClient) Moderate(ctx context.Context, in *ServiceRequ
 	return out, nil
 }
 
+func (c *interactionServiceClient) ReviewGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, InteractionService_ReviewGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *interactionServiceClient) ReviewRevise(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, InteractionService_ReviewRevise_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *interactionServiceClient) FollowupSave(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, InteractionService_FollowupSave_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *interactionServiceClient) ReviewImage(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, InteractionService_ReviewImage_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InteractionServiceServer is the server API for InteractionService service.
 // All implementations must embed UnimplementedInteractionServiceServer
 // for forward compatibility
@@ -101,6 +145,10 @@ type InteractionServiceServer interface {
 	Like(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	List(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Moderate(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ReviewGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ReviewRevise(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	FollowupSave(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ReviewImage(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedInteractionServiceServer()
 }
 
@@ -122,6 +170,18 @@ func (UnimplementedInteractionServiceServer) List(context.Context, *ServiceReque
 }
 func (UnimplementedInteractionServiceServer) Moderate(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Moderate not implemented")
+}
+func (UnimplementedInteractionServiceServer) ReviewGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReviewGet not implemented")
+}
+func (UnimplementedInteractionServiceServer) ReviewRevise(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReviewRevise not implemented")
+}
+func (UnimplementedInteractionServiceServer) FollowupSave(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FollowupSave not implemented")
+}
+func (UnimplementedInteractionServiceServer) ReviewImage(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReviewImage not implemented")
 }
 func (UnimplementedInteractionServiceServer) mustEmbedUnimplementedInteractionServiceServer() {}
 
@@ -226,6 +286,78 @@ func _InteractionService_Moderate_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _InteractionService_ReviewGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InteractionServiceServer).ReviewGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InteractionService_ReviewGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InteractionServiceServer).ReviewGet(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InteractionService_ReviewRevise_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InteractionServiceServer).ReviewRevise(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InteractionService_ReviewRevise_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InteractionServiceServer).ReviewRevise(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InteractionService_FollowupSave_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InteractionServiceServer).FollowupSave(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InteractionService_FollowupSave_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InteractionServiceServer).FollowupSave(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InteractionService_ReviewImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InteractionServiceServer).ReviewImage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InteractionService_ReviewImage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InteractionServiceServer).ReviewImage(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // InteractionService_ServiceDesc is the grpc.ServiceDesc for InteractionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -252,6 +384,22 @@ var InteractionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Moderate",
 			Handler:    _InteractionService_Moderate_Handler,
+		},
+		{
+			MethodName: "ReviewGet",
+			Handler:    _InteractionService_ReviewGet_Handler,
+		},
+		{
+			MethodName: "ReviewRevise",
+			Handler:    _InteractionService_ReviewRevise_Handler,
+		},
+		{
+			MethodName: "FollowupSave",
+			Handler:    _InteractionService_FollowupSave_Handler,
+		},
+		{
+			MethodName: "ReviewImage",
+			Handler:    _InteractionService_ReviewImage_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

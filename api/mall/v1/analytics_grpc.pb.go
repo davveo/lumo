@@ -21,13 +21,15 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	AnalyticsService_AdminList_FullMethodName   = "/mall.v1.AnalyticsService/AdminList"
-	AnalyticsService_List_FullMethodName        = "/mall.v1.AnalyticsService/List"
-	AnalyticsService_Record_FullMethodName      = "/mall.v1.AnalyticsService/Record"
-	AnalyticsService_Dashboard_FullMethodName   = "/mall.v1.AnalyticsService/Dashboard"
-	AnalyticsService_SyncHistory_FullMethodName = "/mall.v1.AnalyticsService/SyncHistory"
-	AnalyticsService_Track_FullMethodName       = "/mall.v1.AnalyticsService/Track"
-	AnalyticsService_Drilldown_FullMethodName   = "/mall.v1.AnalyticsService/Drilldown"
+	AnalyticsService_AdminList_FullMethodName     = "/mall.v1.AnalyticsService/AdminList"
+	AnalyticsService_List_FullMethodName          = "/mall.v1.AnalyticsService/List"
+	AnalyticsService_Record_FullMethodName        = "/mall.v1.AnalyticsService/Record"
+	AnalyticsService_Dashboard_FullMethodName     = "/mall.v1.AnalyticsService/Dashboard"
+	AnalyticsService_SyncHistory_FullMethodName   = "/mall.v1.AnalyticsService/SyncHistory"
+	AnalyticsService_Track_FullMethodName         = "/mall.v1.AnalyticsService/Track"
+	AnalyticsService_Drilldown_FullMethodName     = "/mall.v1.AnalyticsService/Drilldown"
+	AnalyticsService_CustomerStats_FullMethodName = "/mall.v1.AnalyticsService/CustomerStats"
+	AnalyticsService_SkuSales_FullMethodName      = "/mall.v1.AnalyticsService/SkuSales"
 )
 
 // AnalyticsServiceClient is the client API for AnalyticsService service.
@@ -41,6 +43,8 @@ type AnalyticsServiceClient interface {
 	SyncHistory(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Track(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Drilldown(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	CustomerStats(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	SkuSales(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type analyticsServiceClient struct {
@@ -114,6 +118,24 @@ func (c *analyticsServiceClient) Drilldown(ctx context.Context, in *ServiceReque
 	return out, nil
 }
 
+func (c *analyticsServiceClient) CustomerStats(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, AnalyticsService_CustomerStats_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *analyticsServiceClient) SkuSales(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, AnalyticsService_SkuSales_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AnalyticsServiceServer is the server API for AnalyticsService service.
 // All implementations must embed UnimplementedAnalyticsServiceServer
 // for forward compatibility
@@ -125,6 +147,8 @@ type AnalyticsServiceServer interface {
 	SyncHistory(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Track(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Drilldown(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	CustomerStats(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	SkuSales(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedAnalyticsServiceServer()
 }
 
@@ -152,6 +176,12 @@ func (UnimplementedAnalyticsServiceServer) Track(context.Context, *ServiceReques
 }
 func (UnimplementedAnalyticsServiceServer) Drilldown(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Drilldown not implemented")
+}
+func (UnimplementedAnalyticsServiceServer) CustomerStats(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CustomerStats not implemented")
+}
+func (UnimplementedAnalyticsServiceServer) SkuSales(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SkuSales not implemented")
 }
 func (UnimplementedAnalyticsServiceServer) mustEmbedUnimplementedAnalyticsServiceServer() {}
 
@@ -292,6 +322,42 @@ func _AnalyticsService_Drilldown_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AnalyticsService_CustomerStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AnalyticsServiceServer).CustomerStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AnalyticsService_CustomerStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AnalyticsServiceServer).CustomerStats(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AnalyticsService_SkuSales_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AnalyticsServiceServer).SkuSales(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AnalyticsService_SkuSales_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AnalyticsServiceServer).SkuSales(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AnalyticsService_ServiceDesc is the grpc.ServiceDesc for AnalyticsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -326,6 +392,14 @@ var AnalyticsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Drilldown",
 			Handler:    _AnalyticsService_Drilldown_Handler,
+		},
+		{
+			MethodName: "CustomerStats",
+			Handler:    _AnalyticsService_CustomerStats_Handler,
+		},
+		{
+			MethodName: "SkuSales",
+			Handler:    _AnalyticsService_SkuSales_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

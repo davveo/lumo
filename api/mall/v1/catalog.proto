@@ -19,4 +19,12 @@ service CatalogService {
   rpc ImportPreview(ServiceRequest) returns (ServiceResponse);
   rpc ImportCommit(ServiceRequest) returns (ServiceResponse);
   rpc ImportGet(ServiceRequest) returns (ServiceResponse);
+  rpc DraftSave(ServiceRequest) returns (ServiceResponse);
+  rpc DraftList(ServiceRequest) returns (ServiceResponse);
+  rpc WorkspaceGet(ServiceRequest) returns (ServiceResponse);
+  rpc PublishCheck(ServiceRequest) returns (ServiceResponse);
+  rpc DraftPublish(ServiceRequest) returns (ServiceResponse);
+  rpc PublishSchedule(ServiceRequest) returns (ServiceResponse);
+  rpc PublicationCancel(ServiceRequest) returns (ServiceResponse);
+  rpc VersionRestore(ServiceRequest) returns (ServiceResponse);
 }

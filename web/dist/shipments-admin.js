@@ -91,5 +91,9 @@
     });
     if (ok) await m.refresh();
   });
+  m.openDetail = async (id) => {
+    m.state.trackingID = id;
+    await m.refresh();
+  };
   window.LumoShipmentsAdmin = m;
 })();

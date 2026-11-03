@@ -8,6 +8,12 @@ import (
 
 func New(s *usecase.Service) *platform.MethodHandler {
 	return platform.NewMethodHandler(constants.ServiceHelpdesk, map[string]platform.Operation{
+		constants.ActionExportCreate:   s.ExportCreate,
+		constants.ActionExportList:     s.ExportList,
+		constants.ActionExportGet:      s.ExportGet,
+		constants.ActionExportRetry:    s.ExportRetry,
+		constants.ActionExportDownload: s.ExportDownload,
+
 		constants.ActionAdminList:    s.AdminList,
 		constants.ActionWorkQueue:    s.WorkQueue,
 		constants.ActionWorkDetail:   s.WorkDetail,

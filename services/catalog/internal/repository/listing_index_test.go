@@ -64,7 +64,7 @@ func TestListingIndexMigratesExistingCatalogAndCoversCount(t *testing.T) {
 	for i := range fixtures {
 		fixtures[i].Payload = `{"marker":"` + fixtures[i].ID + `"}`
 	}
-	if err := db.Create(&fixtures).Error; err != nil {
+	if err := db.Omit("ProductVersion").Create(&fixtures).Error; err != nil {
 		t.Fatal(err)
 	}
 	repository := New(db)

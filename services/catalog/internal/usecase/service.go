@@ -135,7 +135,12 @@ func (s *Service) Upsert(ctx context.Context, c platform.Request) (traceResult p
 		UserID:      c.UserID,
 		Data:        view(rows[0]),
 	}
-	if e = s.repo.SaveProduct(ctx, c.ID, rows, &evt); e != nil {
+	var expected *int64
+	if value, ok := c.Data["product_version"]; ok {
+		v := platform.Int(map[string]any{"v": value}, "v")
+		expected = &v
+	}
+	if e = s.repo.SaveProductChecked(ctx, c.ID, rows, &evt, expected); e != nil {
 		return nil, e
 	}
 	r, e := s.repo.Get(ctx, c.ID)

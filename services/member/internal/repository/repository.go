@@ -26,7 +26,8 @@ func (r *Repository) Migrate(ctx context.Context) (spanErr0 error) {
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
 
-	return r.db.WithContext(ctx).AutoMigrate(&domain.Record{})
+	return r.db.WithContext(ctx).
+		AutoMigrate(&domain.Record{}, &domain.CustomerCard{}, &domain.CustomerSegment{}, &domain.CustomerChange{})
 }
 func (r *Repository) Get(ctx context.Context, id string) (spanResult0 domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "member.repository.Get")

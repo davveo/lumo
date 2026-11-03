@@ -15,6 +15,7 @@ func New(d platform.Dependencies) platform.Module {
 		Name:       constants.ServiceHelpdesk,
 		Migrate:    s.Migrate,
 		Seed:       s.Seed,
+		Tick:       s.TickExports,
 		Handle:     t.Handle,
 		Operations: t.Operations(),
 		Topics:     []string{constants.EventOrderUrged},

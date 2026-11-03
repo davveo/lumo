@@ -41,9 +41,19 @@ func (s *Service) VerifyFiles(ctx context.Context, c platform.Request) (platform
 	if len(rows) != len(input.IDs) {
 		return nil, status.Error(codes.PermissionDenied, "evidence file is not owned by this member")
 	}
+	maxSize := platform.Int(c.Data, "max_size_bytes")
+	if maxSize < 0 || maxSize > maxUploadSize {
+		return nil, bad("invalid image size limit")
+	}
 	items := []platform.Result{}
 	for _, r := range rows {
 		p := payload(r)
+		if maxSize > 0 && platform.Int(p, "size_bytes") > maxSize {
+			return nil, bad("图片超过允许大小")
+		}
+		if c.Data["require_etag"] == true && platform.Text(p, "etag") == "" {
+			return nil, status.Error(codes.FailedPrecondition, "图片缺少完整上传校验")
+		}
 		if r.Status != constants.MediaStatusReady || !strings.HasPrefix(platform.Text(p, "content_type"), "image/") {
 			return nil, status.Error(codes.FailedPrecondition, "凭证须为已完成上传的图片")
 		}
@@ -54,6 +64,7 @@ func (s *Service) VerifyFiles(ctx context.Context, c platform.Request) (platform
 				"file_name":    platform.Text(p, "file_name"),
 				"content_type": platform.Text(p, "content_type"),
 				"etag":         platform.Text(p, "etag"),
+				"size_bytes":   platform.Int(p, "size_bytes"),
 			},
 		)
 	}

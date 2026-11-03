@@ -420,6 +420,10 @@ func (g *gateway) execute(w http.ResponseWriter, r *http.Request) {
 	}
 	service, action := parts[0], parts[1]
 	key := service + "/" + action
+	if service == constants.ServiceInteraction && action == constants.ActionReviewImage {
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Vary", "Authorization")
+	}
 	pub, usr, admin := publicActions[key], userActions[key], adminActions[key]
 	if !pub && !usr && !admin {
 		writeError(w, ctx, status.Error(codes.PermissionDenied, "action is not exposed by the HTTP gateway"))
@@ -549,6 +553,10 @@ func (g *gateway) execute(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		writeError(w, ctx, err)
+		return
+	}
+	if service == constants.ServiceInteraction && action == constants.ActionReviewImage && r.Method == http.MethodGet {
+		writeReviewImage(w, ctx, result)
 		return
 	}
 	code := http.StatusOK

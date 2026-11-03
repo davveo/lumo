@@ -54,6 +54,9 @@ func TestMergeBatchesValidationBeforeAnyCartWrite(t *testing.T) {
 			t.Cleanup(func() { _ = raw.Close() })
 			rpc := &mergeCatalog{t: t}
 			m := cartmod.New(platform.Dependencies{DB: db, RPC: rpc})
+			if migrateErr := platform.MigratePlatform(ctx, db); migrateErr != nil {
+				t.Fatal(migrateErr)
+			}
 			if e = m.Migrate(ctx); e != nil {
 				t.Fatal(e)
 			}

@@ -39,7 +39,8 @@ func (r *Repository) AdminList(
 				"$.brand",
 			)+",'')) LIKE ? ESCAPE '!' OR LOWER(COALESCE("+text(
 				"$.category",
-			)+",'')) LIKE ? ESCAPE '!'",
+			)+",'')) LIKE ? ESCAPE '!' OR id IN (SELECT parent_id FROM catalog_records WHERE parent_id <> '' AND LOWER(id) LIKE ? ESCAPE '!')",
+			like,
 			like,
 			like,
 			like,

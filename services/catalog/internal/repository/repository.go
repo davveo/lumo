@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"time"
 )
 
 type Repository struct {
@@ -27,7 +28,7 @@ func (r *Repository) Migrate(ctx context.Context) (spanErr0 error) {
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
 
-	if err := r.db.WithContext(ctx).AutoMigrate(&domain.Record{}, &domain.ImportJob{}); err != nil {
+	if err := r.db.WithContext(ctx).AutoMigrate(&domain.Record{}, &domain.ImportJob{}, &domain.ProductDraft{}, &domain.ProductRevision{}, &domain.Publication{}); err != nil {
 		return err
 	}
 	if err := r.migrateAdminListing(ctx); err != nil {
@@ -282,6 +283,16 @@ func (r *Repository) SaveProduct(
 	rows []domain.Record,
 	event *platform.Event,
 ) (spanErr0 error) {
+	return r.SaveProductChecked(ctx, productID, rows, event, nil)
+}
+
+func (r *Repository) SaveProductChecked(
+	ctx context.Context,
+	productID string,
+	rows []domain.Record,
+	event *platform.Event,
+	expected *int64,
+) (spanErr0 error) {
 	ctx, sp := platform.Start(ctx, "catalog.repository.SaveProduct")
 	defer sp.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
@@ -297,6 +308,40 @@ func (r *Repository) SaveProduct(
 		if e := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id IN ?", ids).Order("id").Find(&existing).Error; e != nil {
 			return e
 		}
+		var current domain.Record
+		result := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&current, "id = ?", productID)
+		if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return result.Error
+		}
+		if expected != nil && current.ProductVersion != *expected {
+			return status.Error(codes.Aborted, "商品已被其他人修改，请重新加载后比较")
+		}
+		if result.Error == nil && current.ProductVersion == 0 {
+			prior := []domain.Record{}
+			if e := tx.WithContext(ctx).Where("id = ? OR parent_id = ?", productID, productID).Order("id").Find(&prior).Error; e != nil {
+				return e
+			}
+			data, e := domain.EncodeRecords(prior)
+			if e != nil {
+				return e
+			}
+			baseline := domain.ProductRevision{
+				ProductID: productID,
+				Version:   0,
+				RowsJSON:  string(data),
+				ActorID:   "legacy",
+				CreatedAt: current.UpdatedAt,
+			}
+			if e = tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&baseline).Error; e != nil {
+				return e
+			}
+		}
+		now := time.Now().UTC()
+		for i := range rows {
+			rows[i].ProductVersion = current.ProductVersion + 1
+			rows[i].UpdatedAt = now
+		}
+
 		for _, row := range existing {
 			legacyDefault := row.ID == productID && row.ParentID == constants.CatalogParentLegacy
 			if row.Kind != constants.CatalogKindSku || row.ParentID != parents[row.ID] && !legacyDefault {
@@ -317,13 +362,31 @@ func (r *Repository) SaveProduct(
 			if e := tx.WithContext(ctx).Clauses(
 				clause.OnConflict{
 					Columns:   []clause.Column{{Name: "id"}},
-					DoUpdates: clause.AssignmentColumns([]string{"parent_id", "status", "payload", "updated_at"}),
+					DoUpdates: clause.AssignmentColumns([]string{"parent_id", "status", "payload", "updated_at", "product_version"}),
 				},
 			).Create(
 				&rows[i],
 			).Error; e != nil {
 				return e
 			}
+		}
+		if event.Data == nil {
+			event.Data = map[string]any{}
+		}
+		event.Data["product_version"] = current.ProductVersion + 1
+		data, e := domain.EncodeRecords(rows)
+		if e != nil {
+			return e
+		}
+		revision := domain.ProductRevision{
+			ProductID: productID,
+			Version:   current.ProductVersion + 1,
+			RowsJSON:  string(data),
+			ActorID:   event.UserID,
+			CreatedAt: now,
+		}
+		if e = tx.WithContext(ctx).Create(&revision).Error; e != nil {
+			return e
 		}
 		return platform.Enqueue(ctx, tx, *event)
 	})

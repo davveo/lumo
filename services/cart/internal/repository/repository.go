@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"time"
 )
 
 type Repository struct{ db *gorm.DB }
@@ -214,23 +215,30 @@ func (r *Repository) Delete(ctx context.Context, id, owner string) (spanErr0 err
 
 	// Public line removal must not delete paid-order receipts in this table;
 	// those records protect later cart additions from duplicate event delivery.
-	res := r.db.WithContext(ctx).
-		Where("id = ? AND user_id = ? AND kind = ?", id, owner, constants.CartRecordKindCartItem).
-		Delete(&domain.Record{})
-	if res.Error != nil {
-		return res.Error
-	}
-	if res.RowsAffected == 0 {
-		return status.Error(codes.NotFound, "record not found")
-	}
-	return nil
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		res := tx.WithContext(ctx).
+			Where("id = ? AND user_id = ? AND kind = ?", id, owner, constants.CartRecordKindCartItem).
+			Delete(&domain.Record{})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return status.Error(codes.NotFound, "record not found")
+		}
+		return platform.Enqueue(ctx, tx, cartMutationEvent(owner))
+	})
 }
 func (r *Repository) DeleteKind(ctx context.Context, owner, kind string) (spanErr0 error) {
 	ctx, s := platform.Start(ctx, "cart.repository.DeleteKind")
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
 
-	return r.db.WithContext(ctx).Where("user_id = ? AND kind = ?", owner, kind).Delete(&domain.Record{}).Error
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if e := tx.WithContext(ctx).Where("user_id = ? AND kind = ?", owner, kind).Delete(&domain.Record{}).Error; e != nil {
+			return e
+		}
+		return platform.Enqueue(ctx, tx, cartMutationEvent(owner))
+	})
 }
 
 // ConsumedLine is the immutable ordered quantity received from Order over RPC.
@@ -304,4 +312,14 @@ func (r *Repository) ConsumePaidOrder(ctx context.Context, user, order string, l
 		}
 		return nil
 	})
+}
+
+func cartMutationEvent(user string) platform.Event {
+	return platform.Event{
+		ID:          platform.ID("evt"),
+		Type:        constants.EventCartChanged,
+		UserID:      user,
+		AggregateID: user,
+		Data:        map[string]any{"changed_at": time.Now().UTC().Format(time.RFC3339Nano)},
+	}
 }

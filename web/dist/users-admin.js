@@ -16,6 +16,7 @@
       busy: false,
       error: '',
       detail: null,
+      customer: null,
       profile: null,
       change: null,
     }),
@@ -35,6 +36,8 @@
       '查看商城账号、会员资料和账号可用状态。',
       `<button class="outline" data-ua="reload" ${s.busy ? 'disabled' : ''}>刷新</button>`,
     );
+    if (s.customer && window.LumoCustomerProfile)
+      return heading + window.LumoCustomerProfile.render(s.customer, s.busy);
     if (s.detail) {
       const row = s.detail,
         p = s.profile || {};
@@ -60,6 +63,7 @@
     }
     if (a === 'reload') {
       s.detail = null;
+      s.customer = null;
       await m.refresh();
     }
     if (a === 'cancel') {
@@ -68,11 +72,20 @@
     }
     if (a === 'back') {
       s.detail = null;
+      s.customer = null;
       m.draw();
     }
     if (a === 'status') {
       s.change = s.items.find((row) => row.id === el.dataset.id);
       m.draw();
+    }
+    if (
+      a === 'detail' &&
+      window.LumoCustomerProfile &&
+      s.items.find((row) => row.id === el.dataset.id)?.role === C.Role.User
+    ) {
+      await m.openDetail(el.dataset.id);
+      return;
     }
     if (a === 'detail') {
       const row = s.items.find((row) => row.id === el.dataset.id);
@@ -117,6 +130,37 @@
         m.adapter.notify?.('账号状态已更新');
         await m.refresh();
       }
+    }
+  });
+  m.openDetail = async (id) =>
+    m.run(async () => ({
+      customer: await m.adapter.call('management', 'customer_profile', { id }),
+      detail: null,
+    }));
+  document.addEventListener('click', async (event) => {
+    const b = event.target.closest('[data-customer-tab]');
+    if (b && m.active()) await m.adapter.navigate?.(b.dataset.customerTab, { recordId: b.dataset.id });
+  });
+  document.addEventListener('submit', async (event) => {
+    if (event.target.id !== 'customer-card-form' || !m.active() || m.state.busy) return;
+    event.preventDefault();
+    const form = event.target,
+      values = Object.fromEntries(new FormData(form));
+    const data = {
+      tags: String(values.tags || '')
+        .split(/[,，]/)
+        .map((t) => t.trim())
+        .filter(Boolean),
+      note: String(values.note || ''),
+      version: Number(form.dataset.version) || 0,
+    };
+    Object.assign(m.state.customer.sections.member, { tags: data.tags, note: data.note });
+    const ok = await m.run(() =>
+      m.adapter.call('member', 'customer_update', { id: form.dataset.customer, data }).then(() => ({})),
+    );
+    if (ok) {
+      m.adapter.notify?.('客户档案已保存');
+      await m.openDetail(form.dataset.customer);
     }
   });
   window.LumoUsersAdmin = m;

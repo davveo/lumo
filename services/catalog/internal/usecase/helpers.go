@@ -39,6 +39,7 @@ func payload(r domain.Record) map[string]any {
 }
 func view(r domain.Record) platform.Result {
 	v := payload(r)
+	v["product_version"] = r.ProductVersion
 	v["id"] = r.ID
 	v["user_id"] = r.UserID
 	v["status"] = r.Status

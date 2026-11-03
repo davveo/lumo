@@ -79,8 +79,19 @@
       C.Action.Activities,
       C.Action.AccountSummary,
     ],
-    [C.Service.Catalog]: [C.Action.ImportGet, C.Action.List, C.Action.Get, C.Action.BatchGet, C.Action.AdminList],
+    [C.Service.Catalog]: [
+      C.Action.DraftList,
+      C.Action.WorkspaceGet,
+      C.Action.PublishCheck,
+      C.Action.ImportGet,
+      C.Action.List,
+      C.Action.Get,
+      C.Action.BatchGet,
+      C.Action.AdminList,
+    ],
     [C.Service.Inventory]: [
+      C.Action.SupplierList,
+      C.Action.ReplenishmentGet,
       C.Action.ProcurementList,
       C.Action.ProcurementGet,
       C.Action.Get,
@@ -97,11 +108,32 @@
     [C.Service.Flash]: [C.Action.List, C.Action.AdminList, C.Action.SessionGet, C.Action.RequestsAdmin],
     [C.Service.Interaction]: [C.Action.List],
     [C.Service.Logistics]: [C.Action.Tracking, C.Action.Exceptions, C.Action.Get, C.Action.PolicyGet],
-    [C.Service.Helpdesk]: [C.Action.Faq, C.Action.List, C.Action.Get, C.Action.AdminList],
-    [C.Service.Member]: [C.Action.Get, C.Action.PolicyGet],
+    [C.Service.Helpdesk]: [
+      C.Action.ExportList,
+      C.Action.ExportGet,
+      C.Action.ExportDownload,
+      C.Action.Faq,
+      C.Action.List,
+      C.Action.Get,
+      C.Action.AdminList,
+    ],
+    [C.Service.Member]: [
+      C.Action.CustomerGet,
+      C.Action.SegmentList,
+      C.Action.SegmentPreview,
+      C.Action.Get,
+      C.Action.PolicyGet,
+    ],
     [C.Service.Address]: [C.Action.List, C.Action.Get],
     [C.Service.Cart]: [C.Action.List],
-    [C.Service.Engagement]: [C.Action.List, C.Action.Subscriptions, C.Action.PolicyGet, C.Action.AdminList],
+    [C.Service.Engagement]: [
+      C.Action.JourneyRules,
+      C.Action.JourneyList,
+      C.Action.List,
+      C.Action.Subscriptions,
+      C.Action.PolicyGet,
+      C.Action.AdminList,
+    ],
     [C.Service.Coupon]: [
       C.Action.ReminderGet,
       C.Action.List,
@@ -148,12 +180,14 @@
       C.Action.ProviderGet,
       C.Action.PolicyGet,
     ],
-    [C.Service.Management]: [C.Action.Dashboard, C.Action.Tasks],
+    [C.Service.Management]: [C.Action.GlobalSearch, C.Action.CustomerProfile, C.Action.Dashboard, C.Action.Tasks],
   };
   const isRead = (service, action) => (readActions[service] || []).includes(action);
   // These operations must observe each call's current state and stay outside the
   // read batch. Quotes may reserve/write state even though their names look like reads.
   const directReads = new Set([
+    C.Service.Interaction + '/' + C.Action.ReviewImage,
+    C.Service.Interaction + '/' + C.Action.ReviewGet,
     C.Service.Coupon + '/' + C.Action.Templates,
     C.Service.Coupon + '/' + C.Action.TemplatesSnapshot,
     C.Service.Helpdesk + '/' + C.Action.Faq,

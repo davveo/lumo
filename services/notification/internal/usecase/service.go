@@ -115,6 +115,9 @@ func (s *Service) event(ctx context.Context, e platform.Event) (traceErr error) 
 	if e.UserID == "" {
 		return nil
 	}
+	if e.Type == constants.EventJourneyReady {
+		return s.projectJourney(ctx, e)
+	}
 	if e.Type == constants.EventCouponExpiring {
 		settings, err := platform.NewClients(
 			s.rpc,

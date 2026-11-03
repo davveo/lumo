@@ -32,7 +32,7 @@ func TestIndependentOperationsKeepWireContractsAndAuthorization(t *testing.T) {
 			"inventory",
 			"get batch_get reserve confirm cancel dispatch restock restock_batch adjust " +
 				"adjustments admin_list threshold ledger procurement_list procurement_get " +
-				"procurement_create procurement_approve procurement_receive procurement_cancel",
+				"procurement_create procurement_approve procurement_receive procurement_cancel supplier_list supplier_upsert replenishment_get",
 			"reserve",
 			inventory.New,
 			codes.Unauthenticated,
@@ -92,7 +92,7 @@ func TestIndependentOperationsKeepWireContractsAndAuthorization(t *testing.T) {
 		{
 			"helpdesk",
 			"faq list get create reply close admin_list work_queue work_detail assign_work " +
-				"save_view views policy_get policy_upsert",
+				"save_view views policy_get policy_upsert export_create export_list export_get export_retry export_download",
 			"create",
 			helpdesk.New,
 			codes.Unauthenticated,

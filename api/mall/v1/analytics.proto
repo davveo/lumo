@@ -16,4 +16,6 @@ service AnalyticsService {
   rpc SyncHistory(ServiceRequest) returns (ServiceResponse);
   rpc Track(ServiceRequest) returns (ServiceResponse);
   rpc Drilldown(ServiceRequest) returns (ServiceResponse);
+  rpc CustomerStats(ServiceRequest) returns (ServiceResponse);
+  rpc SkuSales(ServiceRequest) returns (ServiceResponse);
 }

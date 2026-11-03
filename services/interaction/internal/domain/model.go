@@ -5,6 +5,7 @@ import "time"
 // Record is this service's owned document aggregate. The relational keys and
 // lifecycle are indexed; Payload contains the aggregate-specific attributes.
 type Record struct {
+	Version   int64     `gorm:"default:1" json:"version"`
 	ID        string    `gorm:"primaryKey;size:128" json:"id"`
 	UserID    string    `gorm:"size:128;index" json:"user_id,omitempty"`
 	ParentID  string    `gorm:"size:128;index" json:"parent_id,omitempty"`

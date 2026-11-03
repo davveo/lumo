@@ -21,10 +21,16 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	MemberService_Get_FullMethodName          = "/mall.v1.MemberService/Get"
-	MemberService_Update_FullMethodName       = "/mall.v1.MemberService/Update"
-	MemberService_PolicyGet_FullMethodName    = "/mall.v1.MemberService/PolicyGet"
-	MemberService_PolicyUpsert_FullMethodName = "/mall.v1.MemberService/PolicyUpsert"
+	MemberService_Get_FullMethodName            = "/mall.v1.MemberService/Get"
+	MemberService_Update_FullMethodName         = "/mall.v1.MemberService/Update"
+	MemberService_PolicyGet_FullMethodName      = "/mall.v1.MemberService/PolicyGet"
+	MemberService_PolicyUpsert_FullMethodName   = "/mall.v1.MemberService/PolicyUpsert"
+	MemberService_CustomerGet_FullMethodName    = "/mall.v1.MemberService/CustomerGet"
+	MemberService_CustomerUpdate_FullMethodName = "/mall.v1.MemberService/CustomerUpdate"
+	MemberService_SegmentList_FullMethodName    = "/mall.v1.MemberService/SegmentList"
+	MemberService_SegmentUpsert_FullMethodName  = "/mall.v1.MemberService/SegmentUpsert"
+	MemberService_SegmentPreview_FullMethodName = "/mall.v1.MemberService/SegmentPreview"
+	MemberService_SegmentMatch_FullMethodName   = "/mall.v1.MemberService/SegmentMatch"
 )
 
 // MemberServiceClient is the client API for MemberService service.
@@ -35,6 +41,12 @@ type MemberServiceClient interface {
 	Update(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	PolicyGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	PolicyUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	CustomerGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	CustomerUpdate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	SegmentList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	SegmentUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	SegmentPreview(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	SegmentMatch(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type memberServiceClient struct {
@@ -81,6 +93,60 @@ func (c *memberServiceClient) PolicyUpsert(ctx context.Context, in *ServiceReque
 	return out, nil
 }
 
+func (c *memberServiceClient) CustomerGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, MemberService_CustomerGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memberServiceClient) CustomerUpdate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, MemberService_CustomerUpdate_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memberServiceClient) SegmentList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, MemberService_SegmentList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memberServiceClient) SegmentUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, MemberService_SegmentUpsert_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memberServiceClient) SegmentPreview(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, MemberService_SegmentPreview_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memberServiceClient) SegmentMatch(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, MemberService_SegmentMatch_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MemberServiceServer is the server API for MemberService service.
 // All implementations must embed UnimplementedMemberServiceServer
 // for forward compatibility
@@ -89,6 +155,12 @@ type MemberServiceServer interface {
 	Update(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	PolicyGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	CustomerGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	CustomerUpdate(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	SegmentList(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	SegmentUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	SegmentPreview(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	SegmentMatch(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedMemberServiceServer()
 }
 
@@ -107,6 +179,24 @@ func (UnimplementedMemberServiceServer) PolicyGet(context.Context, *ServiceReque
 }
 func (UnimplementedMemberServiceServer) PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PolicyUpsert not implemented")
+}
+func (UnimplementedMemberServiceServer) CustomerGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CustomerGet not implemented")
+}
+func (UnimplementedMemberServiceServer) CustomerUpdate(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CustomerUpdate not implemented")
+}
+func (UnimplementedMemberServiceServer) SegmentList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SegmentList not implemented")
+}
+func (UnimplementedMemberServiceServer) SegmentUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SegmentUpsert not implemented")
+}
+func (UnimplementedMemberServiceServer) SegmentPreview(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SegmentPreview not implemented")
+}
+func (UnimplementedMemberServiceServer) SegmentMatch(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SegmentMatch not implemented")
 }
 func (UnimplementedMemberServiceServer) mustEmbedUnimplementedMemberServiceServer() {}
 
@@ -193,6 +283,114 @@ func _MemberService_PolicyUpsert_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MemberService_CustomerGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemberServiceServer).CustomerGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemberService_CustomerGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemberServiceServer).CustomerGet(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemberService_CustomerUpdate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemberServiceServer).CustomerUpdate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemberService_CustomerUpdate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemberServiceServer).CustomerUpdate(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemberService_SegmentList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemberServiceServer).SegmentList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemberService_SegmentList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemberServiceServer).SegmentList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemberService_SegmentUpsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemberServiceServer).SegmentUpsert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemberService_SegmentUpsert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemberServiceServer).SegmentUpsert(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemberService_SegmentPreview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemberServiceServer).SegmentPreview(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemberService_SegmentPreview_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemberServiceServer).SegmentPreview(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemberService_SegmentMatch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemberServiceServer).SegmentMatch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemberService_SegmentMatch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemberServiceServer).SegmentMatch(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MemberService_ServiceDesc is the grpc.ServiceDesc for MemberService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -215,6 +413,30 @@ var MemberService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PolicyUpsert",
 			Handler:    _MemberService_PolicyUpsert_Handler,
+		},
+		{
+			MethodName: "CustomerGet",
+			Handler:    _MemberService_CustomerGet_Handler,
+		},
+		{
+			MethodName: "CustomerUpdate",
+			Handler:    _MemberService_CustomerUpdate_Handler,
+		},
+		{
+			MethodName: "SegmentList",
+			Handler:    _MemberService_SegmentList_Handler,
+		},
+		{
+			MethodName: "SegmentUpsert",
+			Handler:    _MemberService_SegmentUpsert_Handler,
+		},
+		{
+			MethodName: "SegmentPreview",
+			Handler:    _MemberService_SegmentPreview_Handler,
+		},
+		{
+			MethodName: "SegmentMatch",
+			Handler:    _MemberService_SegmentMatch_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

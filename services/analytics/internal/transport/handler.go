@@ -8,7 +8,9 @@ import (
 
 func New(s *usecase.Service) *platform.MethodHandler {
 	return platform.NewMethodHandler(constants.ServiceAnalytics, map[string]platform.Operation{
-		constants.ActionTrack: s.Track, constants.ActionDrilldown: s.Drilldown,
+		constants.ActionSkuSales:      s.SkuSales,
+		constants.ActionCustomerStats: s.CustomerStats,
+		constants.ActionTrack:         s.Track, constants.ActionDrilldown: s.Drilldown,
 		constants.ActionAdminList:   s.AdminList,
 		constants.ActionSyncHistory: s.SyncHistory,
 		constants.ActionDashboard:   s.Dashboard,

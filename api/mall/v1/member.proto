@@ -13,4 +13,10 @@ service MemberService {
   rpc Update(ServiceRequest) returns (ServiceResponse);
   rpc PolicyGet(ServiceRequest) returns (ServiceResponse);
   rpc PolicyUpsert(ServiceRequest) returns (ServiceResponse);
+  rpc CustomerGet(ServiceRequest) returns (ServiceResponse);
+  rpc CustomerUpdate(ServiceRequest) returns (ServiceResponse);
+  rpc SegmentList(ServiceRequest) returns (ServiceResponse);
+  rpc SegmentUpsert(ServiceRequest) returns (ServiceResponse);
+  rpc SegmentPreview(ServiceRequest) returns (ServiceResponse);
+  rpc SegmentMatch(ServiceRequest) returns (ServiceResponse);
 }

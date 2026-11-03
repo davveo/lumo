@@ -6,11 +6,14 @@ import (
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/notification/internal/repository"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
 
 var notificationTitles = map[string]string{
+	constants.EventJourneyReady:     "好物提醒",
+	constants.EventExportReady:      "导出文件已就绪",
 	constants.EventRedemptionIssued: "积分兑换已受理", constants.EventRedemptionRefunded: "兑换积分已返还", constants.EventRewardShipped: "积分礼品已发货", constants.EventRewardDelivered: "积分礼品已签收",
 	constants.EventCouponExpiring:      "优惠券到期提醒",
 	constants.EventShipmentException:   "配送异常提醒",
@@ -19,6 +22,16 @@ var notificationTitles = map[string]string{
 }
 
 func defaultTemplate(id string) repository.Template {
+	if id == constants.EventJourneyReady {
+		return repository.Template{
+			Title:   "好物提醒",
+			Body:    "你关注的好物有新的购物提醒，前往查看当前商品、价格与可用优惠。可在消息偏好中关闭优惠活动通知。",
+			Enabled: true,
+		}
+	}
+	if id == constants.EventExportReady {
+		return repository.Template{Title: "导出文件已就绪", Body: "报表已生成，请前往管理后台的导出任务中心下载，文件保留7天。", Enabled: true}
+	}
 	if id == constants.EventCouponExpiring {
 		return repository.Template{
 			Title: notificationTitles[id],
@@ -111,7 +124,17 @@ func (s *Service) TemplatesAdmin(
 			},
 		)
 	}
-	return platform.Result{"items": items, "total": len(items), "supported_events": notificationTitles}, nil
+	sort.Slice(items, func(i, j int) bool { return platform.Text(items[i], "id") < platform.Text(items[j], "id") })
+	total := len(items)
+	if platform.Int(c.Data, "page") > 0 {
+		page, size := int(platform.Int(c.Data, "page")), int(platform.Int(c.Data, "page_size"))
+		if page > 100000 || size < 1 || size > 100 {
+			return nil, bad("invalid template page")
+		}
+		start := min(total, (page-1)*size)
+		items = items[start:min(total, start+size)]
+	}
+	return platform.Result{"items": items, "total": total, "supported_events": notificationTitles}, nil
 }
 
 func (s *Service) TemplateUpsert(

@@ -26,6 +26,11 @@
     status = '';
   const authorized = () => Boolean(adapter.isAdmin?.());
   const currentScope = () => adapter.scope?.() || '';
+  const publishingAllowed = () =>
+    Boolean(window.LumoProductPublishing) && (!adapter.can || adapter.can('catalog', 'draft_save'));
+  let publication = null;
+  const publicationState = () => (publication ||= window.LumoProductPublishing.initial());
+
   const draw = () => adapter.draw?.();
   const active = () => Boolean(document.querySelector('#product-admin-root'));
   const current = (ticket, scope) => ticket === revision && scope === currentScope() && authorized();
@@ -57,6 +62,7 @@
     changed = new Set();
     search = '';
     status = '';
+    publication = null;
   }
   function checkScope() {
     if (owner !== currentScope()) reset();
@@ -114,7 +120,15 @@
     error = '';
     try {
       const result = await readPage(page);
+      const serverDrafts = publishingAllowed()
+        ? await adapter.call('catalog', 'draft_list', { data: { page: publicationState().draftPage } })
+        : null;
       if (!current(ticket, scope)) return false;
+      if (serverDrafts) {
+        publication.drafts = serverDrafts.items || [];
+        publication.draftTotal = Number(serverDrafts.total) || 0;
+      }
+
       rows = result.rows;
       total = result.total;
       ready = true;
@@ -146,6 +160,7 @@
     };
   }
   function newProduct() {
+    if (publishingAllowed()) publication = window.LumoProductPublishing.initial();
     original = null;
     changed.clear();
     draft = {
@@ -185,6 +200,12 @@
         throw Error('商品规格读取不完整，暂时不能编辑');
       original = clone(row);
       draft = makeDraft(row);
+      if (publishingAllowed()) {
+        publication = window.LumoProductPublishing.initial();
+        publication.workspace = await adapter.call('catalog', 'workspace_get', { id, data: { page: 1 } });
+        if (!current(ticket, scope)) return;
+      }
+
       changed.clear();
       window.scrollTo?.(0, 0);
     } catch (cause) {
@@ -204,7 +225,7 @@
     const image = asset(draft.image),
       colors = original?.colors || ['经典款'],
       options = original?.options || ['标准版'];
-    return `<form id="product-admin-form"><div class="pd-editor-grid"><section class="admin-section"><div class="admin-panel-heading"><h2>基本资料</h2><span>${original ? '编辑商品' : '新建单规格商品'}</span></div><div class="admin-form"><label class="field wide">商品编号<input readonly value="${esc(draft.id)}"><small>编号用于关联订单与库存，保存后保持不变。</small></label>${field('商品名称', 'name', true)}${field('品牌', 'brand')}${field('商品分类', 'category')}${field('商品简介', 'sub', true)}${field('商品图片地址', 'image', true)}<p class="sa-field-help wide">支持 HTTPS 图片地址或现有商城素材文件名。分类名称应与分类导航中维护的名称一致。</p>${field('默认规格售价（元）', 'price')}${field('展示原价（元）', 'old')}${field('展示标签', 'label', true)}<label class="pd-check wide"><input type="checkbox" data-pd-field="active" ${draft.active ? 'checked' : ''} ${busy ? 'disabled' : ''}>在商城中上架展示</label></div><hr><h2>商品售后与保修</h2><p class="admin-muted">下单时保存规则快照；未配置的商品不展示承诺。</p><div class="admin-form"><label class="pd-check wide"><input type="checkbox" data-pd-field="service_configured" ${draft.service_configured ? 'checked' : ''}>展示已确认的商品服务政策</label>${field('退货期限（天）', 'return_days', false, 'number')}${field('保修期限（月）', 'warranty_months', false, 'number')}<label class="field">退货运费承担<select data-pd-field="return_shipping"><option value="buyer" ${draft.return_shipping === 'buyer' ? 'selected' : ''}>买家承担</option><option value="seller" ${draft.return_shipping === 'seller' ? 'selected' : ''}>商家承担</option><option value="case_by_case" ${draft.return_shipping === 'case_by_case' ? 'selected' : ''}>按售后责任判定</option></select></label>${field('服务补充说明', 'service_explanation', true)}</div></section><aside><section class="admin-section"><div class="admin-panel-heading"><h2>商品图片</h2></div><div class="pd-image-preview" data-pd-preview>${image ? `<img src="${esc(image)}" alt="商品图片预览">` : '<span>请填写有效图片地址</span>'}</div></section><section class="admin-section"><h2>规格与库存</h2><dl class="pd-specs"><dt>颜色</dt><dd>${colors.map(esc).join(' / ')}</dd><dt>规格</dt><dd>${options.map(esc).join(' / ')}</dd><dt>默认规格</dt><dd>${esc(original?.defaultOption || '标准版')}</dd></dl><p class="sa-field-help">${original ? '现有颜色和规格保持原样。调整默认售价时，其他规格按相同金额差调整，保留原有价差。' : '新商品按单颜色、单规格建立，初始为未上架。'}商品资料与库存独立保存，修改资料不会重置库存。</p></section></aside></div><div class="sa-savebar"><span>${original ? '已有规格与库存不会重置' : '保存后请前往库存管理设置可售库存'}</span><div><button type="button" class="outline" data-pd-action="back" ${busy ? 'disabled' : ''}>取消</button><button type="submit" class="primary" ${busy ? 'disabled' : ''}>${busy ? '正在保存…' : '保存商品'}</button></div></div></form>`;
+    return `<form id="product-admin-form"><div class="pd-editor-grid"><section class="admin-section"><div class="admin-panel-heading"><h2>基本资料</h2><span>${original ? '编辑商品' : '新建单规格商品'}</span></div><div class="admin-form"><label class="field wide">商品编号<input readonly value="${esc(draft.id)}"><small>编号用于关联订单与库存，保存后保持不变。</small></label>${field('商品名称', 'name', true)}${field('品牌', 'brand')}${field('商品分类', 'category')}${field('商品简介', 'sub', true)}${field('商品图片地址', 'image', true)}<p class="sa-field-help wide">支持 HTTPS 图片地址或现有商城素材文件名。分类名称应与分类导航中维护的名称一致。</p>${field('默认规格售价（元）', 'price')}${field('展示原价（元）', 'old')}${field('展示标签', 'label', true)}<label class="pd-check wide"><input type="checkbox" data-pd-field="active" ${draft.active ? 'checked' : ''} ${busy ? 'disabled' : ''}>在商城中上架展示</label></div><hr><h2>商品售后与保修</h2><p class="admin-muted">下单时保存规则快照；未配置的商品不展示承诺。</p><div class="admin-form"><label class="pd-check wide"><input type="checkbox" data-pd-field="service_configured" ${draft.service_configured ? 'checked' : ''}>展示已确认的商品服务政策</label>${field('退货期限（天）', 'return_days', false, 'number')}${field('保修期限（月）', 'warranty_months', false, 'number')}<label class="field">退货运费承担<select data-pd-field="return_shipping"><option value="buyer" ${draft.return_shipping === 'buyer' ? 'selected' : ''}>买家承担</option><option value="seller" ${draft.return_shipping === 'seller' ? 'selected' : ''}>商家承担</option><option value="case_by_case" ${draft.return_shipping === 'case_by_case' ? 'selected' : ''}>按售后责任判定</option></select></label>${field('服务补充说明', 'service_explanation', true)}</div></section><aside><section class="admin-section"><div class="admin-panel-heading"><h2>商品图片</h2></div><div class="pd-image-preview" data-pd-preview>${image ? `<img src="${esc(image)}" alt="商品图片预览">` : '<span>请填写有效图片地址</span>'}</div></section><section class="admin-section"><h2>规格与库存</h2><dl class="pd-specs"><dt>颜色</dt><dd>${colors.map(esc).join(' / ')}</dd><dt>规格</dt><dd>${options.map(esc).join(' / ')}</dd><dt>默认规格</dt><dd>${esc(original?.defaultOption || '标准版')}</dd></dl><p class="sa-field-help">${original ? '现有颜色和规格保持原样。调整默认售价时，其他规格按相同金额差调整，保留原有价差。' : '新商品按单颜色、单规格建立，初始为未上架。'}商品资料与库存独立保存，修改资料不会重置库存。</p></section></aside></div>${publishingAllowed() ? window.LumoProductPublishing.panel(publicationState(), publication?.workspace?.current || original, busy) : ''}<div class="sa-savebar"><span>${original ? '已有规格与库存不会重置' : '保存后请前往库存管理设置可售库存'}</span><div><button type="button" class="outline" data-pd-action="back" ${busy ? 'disabled' : ''}>取消</button><button type="submit" class="primary" ${busy ? 'disabled' : ''}>${busy ? '正在保存…' : '保存商品'}</button></div></div></form>`;
   }
   function filteredRows() {
     const keyword = search.trim().toLocaleLowerCase();
@@ -238,7 +259,7 @@
   function render() {
     checkScope();
     if (!authorized()) return '';
-    return `<div id="product-admin-root"><div class="admin-title"><div><h1>${draft ? (original ? '编辑商品' : '新建商品') : '商品管理'}</h1><p>维护商品资料、价格与上下架，库存独立管理。</p></div><div class="admin-title-actions">${draft ? `<button class="outline" data-pd-action="back" ${busy ? 'disabled' : ''}>返回列表（放弃未保存修改）</button>` : `<button class="outline" data-pd-action="reload" ${busy ? 'disabled' : ''}>刷新</button><button class="primary" data-pd-action="new" ${busy || !ready ? 'disabled' : ''}>新建商品</button>`}</div></div>${error ? `<div class="admin-error" role="alert">${esc(error)}</div>` : ''}${loadingDraft ? window.LumoSkeleton?.render('form', { count: 6, label: '正在读取商品详情' }) || '' : draft ? editor() : !ready ? (error ? '' : window.LumoSkeleton?.render('table', { count: 6, label: '正在读取商品目录' }) || '') : list()}</div>`;
+    return `<div id="product-admin-root"><div class="admin-title"><div><h1>${draft ? (original ? '编辑商品' : '新建商品') : '商品管理'}</h1><p>维护商品资料、价格与上下架，库存独立管理。</p></div><div class="admin-title-actions">${draft ? `<button class="outline" data-pd-action="back" ${busy ? 'disabled' : ''}>返回列表（放弃未保存修改）</button>` : `<button class="outline" data-pd-action="reload" ${busy ? 'disabled' : ''}>刷新</button><button class="primary" data-pd-action="new" ${busy || !ready ? 'disabled' : ''}>新建商品</button>`}</div></div>${error ? `<div class="admin-error" role="alert">${esc(error)}</div>` : ''}${loadingDraft ? window.LumoSkeleton?.render('form', { count: 6, label: '正在读取商品详情' }) || '' : draft ? editor() : !ready ? (error ? '' : window.LumoSkeleton?.render('table', { count: 6, label: '正在读取商品目录' }) || '') : list() + (publishingAllowed() ? window.LumoProductPublishing.list(publicationState(), busy) : '')}</div>`;
   }
   async function save() {
     let price, old;
@@ -294,6 +315,12 @@
           return_shipping: values.return_shipping,
           explanation: values.service_explanation,
         };
+      output.product_version = original?.product_version || 0;
+      if (publishingAllowed() && output.active) {
+        const checked = await adapter.call('catalog', 'publish_check', { id: values.id, data: { product: output } });
+        if (!current(ticket, scope)) return;
+        if (!checked.ok) throw Error((checked.issues || []).join('；') || '商品未通过发布检查');
+      }
       await adapter.call(C.Service.Catalog, C.Action.Upsert, { id: values.id, data: output });
       if (!current(ticket, scope)) return;
       const confirmed = await adapter.call(C.Service.Catalog, C.Action.Get, { id: values.id });
@@ -353,9 +380,155 @@
       }
     }
   }
+  function publicationProduct() {
+    const p = clone(
+      original || { colors: ['经典款'], options: ['标准版'], defaultOption: '标准版', prices: [], sales: 0 },
+    );
+    for (const k of ['name', 'brand', 'category', 'sub', 'image', 'label', 'active']) p[k] = draft[k];
+    try {
+      p.price_cents = cents(draft.price, '售价');
+    } catch (_) {
+      p.price_cents = 0;
+    }
+    p.old = Number(draft.old) || 0;
+    p.service_policy = {
+      configured: draft.service_configured,
+      return_days: Number(draft.return_days),
+      warranty_months: Number(draft.warranty_months),
+      return_shipping: draft.return_shipping,
+      explanation: draft.service_explanation,
+    };
+    return p;
+  }
+  function applyServerDraft(workspace) {
+    if (!workspace.draft) throw Error('服务端草稿不存在');
+    const editor = workspace.editor || {};
+    original = editor.original ? clone(editor.original) : null;
+    draft = editor.values ? clone(editor.values) : makeDraft({ ...workspace.product, id: workspace.draft.product_id });
+    if (draft.id !== workspace.draft.product_id) throw Error('草稿商品编号不一致');
+    changed = new Set(editor.changed || []);
+  }
+  async function publicationAction(action, id) {
+    const ticket = ++revision,
+      scope = owner;
+    busy = true;
+    error = '';
+    draw();
+    const call = async (a, c) => {
+      if (!current(ticket, scope)) throw Error('会话已变化');
+      const v = await adapter.call('catalog', a, c);
+      if (!current(ticket, scope)) throw Error('会话已变化');
+      return v;
+    };
+    try {
+      const s = publicationState();
+      const workspace = async () => {
+        s.workspace = await call('workspace_get', { id: draft.id, data: { page: s.page } });
+      };
+      const saveDraft = async () => {
+        const result = await call('draft_save', {
+          id: draft.id,
+          data: {
+            version: s.workspace?.draft?.version || 0,
+            base_version: original?.product_version || 0,
+            product: publicationProduct(),
+            editor: { values: clone(draft), original: clone(original), changed: [...changed] },
+          },
+        });
+        s.workspace = { ...(s.workspace || {}), draft: result.draft };
+        return result.draft;
+      };
+      if (action === 'drafts' || action === 'draft-page') {
+        if (action === 'draft-page') s.draftPage = Math.max(1, Number(id) || 1);
+        const result = await call('draft_list', { data: { page: s.draftPage } });
+        s.drafts = result.items || [];
+        s.draftTotal = Number(result.total) || 0;
+      } else if (action === 'open-draft') {
+        const w = await call('workspace_get', { id, data: { page: 1 } });
+        publication = window.LumoProductPublishing.initial();
+        publication.workspace = w;
+        applyServerDraft(w);
+      } else if (action === 'save-draft') {
+        await saveDraft();
+        await workspace();
+        adapter.notify?.('草稿已保存到服务器');
+      } else if (action === 'load-draft') {
+        await workspace();
+        applyServerDraft(s.workspace);
+        s.check = null;
+      } else if (action === 'check') {
+        s.check = await call('publish_check', { id: draft.id, data: { product: publicationProduct() } });
+      } else if (action === 'publish') {
+        const d = await saveDraft();
+        const confirmed = await call('draft_publish', { id: draft.id, data: { version: d.version } });
+        original = clone(confirmed);
+        draft = makeDraft(confirmed);
+        changed.clear();
+        s.check = null;
+        await workspace();
+        adapter.notify?.('商品已发布');
+      } else if (action === 'schedule') {
+        if (!s.runAt || !Number.isFinite(Date.parse(s.runAt))) throw Error('请选择有效的执行时间');
+        const d = s.mode === 'on' ? await saveDraft() : null;
+        const data = {
+          mode: s.mode,
+          run_at: new Date(s.runAt).toISOString(),
+          ...(s.mode === 'on'
+            ? { version: d.version, ...(s.endsAt ? { ends_at: new Date(s.endsAt).toISOString() } : {}) }
+            : {}),
+        };
+        const signature = JSON.stringify(data);
+        if (!s.scheduleKey || s.scheduleSignature !== signature) {
+          s.scheduleKey = crypto.randomUUID();
+          s.scheduleSignature = signature;
+        }
+        await call('publish_schedule', { id: draft.id, idempotency_key: s.scheduleKey, data });
+        s.scheduleKey = '';
+        await workspace();
+        adapter.notify?.('已创建定时计划');
+      } else if (action === 'cancel-plan') {
+        await call('publication_cancel', { id });
+        await workspace();
+      } else if (action === 'version-page') {
+        s.page = Math.max(1, Number(id) || 1);
+        await workspace();
+      } else if (action === 'compare') {
+        const w = await call('workspace_get', { id: draft.id, data: { page: s.page, revision: Number(id) } });
+        s.workspace = w;
+        s.selected = w.revision;
+      } else if (action === 'close-compare') {
+        s.selected = null;
+      } else if (action === 'restore') {
+        if (!s.selected || Number(id) !== Number(s.selected.product_version || 0)) throw Error('请先查看版本对比');
+        const confirmed = await call('version_restore', {
+          id: draft.id,
+          data: { revision: Number(id), product_version: s.workspace?.current?.product_version || 0 },
+        });
+        original = clone(confirmed);
+        draft = makeDraft(confirmed);
+        changed.clear();
+        s.selected = null;
+        await workspace();
+        adapter.notify?.('已恢复商品资料并创建新版本');
+      }
+    } catch (cause) {
+      if (current(ticket, scope)) error = cause.message || '发布操作失败，输入已保留';
+    } finally {
+      if (current(ticket, scope)) {
+        busy = false;
+        draw();
+      }
+    }
+  }
   function input(event) {
     checkScope();
     if (!active() || !authorized() || busy) return;
+    const pubField = event.target.dataset?.pubField;
+    if (publishingAllowed() && ['mode', 'runAt', 'endsAt'].includes(pubField)) {
+      publicationState()[pubField] = event.target.value;
+      if (pubField === 'mode') draw();
+      return;
+    }
     const filter = event.target.dataset?.pdFilter;
     if (filter && ['search', 'status'].includes(filter)) {
       if (filter === 'search') search = event.target.value;
@@ -397,12 +570,23 @@
   document.addEventListener('input', input);
   document.addEventListener('change', (event) => {
     if (
+      event.target.dataset?.pubField === 'mode' ||
       event.target.dataset?.pdFilter === 'status' ||
       ['active', 'service_configured', 'return_shipping'].includes(event.target.dataset?.pdField)
     )
       input(event);
   });
   document.addEventListener('click', async (event) => {
+    const pub = event.target.closest?.('[data-pub],[data-pub-draft-page],[data-pub-version-page]');
+    if (pub) {
+      checkScope();
+      if (!active() || !authorized() || busy || pub.disabled || !publishingAllowed()) return;
+      event.preventDefault();
+      const action = pub.dataset.pub || (pub.dataset.pubDraftPage ? 'draft-page' : 'version-page'),
+        id = pub.dataset.id || pub.dataset.pubDraftPage || pub.dataset.pubVersionPage;
+      await runWrite(() => publicationAction(action, id));
+      return;
+    }
     const target = event.target.closest?.('[data-pd-action]');
     if (!target) return;
     checkScope();
@@ -448,6 +632,7 @@
       checkScope();
     },
     refresh,
+    openDetail: edit,
     render,
     reset,
   };

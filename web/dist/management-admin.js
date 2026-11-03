@@ -954,77 +954,38 @@
   }
   async function exportCSV(m) {
     if (m.adapter.canExport && !m.adapter.canExport()) throw Error('当前员工角色不允许导出');
-    const s = m.state,
-      snapshot = copy({
-        key: s.key,
-        mode: s.mode,
-        page: s.page,
-        filters: s.filters,
-        service: s.service,
-        quotaKind: s.quotaKind,
-        detailId: s.detailId,
-      });
+    const snapshot = copy(m.state);
+    let service, action, command;
+    if (snapshot.detailId) {
+      service = snapshot.key === 'points' ? C.Service.Points : C.Service.Reconciliation;
+      action = snapshot.key === 'points' ? C.Action.Ledger : C.Action.Get;
+      command = { id: snapshot.detailId, data: {} };
+    } else {
+      [service, action] = source(snapshot);
+      command = query(snapshot, 1, 100);
+    }
+    const scope = m.adapter.scope?.();
+    snapshot.exportKey ||= crypto.randomUUID();
+    // The key remains on the page state for a safe retry after a lost response.
+    const signature = JSON.stringify([service, action, command]);
+    if (!m.state.exportKey || m.state.exportSignature !== signature) {
+      m.state.exportSignature = signature;
+      m.state.exportKey = crypto.randomUUID();
+    }
     const ok = await m.run(
-      async () => {
-        let service, action, command;
-        if (snapshot.detailId) {
-          service = snapshot.key === 'points' ? C.Service.Points : C.Service.Reconciliation;
-          action = snapshot.key === 'points' ? C.Action.Ledger : C.Action.Get;
-          command = { id: snapshot.detailId, data: { page: 1, page_size: 100 } };
-        } else {
-          [service, action] = source(snapshot);
-          command = query(snapshot, 1, 100);
-        }
-        const rows = [];
-        let total = 0,
-          expectedTotal;
-        const seen = new Set();
-        do {
-          command.data.export = true;
-          command.data.page = Math.floor(rows.length / 100) + 1;
-          const result = await m.adapter.call(service, action, command),
-            page = snapshot.key === 'reconciliation' && snapshot.detailId ? result.differences : result;
-          total = Number(page.total ?? page.items?.length ?? 0);
-          if (expectedTotal !== undefined && expectedTotal !== total)
-            throw Error('导出期间记录数量发生变化，请重新查询后导出');
-          expectedTotal = total;
-          if (total > 100000) throw Error('匹配超过10万条，请缩小筛选范围后导出');
-          const items = page.items || [];
-          if (!items.length) break;
-          for (const row of items) {
-            const id = row.id || row.sku_id || (row.payment_id ? row.payment_id + ':' + row.kind : '');
-            if (id && seen.has(id)) throw Error('导出期间记录顺序发生变化，请重新查询后导出');
-            if (id) seen.add(id);
-          }
-          rows.push(...items);
-          if (snapshot.key === 'messages') break;
-        } while (rows.length < total);
-        if (rows.length < total) throw Error('导出过程中记录范围发生变化，请重新查询后导出');
-        return rows;
-      },
-      (rows) => {
-        const keys = [
-          ...new Set(rows.flatMap((row) => Object.keys(row).filter((key) => typeof row[key] !== 'object'))),
-        ];
-        const quote = (value) =>
-          '"' +
-          String(typeof value === 'string' && /^\s*[=+\-@]/.test(value) ? "'" + value : (value ?? '')).replaceAll(
-            '"',
-            '""',
-          ) +
-          '"';
-        const csv =
-          '\ufeff' +
-          [keys.map(quote).join(','), ...rows.map((row) => keys.map((key) => quote(row[key])).join(','))].join('\r\n');
-        const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })),
-          link = document.createElement('a');
-        link.href = url;
-        link.download = names[s.key] + '-' + today() + '.csv';
-        link.click();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      },
+      () =>
+        m.adapter.call('helpdesk', 'export_create', {
+          idempotency_key: m.state.exportKey,
+          data: { source: service + '/' + action, record_id: command.id || '', filters: command.data },
+        }),
+      () => {},
     );
-    if (ok) m.adapter.notify?.('导出文件已生成');
+    if (ok && scope === m.adapter.scope?.()) {
+      m.adapter.notify?.('导出已加入后台任务');
+      m.state.exportKey = '';
+      m.state.exportSignature = '';
+      await m.adapter.navigate?.('exports');
+    }
   }
   function create(key) {
     if (modules.has(key)) return modules.get(key);

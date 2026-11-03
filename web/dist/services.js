@@ -129,9 +129,10 @@
       isProduct = [C.Event.ProductPriceReached, C.Event.ProductBackInStock].includes(event);
     return {
       id: r.id,
+      journeyId: r.journey_id || '',
       type:
         r.message_type ||
-        ([C.Event.CouponExpiring].includes(event)
+        ([C.Event.CouponExpiring, C.Event.JourneyReady].includes(event)
           ? C.MessageType.Activity
           : /Redemption|RewardShipped|RewardDelivered|ShipmentException/.test(event)
             ? C.MessageType.Service
@@ -845,7 +846,14 @@
           if (memory.unreadTotal != null) memory.unreadTotal = Math.max(0, memory.unreadTotal - 1);
         }
         await refresh(true, ['messages']);
-        if (action === 'open-message' && row) go(row.target.slice(2));
+        if (action === 'open-message' && row?.journeyId) {
+          const opened = await call(C.Service.Engagement, C.Action.JourneyOpen, { id: row.journeyId });
+          if (actionScope !== serviceScope()) return;
+          if (typeof opened.target !== 'string' || !opened.target.startsWith('#/')) throw Error('恢复入口无效');
+          if (opened.warnings?.length) toast(opened.warnings.join('；'));
+          else toast('已按当前价格、优惠与库存重新检查');
+          go(opened.target.slice(2));
+        } else if (action === 'open-message' && row) go(row.target.slice(2));
         else redraw();
       }
       if (action === 'invoice-picker') await invoicePicker();

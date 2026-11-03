@@ -2,9 +2,11 @@ package constants
 
 // enum:InteractionKind
 const (
-	InteractionKindReview   = "review"
-	InteractionKindQuestion = "question"
-	InteractionKindLike     = "like"
+	InteractionKindModeration     = "moderation"
+	InteractionKindReviewFollowup = "review_followup"
+	InteractionKindReview         = "review"
+	InteractionKindQuestion       = "question"
+	InteractionKindLike           = "like"
 )
 
 // enum:InteractionStatus

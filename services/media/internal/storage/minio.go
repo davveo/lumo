@@ -1,8 +1,10 @@
 package storage
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"strings"
@@ -172,4 +174,33 @@ func (s *MinIO) SignDownload(ctx context.Context, key string, ttl time.Duration)
 		return "", e
 	}
 	return u.String(), nil
+}
+
+func (s *MinIO) PutExport(ctx context.Context, key string, content []byte) (domain.StoredObject, error) {
+	ctx, sp := platform.Start(ctx, "media.storage.PutExport")
+	defer sp.End()
+	v, e := s.internal.PutObject(
+		ctx,
+		s.bucket,
+		key,
+		bytes.NewReader(content),
+		int64(len(content)),
+		minio.PutObjectOptions{ContentType: "text/plain"},
+	)
+	return domain.StoredObject{Size: v.Size, ETag: v.ETag, ContentType: "text/plain"}, e
+}
+
+func (s *MinIO) ReadReviewImage(ctx context.Context, key, etag string) ([]byte, error) {
+	ctx, sp := platform.Start(ctx, "media.storage.ReadReviewImage")
+	defer sp.End()
+	opts := minio.GetObjectOptions{}
+	if e := opts.SetMatchETag(etag); e != nil {
+		return nil, e
+	}
+	object, e := s.internal.GetObject(ctx, s.bucket, key, opts)
+	if e != nil {
+		return nil, e
+	}
+	defer object.Close()
+	return io.ReadAll(io.LimitReader(object, (2<<20)+1))
 }

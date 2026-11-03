@@ -106,13 +106,15 @@ var namedOperationActions = map[string]map[string]string{
 		"EvidenceDownload": constants.ActionEvidenceDownload,
 	},
 	constants.ServiceAnalytics: {
-		"AdminList":   constants.ActionAdminList,
-		"List":        constants.ActionList,
-		"Record":      constants.ActionRecord,
-		"Dashboard":   constants.ActionDashboard,
-		"SyncHistory": constants.ActionSyncHistory,
-		"Track":       constants.ActionTrack,
-		"Drilldown":   constants.ActionDrilldown,
+		"AdminList":     constants.ActionAdminList,
+		"List":          constants.ActionList,
+		"Record":        constants.ActionRecord,
+		"Dashboard":     constants.ActionDashboard,
+		"SyncHistory":   constants.ActionSyncHistory,
+		"Track":         constants.ActionTrack,
+		"Drilldown":     constants.ActionDrilldown,
+		"CustomerStats": constants.ActionCustomerStats,
+		"SkuSales":      constants.ActionSkuSales,
 	},
 	constants.ServiceCampaign: {
 		"AdminList":  constants.ActionAdminList,
@@ -143,6 +145,14 @@ var namedOperationActions = map[string]map[string]string{
 		"ImportPreview":            constants.ActionImportPreview,
 		"ImportCommit":             constants.ActionImportCommit,
 		"ImportGet":                constants.ActionImportGet,
+		"DraftSave":                constants.ActionDraftSave,
+		"DraftList":                constants.ActionDraftList,
+		"WorkspaceGet":             constants.ActionWorkspaceGet,
+		"PublishCheck":             constants.ActionPublishCheck,
+		"DraftPublish":             constants.ActionDraftPublish,
+		"PublishSchedule":          constants.ActionPublishSchedule,
+		"PublicationCancel":        constants.ActionPublicationCancel,
+		"VersionRestore":           constants.ActionVersionRestore,
 	},
 	constants.ServiceCheckout: {
 		"Cancel":        constants.ActionCancel,
@@ -182,19 +192,27 @@ var namedOperationActions = map[string]map[string]string{
 		"ReminderGet":       constants.ActionReminderGet,
 		"ReminderUpdate":    constants.ActionReminderUpdate,
 		"IssueReward":       constants.ActionIssueReward,
+		"CustomerAssets":    constants.ActionCustomerAssets,
 	},
 	constants.ServiceEngagement: {
-		"AdminCancel":   constants.ActionAdminCancel,
-		"AdminList":     constants.ActionAdminList,
-		"Clear":         constants.ActionClear,
-		"Delete":        constants.ActionDelete,
-		"List":          constants.ActionList,
-		"PolicyGet":     constants.ActionPolicyGet,
-		"PolicyUpsert":  constants.ActionPolicyUpsert,
-		"Put":           constants.ActionPut,
-		"Subscribe":     constants.ActionSubscribe,
-		"Subscriptions": constants.ActionSubscriptions,
-		"Unsubscribe":   constants.ActionUnsubscribe,
+		"AdminCancel":          constants.ActionAdminCancel,
+		"AdminList":            constants.ActionAdminList,
+		"Clear":                constants.ActionClear,
+		"Delete":               constants.ActionDelete,
+		"List":                 constants.ActionList,
+		"PolicyGet":            constants.ActionPolicyGet,
+		"PolicyUpsert":         constants.ActionPolicyUpsert,
+		"Put":                  constants.ActionPut,
+		"Subscribe":            constants.ActionSubscribe,
+		"Subscriptions":        constants.ActionSubscriptions,
+		"Unsubscribe":          constants.ActionUnsubscribe,
+		"JourneyRules":         constants.ActionJourneyRules,
+		"JourneyRuleSave":      constants.ActionJourneyRuleSave,
+		"JourneyList":          constants.ActionJourneyList,
+		"JourneyRun":           constants.ActionJourneyRun,
+		"JourneyCancel":        constants.ActionJourneyCancel,
+		"JourneyOpen":          constants.ActionJourneyOpen,
+		"JourneyDeliveryCheck": constants.ActionJourneyDeliveryCheck,
 	},
 	constants.ServiceFlash: {
 		"Get":           constants.ActionGet,
@@ -231,20 +249,25 @@ var namedOperationActions = map[string]map[string]string{
 		"RuleUpsert": constants.ActionRuleUpsert,
 	},
 	constants.ServiceHelpdesk: {
-		"AdminList":    constants.ActionAdminList,
-		"Close":        constants.ActionClose,
-		"Create":       constants.ActionCreate,
-		"Faq":          constants.ActionFaq,
-		"Get":          constants.ActionGet,
-		"List":         constants.ActionList,
-		"Reply":        constants.ActionReply,
-		"WorkQueue":    constants.ActionWorkQueue,
-		"WorkDetail":   constants.ActionWorkDetail,
-		"AssignWork":   constants.ActionAssignWork,
-		"SaveView":     constants.ActionSaveView,
-		"Views":        constants.ActionViews,
-		"PolicyGet":    constants.ActionPolicyGet,
-		"PolicyUpsert": constants.ActionPolicyUpsert,
+		"AdminList":      constants.ActionAdminList,
+		"Close":          constants.ActionClose,
+		"Create":         constants.ActionCreate,
+		"Faq":            constants.ActionFaq,
+		"Get":            constants.ActionGet,
+		"List":           constants.ActionList,
+		"Reply":          constants.ActionReply,
+		"WorkQueue":      constants.ActionWorkQueue,
+		"WorkDetail":     constants.ActionWorkDetail,
+		"AssignWork":     constants.ActionAssignWork,
+		"SaveView":       constants.ActionSaveView,
+		"Views":          constants.ActionViews,
+		"PolicyGet":      constants.ActionPolicyGet,
+		"PolicyUpsert":   constants.ActionPolicyUpsert,
+		"ExportCreate":   constants.ActionExportCreate,
+		"ExportList":     constants.ActionExportList,
+		"ExportGet":      constants.ActionExportGet,
+		"ExportRetry":    constants.ActionExportRetry,
+		"ExportDownload": constants.ActionExportDownload,
 	},
 	constants.ServiceIAM: {
 		"AdminGet":             constants.ActionAdminGet,
@@ -278,11 +301,15 @@ var namedOperationActions = map[string]map[string]string{
 		"StaffUpsert":          constants.ActionStaffUpsert,
 	},
 	constants.ServiceInteraction: {
-		"Answer":   constants.ActionAnswer,
-		"Create":   constants.ActionCreate,
-		"Like":     constants.ActionLike,
-		"List":     constants.ActionList,
-		"Moderate": constants.ActionModerate,
+		"Answer":       constants.ActionAnswer,
+		"Create":       constants.ActionCreate,
+		"Like":         constants.ActionLike,
+		"List":         constants.ActionList,
+		"Moderate":     constants.ActionModerate,
+		"ReviewGet":    constants.ActionReviewGet,
+		"ReviewRevise": constants.ActionReviewRevise,
+		"FollowupSave": constants.ActionFollowupSave,
+		"ReviewImage":  constants.ActionReviewImage,
 	},
 	constants.ServiceInventory: {
 		"Adjust":             constants.ActionAdjust,
@@ -304,6 +331,9 @@ var namedOperationActions = map[string]map[string]string{
 		"ProcurementReceive": constants.ActionProcurementReceive,
 		"ProcurementCancel":  constants.ActionProcurementCancel,
 		"RestockBatch":       constants.ActionRestockBatch,
+		"SupplierList":       constants.ActionSupplierList,
+		"SupplierUpsert":     constants.ActionSupplierUpsert,
+		"ReplenishmentGet":   constants.ActionReplenishmentGet,
 	},
 	constants.ServiceInvoice: {
 		"AdjustDemo":   constants.ActionAdjustDemo,
@@ -329,17 +359,25 @@ var namedOperationActions = map[string]map[string]string{
 		"ExceptionResolve": constants.ActionExceptionResolve,
 	},
 	constants.ServiceMedia: {
-		"Complete":    constants.ActionComplete,
-		"Create":      constants.ActionCreate,
-		"Download":    constants.ActionDownload,
-		"Get":         constants.ActionGet,
-		"VerifyFiles": constants.ActionVerifyFiles,
+		"Complete":        constants.ActionComplete,
+		"Create":          constants.ActionCreate,
+		"Download":        constants.ActionDownload,
+		"Get":             constants.ActionGet,
+		"VerifyFiles":     constants.ActionVerifyFiles,
+		"StoreExport":     constants.ActionStoreExport,
+		"ReadReviewImage": constants.ActionReadReviewImage,
 	},
 	constants.ServiceMember: {
-		"Get":          constants.ActionGet,
-		"Update":       constants.ActionUpdate,
-		"PolicyGet":    constants.ActionPolicyGet,
-		"PolicyUpsert": constants.ActionPolicyUpsert,
+		"Get":            constants.ActionGet,
+		"Update":         constants.ActionUpdate,
+		"PolicyGet":      constants.ActionPolicyGet,
+		"PolicyUpsert":   constants.ActionPolicyUpsert,
+		"CustomerGet":    constants.ActionCustomerGet,
+		"CustomerUpdate": constants.ActionCustomerUpdate,
+		"SegmentList":    constants.ActionSegmentList,
+		"SegmentUpsert":  constants.ActionSegmentUpsert,
+		"SegmentPreview": constants.ActionSegmentPreview,
+		"SegmentMatch":   constants.ActionSegmentMatch,
 	},
 	constants.ServiceNotification: {
 		"List":           constants.ActionList,
@@ -683,6 +721,22 @@ func (client AnalyticsMethods) Drilldown(
 		constants.ActionDrilldown, request,
 	)
 }
+func (client AnalyticsMethods) CustomerStats(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceAnalytics, "CustomerStats",
+		constants.ActionCustomerStats, request,
+	)
+}
+func (client AnalyticsMethods) SkuSales(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceAnalytics, "SkuSales",
+		constants.ActionSkuSales, request,
+	)
+}
 
 type CampaignMethods struct{ caller Caller }
 
@@ -882,6 +936,70 @@ func (client CatalogMethods) ImportGet(
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceCatalog, "ImportGet",
 		constants.ActionImportGet, request,
+	)
+}
+func (client CatalogMethods) DraftSave(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceCatalog, "DraftSave",
+		constants.ActionDraftSave, request,
+	)
+}
+func (client CatalogMethods) DraftList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceCatalog, "DraftList",
+		constants.ActionDraftList, request,
+	)
+}
+func (client CatalogMethods) WorkspaceGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceCatalog, "WorkspaceGet",
+		constants.ActionWorkspaceGet, request,
+	)
+}
+func (client CatalogMethods) PublishCheck(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceCatalog, "PublishCheck",
+		constants.ActionPublishCheck, request,
+	)
+}
+func (client CatalogMethods) DraftPublish(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceCatalog, "DraftPublish",
+		constants.ActionDraftPublish, request,
+	)
+}
+func (client CatalogMethods) PublishSchedule(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceCatalog, "PublishSchedule",
+		constants.ActionPublishSchedule, request,
+	)
+}
+func (client CatalogMethods) PublicationCancel(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceCatalog, "PublicationCancel",
+		constants.ActionPublicationCancel, request,
+	)
+}
+func (client CatalogMethods) VersionRestore(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceCatalog, "VersionRestore",
+		constants.ActionVersionRestore, request,
 	)
 }
 
@@ -1157,6 +1275,14 @@ func (client CouponMethods) IssueReward(
 		constants.ActionIssueReward, request,
 	)
 }
+func (client CouponMethods) CustomerAssets(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceCoupon, "CustomerAssets",
+		constants.ActionCustomerAssets, request,
+	)
+}
 
 type EngagementMethods struct{ caller Caller }
 
@@ -1246,6 +1372,62 @@ func (client EngagementMethods) Unsubscribe(
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceEngagement, "Unsubscribe",
 		constants.ActionUnsubscribe, request,
+	)
+}
+func (client EngagementMethods) JourneyRules(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceEngagement, "JourneyRules",
+		constants.ActionJourneyRules, request,
+	)
+}
+func (client EngagementMethods) JourneyRuleSave(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceEngagement, "JourneyRuleSave",
+		constants.ActionJourneyRuleSave, request,
+	)
+}
+func (client EngagementMethods) JourneyList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceEngagement, "JourneyList",
+		constants.ActionJourneyList, request,
+	)
+}
+func (client EngagementMethods) JourneyRun(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceEngagement, "JourneyRun",
+		constants.ActionJourneyRun, request,
+	)
+}
+func (client EngagementMethods) JourneyCancel(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceEngagement, "JourneyCancel",
+		constants.ActionJourneyCancel, request,
+	)
+}
+func (client EngagementMethods) JourneyOpen(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceEngagement, "JourneyOpen",
+		constants.ActionJourneyOpen, request,
+	)
+}
+func (client EngagementMethods) JourneyDeliveryCheck(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceEngagement, "JourneyDeliveryCheck",
+		constants.ActionJourneyDeliveryCheck, request,
 	)
 }
 
@@ -1596,6 +1778,46 @@ func (client HelpdeskMethods) PolicyUpsert(
 		constants.ActionPolicyUpsert, request,
 	)
 }
+func (client HelpdeskMethods) ExportCreate(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceHelpdesk, "ExportCreate",
+		constants.ActionExportCreate, request,
+	)
+}
+func (client HelpdeskMethods) ExportList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceHelpdesk, "ExportList",
+		constants.ActionExportList, request,
+	)
+}
+func (client HelpdeskMethods) ExportGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceHelpdesk, "ExportGet",
+		constants.ActionExportGet, request,
+	)
+}
+func (client HelpdeskMethods) ExportRetry(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceHelpdesk, "ExportRetry",
+		constants.ActionExportRetry, request,
+	)
+}
+func (client HelpdeskMethods) ExportDownload(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceHelpdesk, "ExportDownload",
+		constants.ActionExportDownload, request,
+	)
+}
 
 type IAMMethods struct{ caller Caller }
 
@@ -1874,6 +2096,38 @@ func (client InteractionMethods) Moderate(
 		constants.ActionModerate, request,
 	)
 }
+func (client InteractionMethods) ReviewGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInteraction, "ReviewGet",
+		constants.ActionReviewGet, request,
+	)
+}
+func (client InteractionMethods) ReviewRevise(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInteraction, "ReviewRevise",
+		constants.ActionReviewRevise, request,
+	)
+}
+func (client InteractionMethods) FollowupSave(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInteraction, "FollowupSave",
+		constants.ActionFollowupSave, request,
+	)
+}
+func (client InteractionMethods) ReviewImage(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInteraction, "ReviewImage",
+		constants.ActionReviewImage, request,
+	)
+}
 
 type InventoryMethods struct{ caller Caller }
 
@@ -2027,6 +2281,30 @@ func (client InventoryMethods) RestockBatch(
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceInventory, "RestockBatch",
 		constants.ActionRestockBatch, request,
+	)
+}
+func (client InventoryMethods) SupplierList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInventory, "SupplierList",
+		constants.ActionSupplierList, request,
+	)
+}
+func (client InventoryMethods) SupplierUpsert(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInventory, "SupplierUpsert",
+		constants.ActionSupplierUpsert, request,
+	)
+}
+func (client InventoryMethods) ReplenishmentGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceInventory, "ReplenishmentGet",
+		constants.ActionReplenishmentGet, request,
 	)
 }
 
@@ -2230,6 +2508,22 @@ func (client MediaMethods) VerifyFiles(
 		constants.ActionVerifyFiles, request,
 	)
 }
+func (client MediaMethods) StoreExport(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceMedia, "StoreExport",
+		constants.ActionStoreExport, request,
+	)
+}
+func (client MediaMethods) ReadReviewImage(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceMedia, "ReadReviewImage",
+		constants.ActionReadReviewImage, request,
+	)
+}
 
 type MemberMethods struct{ caller Caller }
 
@@ -2263,6 +2557,54 @@ func (client MemberMethods) PolicyUpsert(
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceMember, "PolicyUpsert",
 		constants.ActionPolicyUpsert, request,
+	)
+}
+func (client MemberMethods) CustomerGet(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceMember, "CustomerGet",
+		constants.ActionCustomerGet, request,
+	)
+}
+func (client MemberMethods) CustomerUpdate(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceMember, "CustomerUpdate",
+		constants.ActionCustomerUpdate, request,
+	)
+}
+func (client MemberMethods) SegmentList(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceMember, "SegmentList",
+		constants.ActionSegmentList, request,
+	)
+}
+func (client MemberMethods) SegmentUpsert(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceMember, "SegmentUpsert",
+		constants.ActionSegmentUpsert, request,
+	)
+}
+func (client MemberMethods) SegmentPreview(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceMember, "SegmentPreview",
+		constants.ActionSegmentPreview, request,
+	)
+}
+func (client MemberMethods) SegmentMatch(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceMember, "SegmentMatch",
+		constants.ActionSegmentMatch, request,
 	)
 }
 
@@ -3134,6 +3476,18 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewAnalyticsServiceClient(connection).Drilldown(ctx, request)
 			}},
+		constants.ActionCustomerStats: {
+			fullMethod: mallv1.AnalyticsService_CustomerStats_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewAnalyticsServiceClient(connection).CustomerStats(ctx, request)
+			}},
+		constants.ActionSkuSales: {
+			fullMethod: mallv1.AnalyticsService_SkuSales_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewAnalyticsServiceClient(connection).SkuSales(ctx, request)
+			}},
 	},
 	constants.ServiceCampaign: {
 		constants.ActionAdminList: {
@@ -3283,6 +3637,54 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewCatalogServiceClient(connection).ImportGet(ctx, request)
+			}},
+		constants.ActionDraftSave: {
+			fullMethod: mallv1.CatalogService_DraftSave_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewCatalogServiceClient(connection).DraftSave(ctx, request)
+			}},
+		constants.ActionDraftList: {
+			fullMethod: mallv1.CatalogService_DraftList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewCatalogServiceClient(connection).DraftList(ctx, request)
+			}},
+		constants.ActionWorkspaceGet: {
+			fullMethod: mallv1.CatalogService_WorkspaceGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewCatalogServiceClient(connection).WorkspaceGet(ctx, request)
+			}},
+		constants.ActionPublishCheck: {
+			fullMethod: mallv1.CatalogService_PublishCheck_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewCatalogServiceClient(connection).PublishCheck(ctx, request)
+			}},
+		constants.ActionDraftPublish: {
+			fullMethod: mallv1.CatalogService_DraftPublish_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewCatalogServiceClient(connection).DraftPublish(ctx, request)
+			}},
+		constants.ActionPublishSchedule: {
+			fullMethod: mallv1.CatalogService_PublishSchedule_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewCatalogServiceClient(connection).PublishSchedule(ctx, request)
+			}},
+		constants.ActionPublicationCancel: {
+			fullMethod: mallv1.CatalogService_PublicationCancel_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewCatalogServiceClient(connection).PublicationCancel(ctx, request)
+			}},
+		constants.ActionVersionRestore: {
+			fullMethod: mallv1.CatalogService_VersionRestore_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewCatalogServiceClient(connection).VersionRestore(ctx, request)
 			}},
 	},
 	constants.ServiceCheckout: {
@@ -3488,6 +3890,12 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewCouponServiceClient(connection).IssueReward(ctx, request)
 			}},
+		constants.ActionCustomerAssets: {
+			fullMethod: mallv1.CouponService_CustomerAssets_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewCouponServiceClient(connection).CustomerAssets(ctx, request)
+			}},
 	},
 	constants.ServiceEngagement: {
 		constants.ActionAdminCancel: {
@@ -3555,6 +3963,48 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewEngagementServiceClient(connection).Unsubscribe(ctx, request)
+			}},
+		constants.ActionJourneyRules: {
+			fullMethod: mallv1.EngagementService_JourneyRules_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewEngagementServiceClient(connection).JourneyRules(ctx, request)
+			}},
+		constants.ActionJourneyRuleSave: {
+			fullMethod: mallv1.EngagementService_JourneyRuleSave_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewEngagementServiceClient(connection).JourneyRuleSave(ctx, request)
+			}},
+		constants.ActionJourneyList: {
+			fullMethod: mallv1.EngagementService_JourneyList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewEngagementServiceClient(connection).JourneyList(ctx, request)
+			}},
+		constants.ActionJourneyRun: {
+			fullMethod: mallv1.EngagementService_JourneyRun_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewEngagementServiceClient(connection).JourneyRun(ctx, request)
+			}},
+		constants.ActionJourneyCancel: {
+			fullMethod: mallv1.EngagementService_JourneyCancel_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewEngagementServiceClient(connection).JourneyCancel(ctx, request)
+			}},
+		constants.ActionJourneyOpen: {
+			fullMethod: mallv1.EngagementService_JourneyOpen_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewEngagementServiceClient(connection).JourneyOpen(ctx, request)
+			}},
+		constants.ActionJourneyDeliveryCheck: {
+			fullMethod: mallv1.EngagementService_JourneyDeliveryCheck_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewEngagementServiceClient(connection).JourneyDeliveryCheck(ctx, request)
 			}},
 	},
 	constants.ServiceFlash: {
@@ -3816,6 +4266,36 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewHelpdeskServiceClient(connection).PolicyUpsert(ctx, request)
 			}},
+		constants.ActionExportCreate: {
+			fullMethod: mallv1.HelpdeskService_ExportCreate_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewHelpdeskServiceClient(connection).ExportCreate(ctx, request)
+			}},
+		constants.ActionExportList: {
+			fullMethod: mallv1.HelpdeskService_ExportList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewHelpdeskServiceClient(connection).ExportList(ctx, request)
+			}},
+		constants.ActionExportGet: {
+			fullMethod: mallv1.HelpdeskService_ExportGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewHelpdeskServiceClient(connection).ExportGet(ctx, request)
+			}},
+		constants.ActionExportRetry: {
+			fullMethod: mallv1.HelpdeskService_ExportRetry_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewHelpdeskServiceClient(connection).ExportRetry(ctx, request)
+			}},
+		constants.ActionExportDownload: {
+			fullMethod: mallv1.HelpdeskService_ExportDownload_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewHelpdeskServiceClient(connection).ExportDownload(ctx, request)
+			}},
 	},
 	constants.ServiceIAM: {
 		constants.ActionAdminGet: {
@@ -4024,6 +4504,30 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewInteractionServiceClient(connection).Moderate(ctx, request)
 			}},
+		constants.ActionReviewGet: {
+			fullMethod: mallv1.InteractionService_ReviewGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInteractionServiceClient(connection).ReviewGet(ctx, request)
+			}},
+		constants.ActionReviewRevise: {
+			fullMethod: mallv1.InteractionService_ReviewRevise_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInteractionServiceClient(connection).ReviewRevise(ctx, request)
+			}},
+		constants.ActionFollowupSave: {
+			fullMethod: mallv1.InteractionService_FollowupSave_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInteractionServiceClient(connection).FollowupSave(ctx, request)
+			}},
+		constants.ActionReviewImage: {
+			fullMethod: mallv1.InteractionService_ReviewImage_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInteractionServiceClient(connection).ReviewImage(ctx, request)
+			}},
 	},
 	constants.ServiceInventory: {
 		constants.ActionAdjust: {
@@ -4139,6 +4643,24 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewInventoryServiceClient(connection).RestockBatch(ctx, request)
+			}},
+		constants.ActionSupplierList: {
+			fullMethod: mallv1.InventoryService_SupplierList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInventoryServiceClient(connection).SupplierList(ctx, request)
+			}},
+		constants.ActionSupplierUpsert: {
+			fullMethod: mallv1.InventoryService_SupplierUpsert_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInventoryServiceClient(connection).SupplierUpsert(ctx, request)
+			}},
+		constants.ActionReplenishmentGet: {
+			fullMethod: mallv1.InventoryService_ReplenishmentGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewInventoryServiceClient(connection).ReplenishmentGet(ctx, request)
 			}},
 	},
 	constants.ServiceInvoice: {
@@ -4290,6 +4812,18 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewMediaServiceClient(connection).VerifyFiles(ctx, request)
 			}},
+		constants.ActionStoreExport: {
+			fullMethod: mallv1.MediaService_StoreExport_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewMediaServiceClient(connection).StoreExport(ctx, request)
+			}},
+		constants.ActionReadReviewImage: {
+			fullMethod: mallv1.MediaService_ReadReviewImage_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewMediaServiceClient(connection).ReadReviewImage(ctx, request)
+			}},
 	},
 	constants.ServiceMember: {
 		constants.ActionGet: {
@@ -4315,6 +4849,42 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewMemberServiceClient(connection).PolicyUpsert(ctx, request)
+			}},
+		constants.ActionCustomerGet: {
+			fullMethod: mallv1.MemberService_CustomerGet_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewMemberServiceClient(connection).CustomerGet(ctx, request)
+			}},
+		constants.ActionCustomerUpdate: {
+			fullMethod: mallv1.MemberService_CustomerUpdate_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewMemberServiceClient(connection).CustomerUpdate(ctx, request)
+			}},
+		constants.ActionSegmentList: {
+			fullMethod: mallv1.MemberService_SegmentList_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewMemberServiceClient(connection).SegmentList(ctx, request)
+			}},
+		constants.ActionSegmentUpsert: {
+			fullMethod: mallv1.MemberService_SegmentUpsert_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewMemberServiceClient(connection).SegmentUpsert(ctx, request)
+			}},
+		constants.ActionSegmentPreview: {
+			fullMethod: mallv1.MemberService_SegmentPreview_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewMemberServiceClient(connection).SegmentPreview(ctx, request)
+			}},
+		constants.ActionSegmentMatch: {
+			fullMethod: mallv1.MemberService_SegmentMatch_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewMemberServiceClient(connection).SegmentMatch(ctx, request)
 			}},
 	},
 	constants.ServiceNotification: {
@@ -4863,6 +5433,16 @@ func (server *analyticsRPCServer) Drilldown(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionDrilldown], request)
 }
+func (server *analyticsRPCServer) CustomerStats(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionCustomerStats], request)
+}
+func (server *analyticsRPCServer) SkuSales(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionSkuSales], request)
+}
 
 type campaignRPCServer struct {
 	mallv1.UnimplementedCampaignServiceServer
@@ -5000,6 +5580,46 @@ func (server *catalogRPCServer) ImportGet(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionImportGet], request)
+}
+func (server *catalogRPCServer) DraftSave(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionDraftSave], request)
+}
+func (server *catalogRPCServer) DraftList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionDraftList], request)
+}
+func (server *catalogRPCServer) WorkspaceGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionWorkspaceGet], request)
+}
+func (server *catalogRPCServer) PublishCheck(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPublishCheck], request)
+}
+func (server *catalogRPCServer) DraftPublish(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionDraftPublish], request)
+}
+func (server *catalogRPCServer) PublishSchedule(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPublishSchedule], request)
+}
+func (server *catalogRPCServer) PublicationCancel(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionPublicationCancel], request)
+}
+func (server *catalogRPCServer) VersionRestore(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionVersionRestore], request)
 }
 
 type checkoutRPCServer struct {
@@ -5184,6 +5804,11 @@ func (server *couponRPCServer) IssueReward(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionIssueReward], request)
 }
+func (server *couponRPCServer) CustomerAssets(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionCustomerAssets], request)
+}
 
 type engagementRPCServer struct {
 	mallv1.UnimplementedEngagementServiceServer
@@ -5244,6 +5869,41 @@ func (server *engagementRPCServer) Unsubscribe(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionUnsubscribe], request)
+}
+func (server *engagementRPCServer) JourneyRules(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionJourneyRules], request)
+}
+func (server *engagementRPCServer) JourneyRuleSave(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionJourneyRuleSave], request)
+}
+func (server *engagementRPCServer) JourneyList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionJourneyList], request)
+}
+func (server *engagementRPCServer) JourneyRun(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionJourneyRun], request)
+}
+func (server *engagementRPCServer) JourneyCancel(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionJourneyCancel], request)
+}
+func (server *engagementRPCServer) JourneyOpen(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionJourneyOpen], request)
+}
+func (server *engagementRPCServer) JourneyDeliveryCheck(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionJourneyDeliveryCheck], request)
 }
 
 type flashRPCServer struct {
@@ -5479,6 +6139,31 @@ func (server *helpdeskRPCServer) PolicyUpsert(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionPolicyUpsert], request)
 }
+func (server *helpdeskRPCServer) ExportCreate(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionExportCreate], request)
+}
+func (server *helpdeskRPCServer) ExportList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionExportList], request)
+}
+func (server *helpdeskRPCServer) ExportGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionExportGet], request)
+}
+func (server *helpdeskRPCServer) ExportRetry(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionExportRetry], request)
+}
+func (server *helpdeskRPCServer) ExportDownload(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionExportDownload], request)
+}
 
 type iamRPCServer struct {
 	mallv1.UnimplementedIAMServiceServer
@@ -5661,6 +6346,26 @@ func (server *interactionRPCServer) Moderate(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionModerate], request)
 }
+func (server *interactionRPCServer) ReviewGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionReviewGet], request)
+}
+func (server *interactionRPCServer) ReviewRevise(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionReviewRevise], request)
+}
+func (server *interactionRPCServer) FollowupSave(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionFollowupSave], request)
+}
+func (server *interactionRPCServer) ReviewImage(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionReviewImage], request)
+}
 
 type inventoryRPCServer struct {
 	mallv1.UnimplementedInventoryServiceServer
@@ -5761,6 +6466,21 @@ func (server *inventoryRPCServer) RestockBatch(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionRestockBatch], request)
+}
+func (server *inventoryRPCServer) SupplierList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionSupplierList], request)
+}
+func (server *inventoryRPCServer) SupplierUpsert(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionSupplierUpsert], request)
+}
+func (server *inventoryRPCServer) ReplenishmentGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionReplenishmentGet], request)
 }
 
 type invoiceRPCServer struct {
@@ -5900,6 +6620,16 @@ func (server *mediaRPCServer) VerifyFiles(
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionVerifyFiles], request)
 }
+func (server *mediaRPCServer) StoreExport(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionStoreExport], request)
+}
+func (server *mediaRPCServer) ReadReviewImage(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionReadReviewImage], request)
+}
 
 type memberRPCServer struct {
 	mallv1.UnimplementedMemberServiceServer
@@ -5925,6 +6655,36 @@ func (server *memberRPCServer) PolicyUpsert(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionPolicyUpsert], request)
+}
+func (server *memberRPCServer) CustomerGet(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionCustomerGet], request)
+}
+func (server *memberRPCServer) CustomerUpdate(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionCustomerUpdate], request)
+}
+func (server *memberRPCServer) SegmentList(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionSegmentList], request)
+}
+func (server *memberRPCServer) SegmentUpsert(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionSegmentUpsert], request)
+}
+func (server *memberRPCServer) SegmentPreview(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionSegmentPreview], request)
+}
+func (server *memberRPCServer) SegmentMatch(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionSegmentMatch], request)
 }
 
 type notificationRPCServer struct {

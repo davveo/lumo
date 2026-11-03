@@ -80,6 +80,12 @@ func (r *Repository) processImport(ctx context.Context, id string) error {
 		}
 		for i := job.Processed; i < end; i++ {
 			row := &rows[i]
+			if len(row.Records) == 0 || row.Records[0].Payload == "" {
+				row.Error = "旧版本预览缺少商品资料，请重新上传预览"
+				row.Status = constants.CatalogImportRowStatusFailed
+				job.Failed++
+				continue
+			}
 			var current domain.Record
 			result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&current, "id = ?", row.ID)
 			exists := result.Error == nil

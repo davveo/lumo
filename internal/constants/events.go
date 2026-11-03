@@ -2,6 +2,14 @@ package constants
 
 // enum:Event
 const (
+	EventQAChanged         = "QAChanged"
+	EventReviewModerated   = "ReviewModerated"
+	EventCartChanged       = "CartChanged"
+	EventJourneyReady      = "JourneyReady"
+	EventJourneyDelivered  = "JourneyDelivered"
+	EventJourneySuppressed = "JourneySuppressed"
+	EventExportReady       = "ExportReady"
+
 	EventRedemptionRequested          = "RedemptionRequested"
 	EventRedemptionRecoveryRequested  = "RedemptionRecoveryRequested"
 	EventRedemptionIssued             = "RedemptionIssued"

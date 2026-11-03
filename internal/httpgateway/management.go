@@ -15,6 +15,12 @@ func (g *gateway) managementDashboard(ctx context.Context, c platform.Command) (
 	if err := platform.RequireAdmin(c); err != nil && !platform.StaffAllows(c.Role, "management", c.Action) {
 		return nil, err
 	}
+	if c.Action == constants.ActionCustomerProfile {
+		return g.customerProfile(ctx, c)
+	}
+	if c.Action == constants.ActionGlobalSearch {
+		return g.managementSearch(ctx, c)
+	}
 	if c.Action == constants.ActionTasks || c.Action == constants.ActionRetry {
 		return g.managementTasks(ctx, c)
 	}
@@ -65,6 +71,8 @@ func (g *gateway) managementDashboard(ctx context.Context, c platform.Command) (
 }
 
 func init() {
+	adminActions["management/global_search"] = true
+	reads[constants.ActionGlobalSearch] = true
 	userActions["logistics/tracking"] = true
 	reads["tracking"] = true
 	for _, a := range []string{"tracking_update", "exceptions", "exception_resolve"} {

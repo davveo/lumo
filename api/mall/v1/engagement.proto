@@ -20,4 +20,11 @@ service EngagementService {
   rpc Subscribe(ServiceRequest) returns (ServiceResponse);
   rpc Subscriptions(ServiceRequest) returns (ServiceResponse);
   rpc Unsubscribe(ServiceRequest) returns (ServiceResponse);
+  rpc JourneyRules(ServiceRequest) returns (ServiceResponse);
+  rpc JourneyRuleSave(ServiceRequest) returns (ServiceResponse);
+  rpc JourneyList(ServiceRequest) returns (ServiceResponse);
+  rpc JourneyRun(ServiceRequest) returns (ServiceResponse);
+  rpc JourneyCancel(ServiceRequest) returns (ServiceResponse);
+  rpc JourneyOpen(ServiceRequest) returns (ServiceResponse);
+  rpc JourneyDeliveryCheck(ServiceRequest) returns (ServiceResponse);
 }

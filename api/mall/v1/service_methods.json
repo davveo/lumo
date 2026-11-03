@@ -137,6 +137,14 @@
         {
           "action": "ActionDrilldown",
           "method": "Drilldown"
+        },
+        {
+          "action": "ActionCustomerStats",
+          "method": "CustomerStats"
+        },
+        {
+          "action": "ActionSkuSales",
+          "method": "SkuSales"
         }
       ]
     },
@@ -257,6 +265,38 @@
         {
           "method": "ImportGet",
           "action": "ActionImportGet"
+        },
+        {
+          "action": "ActionDraftSave",
+          "method": "DraftSave"
+        },
+        {
+          "action": "ActionDraftList",
+          "method": "DraftList"
+        },
+        {
+          "action": "ActionWorkspaceGet",
+          "method": "WorkspaceGet"
+        },
+        {
+          "action": "ActionPublishCheck",
+          "method": "PublishCheck"
+        },
+        {
+          "action": "ActionDraftPublish",
+          "method": "DraftPublish"
+        },
+        {
+          "action": "ActionPublishSchedule",
+          "method": "PublishSchedule"
+        },
+        {
+          "action": "ActionPublicationCancel",
+          "method": "PublicationCancel"
+        },
+        {
+          "action": "ActionVersionRestore",
+          "method": "VersionRestore"
         }
       ]
     },
@@ -413,6 +453,10 @@
         {
           "action": "ActionIssueReward",
           "method": "IssueReward"
+        },
+        {
+          "action": "ActionCustomerAssets",
+          "method": "CustomerAssets"
         }
       ]
     },
@@ -465,6 +509,34 @@
         {
           "action": "ActionUnsubscribe",
           "method": "Unsubscribe"
+        },
+        {
+          "action": "ActionJourneyRules",
+          "method": "JourneyRules"
+        },
+        {
+          "action": "ActionJourneyRuleSave",
+          "method": "JourneyRuleSave"
+        },
+        {
+          "action": "ActionJourneyList",
+          "method": "JourneyList"
+        },
+        {
+          "action": "ActionJourneyRun",
+          "method": "JourneyRun"
+        },
+        {
+          "action": "ActionJourneyCancel",
+          "method": "JourneyCancel"
+        },
+        {
+          "action": "ActionJourneyOpen",
+          "method": "JourneyOpen"
+        },
+        {
+          "action": "ActionJourneyDeliveryCheck",
+          "method": "JourneyDeliveryCheck"
         }
       ]
     },
@@ -665,6 +737,26 @@
         {
           "action": "ActionPolicyUpsert",
           "method": "PolicyUpsert"
+        },
+        {
+          "action": "ActionExportCreate",
+          "method": "ExportCreate"
+        },
+        {
+          "action": "ActionExportList",
+          "method": "ExportList"
+        },
+        {
+          "action": "ActionExportGet",
+          "method": "ExportGet"
+        },
+        {
+          "action": "ActionExportRetry",
+          "method": "ExportRetry"
+        },
+        {
+          "action": "ActionExportDownload",
+          "method": "ExportDownload"
         }
       ]
     },
@@ -817,6 +909,22 @@
         {
           "action": "ActionModerate",
           "method": "Moderate"
+        },
+        {
+          "action": "ActionReviewGet",
+          "method": "ReviewGet"
+        },
+        {
+          "action": "ActionReviewRevise",
+          "method": "ReviewRevise"
+        },
+        {
+          "action": "ActionFollowupSave",
+          "method": "FollowupSave"
+        },
+        {
+          "action": "ActionReviewImage",
+          "method": "ReviewImage"
         }
       ]
     },
@@ -901,6 +1009,18 @@
         {
           "action": "ActionRestockBatch",
           "method": "RestockBatch"
+        },
+        {
+          "action": "ActionSupplierList",
+          "method": "SupplierList"
+        },
+        {
+          "action": "ActionSupplierUpsert",
+          "method": "SupplierUpsert"
+        },
+        {
+          "action": "ActionReplenishmentGet",
+          "method": "ReplenishmentGet"
         }
       ]
     },
@@ -1021,6 +1141,14 @@
         {
           "action": "ActionVerifyFiles",
           "method": "VerifyFiles"
+        },
+        {
+          "action": "ActionStoreExport",
+          "method": "StoreExport"
+        },
+        {
+          "action": "ActionReadReviewImage",
+          "method": "ReadReviewImage"
         }
       ]
     },
@@ -1045,6 +1173,30 @@
         {
           "action": "ActionPolicyUpsert",
           "method": "PolicyUpsert"
+        },
+        {
+          "action": "ActionCustomerGet",
+          "method": "CustomerGet"
+        },
+        {
+          "action": "ActionCustomerUpdate",
+          "method": "CustomerUpdate"
+        },
+        {
+          "action": "ActionSegmentList",
+          "method": "SegmentList"
+        },
+        {
+          "action": "ActionSegmentUpsert",
+          "method": "SegmentUpsert"
+        },
+        {
+          "action": "ActionSegmentPreview",
+          "method": "SegmentPreview"
+        },
+        {
+          "action": "ActionSegmentMatch",
+          "method": "SegmentMatch"
         }
       ]
     },

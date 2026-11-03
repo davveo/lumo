@@ -317,39 +317,25 @@ test('notification editor previews safe sample variables without sending a messa
   assert.match(f.m.render(), /199.00 &lt;script&gt;/);
 });
 
-test('CSV export reads every page and neutralizes leading-whitespace formulas', async (t) => {
-  let exported;
+test('CSV export submits one durable job with frozen page filters', async (t) => {
   const calls = [];
-  const f = fixture('audit', async (_service, _action, command) => {
-    calls.push(command);
-    const page = command.data.page,
-      size = command.data.page_size;
-    return {
-      items: Array.from({ length: Math.max(0, Math.min(size, 105 - (page - 1) * size)) }, (_, i) => ({
-        id: 'audit-' + ((page - 1) * size + i),
-        reason: '\t=HYPERLINK("x")',
-        actor_id: 'admin',
-      })),
-      total: 105,
-    };
+  const f = fixture('audit', async (service, action, command) => {
+    calls.push({ service, action, command });
+    return action === 'export_create'
+      ? { job: { id: 'job-1', status: 'QUEUED' } }
+      : { items: [{ id: 'audit-1' }], total: 105 };
   });
   t.after(() => f.app.dispose());
-  f.app.ctx.Blob = Blob;
-  f.app.ctx.URL = class extends URL {
-    static createObjectURL(blob) {
-      exported = blob;
-      return 'blob:export';
-    }
-    static revokeObjectURL() {}
-  };
+  f.m.state.filters.keyword = '退款';
   await f.m.refresh();
   await f.app.click({ mg: 'export' });
-  const pages = calls.filter((c) => c.data.page_size === 100);
-  assert.equal(pages.length, 2);
-  assert.equal(pages[1].data.page, 2);
-  const text = await exported.text();
-  assert.match(text, /audit-104/);
-  assert.match(text, /'\t=HYPERLINK/);
+  const jobs = calls.filter((c) => c.action === 'export_create');
+  assert.equal(jobs.length, 1);
+  assert.equal(jobs[0].service, 'helpdesk');
+  assert.equal(jobs[0].command.data.source, 'iam/audit_list');
+  assert.equal(jobs[0].command.data.filters.keyword, '退款');
+  assert.ok(jobs[0].command.idempotency_key);
+  assert.equal(calls.filter((c) => c.action === 'audit_list').length, 1);
   assert.equal(f.m.state.error, '');
 });
 

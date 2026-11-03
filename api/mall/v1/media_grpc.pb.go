@@ -21,11 +21,13 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	MediaService_Complete_FullMethodName    = "/mall.v1.MediaService/Complete"
-	MediaService_Create_FullMethodName      = "/mall.v1.MediaService/Create"
-	MediaService_Download_FullMethodName    = "/mall.v1.MediaService/Download"
-	MediaService_Get_FullMethodName         = "/mall.v1.MediaService/Get"
-	MediaService_VerifyFiles_FullMethodName = "/mall.v1.MediaService/VerifyFiles"
+	MediaService_Complete_FullMethodName        = "/mall.v1.MediaService/Complete"
+	MediaService_Create_FullMethodName          = "/mall.v1.MediaService/Create"
+	MediaService_Download_FullMethodName        = "/mall.v1.MediaService/Download"
+	MediaService_Get_FullMethodName             = "/mall.v1.MediaService/Get"
+	MediaService_VerifyFiles_FullMethodName     = "/mall.v1.MediaService/VerifyFiles"
+	MediaService_StoreExport_FullMethodName     = "/mall.v1.MediaService/StoreExport"
+	MediaService_ReadReviewImage_FullMethodName = "/mall.v1.MediaService/ReadReviewImage"
 )
 
 // MediaServiceClient is the client API for MediaService service.
@@ -37,6 +39,8 @@ type MediaServiceClient interface {
 	Download(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Get(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	VerifyFiles(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	StoreExport(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ReadReviewImage(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type mediaServiceClient struct {
@@ -92,6 +96,24 @@ func (c *mediaServiceClient) VerifyFiles(ctx context.Context, in *ServiceRequest
 	return out, nil
 }
 
+func (c *mediaServiceClient) StoreExport(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, MediaService_StoreExport_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mediaServiceClient) ReadReviewImage(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, MediaService_ReadReviewImage_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MediaServiceServer is the server API for MediaService service.
 // All implementations must embed UnimplementedMediaServiceServer
 // for forward compatibility
@@ -101,6 +123,8 @@ type MediaServiceServer interface {
 	Download(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Get(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	VerifyFiles(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	StoreExport(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ReadReviewImage(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedMediaServiceServer()
 }
 
@@ -122,6 +146,12 @@ func (UnimplementedMediaServiceServer) Get(context.Context, *ServiceRequest) (*S
 }
 func (UnimplementedMediaServiceServer) VerifyFiles(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VerifyFiles not implemented")
+}
+func (UnimplementedMediaServiceServer) StoreExport(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StoreExport not implemented")
+}
+func (UnimplementedMediaServiceServer) ReadReviewImage(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReadReviewImage not implemented")
 }
 func (UnimplementedMediaServiceServer) mustEmbedUnimplementedMediaServiceServer() {}
 
@@ -226,6 +256,42 @@ func _MediaService_VerifyFiles_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MediaService_StoreExport_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MediaServiceServer).StoreExport(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MediaService_StoreExport_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MediaServiceServer).StoreExport(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MediaService_ReadReviewImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MediaServiceServer).ReadReviewImage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MediaService_ReadReviewImage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MediaServiceServer).ReadReviewImage(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MediaService_ServiceDesc is the grpc.ServiceDesc for MediaService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -252,6 +318,14 @@ var MediaService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VerifyFiles",
 			Handler:    _MediaService_VerifyFiles_Handler,
+		},
+		{
+			MethodName: "StoreExport",
+			Handler:    _MediaService_StoreExport_Handler,
+		},
+		{
+			MethodName: "ReadReviewImage",
+			Handler:    _MediaService_ReadReviewImage_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

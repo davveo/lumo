@@ -130,6 +130,12 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 	if e = own(c, r); e != nil {
 		return nil, e
 	}
+	if r.Kind == "export" {
+		at, err := time.Parse(time.RFC3339, platform.Text(payload(r), "expires_at"))
+		if err != nil || !time.Now().Before(at) {
+			return nil, status.Error(codes.FailedPrecondition, "导出文件已到期")
+		}
+	}
 	out := view(r)
 	out["file_id"] = r.ID
 	if s.store == nil {
@@ -199,6 +205,12 @@ func (s *Service) Download(ctx context.Context, c platform.Request) (traceResult
 	}
 	if e = own(c, r); e != nil {
 		return nil, e
+	}
+	if r.Kind == "export" {
+		at, err := time.Parse(time.RFC3339, platform.Text(payload(r), "expires_at"))
+		if err != nil || !time.Now().Before(at) {
+			return nil, status.Error(codes.FailedPrecondition, "导出文件已到期")
+		}
 	}
 	out := view(r)
 	out["file_id"] = r.ID

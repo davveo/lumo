@@ -45,6 +45,7 @@ func view(r domain.Record) platform.Result {
 	v["status"] = r.Status
 	v["kind"] = r.Kind
 	v["created_at"] = r.CreatedAt.Format(time.RFC3339)
+	v["updated_at"] = r.UpdatedAt.UTC().Format(time.RFC3339Nano)
 	return v
 }
 func own(c platform.Request, r domain.Record) error {
@@ -87,3 +88,13 @@ func demo() bool {
 }
 func (s *Service) Seed(ctx context.Context) error                      { return s.seed(ctx) }
 func (s *Service) OnEvent(ctx context.Context, e platform.Event) error { return s.event(ctx, e) }
+
+func cartChanged(user string) *platform.Event {
+	return &platform.Event{
+		ID:          platform.ID("evt"),
+		Type:        constants.EventCartChanged,
+		UserID:      user,
+		AggregateID: user,
+		Data:        map[string]any{"changed_at": time.Now().UTC().Format(time.RFC3339Nano)},
+	}
+}

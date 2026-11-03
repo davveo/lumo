@@ -14,4 +14,6 @@ service MediaService {
   rpc Download(ServiceRequest) returns (ServiceResponse);
   rpc Get(ServiceRequest) returns (ServiceResponse);
   rpc VerifyFiles(ServiceRequest) returns (ServiceResponse);
+  rpc StoreExport(ServiceRequest) returns (ServiceResponse);
+  rpc ReadReviewImage(ServiceRequest) returns (ServiceResponse);
 }

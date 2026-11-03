@@ -533,6 +533,7 @@ func TestCatalogVariantsHaveAuthoritativePricesAndVisibility(t *testing.T) {
 		t.Fatalf("variant price was not adjusted from server base %+v", variant)
 	}
 	data["active"] = false
+	data["product_version"] = updated["product_version"]
 	run(t, p, "catalog", cmd("upsert", "iphone", "admin", "admin", data))
 	if _, e := p.Call(context.Background(), "catalog", cmd("get", "iphone--0-0", "demo", "user", nil)); status.Code(
 		e,

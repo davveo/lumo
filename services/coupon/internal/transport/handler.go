@@ -10,7 +10,8 @@ func New(s *usecase.Service) *platform.MethodHandler {
 	return platform.NewMethodHandler(
 		constants.ServiceCoupon,
 		map[string]platform.Operation{
-			constants.ActionIssueReward: s.IssueReward, constants.ActionCalculate: s.Calculate,
+			constants.ActionCustomerAssets: s.CustomerAssets,
+			constants.ActionIssueReward:    s.IssueReward, constants.ActionCalculate: s.Calculate,
 			constants.ActionTemplatesAdmin:    s.TemplatesAdmin,
 			constants.ActionTemplateUpsert:    s.TemplateUpsert,
 			constants.ActionTemplates:         s.Templates,

@@ -17,8 +17,15 @@ func New(d platform.Dependencies) platform.Module {
 		Migrate: s.Migrate,
 		Seed:    s.Seed,
 		Handle:  t.Handle, Operations: t.Operations(),
-		Topics:  nil,
+		Topics: []string{
+			constants.EventCartChanged,
+			constants.EventOrderAwaitingPayment,
+			constants.EventOrderPaymentAccepted,
+			constants.EventOrderCompleted,
+			constants.EventJourneyDelivered,
+			constants.EventJourneySuppressed,
+		},
 		OnEvent: s.OnEvent,
-		Tick:    s.Tick,
+		Tick:    s.TickAll,
 	}
 }

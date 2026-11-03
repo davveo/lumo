@@ -4,6 +4,7 @@ import "github.com/davveo/lumo/internal/constants"
 
 func ActivityEvents() []string {
 	return []string{
+		constants.EventJourneyReady,
 		constants.EventProductPriceReached,
 		constants.EventProductBackInStock,
 		constants.EventGroupFormed,
@@ -13,6 +14,7 @@ func ActivityEvents() []string {
 }
 func ServiceEvents() []string {
 	return []string{
+		constants.EventExportReady,
 		constants.EventRefundSucceeded,
 		constants.EventInvoiceIssued,
 		constants.EventTicketReplied,

@@ -21,7 +21,7 @@ func (r *Repository) AdminList(
 		ctx,
 		r.db.WithContext(ctx).Where("kind = ?", constants.HelpdeskKindTicket),
 		c.Data,
-		adminquery.Spec{ID: "id", State: "status", Search: []string{"id", "user_id", "payload"}},
+		adminquery.Spec{Owner: "user_id", ID: "id", State: "status", Search: []string{"id", "user_id", "payload"}},
 	)
 }
 

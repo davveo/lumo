@@ -40,6 +40,9 @@ func TestCartRemoveCannotDeletePaymentConsumptionReceipt(t *testing.T) {
 	sql, _ := db.DB()
 	t.Cleanup(func() { _ = sql.Close() })
 	m := cartmod.New(platform.Dependencies{DB: db, RPC: receiptPeers{}})
+	if migrateErr := platform.MigratePlatform(ctx, db); migrateErr != nil {
+		t.Fatal(migrateErr)
+	}
 	if err = m.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}

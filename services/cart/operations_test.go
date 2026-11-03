@@ -32,7 +32,7 @@ func TestIndependentOperationsKeepAuthorization(t *testing.T) {
 		{
 			constants.ServiceAnalytics,
 			analyticsmod.New,
-			7,
+			9,
 			[]string{constants.ActionRecord, constants.ActionList, constants.ActionAdminList},
 		},
 		{constants.ServiceCart, cartmod.New, 6, []string{
@@ -51,7 +51,7 @@ func TestIndependentOperationsKeepAuthorization(t *testing.T) {
 		{constants.ServiceCampaign, campaignmod.New, 8, []string{
 			constants.ActionReserve, constants.ActionConfirm, constants.ActionCancel,
 		}},
-		{constants.ServiceCoupon, couponmod.New, 15, []string{
+		{constants.ServiceCoupon, couponmod.New, 16, []string{
 			constants.ActionList, constants.ActionClaim, constants.ActionCalculate, constants.ActionReserve,
 			constants.ActionConfirm, constants.ActionCancel, constants.ActionRefund,
 		}},
@@ -112,6 +112,9 @@ func TestCartAddAndSetAreIndependentMethods(t *testing.T) {
 	sql, _ := db.DB()
 	t.Cleanup(func() { _ = sql.Close() })
 	m := cartmod.New(platform.Dependencies{DB: db, RPC: catalogAndInventory{t}})
+	if migrateErr := platform.MigratePlatform(ctx, db); migrateErr != nil {
+		t.Fatal(migrateErr)
+	}
 	if err = m.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}

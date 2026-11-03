@@ -228,6 +228,7 @@ func normalizedTraceKey(key string) string {
 func sensitiveTraceKey(key string) bool {
 	key = normalizedTraceKey(key)
 	for _, part := range []string{
+		"filecontent",
 		"password",
 		"passwd",
 		"passphrase",

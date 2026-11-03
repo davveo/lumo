@@ -24,4 +24,5 @@ service CouponService {
   rpc ReminderGet(ServiceRequest) returns (ServiceResponse);
   rpc ReminderUpdate(ServiceRequest) returns (ServiceResponse);
   rpc IssueReward(ServiceRequest) returns (ServiceResponse);
+  rpc CustomerAssets(ServiceRequest) returns (ServiceResponse);
 }

@@ -100,7 +100,7 @@
           ]);
           const rows = new Map((published.items || []).map((row) => [row.id, row]));
           (mine?.items || []).forEach((row) => rows.set(row.id, row));
-          return [...rows.values()].map(rowView);
+          return { items: [...rows.values()].map(rowView), summary: published.summary };
         });
         const [reviews, questions, related] = await Promise.all([
           ...requests,
@@ -123,8 +123,9 @@
                 }))
                 .filter((row) => row.product && row.product.id !== productId);
         cache.set(productId, {
-          reviews,
-          questions,
+          reviews: reviews.items,
+          questions: questions.items,
+          reviewSummary: reviews.summary,
           related: relatedRows,
           relatedError: related.read_error || '',
           loaded: true,
@@ -182,11 +183,20 @@
     const all = reviewData(productId),
       helpful = storage().helpful;
     const published = all.filter((row) => row.publicationStatus === C.InteractionStatus.Published);
-    const average = published.length
-      ? (published.reduce((sum, row) => sum + row.rating, 0) / published.length).toFixed(1)
-      : '0.0';
-    const favorable = published.length
-      ? Math.round((published.filter((row) => row.rating >= 4).length / published.length) * 100)
+    const summary = cache.get(productId)?.reviewSummary,
+      publishedTotal = Number(summary?.total ?? published.length),
+      ratingCounts =
+        summary?.rating_counts ||
+        Object.fromEntries([1, 2, 3, 4, 5].map((n) => [n, published.filter((r) => r.rating === n).length]));
+    const average = publishedTotal
+      ? Number(
+          summary?.average ?? published.reduce((sum, row) => sum + row.rating, 0) / Math.max(1, published.length),
+        ).toFixed(1)
+      : '';
+    const favorable = publishedTotal
+      ? Math.round(
+          (Number(summary?.favorable ?? published.filter((row) => row.rating >= 4).length) / publishedTotal) * 100,
+        )
       : 0;
     const filters = [
       ['all', '全部评价', all.length],
@@ -209,16 +219,16 @@
     const pages = Math.max(1, Math.ceil(list.length / 6));
     viewState.reviewPage = Math.min(viewState.reviewPage, pages);
     const visible = list.slice((viewState.reviewPage - 1) * 6, viewState.reviewPage * 6);
-    return `<section class="pex-reviews" aria-label="商品评价">${notice(productId)}<div class="pex-review-overview"><div class="pex-rating-score"><strong>${average}<small>/ 5</small></strong>${stars(Number(average))}<p>${favorable}% 好评 · ${published.length} 条公开评价</p></div><div class="pex-rating-bars">${[
-      5, 4, 3, 2, 1,
-    ]
-      .map((score) => {
-        const count = published.filter((row) => row.rating === score).length;
-        return `<div><span>${score} 星</span><i><b style="width:${published.length ? Math.round((count / published.length) * 100) : 0}%"></b></i><small>${count}</small></div>`;
-      })
-      .join(
-        '',
-      )}</div><div class="pex-review-invite">${icon('edit')}<div><strong>分享你的购物体验</strong><p>收货后可在订单中评价商品。</p><a href="#/member/orders/review">去评价 ${icon('chevron')}</a></div></div></div><div class="pex-review-toolbar"><div class="pex-chips" aria-label="评价筛选">${filters.map(([value, label, count]) => `<button data-product-extra-action="review-filter" data-value="${value}" data-product="${esc(productId)}" class="${viewState.reviewFilter === value ? 'active' : ''}" aria-pressed="${viewState.reviewFilter === value}">${label}<span>${count}</span></button>`).join('')}</div><label class="pex-sort-label">排序<select id="pex-review-sort" aria-label="评价排序"><option value="default" ${viewState.reviewSort === 'default' ? 'selected' : ''}>推荐排序</option><option value="recent" ${viewState.reviewSort === 'recent' ? 'selected' : ''}>最新评价</option></select></label></div><div class="pex-review-list">${visible.length ? visible.map((row) => `<article class="pex-review-card"><div class="pex-review-author"><span class="pex-avatar">${esc(row.author.slice(0, 1))}</span><div><strong>${esc(row.author)}</strong><small>${row.sample ? '购买评价' : row.status === C.PublicationViewStatus.Moderating ? '我的评价 · 待审核' : row.status === C.PublicationViewStatus.Rejected ? '我的评价 · 未通过审核' : '我的购买评价'}</small></div><time>${time(row.at)}</time></div><div class="pex-review-content">${stars(row.rating)}<p>${esc(row.body)}</p><div class="pex-review-meta"><span>${esc(row.color)} / ${esc(row.option)}</span>${row.orderId ? `<button data-action="order-details" data-id="${esc(row.orderId)}">查看订单</button>` : ''}<button data-product-extra-action="helpful" data-product="${esc(productId)}" data-id="${esc(row.id)}" aria-pressed="${!!helpful[row.id]}" aria-label="${helpful[row.id] ? '已标记有帮助' : '这条评价有帮助'}：${esc(row.author)}" class="pex-helpful ${helpful[row.id] ? 'active' : ''}" ${helpful[row.id] || row.status === C.PublicationViewStatus.Moderating || row.status === C.PublicationViewStatus.Rejected ? 'disabled' : ''}>${icon('check')}有帮助 ${row.baseHelpful}</button></div></div></article>`).join('') : '<div class="pex-empty">暂无这类评价，看看其他评价吧。</div>'}</div>${pages > 1 ? `<div class="pex-pagination"><button data-product-extra-action="review-page" data-value="${viewState.reviewPage - 1}" ${viewState.reviewPage <= 1 ? 'disabled' : ''}>上一页</button><span>${viewState.reviewPage} / ${pages}</span><button data-product-extra-action="review-page" data-value="${viewState.reviewPage + 1}" ${viewState.reviewPage >= pages ? 'disabled' : ''}>下一页</button></div>` : ''}</section>`;
+    return `<section class="pex-reviews" aria-label="商品评价">${notice(productId)}<div class="pex-review-overview"><div class="pex-rating-score">${publishedTotal ? `<strong>${average}<small>/ 5</small></strong>${stars(Number(average))}<p>${favorable}% 好评 · ${publishedTotal} 条公开评价</p>` : '<strong class="pex-no-rating">暂无评分</strong><p>评价审核公开后显示评分</p>'}</div><div class="pex-rating-bars">${
+      publishedTotal
+        ? [5, 4, 3, 2, 1]
+            .map((score) => {
+              const count = Number(ratingCounts[score]) || 0;
+              return `<div><span>${score} 星</span><i><b style="width:${Math.round((count / publishedTotal) * 100)}%"></b></i><small>${count}</small></div>`;
+            })
+            .join('')
+        : '<p class="pex-no-rating-note">这里还没有公开评价，期待你的真实体验。</p>'
+    }</div><div class="pex-review-invite">${icon('edit')}<div><strong>分享你的购物体验</strong><p>收货后可在订单中评价商品。</p><a href="#/member/orders/review">去评价 ${icon('chevron')}</a></div></div></div><div class="pex-review-toolbar"><button class="pex-outline" data-product-extra-action="retry" data-product="${esc(productId)}">刷新评价</button><div class="pex-chips" aria-label="评价筛选">${filters.map(([value, label, count]) => `<button data-product-extra-action="review-filter" data-value="${value}" data-product="${esc(productId)}" class="${viewState.reviewFilter === value ? 'active' : ''}" aria-pressed="${viewState.reviewFilter === value}">${label}<span>${count}</span></button>`).join('')}</div><label class="pex-sort-label">排序<select id="pex-review-sort" aria-label="评价排序"><option value="default" ${viewState.reviewSort === 'default' ? 'selected' : ''}>推荐排序</option><option value="recent" ${viewState.reviewSort === 'recent' ? 'selected' : ''}>最新评价</option></select></label></div><div class="pex-review-list">${visible.length ? visible.map((row) => `<article class="pex-review-card"><div class="pex-review-author"><span class="pex-avatar">${esc(row.author.slice(0, 1))}</span><div><strong>${esc(row.author)}</strong><small>${row.sample ? '购买评价' : row.status === C.PublicationViewStatus.Moderating ? '我的评价 · 待审核' : row.status === C.PublicationViewStatus.Rejected ? '我的评价 · 未通过审核' : '我的购买评价'}</small></div><time>${time(row.at)}</time></div><div class="pex-review-content">${stars(row.rating)}<p>${esc(row.body)}</p>${window.LumoReviewMedia?.grid(row, { published: row.publicationStatus === C.InteractionStatus.Published }) || ''}${row.moderation_reason ? `<p class="review-reason">${esc(row.moderation_reason)}</p>` : ''}${row.followup ? `<div class="review-followup"><strong>追加使用体验${row.followup.status === C.InteractionStatus.Pending ? ' · 审核中' : row.followup.status === C.InteractionStatus.Rejected ? ' · 未通过审核' : ''}</strong><p>${esc(row.followup.body)}</p>${window.LumoReviewMedia?.grid({ ...row.followup, id: row.id }, { part: 'followup', published: row.publicationStatus === C.InteractionStatus.Published && row.followup.status === C.InteractionStatus.Published }) || ''}<time>${new Date(row.followup.created_at).toLocaleDateString('zh-CN')}</time></div>` : ''}${!row.sample ? `<button class="review-text-action" data-member-action="review-details" data-id="${esc(row.id)}">查看详情与追评</button>` : ''}<div class="pex-review-meta"><span>${esc(row.color)} / ${esc(row.option)}</span>${row.orderId ? `<button data-action="order-details" data-id="${esc(row.orderId)}">查看订单</button>` : ''}<button data-product-extra-action="helpful" data-product="${esc(productId)}" data-id="${esc(row.id)}" aria-pressed="${!!helpful[row.id]}" aria-label="${helpful[row.id] ? '已标记有帮助' : '这条评价有帮助'}：${esc(row.author)}" class="pex-helpful ${helpful[row.id] ? 'active' : ''}" ${helpful[row.id] || row.status === C.PublicationViewStatus.Moderating || row.status === C.PublicationViewStatus.Rejected ? 'disabled' : ''}>${icon('check')}有帮助 ${row.baseHelpful}</button></div></div></article>`).join('') : '<div class="pex-empty">暂无这类评价，看看其他评价吧。</div>'}</div>${pages > 1 ? `<div class="pex-pagination"><button data-product-extra-action="review-page" data-value="${viewState.reviewPage - 1}" ${viewState.reviewPage <= 1 ? 'disabled' : ''}>上一页</button><span>${viewState.reviewPage} / ${pages}</span><button data-product-extra-action="review-page" data-value="${viewState.reviewPage + 1}" ${viewState.reviewPage >= pages ? 'disabled' : ''}>下一页</button></div>` : ''}</section>`;
   }
   function questionData(productId) {
     return ownerKey === scope() ? cache.get(productId)?.questions || [] : [];
@@ -309,7 +319,8 @@
       lastProductView = '';
       return;
     }
-    const viewKey = scope() + '|' + route[1];
+    const viewKey = scope() + '|' + route[1],
+      entering = viewKey !== lastProductView;
     if (window.LumoAuth?.isLoggedIn() && viewKey !== lastProductView) {
       lastProductView = viewKey;
       const key = 'product-view-' + (crypto.randomUUID?.() || Date.now().toString(36));
@@ -318,8 +329,9 @@
         data: { type: C.AnalyticsBehavior.View, sku_id: route[1], page: location.hash, source: 'product_detail' },
       }).catch(() => {});
     }
+    lastProductView = viewKey;
     const current = cache.get(route[1]);
-    if (ownerKey !== scope() || !current || Date.now() - current.loadedAt > 30000)
+    if (entering || ownerKey !== scope() || !current || Date.now() - current.loadedAt > 30000)
       refresh(route[1])
         .then(redraw)
         .catch((error) => {

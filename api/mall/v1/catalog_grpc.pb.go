@@ -31,6 +31,14 @@ const (
 	CatalogService_ImportPreview_FullMethodName            = "/mall.v1.CatalogService/ImportPreview"
 	CatalogService_ImportCommit_FullMethodName             = "/mall.v1.CatalogService/ImportCommit"
 	CatalogService_ImportGet_FullMethodName                = "/mall.v1.CatalogService/ImportGet"
+	CatalogService_DraftSave_FullMethodName                = "/mall.v1.CatalogService/DraftSave"
+	CatalogService_DraftList_FullMethodName                = "/mall.v1.CatalogService/DraftList"
+	CatalogService_WorkspaceGet_FullMethodName             = "/mall.v1.CatalogService/WorkspaceGet"
+	CatalogService_PublishCheck_FullMethodName             = "/mall.v1.CatalogService/PublishCheck"
+	CatalogService_DraftPublish_FullMethodName             = "/mall.v1.CatalogService/DraftPublish"
+	CatalogService_PublishSchedule_FullMethodName          = "/mall.v1.CatalogService/PublishSchedule"
+	CatalogService_PublicationCancel_FullMethodName        = "/mall.v1.CatalogService/PublicationCancel"
+	CatalogService_VersionRestore_FullMethodName           = "/mall.v1.CatalogService/VersionRestore"
 )
 
 // CatalogServiceClient is the client API for CatalogService service.
@@ -47,6 +55,14 @@ type CatalogServiceClient interface {
 	ImportPreview(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	ImportCommit(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	ImportGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	DraftSave(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	DraftList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	WorkspaceGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PublishCheck(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	DraftPublish(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PublishSchedule(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PublicationCancel(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	VersionRestore(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type catalogServiceClient struct {
@@ -147,6 +163,78 @@ func (c *catalogServiceClient) ImportGet(ctx context.Context, in *ServiceRequest
 	return out, nil
 }
 
+func (c *catalogServiceClient) DraftSave(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CatalogService_DraftSave_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) DraftList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CatalogService_DraftList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) WorkspaceGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CatalogService_WorkspaceGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) PublishCheck(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CatalogService_PublishCheck_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) DraftPublish(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CatalogService_DraftPublish_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) PublishSchedule(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CatalogService_PublishSchedule_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) PublicationCancel(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CatalogService_PublicationCancel_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) VersionRestore(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CatalogService_VersionRestore_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CatalogServiceServer is the server API for CatalogService service.
 // All implementations must embed UnimplementedCatalogServiceServer
 // for forward compatibility
@@ -161,6 +249,14 @@ type CatalogServiceServer interface {
 	ImportPreview(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	ImportCommit(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	ImportGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	DraftSave(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	DraftList(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	WorkspaceGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PublishCheck(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	DraftPublish(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PublishSchedule(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PublicationCancel(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	VersionRestore(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedCatalogServiceServer()
 }
 
@@ -197,6 +293,30 @@ func (UnimplementedCatalogServiceServer) ImportCommit(context.Context, *ServiceR
 }
 func (UnimplementedCatalogServiceServer) ImportGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ImportGet not implemented")
+}
+func (UnimplementedCatalogServiceServer) DraftSave(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DraftSave not implemented")
+}
+func (UnimplementedCatalogServiceServer) DraftList(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DraftList not implemented")
+}
+func (UnimplementedCatalogServiceServer) WorkspaceGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WorkspaceGet not implemented")
+}
+func (UnimplementedCatalogServiceServer) PublishCheck(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PublishCheck not implemented")
+}
+func (UnimplementedCatalogServiceServer) DraftPublish(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DraftPublish not implemented")
+}
+func (UnimplementedCatalogServiceServer) PublishSchedule(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PublishSchedule not implemented")
+}
+func (UnimplementedCatalogServiceServer) PublicationCancel(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PublicationCancel not implemented")
+}
+func (UnimplementedCatalogServiceServer) VersionRestore(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method VersionRestore not implemented")
 }
 func (UnimplementedCatalogServiceServer) mustEmbedUnimplementedCatalogServiceServer() {}
 
@@ -391,6 +511,150 @@ func _CatalogService_ImportGet_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CatalogService_DraftSave_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).DraftSave(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_DraftSave_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).DraftSave(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_DraftList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).DraftList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_DraftList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).DraftList(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_WorkspaceGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).WorkspaceGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_WorkspaceGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).WorkspaceGet(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_PublishCheck_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).PublishCheck(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_PublishCheck_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).PublishCheck(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_DraftPublish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).DraftPublish(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_DraftPublish_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).DraftPublish(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_PublishSchedule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).PublishSchedule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_PublishSchedule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).PublishSchedule(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_PublicationCancel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).PublicationCancel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_PublicationCancel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).PublicationCancel(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_VersionRestore_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).VersionRestore(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_VersionRestore_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).VersionRestore(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CatalogService_ServiceDesc is the grpc.ServiceDesc for CatalogService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -437,6 +701,38 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ImportGet",
 			Handler:    _CatalogService_ImportGet_Handler,
+		},
+		{
+			MethodName: "DraftSave",
+			Handler:    _CatalogService_DraftSave_Handler,
+		},
+		{
+			MethodName: "DraftList",
+			Handler:    _CatalogService_DraftList_Handler,
+		},
+		{
+			MethodName: "WorkspaceGet",
+			Handler:    _CatalogService_WorkspaceGet_Handler,
+		},
+		{
+			MethodName: "PublishCheck",
+			Handler:    _CatalogService_PublishCheck_Handler,
+		},
+		{
+			MethodName: "DraftPublish",
+			Handler:    _CatalogService_DraftPublish_Handler,
+		},
+		{
+			MethodName: "PublishSchedule",
+			Handler:    _CatalogService_PublishSchedule_Handler,
+		},
+		{
+			MethodName: "PublicationCancel",
+			Handler:    _CatalogService_PublicationCancel_Handler,
+		},
+		{
+			MethodName: "VersionRestore",
+			Handler:    _CatalogService_VersionRestore_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -13,21 +13,30 @@ async function navigate(page, tab) {
 async function checkActions(page, selector) {
   const form = page.locator(selector);
   await expect(form).toBeVisible();
-  const space = await form.evaluate((form) => {
-    const controls = [...form.querySelectorAll('input:not([type="hidden"]),textarea,select')].filter(
-      (n) => n.getBoundingClientRect().height > 0,
-    );
-    const action = form.querySelector(':scope > .admin-form-actions');
-    const last = controls.at(-1).getBoundingClientRect(),
-      bar = action.getBoundingClientRect();
-    const card = form.closest('.admin-section').getBoundingClientRect();
-    const buttons = [...action.querySelectorAll('button')].map((n) => n.getBoundingClientRect());
-    return {
-      gap: bar.top - last.bottom,
-      inset: Math.min(...buttons.map((b) => card.bottom - b.bottom)),
-      overflow: action.scrollWidth - action.clientWidth,
-    };
-  });
+  let space;
+  await expect
+    .poll(async () => {
+      const value = await form.evaluate((form) => {
+        const controls = [...form.querySelectorAll('input:not([type="hidden"]),textarea,select')].filter(
+          (n) => n.getBoundingClientRect().height > 0,
+        );
+        const action = [...form.querySelectorAll(':scope > .admin-form-actions')].at(-1);
+        if (!controls.length || !action || form.closest('[aria-busy]')?.getAttribute('aria-busy') === 'true')
+          return null;
+        const last = controls.at(-1).getBoundingClientRect(),
+          bar = action.getBoundingClientRect();
+        const card = form.closest('.admin-section').getBoundingClientRect();
+        const buttons = [...action.querySelectorAll('button')].map((n) => n.getBoundingClientRect());
+        return {
+          gap: bar.top - last.bottom,
+          inset: Math.min(...buttons.map((b) => card.bottom - b.bottom)),
+          overflow: action.scrollWidth - action.clientWidth,
+        };
+      });
+      if (value) space = value;
+      return Boolean(value);
+    })
+    .toBe(true);
   expect(space.gap).toBeGreaterThanOrEqual(16);
   expect(space.inset).toBeGreaterThanOrEqual(15);
   expect(space.overflow).toBeLessThanOrEqual(1);

@@ -6,6 +6,14 @@ import "github.com/davveo/lumo/internal/constants"
 // subscribers need not have started yet. Contract tests check each module's
 // independently declared topics against this deployment-wide inventory.
 var eventRoutes = map[string][]string{
+	constants.ServiceEngagement: {
+		constants.EventCartChanged,
+		constants.EventJourneyDelivered,
+		constants.EventJourneySuppressed,
+		constants.EventOrderAwaitingPayment,
+		constants.EventOrderCompleted,
+		constants.EventOrderPaymentAccepted,
+	},
 	constants.ServiceAftersale: {
 		constants.EventAftersaleRecoveryRequested,
 		constants.EventRefundSucceeded,
@@ -35,6 +43,7 @@ var eventRoutes = map[string][]string{
 	constants.ServiceHelpdesk:    {constants.EventOrderUrged},
 	constants.ServiceMember:      {constants.EventOrderCompleted},
 	constants.ServiceNotification: {
+		constants.EventExportReady, constants.EventJourneyReady,
 		constants.EventShipmentException,
 		constants.EventCouponExpiring, constants.EventRedemptionIssued, constants.EventRedemptionRefunded, constants.EventRewardShipped, constants.EventRewardDelivered,
 		constants.EventProductPriceReached,
@@ -83,7 +92,7 @@ func eventRequiresRoute(eventType string) bool {
 	// These informational events have a durable producer record but no current
 	// subscribers. Unknown events remain mandatory, exposing routing mistakes.
 	switch eventType {
-	case constants.EventBehaviorAccepted,
+	case constants.EventQAChanged, constants.EventReviewModerated, constants.EventBehaviorAccepted,
 		constants.EventProductChanged,
 		constants.EventReturnInspectionCompleted,
 		constants.EventReviewPublished:

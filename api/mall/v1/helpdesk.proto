@@ -23,4 +23,9 @@ service HelpdeskService {
   rpc Views(ServiceRequest) returns (ServiceResponse);
   rpc PolicyGet(ServiceRequest) returns (ServiceResponse);
   rpc PolicyUpsert(ServiceRequest) returns (ServiceResponse);
+  rpc ExportCreate(ServiceRequest) returns (ServiceResponse);
+  rpc ExportList(ServiceRequest) returns (ServiceResponse);
+  rpc ExportGet(ServiceRequest) returns (ServiceResponse);
+  rpc ExportRetry(ServiceRequest) returns (ServiceResponse);
+  rpc ExportDownload(ServiceRequest) returns (ServiceResponse);
 }

@@ -3,6 +3,8 @@ package domain
 import "time"
 
 type PurchaseOrder struct {
+	SupplierID      string     `gorm:"size:128;index" json:"supplier_id"`
+	LeadDays        int64      `json:"lead_days"`
 	ID              string     `gorm:"primaryKey;size:128" json:"id"`
 	Supplier        string     `gorm:"size:120;index" json:"supplier"`
 	SupplierContact string     `gorm:"size:160" json:"supplier_contact"`

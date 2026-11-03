@@ -28,7 +28,7 @@ func (r *Repository) Migrate(ctx context.Context) (spanErr0 error) {
 		return e
 	}
 	return r.db.WithContext(ctx).
-		AutoMigrate(&domain.Record{}, &domain.WorkAssignment{}, &domain.WorkChange{}, &domain.WorkView{}, &domain.WorkViewGuard{})
+		AutoMigrate(&domain.ExportJob{}, &domain.ExportChunk{}, &domain.ExportRow{}, &domain.Record{}, &domain.WorkAssignment{}, &domain.WorkChange{}, &domain.WorkView{}, &domain.WorkViewGuard{})
 }
 func (r *Repository) Get(ctx context.Context, id string) (spanResult0 domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "helpdesk.repository.Get")

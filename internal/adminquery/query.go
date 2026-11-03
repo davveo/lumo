@@ -15,10 +15,11 @@ import (
 )
 
 type Spec struct {
-	ID, State, Amount string
-	Search            []string
+	ID, State, Amount, Owner string
+	Search                   []string
 }
 type Filters struct {
+	CustomerID  string   `json:"customer_id"`
 	States      []string `json:"states"`
 	IDs         []string `json:"ids"`
 	OldestFirst bool     `json:"oldest_first"`
@@ -48,6 +49,12 @@ func filtered(ctx context.Context, db *gorm.DB, model any, data map[string]any, 
 		return nil, f, status.Error(codes.InvalidArgument, "invalid management page or filter")
 	}
 	q := db.WithContext(ctx).Model(model)
+	if f.CustomerID != "" {
+		if spec.Owner == "" || len(f.CustomerID) > 128 {
+			return nil, f, status.Error(codes.InvalidArgument, "unsupported customer filter")
+		}
+		q = q.Where(spec.Owner+" = ?", f.CustomerID)
+	}
 	if len(f.States) > 0 {
 		if spec.State == "" || len(f.States) > 16 {
 			return nil, f, status.Error(codes.InvalidArgument, "invalid status filter")

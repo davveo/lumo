@@ -221,8 +221,14 @@ test('administrators manage employees, import products and receive procurement i
   await page.locator('[data-tab="procurement"]').click();
   const purchase = page.locator('#procurement-create-form');
   await purchase.locator('[name="supplier"]').fill('浏览器供应商');
-  await purchase.locator('[name="lines"]').fill('browser-import,3,1000');
-  await purchase.locator('button').click();
+  await page.locator('#procurement-catalog-form [name="keyword"]').fill('browser-import');
+  await page.locator('#procurement-catalog-form button').click();
+  await expect(page.locator('[data-supply-product="browser-import"]')).toContainText('浏览器导入商品');
+  await page.locator('[data-supply-product="browser-import"]').click();
+  await page.locator('[data-supply-add]').click();
+  await purchase.locator('[data-field="quantity"]').fill('3');
+  await purchase.locator('[data-field="cost"]').fill('10.00');
+  await purchase.getByRole('button', { name: '创建待审批采购单', exact: true }).click();
   await expect(page.locator('[data-po="approve"]')).toBeVisible();
   await page.locator('[data-po="approve"]').click();
   const receipt = page.locator('#procurement-receive-form');

@@ -23,7 +23,7 @@ func (r *Repository) Migrate(ctx context.Context) (spanErr0 error) {
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
 
-	return r.db.WithContext(ctx).AutoMigrate(&domain.Record{})
+	return r.db.WithContext(ctx).AutoMigrate(&domain.Record{}, &domain.ReviewFollowup{})
 }
 func (r *Repository) Get(ctx context.Context, id string) (spanResult0 domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "interaction.repository.Get")
@@ -154,6 +154,7 @@ func (r *Repository) Mutate(
 		if err != nil {
 			return err
 		}
+		got.Version++
 		if err = tx.WithContext(ctx).Save(&got).Error; err != nil {
 			return err
 		}
