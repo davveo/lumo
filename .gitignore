@@ -13,3 +13,4 @@ node_modules/
 web/build/
 test-results/
 playwright-report/
+.idea
