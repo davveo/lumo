@@ -22,7 +22,16 @@ func TestPromotionKindsUseServerRulesAndIntegerCents(t *testing.T) {
 		{"reduction below threshold", "reduction-demo", "reduction", 29999, 1, 0, false, "threshold_not_met"},
 		{"reduction at threshold", "reduction-demo", "reduction", 30000, 1, 3000, true, ""},
 		{"nine tenths cents rounded conservatively", "discount-demo", "discount", 101, 1, 10, true, ""},
-		{"discount cannot create a zero cent benefit", "discount-demo", "discount", 1, 1, 0, false, "amount_too_small"},
+		{
+			"discount cannot create a zero cent benefit",
+			"discount-demo",
+			"discount",
+			1,
+			1,
+			0,
+			false,
+			"amount_too_small",
+		},
 		{
 			"discount preview cannot overflow",
 			"discount-demo",

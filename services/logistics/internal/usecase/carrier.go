@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -34,9 +35,22 @@ func (s *Service) createCarrier(ctx context.Context, c platform.Request, orderID
 		len(provider) > 40 {
 		return "", "", status.Error(codes.FailedPrecondition, "物流渠道配置不完整")
 	}
-	order, e := platform.NewClients(s.RPC).Order.Get(ctx, platform.Request{ID: orderID, UserID: c.UserID, Role: c.Role})
-	if e != nil {
-		return "", "", e
+	var order platform.Result
+	if platform.Text(c.Data, "kind") == constants.FulfillmentKindGift {
+		var address map[string]any
+		var lines []map[string]any
+		if json.Unmarshal([]byte(platform.Text(c.Data, "address_json")), &address) != nil ||
+			json.Unmarshal([]byte(platform.Text(c.Data, "lines_json")), &lines) != nil ||
+			platform.Text(address, "user_id") != c.UserID ||
+			len(lines) != 1 {
+			return "", "", status.Error(codes.InvalidArgument, "invalid gift shipping snapshot")
+		}
+		order = platform.Result{"address": address, "items": lines}
+	} else {
+		order, e = platform.NewClients(s.RPC).Order.Get(ctx, platform.Request{ID: orderID, UserID: c.UserID, Role: c.Role})
+		if e != nil {
+			return "", "", e
+		}
 	}
 	body, _ := json.Marshal(
 		map[string]any{

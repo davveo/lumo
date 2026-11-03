@@ -10,6 +10,7 @@ type Record struct {
 	Kind          string    `gorm:"size:30"             json:"kind"`
 	Status        string    `gorm:"index;size:40"       json:"status"`
 	TrackingID    string    `gorm:"size:100"            json:"tracking_id"`
+	AddressJSON   string    `gorm:"type:text" json:"address_json,omitempty"`
 	LinesJSON     string    `gorm:"type:text"           json:"lines_json"`
 	Version       int64     `                           json:"version"`
 	CreatedAt     time.Time `                           json:"created_at"`

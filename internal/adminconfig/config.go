@@ -101,7 +101,12 @@ func Save[T any](
 				return status.Error(codes.Aborted, "configuration changed; reload before saving")
 			}
 		} else {
-			r := tx.WithContext(ctx).Model(&Document{}).Where("id = ? AND version = ?", id, expected).Updates(map[string]any{"version": next.Version, "payload": next.Payload, "actor_id": actor, "updated_at": next.UpdatedAt})
+			r := tx.WithContext(ctx).Model(&Document{}).Where("id = ? AND version = ?", id, expected).Updates(map[string]any{
+				"version":    next.Version,
+				"payload":    next.Payload,
+				"actor_id":   actor,
+				"updated_at": next.UpdatedAt,
+			})
 			if r.Error != nil {
 				return r.Error
 			}
@@ -110,7 +115,15 @@ func Save[T any](
 			}
 		}
 		return tx.WithContext(ctx).
-			Create(&Change{ID: platform.ID("config-change"), DocumentID: id, Version: next.Version, ActorID: actor, Reason: strings.TrimSpace(reason), Before: old.Payload, After: string(raw)}).
+			Create(&Change{
+				ID:         platform.ID("config-change"),
+				DocumentID: id,
+				Version:    next.Version,
+				ActorID:    actor,
+				Reason:     strings.TrimSpace(reason),
+				Before:     old.Payload,
+				After:      string(raw),
+			}).
 			Error
 	})
 	if err != nil {

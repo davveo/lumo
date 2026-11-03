@@ -19,7 +19,15 @@ func New(d platform.Dependencies) platform.Module {
 		Seed:       r.Seed,
 		Handle:     h.Handle,
 		Operations: h.Operations(),
-		Topics:     []string{constants.EventRefundSucceeded, constants.EventOrderCompleted},
-		OnEvent:    u.OnEvent,
+		Topics: []string{
+			constants.EventRefundSucceeded,
+			constants.EventOrderCompleted,
+			constants.EventRedemptionRequested,
+			constants.EventRedemptionRecoveryRequested,
+			constants.EventRewardShipped,
+			constants.EventRewardDelivered,
+		},
+		Tick:    u.Tick,
+		OnEvent: u.OnEvent,
 	}
 }

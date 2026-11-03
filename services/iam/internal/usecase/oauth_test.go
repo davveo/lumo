@@ -53,7 +53,21 @@ func TestOAuthProviderExchangeAndSingleUseCallback(t *testing.T) {
 			if provider == "wechat" {
 				scope = "snsapi_login"
 			}
-			if _, e = s.ProviderUpsert(ctx, platform.Request{ID: provider, UserID: "admin", Role: "admin", Data: map[string]any{"values": map[string]string{"app_id": "verified-app", "app_secret": "server-only-secret", "redirect_uri": "https://shop.example/index.html", "scope": scope}, "version": 0, "reason": "使用数据库渠道参数"}}); e != nil {
+			if _, e = s.ProviderUpsert(ctx, platform.Request{
+				ID:     provider,
+				UserID: "admin",
+				Role:   "admin",
+				Data: map[string]any{
+					"values": map[string]string{
+						"app_id":       "verified-app",
+						"app_secret":   "server-only-secret",
+						"redirect_uri": "https://shop.example/index.html",
+						"scope":        scope,
+					},
+					"version": 0,
+					"reason":  "使用数据库渠道参数",
+				},
+			}); e != nil {
 				t.Fatal(e)
 			}
 			t.Setenv(prefix+"APP_ID", "unused-env-app")

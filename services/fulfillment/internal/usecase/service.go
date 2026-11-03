@@ -116,6 +116,9 @@ func (s *Service) Cancel(ctx context.Context, c platform.Request) (traceResult p
 	if err != nil {
 		return nil, err
 	}
+	if r.Kind == constants.FulfillmentKindGift {
+		return nil, status.Error(codes.FailedPrecondition, "积分礼品请通过兑换单跟进，不允许直接取消库存")
+	}
 	if r.Status == constants.FulfillmentStatusCancelled {
 		out := platform.Map(r)
 		out["warehouse_confirmed"] = true
@@ -243,6 +246,7 @@ func (s *Service) Dispatch(ctx context.Context, c platform.Request) (traceResult
 	if r.Status == constants.FulfillmentStatusDispatched {
 		return platform.Map(r), nil
 	}
+
 	r, err = s.Repo.Transition(
 		ctx,
 		r.ID,
@@ -253,6 +257,11 @@ func (s *Service) Dispatch(ctx context.Context, c platform.Request) (traceResult
 	)
 	if err != nil {
 		return nil, err
+	}
+	if r.Kind == constants.FulfillmentKindOrder {
+		if _, err = platform.NewClients(s.RPC).Order.BeginDispatch(ctx, platform.Request{ID: r.OrderID, UserID: r.UserID, Role: constants.RoleSystem}); err != nil {
+			return nil, err
+		}
 	}
 	command := platform.Request{
 		ID:     r.ReservationID,
@@ -268,16 +277,25 @@ func (s *Service) Dispatch(ctx context.Context, c platform.Request) (traceResult
 			ID:     r.ID,
 			UserID: r.UserID,
 			Role:   constants.RoleSystem,
-			Data:   map[string]any{"order_id": r.OrderID, "kind": r.Kind},
+			Data: map[string]any{
+				"order_id":     r.OrderID,
+				"kind":         r.Kind,
+				"address_json": r.AddressJSON,
+				"lines_json":   r.LinesJSON,
+			},
 		},
 	)
 	if err != nil {
 		return nil, err
 	}
 	tracking := platform.Text(shipping, "tracking_id")
+	eventType := constants.EventShipmentDispatched
+	if r.Kind == constants.FulfillmentKindGift {
+		eventType = constants.EventRewardShipped
+	}
 	event := &platform.Event{
 		ID:          r.ID + ":dispatched",
-		Type:        constants.EventShipmentDispatched,
+		Type:        eventType,
 		AggregateID: r.ID,
 		UserID:      r.UserID,
 		Data: map[string]any{

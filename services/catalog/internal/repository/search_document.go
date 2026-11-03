@@ -114,7 +114,11 @@ func (r *Repository) migrateSearchDocument(ctx context.Context) (spanErr0 error)
 	read := func() (map[string]column, error) {
 		var columns []column
 		if err := r.db.WithContext(ctx).Raw(
-			"SELECT COLUMN_NAME AS column_name, DATA_TYPE AS data_type, CHARACTER_MAXIMUM_LENGTH AS character_maximum_length, COLLATION_NAME AS collation_name, EXTRA AS extra, GENERATION_EXPRESSION AS generation_expression FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?",
+			"SELECT COLUMN_NAME AS column_name, DATA_TYPE AS data_type, "+
+				"CHARACTER_MAXIMUM_LENGTH AS character_maximum_length, COLLATION_NAME AS "+
+				"collation_name, EXTRA AS extra, GENERATION_EXPRESSION AS generation_expression "+
+				"FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME "+
+				"= ?",
 			"catalog_records",
 		).Scan(
 			&columns,
@@ -173,7 +177,9 @@ func (r *Repository) migrateSearchDocument(ctx context.Context) (spanErr0 error)
 		var columns []indexColumn
 		err := r.db.WithContext(ctx).
 			Raw(
-				"SELECT COLUMN_NAME AS column_name, SUB_PART AS sub_part FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ? ORDER BY SEQ_IN_INDEX",
+				"SELECT COLUMN_NAME AS column_name, SUB_PART AS sub_part FROM "+
+					"information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = "+
+					"? AND INDEX_NAME = ? ORDER BY SEQ_IN_INDEX",
 				"catalog_records",
 				searchDocumentIndex,
 			).

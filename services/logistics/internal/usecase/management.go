@@ -43,7 +43,9 @@ func (s *Service) PolicyUpsert(ctx context.Context, c platform.Request) (spanRes
 		!validMoney(p.FreeThreshold) ||
 		len(p.AllowedRegions) > 100 ||
 		len(p.BlockedRegions) > 100 ||
-		len(p.Regions) > 40 {
+		len(
+			p.Regions,
+		) > 40 || p.HandlingDays < 0 || p.HandlingDays > 30 || p.CutoffHour < 0 || p.CutoffHour > 23 || p.TransitMinDays < 0 || p.TransitMaxDays > 60 || p.TransitMaxDays < p.TransitMinDays || len([]rune(p.Warehouse)) > 100 || (p.PromiseEnabled && (strings.TrimSpace(p.Warehouse) == "" || p.TransitMaxDays < 1)) {
 		return nil, status.Error(codes.InvalidArgument, "invalid shipping template")
 	}
 	for _, v := range append(append([]string{}, p.AllowedRegions...), p.BlockedRegions...) {

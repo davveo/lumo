@@ -104,7 +104,10 @@ func (s *Service) seed(ctx context.Context) error {
 		"",
 		constants.ContentKindFaq,
 		constants.ContentStatusPublished,
-		map[string]any{"title": "如何查看订单和申请售后？", "body": "在个人中心查看订单，付款后可按订单状态申请退款或退货。"},
+		map[string]any{
+			"title": "如何查看订单和申请售后？",
+			"body":  "在个人中心查看订单，付款后可按订单状态申请退款或退货。",
+		},
 	)
 	if _, e := s.repo.InsertOnce(ctx, &r, nil); e != nil {
 		return e

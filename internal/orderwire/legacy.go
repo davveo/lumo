@@ -35,7 +35,15 @@ func number(value int64) json.Number { return json.Number(strconv.FormatInt(valu
 // explicit protobuf fields. Quote/address are immutable historical documents.
 func Result(order *mallv1.Order) map[string]any {
 	quote, address := snapshot(order.GetQuoteSnapshotJson()), snapshot(order.GetAddressSnapshotJson())
+	history := []any{}
+	for _, h := range order.GetServiceHistory() {
+		history = append(
+			history,
+			map[string]any{"kind": h.GetKind(), "occurred_at": timestamp(h.GetOccurredAt()), "region": h.GetRegion()},
+		)
+	}
 	result := map[string]any{
+		"dispatch_started": order.GetDispatchStarted(), "last_urged_at": timestamp(order.GetLastUrgedAt()), "service_history": history,
 		"id": order.GetId(), "user_id": order.GetUserId(), "status": order.GetStatus(),
 		"version": number(order.GetVersion()), "payable_cents": number(order.GetPayableCents()),
 		"refunded_total_cents": number(order.GetRefundedTotalCents()),
@@ -78,6 +86,9 @@ func PaymentResult(response *mallv1.AcceptPaymentResponse) map[string]any {
 
 func Actions() map[string]string {
 	return map[string]string{
+		mallv1.OrderService_ChangeAddress_FullMethodName:    constants.ActionChangeAddress,
+		mallv1.OrderService_BeginDispatch_FullMethodName:    constants.ActionBeginDispatch,
+		mallv1.OrderService_Urge_FullMethodName:             constants.ActionUrge,
 		mallv1.OrderService_BatchGetOrders_FullMethodName:   constants.ActionBatchGet,
 		mallv1.OrderService_AdminList_FullMethodName:        constants.ActionAdminList,
 		mallv1.OrderService_AdminSummary_FullMethodName:     constants.ActionAdminSummary,

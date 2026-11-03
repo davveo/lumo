@@ -161,7 +161,15 @@ func (r *Repository) CancelSubscription(
 		got.CancelledBy = c.UserID
 		got.CancelReason = platform.Text(c.Data, "reason")
 		if admin {
-			if err := tx.WithContext(ctx).Create(&adminconfig.Change{ID: platform.ID("audit"), DocumentID: "product-alert:" + got.ID, Version: got.Generation, ActorID: c.UserID, Reason: got.CancelReason, Before: constants.SubscriptionStatusActive, After: got.Status}).Error; err != nil {
+			if err := tx.WithContext(ctx).Create(&adminconfig.Change{
+				ID:         platform.ID("audit"),
+				DocumentID: "product-alert:" + got.ID,
+				Version:    got.Generation,
+				ActorID:    c.UserID,
+				Reason:     got.CancelReason,
+				Before:     constants.SubscriptionStatusActive,
+				After:      got.Status,
+			}).Error; err != nil {
 				return err
 			}
 		}
@@ -223,7 +231,13 @@ func (r *Repository) CompleteCheck(
 			if got.Kind == constants.SubscriptionKindStock {
 				kind = constants.EventProductBackInStock
 			}
-			if err := platform.Enqueue(ctx, tx, platform.Event{ID: platform.ID("evt"), Type: kind, AggregateID: got.ID, UserID: got.UserID, Data: map[string]any{"sku_id": got.SKUID, "product_name": got.ProductName, "amount_cents": price}}); err != nil {
+			if err := platform.Enqueue(ctx, tx, platform.Event{
+				ID:          platform.ID("evt"),
+				Type:        kind,
+				AggregateID: got.ID,
+				UserID:      got.UserID,
+				Data:        map[string]any{"sku_id": got.SKUID, "product_name": got.ProductName, "amount_cents": price},
+			}); err != nil {
 				return err
 			}
 		}

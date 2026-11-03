@@ -11,22 +11,27 @@ import (
 var employeeGrants = map[string]map[string]string{
 	"staff_support": {
 		"order":       "list get admin_list admin_summary",
-		"aftersale":   "list get admin_list admin_summary approve reject",
-		"helpdesk":    "list get admin_list reply close faq",
+		"aftersale":   "list get admin_list admin_summary approve reject evidence_download policy_get",
+		"helpdesk":    "list get admin_list reply close faq work_queue work_detail assign_work save_view views policy_get",
 		"iam":         "admin_get",
 		"member":      "admin_get",
 		"interaction": "list get admin_list answer",
 		"logistics":   "get list tracking",
 	},
 	"staff_warehouse": {
+		"helpdesk":    "work_queue work_detail assign_work save_view views policy_get",
 		"fulfillment": "list get admin_list admin_summary dispatch inspect_return",
-		"inventory":   "get batch_get admin_list adjust adjustments threshold ledger procurement_list procurement_get procurement_create procurement_approve procurement_receive procurement_cancel",
-		"catalog":     "get batch_get admin_list",
-		"logistics":   "get list tracking tracking_update exceptions exception_resolve",
+		"inventory": "get batch_get admin_list adjust adjustments threshold ledger procurement_list " +
+			"procurement_get procurement_create procurement_approve procurement_receive " +
+			"procurement_cancel",
+		"catalog":   "get batch_get admin_list",
+		"logistics": "get list tracking tracking_update exceptions exception_resolve",
 	},
 	"staff_operations": {
+		"points":         "offers_admin offer_upsert redemptions_admin redemption_retry",
 		"management":     "dashboard",
-		"analytics":      "dashboard admin_list list sync_history",
+		"aftersale":      "policy_get policy_upsert",
+		"analytics":      "dashboard admin_list list sync_history drilldown",
 		"catalog":        "get batch_get admin_list upsert import_preview import_commit import_get",
 		"inventory":      "get batch_get",
 		"coupon":         "templates_admin template_upsert",
@@ -40,8 +45,9 @@ var employeeGrants = map[string]map[string]string{
 		"group":          "admin_list rules_admin rule_upsert",
 	},
 	"staff_finance": {
+		"helpdesk":       "work_queue work_detail assign_work save_view views policy_get",
 		"management":     "dashboard",
-		"analytics":      "dashboard sync_history",
+		"analytics":      "dashboard sync_history drilldown",
 		"order":          "list get admin_list admin_summary",
 		"payment":        "list get admin_list admin_summary confirm_demo",
 		"refund":         "list get admin_list admin_summary confirm_demo",
@@ -51,7 +57,7 @@ var employeeGrants = map[string]map[string]string{
 	},
 	"staff_analyst": {
 		"management": "dashboard",
-		"analytics":  "dashboard admin_list list sync_history",
+		"analytics":  "dashboard admin_list list sync_history drilldown",
 		"order":      "admin_summary",
 		"payment":    "admin_summary",
 		"refund":     "admin_summary",

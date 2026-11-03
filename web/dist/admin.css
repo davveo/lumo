@@ -1314,3 +1314,99 @@
     transition: none !important;
   }
 }
+
+/* Search controls stay compact on wide workspaces and wrap predictably. */
+.admin-query-form {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.admin-query-form .field {
+  flex: 0 1 420px;
+  min-width: min(100%, 240px);
+  margin: 0;
+}
+.admin-query-form > button,
+.op-filters > button,
+.iv-search > button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.admin-body .admin-search {
+  flex: 0 1 360px;
+  min-width: 0;
+  max-width: 100%;
+}
+.admin-body .shipment-filters {
+  padding: 16px 0;
+}
+.admin-operation-editor {
+  margin-top: 20px;
+  scroll-margin-top: 90px;
+}
+.admin-operation-editor blockquote {
+  padding: 16px;
+  background: var(--admin-surface-subtle);
+  border-radius: 8px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 12px 0 20px;
+  line-height: 1.8;
+}
+.admin-operation-editor textarea {
+  min-height: 160px;
+}
+.admin-operation-editor .admin-error:empty {
+  display: none;
+}
+@media (max-width: 640px) {
+  .admin-query-form .field {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .admin-query-form > button {
+    flex: 1;
+  }
+  .admin-body .admin-search {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+  .admin-status-filter {
+    flex-wrap: wrap;
+  }
+}
+
+.admin-body .admin-form > button {
+  align-self: end;
+  justify-self: start;
+}
+
+/* Shared bounded filters for read-only analysis and future admin tools. */
+.admin-body .admin-filter-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.admin-body .admin-filter-form > .field {
+  flex: 0 1 180px;
+  min-width: 0;
+  margin: 0;
+}
+.admin-body .admin-filter-form > .field:has(input[type='search']) {
+  flex-basis: 360px;
+  max-width: 420px;
+}
+.admin-body .admin-filter-form > button {
+  flex: 0 0 auto;
+  align-self: flex-end;
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .admin-body .admin-filter-form > .field,
+  .admin-body .admin-filter-form > .field:has(input[type='search']) {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+}

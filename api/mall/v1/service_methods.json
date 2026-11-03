@@ -85,6 +85,22 @@
         {
           "action": "ActionAdminSummary",
           "method": "AdminSummary"
+        },
+        {
+          "action": "ActionPreview",
+          "method": "Preview"
+        },
+        {
+          "action": "ActionPolicyGet",
+          "method": "PolicyGet"
+        },
+        {
+          "action": "ActionPolicyUpsert",
+          "method": "PolicyUpsert"
+        },
+        {
+          "action": "ActionEvidenceDownload",
+          "method": "EvidenceDownload"
         }
       ]
     },
@@ -113,6 +129,14 @@
         {
           "method": "SyncHistory",
           "action": "ActionSyncHistory"
+        },
+        {
+          "action": "ActionTrack",
+          "method": "Track"
+        },
+        {
+          "action": "ActionDrilldown",
+          "method": "Drilldown"
         }
       ]
     },
@@ -261,6 +285,14 @@
         {
           "action": "ActionSubmit",
           "method": "Submit"
+        },
+        {
+          "action": "ActionChangeAddress",
+          "method": "ChangeAddress"
+        },
+        {
+          "action": "ActionTimeline",
+          "method": "Timeline"
         }
       ]
     },
@@ -369,6 +401,18 @@
         {
           "action": "ActionCalculate",
           "method": "Calculate"
+        },
+        {
+          "action": "ActionReminderGet",
+          "method": "ReminderGet"
+        },
+        {
+          "action": "ActionReminderUpdate",
+          "method": "ReminderUpdate"
+        },
+        {
+          "action": "ActionIssueReward",
+          "method": "IssueReward"
         }
       ]
     },
@@ -501,6 +545,10 @@
         {
           "action": "ActionInspectReturns",
           "method": "InspectReturns"
+        },
+        {
+          "action": "ActionCreateGift",
+          "method": "CreateGift"
         }
       ]
     },
@@ -589,6 +637,34 @@
         {
           "action": "ActionReply",
           "method": "Reply"
+        },
+        {
+          "action": "ActionWorkQueue",
+          "method": "WorkQueue"
+        },
+        {
+          "action": "ActionWorkDetail",
+          "method": "WorkDetail"
+        },
+        {
+          "action": "ActionAssignWork",
+          "method": "AssignWork"
+        },
+        {
+          "action": "ActionSaveView",
+          "method": "SaveView"
+        },
+        {
+          "action": "ActionViews",
+          "method": "Views"
+        },
+        {
+          "action": "ActionPolicyGet",
+          "method": "PolicyGet"
+        },
+        {
+          "action": "ActionPolicyUpsert",
+          "method": "PolicyUpsert"
         }
       ]
     },
@@ -941,6 +1017,10 @@
         {
           "action": "ActionGet",
           "method": "Get"
+        },
+        {
+          "action": "ActionVerifyFiles",
+          "method": "VerifyFiles"
         }
       ]
     },
@@ -1073,6 +1153,18 @@
         {
           "action": "ActionBatchGet",
           "method": "BatchGet"
+        },
+        {
+          "action": "ActionChangeAddress",
+          "method": "ChangeAddress"
+        },
+        {
+          "action": "ActionBeginDispatch",
+          "method": "BeginDispatch"
+        },
+        {
+          "action": "ActionUrge",
+          "method": "Urge"
         }
       ]
     },
@@ -1189,6 +1281,42 @@
         {
           "action": "ActionLedger",
           "method": "Ledger"
+        },
+        {
+          "action": "ActionMyLedger",
+          "method": "MyLedger"
+        },
+        {
+          "action": "ActionOffers",
+          "method": "Offers"
+        },
+        {
+          "action": "ActionOffersAdmin",
+          "method": "OffersAdmin"
+        },
+        {
+          "action": "ActionOfferUpsert",
+          "method": "OfferUpsert"
+        },
+        {
+          "action": "ActionRedeem",
+          "method": "Redeem"
+        },
+        {
+          "action": "ActionRedemptions",
+          "method": "Redemptions"
+        },
+        {
+          "action": "ActionRedemptionsAdmin",
+          "method": "RedemptionsAdmin"
+        },
+        {
+          "action": "ActionRedemptionGet",
+          "method": "RedemptionGet"
+        },
+        {
+          "action": "ActionRedemptionRetry",
+          "method": "RedemptionRetry"
         }
       ]
     },
@@ -1205,6 +1333,10 @@
         {
           "action": "ActionQuote",
           "method": "Quote"
+        },
+        {
+          "action": "ActionOptimize",
+          "method": "Optimize"
         }
       ]
     },

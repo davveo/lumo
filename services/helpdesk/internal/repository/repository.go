@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"github.com/davveo/lumo/internal/adminconfig"
 
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/helpdesk/internal/domain"
@@ -23,7 +24,11 @@ func (r *Repository) Migrate(ctx context.Context) (spanErr0 error) {
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
 
-	return r.db.WithContext(ctx).AutoMigrate(&domain.Record{})
+	if e := adminconfig.Migrate(ctx, r.db); e != nil {
+		return e
+	}
+	return r.db.WithContext(ctx).
+		AutoMigrate(&domain.Record{}, &domain.WorkAssignment{}, &domain.WorkChange{}, &domain.WorkView{}, &domain.WorkViewGuard{})
 }
 func (r *Repository) Get(ctx context.Context, id string) (spanResult0 domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "helpdesk.repository.Get")

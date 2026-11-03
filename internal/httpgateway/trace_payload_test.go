@@ -172,7 +172,13 @@ func TestHTTPTraceErrorsKeepPayloadsAndDiscardRawErrorMessages(t *testing.T) {
 			"Unauthenticated",
 			401,
 		},
-		{"unexposed", "/api/v1/order/ready", `{"data":{"password":"private-input-password"}}`, "PermissionDenied", 403},
+		{
+			"unexposed",
+			"/api/v1/order/ready",
+			`{"data":{"password":"private-input-password"}}`,
+			"PermissionDenied",
+			403,
+		},
 		{
 			"downstream-error",
 			"/api/v1/catalog/get",
@@ -186,7 +192,8 @@ func TestHTTPTraceErrorsKeepPayloadsAndDiscardRawErrorMessages(t *testing.T) {
 			caller := traceTestCaller(func(context.Context, string, platform.Command) (platform.Result, error) {
 				return nil, status.Error(
 					codes.FailedPrecondition,
-					"inventory unavailable; password=private-input-password user_id=private-user-id address=private-location phone=13521373352",
+					"inventory unavailable; password=private-input-password user_id=private-user-id "+
+						"address=private-location phone=13521373352",
 				)
 			})
 			req := httptest.NewRequest(http.MethodPost, test.path, strings.NewReader(test.body))

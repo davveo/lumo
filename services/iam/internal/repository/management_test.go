@@ -23,7 +23,10 @@ func TestAccountAvailabilityRevokesSessionsWithoutExposingCredentials(t *testing
 	if err = repo.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	for _, a := range []domain.Account{{ID: "buyer", Username: "buyer", Role: "user", Active: true, PasswordHash: "private-hash"}, {ID: "admin", Username: "admin", Role: "admin", Active: true}} {
+	for _, a := range []domain.Account{
+		{ID: "buyer", Username: "buyer", Role: "user", Active: true, PasswordHash: "private-hash"},
+		{ID: "admin", Username: "admin", Role: "admin", Active: true},
+	} {
 		if err = db.Create(&a).Error; err != nil {
 			t.Fatal(err)
 		}

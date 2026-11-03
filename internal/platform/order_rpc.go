@@ -101,6 +101,27 @@ var orderRPCs = map[string]orderRPC{
 		}
 		return orderwire.ListResult(response), nil
 	},
+	constants.ActionChangeAddress: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+		address, _ := json.Marshal(c.Data["address"])
+		return orderResult(
+			client.ChangeAddress(
+				ctx,
+				&mallv1.ChangeOrderAddressRequest{
+					Actor:               orderActor(c),
+					Id:                  c.ID,
+					ExpectedVersion:     Int(c.Data, "expected_version"),
+					AddressSnapshotJson: address,
+					ShippingCents:       Int(c.Data, "shipping_cents"),
+				},
+			),
+		)
+	},
+	constants.ActionBeginDispatch: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+		return orderResult(client.BeginDispatch(ctx, orderRequest(c)))
+	},
+	constants.ActionUrge: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
+		return orderResult(client.Urge(ctx, orderRequest(c)))
+	},
 	constants.ActionGet: func(ctx context.Context, client mallv1.OrderServiceClient, c Command) (Result, error) {
 		return orderResult(client.GetOrder(ctx, orderRequest(c)))
 	},

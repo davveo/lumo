@@ -93,7 +93,19 @@ func (s *Service) SyncHistory(ctx context.Context, c platform.Request) (platform
 			}
 		}
 		raw, _ := json.Marshal(items)
-		if e = s.repo.HistoryFact(ctx, domain.TransactionFact{ID: id, OrderID: orderID, UserID: platform.Text(row, "user_id"), Kind: kind, AmountCents: platform.Int(row, "amount_cents"), Items: string(raw), OccurredAt: at.UTC()}); e != nil {
+		fact := domain.TransactionFact{
+			ID:          id,
+			OrderID:     orderID,
+			UserID:      platform.Text(row, "user_id"),
+			Kind:        kind,
+			AmountCents: platform.Int(row, "amount_cents"),
+			Items:       string(raw),
+			OccurredAt:  at.UTC(),
+		}
+		if phase == "payment" {
+			attachAttribution(&fact, orders[orderID])
+		}
+		if e = s.repo.HistoryFact(ctx, fact); e != nil {
 			return nil, e
 		}
 		processed++

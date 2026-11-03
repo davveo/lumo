@@ -19,6 +19,9 @@ func New(service *usecase.Service) func(context.Context, platform.Command) (plat
 	adapter := legacyAdapter{service: service}
 	actions := map[string]legacyAction{
 		constants.ActionBatchGet:      adapter.batchGet,
+		constants.ActionChangeAddress: adapter.changeAddress,
+		constants.ActionBeginDispatch: legacyOrder(service.BeginDispatch),
+		constants.ActionUrge:          legacyOrder(service.Urge),
 		constants.ActionAdminList:     adapter.adminList,
 		constants.ActionAdminSummary:  adapter.adminSummary,
 		constants.ActionList:          adapter.list,

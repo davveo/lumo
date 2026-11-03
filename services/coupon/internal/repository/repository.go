@@ -22,7 +22,7 @@ func (r *Repository) Migrate(ctx context.Context) error {
 		return e
 	}
 	if err := r.DB.WithContext(ctx).
-		AutoMigrate(&domain.Coupon{}, &domain.Hold{}, &domain.Ledger{}, &domain.Template{}, &domain.Claim{}); err != nil {
+		AutoMigrate(&domain.Coupon{}, &domain.Hold{}, &domain.Ledger{}, &domain.Template{}, &domain.Claim{}, &domain.ExpiryPreference{}, &domain.RewardReceipt{}); err != nil {
 		return err
 	}
 	// Existing seeded/operator-owned templates predate optimistic versions.

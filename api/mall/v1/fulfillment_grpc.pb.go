@@ -30,6 +30,7 @@ const (
 	FulfillmentService_AdminList_FullMethodName      = "/mall.v1.FulfillmentService/AdminList"
 	FulfillmentService_AdminSummary_FullMethodName   = "/mall.v1.FulfillmentService/AdminSummary"
 	FulfillmentService_InspectReturns_FullMethodName = "/mall.v1.FulfillmentService/InspectReturns"
+	FulfillmentService_CreateGift_FullMethodName     = "/mall.v1.FulfillmentService/CreateGift"
 )
 
 // FulfillmentServiceClient is the client API for FulfillmentService service.
@@ -45,6 +46,7 @@ type FulfillmentServiceClient interface {
 	AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	AdminSummary(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	InspectReturns(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	CreateGift(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type fulfillmentServiceClient struct {
@@ -136,6 +138,15 @@ func (c *fulfillmentServiceClient) InspectReturns(ctx context.Context, in *Servi
 	return out, nil
 }
 
+func (c *fulfillmentServiceClient) CreateGift(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, FulfillmentService_CreateGift_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // FulfillmentServiceServer is the server API for FulfillmentService service.
 // All implementations must embed UnimplementedFulfillmentServiceServer
 // for forward compatibility
@@ -149,6 +160,7 @@ type FulfillmentServiceServer interface {
 	AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	AdminSummary(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	InspectReturns(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	CreateGift(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedFulfillmentServiceServer()
 }
 
@@ -182,6 +194,9 @@ func (UnimplementedFulfillmentServiceServer) AdminSummary(context.Context, *Serv
 }
 func (UnimplementedFulfillmentServiceServer) InspectReturns(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method InspectReturns not implemented")
+}
+func (UnimplementedFulfillmentServiceServer) CreateGift(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateGift not implemented")
 }
 func (UnimplementedFulfillmentServiceServer) mustEmbedUnimplementedFulfillmentServiceServer() {}
 
@@ -358,6 +373,24 @@ func _FulfillmentService_InspectReturns_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FulfillmentService_CreateGift_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FulfillmentServiceServer).CreateGift(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FulfillmentService_CreateGift_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FulfillmentServiceServer).CreateGift(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // FulfillmentService_ServiceDesc is the grpc.ServiceDesc for FulfillmentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -400,6 +433,10 @@ var FulfillmentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "InspectReturns",
 			Handler:    _FulfillmentService_InspectReturns_Handler,
+		},
+		{
+			MethodName: "CreateGift",
+			Handler:    _FulfillmentService_CreateGift_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

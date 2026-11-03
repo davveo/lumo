@@ -30,7 +30,14 @@ func TestAdminListingMigratesOrderedIndexAndPreservesAllStatuses(t *testing.T) {
 		{ID: "b", Kind: "sku", Status: "DISABLED", CreatedAt: first.Add(time.Hour), Payload: `{"name":"B"}`},
 		{ID: "c", Kind: "sku", Status: "ACTIVE", CreatedAt: first.Add(time.Hour), Payload: `{"name":"C"}`},
 		{ID: "d", Kind: "sku", Status: "DISABLED", CreatedAt: first.Add(2 * time.Hour), Payload: `{"name":"D"}`},
-		{ID: "child", ParentID: "a", Kind: "sku", Status: "ACTIVE", CreatedAt: first.Add(3 * time.Hour), Payload: `{}`},
+		{
+			ID:        "child",
+			ParentID:  "a",
+			Kind:      "sku",
+			Status:    "ACTIVE",
+			CreatedAt: first.Add(3 * time.Hour),
+			Payload:   `{}`,
+		},
 		{
 			ID:        "legacy",
 			ParentID:  "__legacy__",

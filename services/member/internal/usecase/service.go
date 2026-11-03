@@ -48,6 +48,8 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 	if err != nil {
 		return nil, err
 	}
+	out["policy"] = policy
+	out["remaining_growth"] = max(int64(0), policy.GoldGrowth-growth)
 	if growth >= policy.GoldGrowth {
 		out["level"] = constants.MemberLevelGold
 	} else {

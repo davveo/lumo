@@ -234,7 +234,14 @@ func (s *Service) sendSecurity(
 			}
 			return nil, status.Error(codes.FailedPrecondition, "验证码发送渠道尚未配置")
 		}
-		payload, _ := json.Marshal(map[string]any{"recipient": address, "phone": address, "code": code, "purpose": purpose, "ttl_seconds": 600, "request_id": id})
+		payload, _ := json.Marshal(map[string]any{
+			"recipient":   address,
+			"phone":       address,
+			"code":        code,
+			"purpose":     purpose,
+			"ttl_seconds": 600,
+			"request_id":  id,
+		})
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
 		if err != nil {
 			return nil, err

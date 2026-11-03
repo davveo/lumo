@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"github.com/davveo/lumo/internal/commercepolicy"
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/democatalog"
 	"github.com/davveo/lumo/internal/platform"
@@ -101,6 +102,14 @@ func (s *Service) Upsert(ctx context.Context, c platform.Request) (traceResult p
 	defer func() { platform.TraceResponse(ctx, traceResult, traceErr) }()
 	if e := platform.RequireAdmin(c); e != nil {
 		return nil, e
+	}
+	if value, exists := c.Data["service_policy"]; exists {
+		var input struct {
+			Policy commercepolicy.ProductService `json:"service_policy"`
+		}
+		if e := platform.Decode(map[string]any{"service_policy": value}, &input); e != nil || !input.Policy.Valid() {
+			return nil, bad("invalid product service policy")
+		}
 	}
 	name := platform.Text(c.Data, "name")
 	price := platform.Int(c.Data, "price_cents")
@@ -334,6 +343,7 @@ func catalogRows(id string, data map[string]any, state string) ([]domain.Record,
 		"highSubs",
 		"specs",
 		"image_file_id",
+		"service_policy",
 		"demo",
 		"demo_source",
 	} {

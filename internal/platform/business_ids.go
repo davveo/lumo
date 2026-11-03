@@ -36,7 +36,7 @@ type BusinessIDAssignment struct {
 }
 
 var businessPrefixes = map[string]string{
-	"order": "ORD", "ord": "ORD", "refund": "RFND", "payment": "PAY", "pay": "PAY",
+	"redemption": "RDM", "reward-offer": "RWO", "order": "ORD", "ord": "ORD", "refund": "RFND", "payment": "PAY", "pay": "PAY",
 	"aftersale": "AFS", "invoice": "INV", "shipment": "SHP", "tracking": "TRK",
 	"group": "GRP", "flash": "FLS", "quote": "QTE", "coupon": "CPN", "addr": "ADR",
 	"ticket": "TKT", "file": "MED", "recon": "RCN", "inspection": "INS", "exchange": "EXC",
@@ -87,6 +87,8 @@ func businessNode(prefix string) (int64, error) {
 		"ALT",
 		"NTF",
 		"STK",
+		"RDM",
+		"RWO",
 	}
 	if raw := os.Getenv("SNOWFLAKE_NODE_ID"); raw != "" {
 		n, e := strconv.ParseInt(raw, 10, 64)

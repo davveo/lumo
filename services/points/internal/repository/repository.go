@@ -25,7 +25,7 @@ func (r *Repository) Migrate(ctx context.Context) error {
 		return e
 	}
 	return r.DB.WithContext(ctx).
-		AutoMigrate(&domain.Account{}, &domain.Hold{}, &domain.Ledger{}, &domain.Reward{}, &domain.RefundProgress{})
+		AutoMigrate(&domain.Account{}, &domain.Hold{}, &domain.Ledger{}, &domain.Reward{}, &domain.RefundProgress{}, &domain.RedeemOffer{}, &domain.Redemption{})
 }
 func (r *Repository) Seed(ctx context.Context) error {
 	return r.DB.WithContext(ctx).
@@ -57,6 +57,16 @@ func (r *Repository) Get(ctx context.Context, c platform.Request) (spanResult0 p
 	e = r.DB.WithContext(ctx).Where("user_id = ?", c.UserID).Order("created_at DESC").Limit(100).Find(&ls).Error
 	out := platform.Map(a)
 	out["ledger"] = ls
+	var days, today int64
+	if e = r.DB.WithContext(ctx).Model(&domain.Ledger{}).Where("user_id = ? AND kind = ?", c.UserID, constants.PointsLedgerKindCheckin).Count(&days).Error; e != nil {
+		return nil, e
+	}
+	if e = r.DB.WithContext(ctx).Model(&domain.Ledger{}).Where("id = ?", "checkin:"+c.UserID+":"+time.Now().UTC().Format("2006-01-02")).Count(&today).Error; e != nil {
+		return nil, e
+	}
+	out["checkin_days"] = days
+	out["signed_today"] = today > 0
+	out["signed_day"] = time.Now().UTC().Format("2006-01-02")
 	return out, e
 }
 func (r *Repository) Reserve(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {

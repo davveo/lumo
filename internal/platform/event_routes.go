@@ -32,9 +32,11 @@ var eventRoutes = map[string][]string{
 	constants.ServiceFulfillment: {constants.EventFulfillmentRecoveryRequested, constants.EventOrderReadyToFulfill},
 	constants.ServiceGroup:       {constants.EventOrderPaymentAccepted},
 	constants.ServiceInvoice:     {constants.EventRefundSucceeded},
+	constants.ServiceHelpdesk:    {constants.EventOrderUrged},
 	constants.ServiceMember:      {constants.EventOrderCompleted},
 	constants.ServiceNotification: {
 		constants.EventShipmentException,
+		constants.EventCouponExpiring, constants.EventRedemptionIssued, constants.EventRedemptionRefunded, constants.EventRewardShipped, constants.EventRewardDelivered,
 		constants.EventProductPriceReached,
 		constants.EventProductBackInStock,
 		constants.EventOrderAwaitingPayment,
@@ -58,7 +60,14 @@ var eventRoutes = map[string][]string{
 		constants.EventGroupFailed,
 	},
 	constants.ServicePayment: {constants.EventPaymentRejected, constants.EventGroupOrderTerminated},
-	constants.ServicePoints:  {constants.EventRefundSucceeded, constants.EventOrderCompleted},
+	constants.ServicePoints: {
+		constants.EventRefundSucceeded,
+		constants.EventOrderCompleted,
+		constants.EventRedemptionRequested,
+		constants.EventRedemptionRecoveryRequested,
+		constants.EventRewardShipped,
+		constants.EventRewardDelivered,
+	},
 }
 
 func EventTopics(service string) []string { return append([]string(nil), eventRoutes[service]...) }

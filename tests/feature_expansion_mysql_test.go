@@ -20,7 +20,11 @@ import (
 type expansionMySQLRouter map[string]platform.Module
 
 func (r expansionMySQLRouter) Call(ctx context.Context, name string, c platform.Command) (platform.Result, error) {
-	return r[name].Handle(ctx, c)
+	module, ok := r[name]
+	if !ok {
+		return nil, status.Error(codes.NotFound, "test service not configured")
+	}
+	return module.Handle(ctx, c)
 }
 
 // Uses disposable schemas, never the application's persistent databases.

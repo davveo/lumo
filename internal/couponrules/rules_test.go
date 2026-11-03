@@ -15,7 +15,24 @@ func TestCouponTypesScopesCapsAndExactRounding(t *testing.T) {
 		rule              Rule
 		amount, min, want int64
 	}{
-		{"满减", Rule{}, 2000, 15000, 2000}, {"无门槛", Rule{CouponType: constants.CouponTypeCash}, 500, 0, 500}, {"八五折", Rule{CouponType: constants.CouponTypeDiscount, DiscountBPS: 8500}, 0, 0, 3000}, {"封顶", Rule{CouponType: constants.CouponTypeThresholdDiscount, DiscountBPS: 8500, MaxDiscount: 1500}, 0, 10000, 1500}, {"品类", Rule{CouponType: constants.CouponTypeDiscount, DiscountBPS: 9000, ScopeType: constants.CouponScopeCategory, ScopeValues: []string{"家电"}}, 0, 0, 1200}, {"商品", Rule{ScopeType: constants.CouponScopeProduct, ScopeValues: []string{"b"}}, 1000, 5000, 1000},
+		{"满减", Rule{}, 2000, 15000, 2000}, {"无门槛", Rule{CouponType: constants.CouponTypeCash}, 500, 0, 500}, {"八五折", Rule{CouponType: constants.CouponTypeDiscount, DiscountBPS: 8500}, 0, 0, 3000}, {
+			"封顶",
+			Rule{CouponType: constants.CouponTypeThresholdDiscount, DiscountBPS: 8500, MaxDiscount: 1500},
+			0,
+			10000,
+			1500,
+		}, {
+			"品类",
+			Rule{
+				CouponType:  constants.CouponTypeDiscount,
+				DiscountBPS: 9000,
+				ScopeType:   constants.CouponScopeCategory,
+				ScopeValues: []string{"家电"},
+			},
+			0,
+			0,
+			1200,
+		}, {"商品", Rule{ScopeType: constants.CouponScopeProduct, ScopeValues: []string{"b"}}, 1000, 5000, 1000},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := Discount(tc.rule, tc.amount, tc.min, 20000, items)
@@ -30,7 +47,12 @@ func TestCouponTypesScopesCapsAndExactRounding(t *testing.T) {
 	}
 }
 func TestCouponRulesRejectInvalidOrForgedScopes(t *testing.T) {
-	for _, rule := range []Rule{{CouponType: "unknown"}, {CouponType: constants.CouponTypeDiscount, DiscountBPS: 10000}, {ScopeType: constants.CouponScopeProduct}, {ScopeType: constants.CouponScopeAll, ScopeValues: []string{"a"}}} {
+	for _, rule := range []Rule{
+		{CouponType: "unknown"},
+		{CouponType: constants.CouponTypeDiscount, DiscountBPS: 10000},
+		{ScopeType: constants.CouponScopeProduct},
+		{ScopeType: constants.CouponScopeAll, ScopeValues: []string{"a"}},
+	} {
 		if rule.Normalize(10, 0) == nil {
 			t.Fatalf("invalid rule accepted: %+v", rule)
 		}

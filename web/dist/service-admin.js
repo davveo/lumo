@@ -238,6 +238,7 @@
         m.adapter.notify?.('回复已发送');
       }
     });
+    m.openDetail = (id) => open(id, 0, true);
     return m;
   }
   function conversation(m) {

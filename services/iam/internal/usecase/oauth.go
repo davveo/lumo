@@ -55,7 +55,12 @@ func (s *Service) OAuthStart(ctx context.Context, c platform.Request) (spanResul
 	if e != nil {
 		return nil, e
 	}
-	if e = s.repo.NewOAuth(ctx, domain.AuthChallenge{ID: hash(state), Provider: provider, Binding: hash(proof), ExpiresAt: time.Now().UTC().Add(5 * time.Minute)}, platform.Text(c.Data, "_client_ip")); e != nil {
+	if e = s.repo.NewOAuth(ctx, domain.AuthChallenge{
+		ID:        hash(state),
+		Provider:  provider,
+		Binding:   hash(proof),
+		ExpiresAt: time.Now().UTC().Add(5 * time.Minute),
+	}, platform.Text(c.Data, "_client_ip")); e != nil {
 		return nil, e
 	}
 	parameters, e := s.providerParameters(ctx, provider)

@@ -677,11 +677,19 @@ func TestAdminManagementIntegration(t *testing.T) {
 	run("asynchronous period reconciliation crosses page boundaries", func(t *testing.T) {
 		now := time.Now().UTC().Add(-time.Minute)
 		for i := 0; i < 105; i++ {
-			if e := c.dbs["payment"].Table("payments").Create(map[string]any{"id": fmt.Sprintf("mg-pay-%03d", i), "order_id": fmt.Sprintf("mg-missing-order-%03d", i), "user_id": "demo", "amount": 100, "status": constants.PaymentStatusSucceeded, "created_at": now, "updated_at": now}).Error; e != nil {
+			if e := c.dbs["payment"].Table("payments").Create(map[string]any{
+				"id":         fmt.Sprintf("mg-pay-%03d", i),
+				"order_id":   fmt.Sprintf("mg-missing-order-%03d", i),
+				"user_id":    "demo",
+				"amount":     100,
+				"status":     constants.PaymentStatusSucceeded,
+				"created_at": now,
+				"updated_at": now,
+			}).Error; e != nil {
 				t.Fatal(e)
 			}
 		}
-		day := time.Now().In(time.FixedZone("Asia/Shanghai", 8*3600)).Format("2006-01-02")
+		day := now.In(time.FixedZone("Asia/Shanghai", 8*3600)).Format("2006-01-02")
 		run := h.call(
 			admin,
 			"reconciliation",
@@ -735,7 +743,12 @@ func TestAdminManagementIntegration(t *testing.T) {
 			Data:        map[string]any{"amount_cents": 100},
 		}
 		raw, _ := json.Marshal(event)
-		if e := c.dbs["notification"].Create(&platform.Inbox{Consumer: "notification", EventID: event.ID, State: constants.InboxStateDead, PayloadJSON: string(raw)}).Error; e != nil {
+		if e := c.dbs["notification"].Create(&platform.Inbox{
+			Consumer:    "notification",
+			EventID:     event.ID,
+			State:       constants.InboxStateDead,
+			PayloadJSON: string(raw),
+		}).Error; e != nil {
 			t.Fatal(e)
 		}
 		tasks := h.call(
@@ -783,7 +796,13 @@ func TestAdminManagementIntegration(t *testing.T) {
 		)
 		event.ID = "mg-leased-event"
 		raw, _ = json.Marshal(event)
-		if e := c.dbs["notification"].Create(&platform.Inbox{Consumer: "notification", EventID: event.ID, State: constants.InboxStateProcessing, PayloadJSON: string(raw), LeaseUntil: time.Now().Add(time.Minute)}).Error; e != nil {
+		if e := c.dbs["notification"].Create(&platform.Inbox{
+			Consumer:    "notification",
+			EventID:     event.ID,
+			State:       constants.InboxStateProcessing,
+			PayloadJSON: string(raw),
+			LeaseUntil:  time.Now().Add(time.Minute),
+		}).Error; e != nil {
 			t.Fatal(e)
 		}
 		h.expect(409, admin, "management", "retry", event.ID, "mg-leased-replay", data)

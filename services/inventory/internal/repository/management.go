@@ -100,7 +100,14 @@ func (r *Repository) Threshold(ctx context.Context, c platform.Request) (spanRes
 		before, _ := json.Marshal(map[string]any{"threshold": old.Threshold})
 		after, _ := json.Marshal(map[string]any{"threshold": in.Threshold})
 		return tx.WithContext(ctx).
-			Create(&adminconfig.Change{ID: platform.ID("threshold-change"), DocumentID: c.ID, ActorID: c.UserID, Reason: reason, Before: string(before), After: string(after)}).
+			Create(&adminconfig.Change{
+				ID:         platform.ID("threshold-change"),
+				DocumentID: c.ID,
+				ActorID:    c.UserID,
+				Reason:     reason,
+				Before:     string(before),
+				After:      string(after),
+			}).
 			Error
 	})
 	if err != nil {

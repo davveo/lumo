@@ -21,7 +21,13 @@ func TestNotificationStreamIsPrivateAndStopsAfterLogout(t *testing.T) {
 		h.call("", "iam", "login", "", "", map[string]any{"username": "demo", "password": "Lumo@2026"}),
 		"token",
 	)
-	if e := c.modules["notification"].OnEvent(context.Background(), platform.Event{ID: "private-victim-notification", Type: "OrderAwaitingPayment", AggregateID: "victim-order", UserID: "victim", Data: map[string]any{"order_id": "victim-order"}}); e != nil {
+	if e := c.modules["notification"].OnEvent(context.Background(), platform.Event{
+		ID:          "private-victim-notification",
+		Type:        "OrderAwaitingPayment",
+		AggregateID: "victim-order",
+		UserID:      "victim",
+		Data:        map[string]any{"order_id": "victim-order"},
+	}); e != nil {
 		t.Fatal(e)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)

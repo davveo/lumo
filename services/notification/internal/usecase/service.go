@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"time"
 
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
@@ -71,6 +72,29 @@ func (s *Service) event(ctx context.Context, e platform.Event) (traceErr error) 
 	defer func() { platform.TraceResponse(ctx, nil, traceErr) }()
 	if e.UserID == "" {
 		return nil
+	}
+	if e.Type == constants.EventCouponExpiring {
+		settings, err := platform.NewClients(
+			s.rpc,
+		).Coupon.ReminderGet(
+			ctx,
+			platform.Request{UserID: e.UserID, Role: constants.RoleSystem},
+		)
+		if err != nil {
+			return err
+		}
+		if settings["enabled"] != true || platform.Int(settings, "expiring_count") < 1 {
+			return nil
+		}
+		data := map[string]any{}
+		for k, v := range e.Data {
+			data[k] = v
+		}
+		data["coupon_count"] = settings["expiring_count"]
+		if at, err := time.Parse(time.RFC3339Nano, platform.Text(settings, "next_expiry")); err == nil {
+			data["expires_at"] = at.In(time.FixedZone("Asia/Shanghai", 8*3600)).Format("2006-01-02 15:04")
+		}
+		e.Data = data
 	}
 	template, version, err := s.repo.Template(ctx, e.Type, defaultTemplate(e.Type))
 	if err != nil {

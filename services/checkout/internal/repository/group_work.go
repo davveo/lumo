@@ -21,7 +21,13 @@ func (r *Repository) QueueGroupResolution(ctx context.Context, source platform.E
 		}
 		for _, row := range rows {
 			key := sha256.Sum256([]byte(source.ID + ":" + source.Type + ":" + row.ID))
-			if err := platform.Enqueue(ctx, tx, platform.Event{ID: fmt.Sprintf("group-work-%x", key), Type: constants.EventCheckoutGroupResolution, AggregateID: row.ID, UserID: row.UserID, Data: map[string]any{"formed": source.Type == constants.EventGroupFormed}}); err != nil {
+			if err := platform.Enqueue(ctx, tx, platform.Event{
+				ID:          fmt.Sprintf("group-work-%x", key),
+				Type:        constants.EventCheckoutGroupResolution,
+				AggregateID: row.ID,
+				UserID:      row.UserID,
+				Data:        map[string]any{"formed": source.Type == constants.EventGroupFormed},
+			}); err != nil {
 				return err
 			}
 		}

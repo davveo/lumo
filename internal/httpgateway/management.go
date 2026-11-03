@@ -72,7 +72,14 @@ func init() {
 	}
 	reads["exceptions"] = true
 
-	for _, a := range []string{"procurement_list", "procurement_get", "procurement_create", "procurement_approve", "procurement_receive", "procurement_cancel"} {
+	for _, a := range []string{
+		"procurement_list",
+		"procurement_get",
+		"procurement_create",
+		"procurement_approve",
+		"procurement_receive",
+		"procurement_cancel",
+	} {
 		adminActions["inventory/"+a] = true
 	}
 	reads["procurement_get"] = true
@@ -113,7 +120,13 @@ func init() {
 		adminActions[constants.ServiceEngagement+"/"+a] = true
 	}
 	reads[constants.ActionSubscriptions] = true
-	for _, a := range []string{constants.ActionLoginMethods, constants.ActionOtpSend, constants.ActionOtpLogin, constants.ActionOAuthStart, constants.ActionOAuthCallback} {
+	for _, a := range []string{
+		constants.ActionLoginMethods,
+		constants.ActionOtpSend,
+		constants.ActionOtpLogin,
+		constants.ActionOAuthStart,
+		constants.ActionOAuthCallback,
+	} {
 		publicActions[constants.ServiceIAM+"/"+a] = true
 	}
 	adminActions[constants.ServiceIAM+"/"+constants.ActionPolicyGet] = true
@@ -123,7 +136,18 @@ func init() {
 	adminActions[constants.ServicePayment+"/"+constants.ActionPolicyUpsert] = true
 	userActions[constants.ServiceCoupon+"/"+constants.ActionCalculate] = true
 	additions := actionSet(map[string][]string{
-		constants.ServiceAnalytics: {constants.ActionAdminList}, constants.ServiceHelpdesk: {constants.ActionAdminList},
+		constants.ServiceAnalytics: {constants.ActionDrilldown,
+			constants.ActionAdminList,
+		}, constants.ServiceHelpdesk: {
+			constants.ActionAdminList,
+			constants.ActionWorkQueue,
+			constants.ActionWorkDetail,
+			constants.ActionAssignWork,
+			constants.ActionSaveView,
+			constants.ActionViews,
+			constants.ActionPolicyGet,
+			constants.ActionPolicyUpsert,
+		},
 		constants.ServiceFlash: {
 			constants.ActionAdminList,
 			constants.ActionUpsert,
@@ -160,7 +184,19 @@ func init() {
 	publicActions[constants.ServiceGroup+"/"+constants.ActionRules] = true
 	userActions[constants.ServicePoints+"/"+constants.ActionPolicyGet] = true
 	userActions[constants.ServiceMember+"/"+constants.ActionPolicyGet] = true
-	for _, action := range []string{constants.ActionPolicyGet, constants.ActionMethods, constants.ActionLoginMethods, constants.ActionRules, constants.ActionRulesAdmin, constants.ActionSessionGet, constants.ActionRequestsAdmin, constants.ActionAdminGet, constants.ActionLedger, constants.ActionAuditList, constants.ActionTasks} {
+	for _, action := range []string{
+		constants.ActionPolicyGet,
+		constants.ActionMethods,
+		constants.ActionLoginMethods,
+		constants.ActionRules,
+		constants.ActionRulesAdmin,
+		constants.ActionSessionGet,
+		constants.ActionRequestsAdmin,
+		constants.ActionAdminGet,
+		constants.ActionLedger,
+		constants.ActionAuditList,
+		constants.ActionTasks,
+	} {
 		reads[action] = true
 	}
 }

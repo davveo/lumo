@@ -89,6 +89,7 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 		constants.HelpdeskStatusOpen,
 		map[string]any{"title": title, "body": body, "order_id": oid},
 	)
+	r.ParentID = oid
 	inserted, e := s.repo.InsertOnce(ctx, &r, nil)
 	if e != nil {
 		return nil, e
@@ -175,6 +176,21 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 	if c.Role == constants.RoleAdmin {
 		owner = ""
 	}
+	if id := platform.Text(c.Data, "order_id"); id != "" {
+		if len(id) > 100 {
+			return nil, bad("invalid order identifier")
+		}
+		rows, page, e := s.repo.ForOrder(ctx, owner, id, c)
+		if e != nil {
+			return nil, e
+		}
+		items := []platform.Result{}
+		for _, r := range rows {
+			items = append(items, view(r))
+		}
+		page["items"] = items
+		return page, nil
+	}
 	return s.list(ctx, c, owner, constants.HelpdeskKindTicket, "")
 }
 
@@ -237,5 +253,28 @@ func (s *Service) Reply(ctx context.Context, c platform.Request) (traceResult pl
 	return view(r), nil
 }
 
-func (s *Service) seed(context.Context) error                  { return nil }
-func (s *Service) event(context.Context, platform.Event) error { return nil }
+func (s *Service) seed(context.Context) error { return nil }
+func (s *Service) event(ctx context.Context, e platform.Event) error {
+	if e.Type != constants.EventOrderUrged {
+		return nil
+	}
+	id, err := s.repo.BusinessID(ctx, "ticket", e.ID, stable(e.ID))
+	if err != nil {
+		return err
+	}
+	r := record(
+		id,
+		e.UserID,
+		constants.HelpdeskKindTicket,
+		constants.HelpdeskStatusOpen,
+		map[string]any{
+			"title":    "订单催发货",
+			"body":     "顾客希望尽快发货，请核对仓库处理与配送安排。",
+			"order_id": e.AggregateID,
+			"source":   "shipment_urge",
+		},
+	)
+	r.ParentID = e.AggregateID
+	_, err = s.repo.InsertOnce(ctx, &r, nil)
+	return err
+}

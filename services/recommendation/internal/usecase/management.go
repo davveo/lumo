@@ -37,7 +37,17 @@ func (s *Service) PolicyUpsert(ctx context.Context, c platform.Request) (spanRes
 		return nil, e
 	}
 	p := in.Config
-	for _, v := range []float64{p.FavoriteWeight, p.CompareWeight, p.HistoryWeight, p.PurchaseWeight, p.SearchWeight, p.PopularityWeight, p.FreshnessWeight, p.PersonalWeight, p.SimilarWeight} {
+	for _, v := range []float64{
+		p.FavoriteWeight,
+		p.CompareWeight,
+		p.HistoryWeight,
+		p.PurchaseWeight,
+		p.SearchWeight,
+		p.PopularityWeight,
+		p.FreshnessWeight,
+		p.PersonalWeight,
+		p.SimilarWeight,
+	} {
 		if math.IsNaN(v) || math.IsInf(v, 0) || v < 0 || v > 100 {
 			return nil, bad("recommendation weights must be between 0 and 100")
 		}

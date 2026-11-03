@@ -102,8 +102,25 @@
     [C.Service.Address]: [C.Action.List, C.Action.Get],
     [C.Service.Cart]: [C.Action.List],
     [C.Service.Engagement]: [C.Action.List, C.Action.Subscriptions, C.Action.PolicyGet, C.Action.AdminList],
-    [C.Service.Coupon]: [C.Action.List, C.Action.Templates, C.Action.TemplatesSnapshot, C.Action.TemplatesAdmin],
-    [C.Service.Points]: [C.Action.Get, C.Action.AdminGet, C.Action.Ledger, C.Action.PolicyGet],
+    [C.Service.Coupon]: [
+      C.Action.ReminderGet,
+      C.Action.List,
+      C.Action.Templates,
+      C.Action.TemplatesSnapshot,
+      C.Action.TemplatesAdmin,
+    ],
+    [C.Service.Points]: [
+      C.Action.MyLedger,
+      C.Action.Offers,
+      C.Action.OffersAdmin,
+      C.Action.Redemptions,
+      C.Action.RedemptionsAdmin,
+      C.Action.RedemptionGet,
+      C.Action.Get,
+      C.Action.AdminGet,
+      C.Action.Ledger,
+      C.Action.PolicyGet,
+    ],
     [C.Service.Order]: [C.Action.List, C.Action.AdminList, C.Action.AdminSummary],
     [C.Service.Aftersale]: [C.Action.List, C.Action.Get, C.Action.AdminList, C.Action.AdminSummary],
     [C.Service.Fulfillment]: [C.Action.List, C.Action.Get, C.Action.AdminList, C.Action.AdminSummary],
@@ -119,7 +136,7 @@
     ],
     [C.Service.Refund]: [C.Action.List, C.Action.AdminList, C.Action.AdminSummary],
     [C.Service.Reconciliation]: [C.Action.List, C.Action.AdminList, C.Action.Get],
-    [C.Service.Analytics]: [C.Action.List, C.Action.AdminList, C.Action.Dashboard],
+    [C.Service.Analytics]: [C.Action.Drilldown, C.Action.List, C.Action.AdminList, C.Action.Dashboard],
     [C.Service.IAM]: [
       C.Action.StaffList,
       C.Action.SecurityGet,
@@ -477,7 +494,7 @@
       !safeRead &&
       !directReads.has(service + '/' + action) &&
       service !== C.Service.Storefront &&
-      !(service === C.Service.Analytics && action === C.Action.Record)
+      !(service === C.Service.Analytics && [C.Action.Record, C.Action.Track].includes(action))
     )
       invalidate();
     return transport(service, action, payload, options, context).then((result) => result.data);

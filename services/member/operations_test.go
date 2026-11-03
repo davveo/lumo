@@ -61,7 +61,11 @@ func TestAllAccountCatalogServicesExposeDistinctOperations(t *testing.T) {
 				"admin_list",
 			},
 		},
-		{"media", media.NewWithStore(platform.Dependencies{}, nil), []string{"create", "get", "download", "complete"}},
+		{
+			"media",
+			media.NewWithStore(platform.Dependencies{}, nil),
+			[]string{"create", "get", "download", "complete", "verify_files"},
+		},
 		{
 			"interaction",
 			interaction.New(platform.Dependencies{}),

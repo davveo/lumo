@@ -95,7 +95,9 @@ func run(source, output string, check bool) error {
 	)
 	script.Write(data)
 	script.WriteString(
-		";\n  for (const group of Object.values(values)) Object.freeze(group);\n  Object.defineProperty(window, 'LumoConstants', {value: Object.freeze(values), writable: false, configurable: false});\n})();\n",
+		";\n  for (const group of Object.values(values)) Object.freeze(group);\n  " +
+			"Object.defineProperty(window, 'LumoConstants', {value: Object.freeze(values), " +
+			"writable: false, configurable: false});\n})();\n",
 	)
 	if check {
 		existing, err := os.ReadFile(output)

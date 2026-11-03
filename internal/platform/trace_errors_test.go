@@ -63,7 +63,9 @@ func TestTraceErrorRetainsOriginalFailureBeforeRPCConversionAndSuccessfulAck(t *
 
 func TestTraceErrorRedactsConnectionCredentialsAndBoundsDiagnosticSize(t *testing.T) {
 	ctx := NewTraceErrorContext(context.Background())
-	raw := "database connection failed account:raw-password@tcp(database:3306); amqp://mall:broker-password@rabbitmq:5672/; https://provider.test/callback?token=callback-secret; phone=13912345678; " + strings.Repeat(
+	raw := "database connection failed account:raw-password@tcp(database:3306); " +
+		"amqp://mall:broker-password@rabbitmq:5672/; " +
+		"https://provider.test/callback?token=callback-secret; phone=13912345678; " + strings.Repeat(
 		"错误",
 		10000,
 	)

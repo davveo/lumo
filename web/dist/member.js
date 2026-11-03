@@ -53,6 +53,10 @@
       signInDates: [],
       orderStates: {},
       growth: 0,
+      memberPolicy: { gold_growth: 1000 },
+      checkinDays: null,
+      signedToday: null,
+      signedDay: '',
       level: '生活会员',
     };
   }
@@ -152,6 +156,28 @@
     [C.AftersaleStatus.Rejected]: C.AftersaleViewStatus.Rejected,
     [C.AftersaleStatus.Cancelled]: C.AftersaleViewStatus.Cancelled,
   };
+  function mapPointEntry(l) {
+    return {
+      id: l.id,
+      title:
+        {
+          [C.PointsLedgerKind.Checkin]: '每日签到',
+          [C.PointsLedgerKind.Freeze]: '下单冻结积分',
+          [C.PointsLedgerKind.Confirmed]: '积分已抵扣',
+          [C.PointsLedgerKind.Cancelled]: '取消订单释放积分',
+          [C.PointsLedgerKind.Reward]: '订单完成奖励',
+          [C.PointsLedgerKind.Refund]: '退款返还抵扣积分',
+          [C.PointsLedgerKind.RewardReversal]: '退款收回奖励积分',
+          [C.PointsLedgerKind.Redemption]: '积分兑换',
+          [C.PointsLedgerKind.RedemptionReversal]: '兑换退还积分',
+          [C.PointsLedgerKind.Manual]: '人工调整',
+        }[l.kind] || l.kind,
+      delta: l.kind === C.PointsLedgerKind.Confirmed ? 0 : Number(l.amount || 0),
+      at: timestamp(l.created_at),
+      orderId: l.order_id,
+      kind: l.kind,
+    };
+  }
   function mapAftersale(a) {
     const at = timestamp(a.created_at),
       updated = timestamp(a.updated_at);
@@ -267,6 +293,7 @@
           promotion: p.notifications?.promotion === true,
         };
         memory.growth = Number(profile.growth || 0);
+        memory.memberPolicy = profile.policy || { gold_growth: 1000 };
         memory.level = profile.level === C.MemberLevel.Gold ? '金卡会员' : '生活会员';
       }
       if (address) {
@@ -289,26 +316,14 @@
       }
       if (points) {
         memory.points = Number(points.available || 0);
+        memory.checkinDays = Number.isFinite(points.checkin_days) ? points.checkin_days : null;
+        memory.signedToday = typeof points.signed_today === 'boolean' ? points.signed_today : null;
+        memory.signedDay = points.signed_day || '';
         memory.pointsPolicy = points.policy || { deduction_bps: 1000 };
         memory.frozenPoints = Number(points.frozen || 0);
         memory.debtPoints = Number(points.debt || 0);
-        memory.pointLog = (points.ledger || []).map((l) => ({
-          id: l.id,
-          title:
-            {
-              [C.PointsLedgerKind.Checkin]: '每日签到',
-              [C.PointsLedgerKind.Freeze]: '下单冻结积分',
-              [C.PointsLedgerKind.Confirmed]: '积分已抵扣',
-              [C.PointsLedgerKind.Cancelled]: '取消订单释放积分',
-              [C.PointsLedgerKind.Reward]: '订单完成奖励',
-              [C.PointsLedgerKind.Refund]: '退款返还抵扣积分',
-              [C.PointsLedgerKind.RewardReversal]: '退款收回奖励积分',
-            }[l.kind] || l.kind,
-          delta: [C.PointsLedgerKind.Confirmed].includes(l.kind) ? 0 : Number(l.amount || 0),
-          at: timestamp(l.created_at),
-          orderId: l.order_id,
-          kind: l.kind,
-        }));
+        memory.pointLog = (points.ledger || []).map(mapPointEntry);
+        window.dispatchEvent(new CustomEvent('lumo:points-updated'));
         memory.signInDates = [
           ...new Set(
             (points.ledger || [])
@@ -361,7 +376,7 @@
           coupons: ['coupons'],
           favorites: ['favorites'],
           history: ['history'],
-          points: ['points'],
+          points: ['points', 'profile', 'addresses'],
           aftersales: ['aftersales'],
           settings: ['profile'],
           reviews: ['reviews'],
@@ -557,7 +572,7 @@
   }
   function model() {
     if (memoryScope !== memberScope()) reset();
-    const nextAt = memory.growth < 1000 ? 1000 : 5000;
+    const nextAt = Number(memory.memberPolicy.gold_growth || 1000);
     return {
       ...clone(memory),
       coupons: coupons(),
@@ -565,12 +580,17 @@
       pointsPolicy: clone(memory.pointsPolicy),
       preferences: clone(memory.notifications),
       profile: { ...clone(memory.profile), level: memory.level },
-      signedToday: memory.signInDates.includes(dayKey()),
-      signInDays: memory.signInDates.length,
+      signedToday:
+        memory.signedDay === dayKey() && memory.signedToday !== null
+          ? memory.signedToday
+          : memory.signInDates.includes(dayKey()),
+      signInDays: memory.checkinDays ?? memory.signInDates.length,
       membership: {
         level: memory.level,
         growth: memory.growth,
         nextAt,
+        remaining: Math.max(0, nextAt - memory.growth),
+        reached: memory.growth >= nextAt,
         progress: Math.min(100, Math.round((memory.growth / nextAt) * 100)),
       },
       totalSaved: listOrders()
@@ -749,10 +769,23 @@
     }
     modal(
       '申请售后',
-      `<p class="modal-desc">订单 ${esc(id)}${orderState(order) === C.OrderViewStatus.Shipping ? ' · 未发货订单仅支持整单退款' : ' · 可选择商品和数量，未选商品填 0'}</p><form id="member-aftersale-form" data-id="${esc(id)}"><label class="field">服务类型<select name="type">${(orderState(order) === C.OrderViewStatus.Shipping ? ['仅退款'] : ['退货退款', '换货']).map((v) => `<option>${v}</option>`).join('')}</select></label><fieldset class="field"><legend>申请商品与数量</legend>${order.items.map((item, index) => `<label>${esc(item.name || findProduct(item.id)?.name || item.id)}<input type="number" name="line-${index}" min="${orderState(order) === C.OrderViewStatus.Shipping ? item.qty : 0}" max="${item.qty}" value="${item.qty}" step="1" ${orderState(order) === C.OrderViewStatus.Shipping ? 'readonly' : ''} aria-label="${esc(item.name || item.id)} 售后数量"></label>`).join('')}</fieldset><label class="field">申请原因<select name="reason"><option>不喜欢 / 不想要</option><option>商品与描述不符</option><option>质量问题</option><option>商品破损 / 少件</option><option>其他原因</option></select></label><label class="field">补充说明<textarea name="note" rows="3" maxlength="300" placeholder="选填，描述你的问题"></textarea></label><button class="primary" type="submit">提交售后申请</button></form>`,
+      `<p class="modal-desc">订单 ${esc(id)}${orderState(order) === C.OrderViewStatus.Shipping ? ' · 未发货订单仅支持整单退款' : ' · 可选择商品和数量，未选商品填 0'}</p><form id="member-aftersale-form" data-id="${esc(id)}"><label class="field">服务类型<select name="type">${(orderState(order) === C.OrderViewStatus.Shipping ? ['仅退款'] : ['退货退款', '换货']).map((v) => `<option>${v}</option>`).join('')}</select></label><fieldset class="after-items"><legend>申请商品与数量</legend><p>每件商品独立选择数量${orderState(order) === C.OrderViewStatus.Shipping ? '；未发货订单按整单退款。' : '，不申请的商品填 0。'}</p><div class="after-items-list">${order.items.map((item, index) => `<label class="after-item"><span><strong>${esc(item.name || findProduct(item.id)?.name || item.id)}</strong><small>${esc(item.color || '')} ${esc(item.option || '')} · 已购 ${Number(item.qty)} 件</small></span><span class="after-item-quantity"><span>申请数量</span><input type="number" name="line-${index}" min="${orderState(order) === C.OrderViewStatus.Shipping ? item.qty : 0}" max="${item.qty}" value="${item.qty}" step="1" ${orderState(order) === C.OrderViewStatus.Shipping ? 'readonly' : ''} aria-label="${esc(item.name || item.id)} 售后数量"></span></label>`).join('')}</div></fieldset><section class="after-preview-section"><button class="outline" type="button" data-after-preview>重新核算退款与返还资产</button><div id="after-preview" aria-live="polite"></div></section><label class="field">申请原因<select name="reason"><option>不喜欢 / 不想要</option><option>商品与描述不符</option><option>质量问题</option><option>商品破损 / 少件</option><option>其他原因</option></select></label><label class="field">补充说明<textarea name="note" rows="3" maxlength="300" placeholder="选填，描述你的问题"></textarea></label><label class="field">图片凭证（选填）<input type="file" name="evidence_upload" accept="image/png,image/jpeg,image/webp"><small>每次添加 1 张，最多 5 张，每张不超过 10 MiB；仅用于此售后申请。</small></label><p id="after-evidence-status" class="secure-note" role="status"></p><div id="after-evidence-list" class="after-evidence-list"></div><button class="primary" type="submit">提交售后申请</button></form>`,
     );
+    window.LumoAftersale?.attach(order);
   }
 
+  function refundDetail(r, a) {
+    const done = r.status === C.RefundStatus.Succeeded,
+      processing = done || r.status === C.RefundStatus.Processing;
+    const label = done ? '退款成功' : processing ? '支付渠道处理中' : '退款申请已创建';
+    const at = (v) => (v ? esc(new Date(v).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })) : '');
+    const steps = [
+      ['退款申请已创建', true, r.created_at, '退款申请已由服务端记录。'],
+      ['支付渠道处理中', processing, null, '原渠道处理退款，请留意支付账户通知。'],
+      ['退款成功', done, done ? r.updated_at : null, '到账情况以原支付渠道记录为准。'],
+    ];
+    return `<section class="refund-detail"><div class="refund-overview"><span>原支付渠道退款</span><strong>¥${(Number(r.amount_cents || 0) / 100).toFixed(2)}</strong><h3>${esc(label)}</h3><p>${r.provider === C.RefundProvider.Demo ? '当前为演示退款，不产生真实资金流转。' : '退款到账时间以支付渠道处理结果为准。'}</p></div><ol class="service-timeline" aria-label="退款处理进度">${steps.map(([name, complete, time, note], i) => `<li class="${complete ? 'done' : ''} ${(done ? 2 : processing ? 1 : 0) === i ? 'current' : ''}" ${(done ? 2 : processing ? 1 : 0) === i ? 'aria-current="step"' : ''}><strong>${esc(name)}</strong>${time ? `<time>${at(time)}</time>` : ''}<p>${complete ? esc(note) : '等待前一步处理完成'}</p></li>`).join('')}</ol><dl class="service-definition"><div><dt>退款单号</dt><dd>${esc(r.id)}</dd></div><div><dt>关联订单</dt><dd>${esc(r.order_id || a.orderId)}</dd></div><div><dt>售后单号</dt><dd>${esc(a.id)}</dd></div><div><dt>更新时间</dt><dd>${at(r.updated_at) || '暂无'}</dd></div></dl><p class="secure-note">券与积分的返还状态请查看账户记录。</p><div class="svc-modal-actions"><a class="outline" href="#/member/coupons" data-action="close-modal">查看优惠券</a><a class="outline" href="#/member/points" data-action="close-modal">查看积分</a><button class="primary" data-member-action="refund-status" data-id="${esc(a.id)}">刷新进度</button></div></section>`;
+  }
   function activeAftersale(orderId) {
     const a = memory.aftersales.find(
       (a) =>
@@ -1160,7 +1193,8 @@
               if (index >= 0) memory.aftersales[index] = a;
               modal(
                 '售后详情',
-                `<p class="modal-desc">售后单 ${esc(a.id)}<br>订单 ${esc(a.orderId)}<br>类型 ${esc(a.type)}<br>状态 ${esc(a.backendStatus)}<br>申请金额 ¥${money(a.refundAmount)}<br>寄回单号 ${esc(a.return_tracking || '尚未提交')}<br>换货履约单 ${esc(a.replacement_id || '尚未生成')}</p>`,
+                window.LumoAftersale?.caseDetails(a) ||
+                  `<p class="modal-desc">售后单 ${esc(a.id)}<br>订单 ${esc(a.orderId)}<br>类型 ${esc(a.type)}<br>状态 ${esc(a.backendStatus)}<br>申请金额 ¥${money(a.refundAmount)}<br>寄回单号 ${esc(a.return_tracking || '尚未提交')}<br>换货履约单 ${esc(a.replacement_id || '尚未生成')}</p>`,
               );
             },
             'aftersale-details',
@@ -1186,11 +1220,7 @@
             '退款进度',
             'rows',
             () => call(C.Service.Refund, C.Action.Get, { id: a.refund_id }),
-            (r) =>
-              modal(
-                '退款进度',
-                `<p class="modal-desc">退款单 ${esc(r.id)}<br>状态：${esc(r.status)}<br>金额 ¥${money(Number(r.amount_cents || 0) / 100)}</p>`,
-              ),
+            (r) => modal('退款进度', refundDetail(r, a)),
             'refund-status',
             id,
           );
@@ -1324,6 +1354,7 @@
           data: {
             order_id: form.dataset.id,
             lines,
+            evidence_ids: window.LumoAftersale?.evidenceFor(form) || [],
             type: {
               '仅退款': C.AftersaleType.Refund,
               '退货退款': C.AftersaleType.Return,
@@ -1390,6 +1421,7 @@
     cancelAftersale,
     isRefunded,
     aftersaleProgress,
+    mapPointEntry,
     skuFor,
   };
   window.addEventListener('lumo:logout', reset);

@@ -15,17 +15,20 @@ import (
 )
 
 type Spec struct {
-	State, Amount string
-	Search        []string
+	ID, State, Amount string
+	Search            []string
 }
 type Filters struct {
-	AsOf     string `json:"as_of"`
-	Page     int    `json:"page"`
-	PageSize int    `json:"page_size"`
-	Keyword  string `json:"keyword"`
-	Status   string `json:"status"`
-	From     string `json:"from"`
-	To       string `json:"to"`
+	States      []string `json:"states"`
+	IDs         []string `json:"ids"`
+	OldestFirst bool     `json:"oldest_first"`
+	AsOf        string   `json:"as_of"`
+	Page        int      `json:"page"`
+	PageSize    int      `json:"page_size"`
+	Keyword     string   `json:"keyword"`
+	Status      string   `json:"status"`
+	From        string   `json:"from"`
+	To          string   `json:"to"`
 }
 
 func filtered(ctx context.Context, db *gorm.DB, model any, data map[string]any, spec Spec) (*gorm.DB, Filters, error) {
@@ -45,6 +48,28 @@ func filtered(ctx context.Context, db *gorm.DB, model any, data map[string]any, 
 		return nil, f, status.Error(codes.InvalidArgument, "invalid management page or filter")
 	}
 	q := db.WithContext(ctx).Model(model)
+	if len(f.States) > 0 {
+		if spec.State == "" || len(f.States) > 16 {
+			return nil, f, status.Error(codes.InvalidArgument, "invalid status filter")
+		}
+		for _, st := range f.States {
+			if st == "" || len(st) > 40 {
+				return nil, f, status.Error(codes.InvalidArgument, "invalid status value")
+			}
+		}
+		q = q.Where(spec.State+" IN ?", f.States)
+	}
+	if len(f.IDs) > 0 {
+		if spec.ID == "" || len(f.IDs) > 100 {
+			return nil, f, status.Error(codes.InvalidArgument, "invalid identifier filter")
+		}
+		for _, id := range f.IDs {
+			if id == "" || len(id) > 180 {
+				return nil, f, status.Error(codes.InvalidArgument, "invalid record identifier")
+			}
+		}
+		q = q.Where(spec.ID+" IN ?", f.IDs)
+	}
 	if f.AsOf != "" {
 		cutoff, e := time.Parse(time.RFC3339Nano, f.AsOf)
 		if e != nil {
@@ -105,7 +130,11 @@ func Page[T any](ctx context.Context, db *gorm.DB, data map[string]any, spec Spe
 	}
 	rows := []T{}
 	if int64((f.Page-1)*f.PageSize) < total {
-		err = q.Order("created_at DESC,id DESC").Offset((f.Page - 1) * f.PageSize).Limit(f.PageSize).Find(&rows).Error
+		order := "created_at DESC,id DESC"
+		if f.OldestFirst {
+			order = "created_at ASC,id ASC"
+		}
+		err = q.Order(order).Offset((f.Page - 1) * f.PageSize).Limit(f.PageSize).Find(&rows).Error
 	}
 	return rows, total, f, err
 }

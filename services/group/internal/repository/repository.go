@@ -28,7 +28,14 @@ func (r *Repository) Migrate(ctx context.Context) error {
 	return r.DB.WithContext(ctx).AutoMigrate(&domain.Team{}, &domain.Seat{}, &domain.Rule{})
 }
 func (r *Repository) Seed(ctx context.Context) error {
-	if err := r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&domain.Rule{ID: "group-default", Name: "标准拼团", ActivityID: "group-demo", Required: 2, DurationMinutes: 30, Active: true}).Error; err != nil {
+	if err := r.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&domain.Rule{
+		ID:              "group-default",
+		Name:            "标准拼团",
+		ActivityID:      "group-demo",
+		Required:        2,
+		DurationMinutes: 30,
+		Active:          true,
+	}).Error; err != nil {
 		return err
 	}
 	return r.DB.WithContext(ctx).

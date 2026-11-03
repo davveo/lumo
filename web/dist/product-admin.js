@@ -128,6 +128,11 @@
   }
   function makeDraft(row) {
     return {
+      service_configured: row.service_policy?.configured === true,
+      return_days: row.service_policy?.return_days ?? 7,
+      return_shipping: row.service_policy?.return_shipping || 'case_by_case',
+      warranty_months: row.service_policy?.warranty_months ?? 12,
+      service_explanation: row.service_policy?.explanation || '',
       id: row.id,
       name: row.name || '',
       brand: row.brand || '',
@@ -147,6 +152,11 @@
       id:
         'product-' +
         (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)),
+      service_configured: false,
+      return_days: 7,
+      return_shipping: 'case_by_case',
+      warranty_months: 12,
+      service_explanation: '',
       name: '',
       brand: '',
       category: '',
@@ -194,7 +204,7 @@
     const image = asset(draft.image),
       colors = original?.colors || ['经典款'],
       options = original?.options || ['标准版'];
-    return `<form id="product-admin-form"><div class="pd-editor-grid"><section class="admin-section"><div class="admin-panel-heading"><h2>基本资料</h2><span>${original ? '编辑商品' : '新建单规格商品'}</span></div><div class="admin-form"><label class="field wide">商品编号<input readonly value="${esc(draft.id)}"><small>编号用于关联订单与库存，保存后保持不变。</small></label>${field('商品名称', 'name', true)}${field('品牌', 'brand')}${field('商品分类', 'category')}${field('商品简介', 'sub', true)}${field('商品图片地址', 'image', true)}<p class="sa-field-help wide">支持 HTTPS 图片地址或现有商城素材文件名。分类名称应与分类导航中维护的名称一致。</p>${field('默认规格售价（元）', 'price')}${field('展示原价（元）', 'old')}${field('展示标签', 'label', true)}<label class="pd-check wide"><input type="checkbox" data-pd-field="active" ${draft.active ? 'checked' : ''} ${busy ? 'disabled' : ''}>在商城中上架展示</label></div></section><aside><section class="admin-section"><div class="admin-panel-heading"><h2>商品图片</h2></div><div class="pd-image-preview" data-pd-preview>${image ? `<img src="${esc(image)}" alt="商品图片预览">` : '<span>请填写有效图片地址</span>'}</div></section><section class="admin-section"><h2>规格与库存</h2><dl class="pd-specs"><dt>颜色</dt><dd>${colors.map(esc).join(' / ')}</dd><dt>规格</dt><dd>${options.map(esc).join(' / ')}</dd><dt>默认规格</dt><dd>${esc(original?.defaultOption || '标准版')}</dd></dl><p class="sa-field-help">${original ? '现有颜色和规格保持原样。调整默认售价时，其他规格按相同金额差调整，保留原有价差。' : '新商品按单颜色、单规格建立，初始为未上架。'}商品资料与库存独立保存，修改资料不会重置库存。</p></section></aside></div><div class="sa-savebar"><span>${original ? '已有规格与库存不会重置' : '保存后请前往库存管理设置可售库存'}</span><div><button type="button" class="outline" data-pd-action="back" ${busy ? 'disabled' : ''}>取消</button><button type="submit" class="primary" ${busy ? 'disabled' : ''}>${busy ? '正在保存…' : '保存商品'}</button></div></div></form>`;
+    return `<form id="product-admin-form"><div class="pd-editor-grid"><section class="admin-section"><div class="admin-panel-heading"><h2>基本资料</h2><span>${original ? '编辑商品' : '新建单规格商品'}</span></div><div class="admin-form"><label class="field wide">商品编号<input readonly value="${esc(draft.id)}"><small>编号用于关联订单与库存，保存后保持不变。</small></label>${field('商品名称', 'name', true)}${field('品牌', 'brand')}${field('商品分类', 'category')}${field('商品简介', 'sub', true)}${field('商品图片地址', 'image', true)}<p class="sa-field-help wide">支持 HTTPS 图片地址或现有商城素材文件名。分类名称应与分类导航中维护的名称一致。</p>${field('默认规格售价（元）', 'price')}${field('展示原价（元）', 'old')}${field('展示标签', 'label', true)}<label class="pd-check wide"><input type="checkbox" data-pd-field="active" ${draft.active ? 'checked' : ''} ${busy ? 'disabled' : ''}>在商城中上架展示</label></div><hr><h2>商品售后与保修</h2><p class="admin-muted">下单时保存规则快照；未配置的商品不展示承诺。</p><div class="admin-form"><label class="pd-check wide"><input type="checkbox" data-pd-field="service_configured" ${draft.service_configured ? 'checked' : ''}>展示已确认的商品服务政策</label>${field('退货期限（天）', 'return_days', false, 'number')}${field('保修期限（月）', 'warranty_months', false, 'number')}<label class="field">退货运费承担<select data-pd-field="return_shipping"><option value="buyer" ${draft.return_shipping === 'buyer' ? 'selected' : ''}>买家承担</option><option value="seller" ${draft.return_shipping === 'seller' ? 'selected' : ''}>商家承担</option><option value="case_by_case" ${draft.return_shipping === 'case_by_case' ? 'selected' : ''}>按售后责任判定</option></select></label>${field('服务补充说明', 'service_explanation', true)}</div></section><aside><section class="admin-section"><div class="admin-panel-heading"><h2>商品图片</h2></div><div class="pd-image-preview" data-pd-preview>${image ? `<img src="${esc(image)}" alt="商品图片预览">` : '<span>请填写有效图片地址</span>'}</div></section><section class="admin-section"><h2>规格与库存</h2><dl class="pd-specs"><dt>颜色</dt><dd>${colors.map(esc).join(' / ')}</dd><dt>规格</dt><dd>${options.map(esc).join(' / ')}</dd><dt>默认规格</dt><dd>${esc(original?.defaultOption || '标准版')}</dd></dl><p class="sa-field-help">${original ? '现有颜色和规格保持原样。调整默认售价时，其他规格按相同金额差调整，保留原有价差。' : '新商品按单颜色、单规格建立，初始为未上架。'}商品资料与库存独立保存，修改资料不会重置库存。</p></section></aside></div><div class="sa-savebar"><span>${original ? '已有规格与库存不会重置' : '保存后请前往库存管理设置可售库存'}</span><div><button type="button" class="outline" data-pd-action="back" ${busy ? 'disabled' : ''}>取消</button><button type="submit" class="primary" ${busy ? 'disabled' : ''}>${busy ? '正在保存…' : '保存商品'}</button></div></div></form>`;
   }
   function filteredRows() {
     const keyword = search.trim().toLocaleLowerCase();
@@ -271,6 +281,19 @@
         if (!wasExisting || edits.has(key)) output[key] = values[key];
       if (!wasExisting || edits.has('price')) output.price_cents = price;
       if (!wasExisting || edits.has('old')) output.old = old / 100;
+      if (
+        !wasExisting ||
+        ['service_configured', 'return_days', 'warranty_months', 'return_shipping', 'service_explanation'].some((k) =>
+          edits.has(k),
+        )
+      )
+        output.service_policy = {
+          configured: values.service_configured,
+          return_days: Number(values.return_days),
+          warranty_months: Number(values.warranty_months),
+          return_shipping: values.return_shipping,
+          explanation: values.service_explanation,
+        };
       await adapter.call(C.Service.Catalog, C.Action.Upsert, { id: values.id, data: output });
       if (!current(ticket, scope)) return;
       const confirmed = await adapter.call(C.Service.Catalog, C.Action.Get, { id: values.id });
@@ -342,9 +365,27 @@
       return;
     }
     const key = event.target.dataset?.pdField;
-    if (!draft || !['name', 'brand', 'category', 'sub', 'image', 'price', 'old', 'label', 'active'].includes(key))
+    if (
+      !draft ||
+      ![
+        'name',
+        'brand',
+        'category',
+        'sub',
+        'image',
+        'price',
+        'old',
+        'label',
+        'active',
+        'service_configured',
+        'return_days',
+        'warranty_months',
+        'return_shipping',
+        'service_explanation',
+      ].includes(key)
+    )
       return;
-    draft[key] = key === 'active' ? event.target.checked : event.target.value;
+    draft[key] = ['active', 'service_configured'].includes(key) ? event.target.checked : event.target.value;
     changed.add(key);
     if (key === 'image') {
       const target = document.querySelector('[data-pd-preview]'),
@@ -355,7 +396,11 @@
   }
   document.addEventListener('input', input);
   document.addEventListener('change', (event) => {
-    if (event.target.dataset?.pdFilter === 'status' || event.target.dataset?.pdField === 'active') input(event);
+    if (
+      event.target.dataset?.pdFilter === 'status' ||
+      ['active', 'service_configured', 'return_shipping'].includes(event.target.dataset?.pdField)
+    )
+      input(event);
   });
   document.addEventListener('click', async (event) => {
     const target = event.target.closest?.('[data-pd-action]');

@@ -56,7 +56,10 @@
       ['pointsRules', '积分规则'],
       ['memberRules', '成长规则'],
     ],
-    shipping: [['shipping', '配送模板']],
+    shipping: [
+      ['shipping', '配送模板'],
+      ['aftersalePolicy', '售后服务规则'],
+    ],
     messages: [['templates', '业务通知']],
     recommendation: [
       ['recommendation', '推荐运营'],
@@ -143,6 +146,7 @@
       : '';
   const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' });
   function source(s) {
+    if (s.key === 'shipping' && s.mode === 'aftersalePolicy') return [C.Service.Aftersale, C.Action.PolicyGet];
     if (s.key === 'special')
       return {
         sessions: [C.Service.Flash, C.Action.AdminList],
@@ -230,7 +234,26 @@
     if (d.type === 'run') return [field('from', '账期开始', 'date'), field('to', '账期结束', 'date')];
     if (d.type === 'retry' || d.type === 'resume') return [];
     if (d.type === 'template')
-      return [field('title', '通知标题'), field('body', '通知正文', 'textarea'), field('enabled', '发送状态', 'bool')];
+      return [
+        ...(d.values.custom
+          ? [
+              field('id', '模板编号'),
+              field('event_type', '触发业务事件', d.original ? 'text' : 'select', {
+                readonly: d.original,
+                options: Object.entries(d.events || {}).map(([id, name]) => [id, name]),
+              }),
+              field('bind', '绑定为此事件当前使用的模板', 'bool', {
+                options: [
+                  [false, '保存为备用模板'],
+                  [true, '绑定并替换当前模板'],
+                ],
+              }),
+            ]
+          : []),
+        field('title', '通知标题'),
+        field('body', '通知正文', 'textarea'),
+        field('enabled', '发送状态', 'bool'),
+      ];
     if (d.type === 'article')
       return [
         field('id', '内容编号'),
@@ -264,9 +287,25 @@
         field('gold_growth', '黄金会员成长值门槛', 'number', { min: 1, max: 1000000000 }),
         field('growth_spend_cents', '每获得1成长值需消费（元）', 'money', { min: 1 }),
       ];
+    if (d.type === 'aftersalePolicy')
+      return [
+        field('configured', '启用专属售后规则', 'bool'),
+        field('review_hours', '商家审核目标（小时）', 'number', { min: 1, max: 720 }),
+        field('refund_submit_hours', '审核及验收完成后提交退款目标（小时）', 'number', { min: 1, max: 720 }),
+        field('return_recipient', '退货收件人', 'text', { optional: true }),
+        field('return_phone', '退货联系电话', 'text', { optional: true }),
+        field('return_address', '退货地址', 'textarea', { optional: true }),
+        field('instructions', '寄回及退款说明', 'textarea', { optional: true }),
+      ];
     if (d.type === 'shipping')
       return [
         field('name', '配送模板名称'),
+        field('promise_enabled', '显示配送时效预估', 'bool'),
+        field('warehouse', '发货仓名称', 'text', { optional: true }),
+        field('handling_days', '备货自然日', 'number', { min: 0, max: 30 }),
+        field('cutoff_hour', '当日截单小时（北京时间）', 'number', { min: 0, max: 23 }),
+        field('transit_min_days', '运输最短自然日', 'number', { min: 0, max: 60 }),
+        field('transit_max_days', '运输最长自然日', 'number', { min: 0, max: 60 }),
         field('enabled', '配送状态', 'bool'),
         field('mode', '计费方式', 'select', {
           options: [
@@ -306,6 +345,7 @@
             [C.CatalogSort.PriceDesc, '价格降序'],
           ],
         }),
+        field('synonyms', '搜索同义词（JSON对象，例如 {"苹果手机":"iphone"}）', 'json', { optional: true }),
         field('max_results', '单次候选数量上限', 'number', { min: 1, max: 100 }),
         field('excluded_ids', '不参与搜索的商品编号', 'ids', { optional: true }),
         field('hidden_brands', '不参与搜索的品牌', 'ids', { optional: true }),
@@ -315,7 +355,8 @@
   function control(f, d, busy) {
     let value = d.values[f.key] ?? '',
       attrs = `name="${f.key}" data-mg-field="${f.key}" ${busy ? 'disabled' : ''} ${f.optional || ['time', 'ids', 'regions'].includes(f.type) ? '' : 'required'}`;
-    if (f.key === 'id' && d.original) attrs += ' readonly';
+    if ((f.key === 'id' && d.original) || f.readonly) attrs += ' readonly';
+    if (f.type === 'json') value = JSON.stringify(value || {}, null, 2);
     if (f.type === 'time') value = utcInput(value);
     if (f.type === 'money') value = moneyValue(value);
     if (f.type === 'ids') value = Array.isArray(value) ? value.join('\n') : value;
@@ -345,11 +386,11 @@
             `<option value="${esc(v)}" ${String(value) === String(v) ? 'selected' : ''}>${esc(name)}</option>`,
         )
         .join('')}</select>`;
-    else if (['textarea', 'ids', 'regions'].includes(f.type))
+    else if (['textarea', 'ids', 'regions', 'json'].includes(f.type))
       input = `<textarea ${attrs} rows="${f.type === 'textarea' ? 6 : 4}" maxlength="${f.type === 'textarea' ? 20000 : 12000}">${esc(value)}</textarea>`;
     else
       input = `<input ${attrs} type="${f.type === 'time' ? 'datetime-local' : f.type === 'date' ? 'date' : ['number', 'decimal'].includes(f.type) ? 'number' : 'text'}" value="${esc(value)}" ${['number', 'decimal'].includes(f.type) ? `min="${f.min ?? 0}" max="${f.max ?? 100}" step="${f.type === 'decimal' ? '0.01' : '1'}"` : ''} ${f.type === 'money' ? 'inputmode="decimal"' : ''} maxlength="240">`;
-    return `<label class="field ${['textarea', 'ids', 'regions'].includes(f.type) ? 'wide' : ''}">${esc(f.name)}${input}${f.type === 'regions' ? '<small>每行：地区 | 首件运费（元） | 续件运费（元） | 免邮门槛（元）。先匹配的规则生效。</small>' : ''}${f.type === 'ids' ? '<small>一行一个，也可用逗号分隔。</small>' : ''}</label>`;
+    return `<label class="field ${['textarea', 'ids', 'regions', 'json'].includes(f.type) ? 'wide' : ''}">${esc(f.name)}${input}${f.type === 'regions' ? '<small>每行：地区 | 首件运费（元） | 续件运费（元） | 免邮门槛（元）。先匹配的规则生效。</small>' : ''}${f.type === 'ids' ? '<small>一行一个，也可用逗号分隔。</small>' : ''}</label>`;
   }
   function draft(s, type, row = {}) {
     const id =
@@ -368,6 +409,15 @@
           quota: 100,
           active: false,
         },
+        template: {
+          id: 'notification-' + crypto.randomUUID().slice(0, 12),
+          custom: true,
+          event_type: Object.keys(s.events || {})[0] || '',
+          title: '',
+          body: '',
+          enabled: true,
+          bind: false,
+        },
         article: { id, kind: s.mode, title: '', body: '', status: C.ContentStatus.Draft },
         run: { from: today(), to: today() },
         retry: {},
@@ -375,6 +425,7 @@
       }[type] || {};
     return {
       type,
+      events: s.events || {},
       values: { ...defaults, ...copy(row) },
       version: Number(row.version || 0),
       original: !!row.id,
@@ -406,6 +457,14 @@
           value > (f.max ?? 100)
         )
           throw Error(f.name + '超出允许范围');
+      }
+      if (f.type === 'json') {
+        try {
+          value = JSON.parse(raw || '{}');
+        } catch {
+          throw Error(f.name + '格式错误');
+        }
+        if (!value || Array.isArray(value) || typeof value !== 'object') throw Error(f.name + '必须是对象');
       }
       if (f.type === 'money') value = cents(raw);
       if (f.type === 'time') {
@@ -447,7 +506,7 @@
   }
   function editor(s) {
     const d = s.draft;
-    return `<form data-mg-save class="admin-section"><div class="admin-panel-heading"><h2>${esc({ session: '秒杀场次', rule: '拼团规则', quota: '专用活动配额', threshold: '预警阈值', adjustPoints: '人工积分补偿', profile: '会员资料', run: '创建账期对账任务', retry: '重试异常事件', resume: '恢复核对', template: '通知模板', article: '内容发布', pointsRules: '积分规则', memberRules: '会员成长规则', shipping: '配送模板', recommendation: '推荐运营', search: '搜索策略' }[d.type])}</h2><button type="button" class="outline" data-mg="cancel">返回</button></div>${['session', 'rule'].includes(d.type) ? '<p class="admin-muted">先在“活动配额”维护匹配的秒杀或拼团规则，再填写对应编号。变更不修改已产生订单与拼团。</p>' : ''}${d.type === 'template' ? '<p class="admin-muted">支持 {{business_id}}、{{event_type}}、{{amount}}。仅站内信，历史通知保留原文。</p>' : ''}${d.type === 'adjustPoints' ? `<p class="admin-inline-note">会员 ${esc(d.values.user_id)}，当前可用 ${esc(d.values.expected_available)}。增加的积分会先偿还已有欠账；冻结积分不会被人工扣减。</p>` : ''}${d.type === 'retry' ? `<p class="admin-inline-note">${esc(d.values.task_title || '业务通知')} · ${esc(d.values.failure_reason || d.values.status_description || '重新执行当前任务')}</p>` : ''}<div class="admin-form mg-fields">${formFields(
+    return `<form data-mg-save class="admin-section"><div class="admin-panel-heading"><h2>${esc({ session: '秒杀场次', rule: '拼团规则', quota: '专用活动配额', threshold: '预警阈值', adjustPoints: '人工积分补偿', profile: '会员资料', run: '创建账期对账任务', retry: '重试异常事件', resume: '恢复核对', template: '通知模板', article: '内容发布', pointsRules: '积分规则', memberRules: '会员成长规则', shipping: '配送模板', aftersalePolicy: '售后服务规则', recommendation: '推荐运营', search: '搜索策略' }[d.type])}</h2><button type="button" class="outline" data-mg="cancel">返回</button></div>${['session', 'rule'].includes(d.type) ? '<p class="admin-muted">先在“活动配额”维护匹配的秒杀或拼团规则，再填写对应编号。变更不修改已产生订单与拼团。</p>' : ''}${d.type === 'template' ? '<p class="admin-muted">支持 {{business_id}}、{{event_type}}、{{amount}}、{{product_name}}、{{sku_id}}。模板可保存为备用；绑定事件后用于之后的站内信，同一事件只使用一个模板。历史通知保留原文。</p>' : ''}${d.type === 'adjustPoints' ? `<p class="admin-inline-note">会员 ${esc(d.values.user_id)}，当前可用 ${esc(d.values.expected_available)}。增加的积分会先偿还已有欠账；冻结积分不会被人工扣减。</p>` : ''}${d.type === 'retry' ? `<p class="admin-inline-note">${esc(d.values.task_title || '业务通知')} · ${esc(d.values.failure_reason || d.values.status_description || '重新执行当前任务')}</p>` : ''}<div class="admin-form mg-fields">${formFields(
       d,
     )
       .map((f) => control(f, d, s.busy))
@@ -525,9 +584,9 @@
       ];
     if (s.key === 'messages')
       return [
-        ['业务事件', (r) => esc(r.event_type)],
+        ['业务事件', (r) => `${esc(s.events?.[r.event_type] || r.event_type)}<small>${esc(r.event_type)}</small>`],
         ['通知标题', (r) => esc(r.title)],
-        ['状态', (r) => (r.enabled ? '发送' : '停用')],
+        ['状态', (r) => `${r.bound ? '当前使用' : '备用模板'}<small>${r.enabled ? '允许发送' : '已停用'}</small>`],
         ['版本', (r) => esc(r.version)],
       ];
     if (s.key === 'tasks')
@@ -749,6 +808,7 @@
       total: Number(result.total ?? items.length),
       products,
       local,
+      events: result.supported_events || s.events,
       services: result.services || s.services,
       ready: true,
     };
@@ -758,11 +818,12 @@
     const create =
       (s.key === 'special' && ['sessions', 'rules', 'quotas'].includes(s.mode)) ||
       s.key === 'content' ||
+      s.key === 'messages' ||
       s.key === 'reconciliation';
     const heading = U.heading(
       names[s.key],
       notes[s.key],
-      `<button class="outline" data-mg="reload" ${s.busy ? 'disabled' : ''}>刷新</button>${!s.draft && !s.detailId && create ? '<button class="primary" data-mg="new">' + (s.key === 'reconciliation' ? '创建对账任务' : '新建配置') + '</button>' : ''}`,
+      `<button class="outline" data-mg="reload" ${s.busy ? 'disabled' : ''}>刷新</button>${!s.draft && !s.detailId && create ? '<button class="primary" data-mg="new">' + (s.key === 'reconciliation' ? '创建对账任务' : s.key === 'messages' ? '创建通知模板' : '新建配置') + '</button>' : ''}`,
     );
     const tabs =
       s.detailId || s.taskDetail
@@ -865,15 +926,17 @@
         break;
       default:
         service =
-          d.type === 'shipping'
-            ? C.Service.Logistics
-            : d.type === 'pointsRules'
-              ? C.Service.Points
-              : d.type === 'memberRules'
-                ? C.Service.Member
-                : d.type === 'search'
-                  ? C.Service.Search
-                  : C.Service.Recommendation;
+          d.type === 'aftersalePolicy'
+            ? C.Service.Aftersale
+            : d.type === 'shipping'
+              ? C.Service.Logistics
+              : d.type === 'pointsRules'
+                ? C.Service.Points
+                : d.type === 'memberRules'
+                  ? C.Service.Member
+                  : d.type === 'search'
+                    ? C.Service.Search
+                    : C.Service.Recommendation;
         action = C.Action.PolicyUpsert;
         command.id = '';
         command.data = { config: row, version: d.version, reason: parsed.reason };
@@ -1071,7 +1134,9 @@
             ? { sessions: 'session', rules: 'rule', quotas: 'quota' }[s.mode]
             : s.key === 'reconciliation'
               ? 'run'
-              : 'article',
+              : s.key === 'messages'
+                ? 'template'
+                : 'article',
         );
       if (action === 'edit' && row)
         s.draft = draft(

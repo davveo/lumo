@@ -191,3 +191,9 @@ func (r *Repository) DeleteKind(ctx context.Context, owner, kind string) (spanEr
 
 	return r.db.WithContext(ctx).Where("user_id = ? AND kind = ?", owner, kind).Delete(&domain.Record{}).Error
 }
+
+func (r *Repository) GetManyOwned(ctx context.Context, user string, ids []string) ([]domain.Record, error) {
+	rows := []domain.Record{}
+	err := r.db.WithContext(ctx).Where("id IN ? AND user_id = ?", ids, user).Find(&rows).Error
+	return rows, err
+}

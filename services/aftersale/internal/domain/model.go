@@ -3,6 +3,8 @@ package domain
 import "time"
 
 type Record struct {
+	EvidenceJSON   string    `gorm:"type:text" json:"evidence_json"`
+	PolicyJSON     string    `gorm:"type:text" json:"policy_json"`
 	ID             string    `gorm:"primaryKey;size:100" json:"id"`
 	UserID         string    `gorm:"index;size:80"       json:"user_id"`
 	OrderID        string    `gorm:"index;size:100"      json:"order_id"`

@@ -24,7 +24,13 @@ func TestRecoveryScanOnlyQueuesWorkAndConsumerRetriesOneShipment(t *testing.T) {
 	}}
 	m, db := setup(t, rpc)
 	ctx := context.Background()
-	if e := m.OnEvent(ctx, platform.Event{ID: "ready", Type: "OrderReadyToFulfill", AggregateID: "order-recovery", UserID: "buyer", Data: map[string]any{"order_id": "order-recovery"}}); e != nil {
+	if e := m.OnEvent(ctx, platform.Event{
+		ID:          "ready",
+		Type:        "OrderReadyToFulfill",
+		AggregateID: "order-recovery",
+		UserID:      "buyer",
+		Data:        map[string]any{"order_id": "order-recovery"},
+	}); e != nil {
 		t.Fatal(e)
 	}
 	if _, e := m.Handle(ctx, platform.Command{Action: "dispatch", ID: "order-recovery", UserID: "admin", Role: "admin"}); status.Code(
@@ -51,8 +57,8 @@ func TestRecoveryScanOnlyQueuesWorkAndConsumerRetriesOneShipment(t *testing.T) {
 	if e := m.OnEvent(ctx, work); e != nil {
 		t.Fatal(e)
 	}
-	if calls != 2 {
-		t.Fatalf("expected inventory+logistics for one item: %d", calls)
+	if calls != 3 {
+		t.Fatalf("expected order dispatch gate + inventory + logistics for one item: %d", calls)
 	}
 	calls = 0
 	if e := m.OnEvent(ctx, work); e != nil || calls != 0 {

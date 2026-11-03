@@ -181,13 +181,30 @@ func (r *Repository) Metrics(ctx context.Context, days int) (platform.Result, er
 		"top_products":        top,
 		"coverage_since":      since,
 		"historical_backfill": history.PaymentComplete && history.RefundComplete,
-		"funnel_scope":        "期间登录用户的阶段到达人数；cohort_users为同时到达此前各阶段的用户，不代表严格时间顺序转化",
+		"funnel_scope": "期间登录用户的阶段到达人数；cohort_users为同时到达此前各" +
+			"阶段的用户，不代表严格时间顺序转化",
 	}, nil
 }
 
 func (r *Repository) HistoryFact(ctx context.Context, row domain.TransactionFact) error {
 	return r.db.WithContext(ctx).
-		Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "id"}}, DoUpdates: clause.AssignmentColumns([]string{"occurred_at", "items", "amount_cents", "user_id", "order_id"})}).
+		Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "id"}},
+			DoUpdates: clause.AssignmentColumns([]string{
+				"occurred_at",
+				"items",
+				"amount_cents",
+				"user_id",
+				"order_id",
+				"session_key",
+				"source",
+				"search_query",
+				"campaign_cost",
+				"coupon_cost",
+				"points_cost",
+				"cost_known",
+			}),
+		}).
 		Create(&row).
 		Error
 }

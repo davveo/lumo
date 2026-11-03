@@ -33,6 +33,9 @@ const (
 	CouponService_TemplatesByIds_FullMethodName    = "/mall.v1.CouponService/TemplatesByIds"
 	CouponService_TemplatesSnapshot_FullMethodName = "/mall.v1.CouponService/TemplatesSnapshot"
 	CouponService_Calculate_FullMethodName         = "/mall.v1.CouponService/Calculate"
+	CouponService_ReminderGet_FullMethodName       = "/mall.v1.CouponService/ReminderGet"
+	CouponService_ReminderUpdate_FullMethodName    = "/mall.v1.CouponService/ReminderUpdate"
+	CouponService_IssueReward_FullMethodName       = "/mall.v1.CouponService/IssueReward"
 )
 
 // CouponServiceClient is the client API for CouponService service.
@@ -51,6 +54,9 @@ type CouponServiceClient interface {
 	TemplatesByIds(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	TemplatesSnapshot(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Calculate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ReminderGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ReminderUpdate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	IssueReward(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type couponServiceClient struct {
@@ -169,6 +175,33 @@ func (c *couponServiceClient) Calculate(ctx context.Context, in *ServiceRequest,
 	return out, nil
 }
 
+func (c *couponServiceClient) ReminderGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CouponService_ReminderGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *couponServiceClient) ReminderUpdate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CouponService_ReminderUpdate_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *couponServiceClient) IssueReward(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CouponService_IssueReward_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CouponServiceServer is the server API for CouponService service.
 // All implementations must embed UnimplementedCouponServiceServer
 // for forward compatibility
@@ -185,6 +218,9 @@ type CouponServiceServer interface {
 	TemplatesByIds(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	TemplatesSnapshot(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Calculate(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ReminderGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ReminderUpdate(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	IssueReward(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedCouponServiceServer()
 }
 
@@ -227,6 +263,15 @@ func (UnimplementedCouponServiceServer) TemplatesSnapshot(context.Context, *Serv
 }
 func (UnimplementedCouponServiceServer) Calculate(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Calculate not implemented")
+}
+func (UnimplementedCouponServiceServer) ReminderGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReminderGet not implemented")
+}
+func (UnimplementedCouponServiceServer) ReminderUpdate(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReminderUpdate not implemented")
+}
+func (UnimplementedCouponServiceServer) IssueReward(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IssueReward not implemented")
 }
 func (UnimplementedCouponServiceServer) mustEmbedUnimplementedCouponServiceServer() {}
 
@@ -457,6 +502,60 @@ func _CouponService_Calculate_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CouponService_ReminderGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CouponServiceServer).ReminderGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CouponService_ReminderGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CouponServiceServer).ReminderGet(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CouponService_ReminderUpdate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CouponServiceServer).ReminderUpdate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CouponService_ReminderUpdate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CouponServiceServer).ReminderUpdate(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CouponService_IssueReward_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CouponServiceServer).IssueReward(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CouponService_IssueReward_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CouponServiceServer).IssueReward(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CouponService_ServiceDesc is the grpc.ServiceDesc for CouponService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -511,6 +610,18 @@ var CouponService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Calculate",
 			Handler:    _CouponService_Calculate_Handler,
+		},
+		{
+			MethodName: "ReminderGet",
+			Handler:    _CouponService_ReminderGet_Handler,
+		},
+		{
+			MethodName: "ReminderUpdate",
+			Handler:    _CouponService_ReminderUpdate_Handler,
+		},
+		{
+			MethodName: "IssueReward",
+			Handler:    _CouponService_IssueReward_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -57,6 +57,7 @@ const (
 // The individual operation owns its state rules; no action dispatch happens here.
 type transition struct {
 	unchanged bool
+	eventID   string
 	eventType string
 	data      map[string]any
 }
@@ -112,7 +113,7 @@ func (s *Service) update(
 				}
 				if err = tx.Emit(
 					platform.Event{
-						ID:          change.eventType + "-" + order.ID,
+						ID:          eventIdentity(change, order.ID),
 						Type:        change.eventType,
 						AggregateID: order.ID,
 						UserID:      order.UserID,
@@ -127,4 +128,11 @@ func (s *Service) update(
 		return nil
 	})
 	return result, err
+}
+
+func eventIdentity(t transition, id string) string {
+	if t.eventID != "" {
+		return t.eventID
+	}
+	return t.eventType + "-" + id
 }

@@ -72,7 +72,8 @@ func (r *Repository) List(
 		if st == constants.ContentStatusPublished {
 			now := time.Now().UTC()
 			q = q.Where(
-				"(status = ? OR (status = ? AND publish_at <= ?)) AND (publish_at IS NULL OR publish_at <= ?) AND (unpublish_at IS NULL OR unpublish_at > ?)",
+				"(status = ? OR (status = ? AND publish_at <= ?)) AND (publish_at IS NULL OR "+
+					"publish_at <= ?) AND (unpublish_at IS NULL OR unpublish_at > ?)",
 				st,
 				constants.ContentStatusScheduled,
 				now,

@@ -117,7 +117,11 @@ func TestNamedRPCValidatesCredentialPayloadAndPreservesErrors(t *testing.T) {
 		t.Fatal("rejected wire input reached the business operation")
 	}
 	caller := methodTestCaller(connection, constants.ServiceCatalog)
-	for input, code := range map[string]codes.Code{"business": codes.Unimplemented, "permission": codes.PermissionDenied, "internal": codes.Internal} {
+	for input, code := range map[string]codes.Code{
+		"business":   codes.Unimplemented,
+		"permission": codes.PermissionDenied,
+		"internal":   codes.Internal,
+	} {
 		_, err := NewClients(caller).Catalog.Get(context.Background(), Request{Data: map[string]any{"error": input}})
 		if status.Code(err) != code {
 			t.Errorf("%s changed error or replayed: %v", input, err)

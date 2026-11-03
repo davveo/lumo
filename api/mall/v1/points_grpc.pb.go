@@ -21,18 +21,27 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	PointsService_Cancel_FullMethodName       = "/mall.v1.PointsService/Cancel"
-	PointsService_Checkin_FullMethodName      = "/mall.v1.PointsService/Checkin"
-	PointsService_Confirm_FullMethodName      = "/mall.v1.PointsService/Confirm"
-	PointsService_Get_FullMethodName          = "/mall.v1.PointsService/Get"
-	PointsService_Refund_FullMethodName       = "/mall.v1.PointsService/Refund"
-	PointsService_Reserve_FullMethodName      = "/mall.v1.PointsService/Reserve"
-	PointsService_Reward_FullMethodName       = "/mall.v1.PointsService/Reward"
-	PointsService_PolicyGet_FullMethodName    = "/mall.v1.PointsService/PolicyGet"
-	PointsService_PolicyUpsert_FullMethodName = "/mall.v1.PointsService/PolicyUpsert"
-	PointsService_AdminGet_FullMethodName     = "/mall.v1.PointsService/AdminGet"
-	PointsService_Adjust_FullMethodName       = "/mall.v1.PointsService/Adjust"
-	PointsService_Ledger_FullMethodName       = "/mall.v1.PointsService/Ledger"
+	PointsService_Cancel_FullMethodName           = "/mall.v1.PointsService/Cancel"
+	PointsService_Checkin_FullMethodName          = "/mall.v1.PointsService/Checkin"
+	PointsService_Confirm_FullMethodName          = "/mall.v1.PointsService/Confirm"
+	PointsService_Get_FullMethodName              = "/mall.v1.PointsService/Get"
+	PointsService_Refund_FullMethodName           = "/mall.v1.PointsService/Refund"
+	PointsService_Reserve_FullMethodName          = "/mall.v1.PointsService/Reserve"
+	PointsService_Reward_FullMethodName           = "/mall.v1.PointsService/Reward"
+	PointsService_PolicyGet_FullMethodName        = "/mall.v1.PointsService/PolicyGet"
+	PointsService_PolicyUpsert_FullMethodName     = "/mall.v1.PointsService/PolicyUpsert"
+	PointsService_AdminGet_FullMethodName         = "/mall.v1.PointsService/AdminGet"
+	PointsService_Adjust_FullMethodName           = "/mall.v1.PointsService/Adjust"
+	PointsService_Ledger_FullMethodName           = "/mall.v1.PointsService/Ledger"
+	PointsService_MyLedger_FullMethodName         = "/mall.v1.PointsService/MyLedger"
+	PointsService_Offers_FullMethodName           = "/mall.v1.PointsService/Offers"
+	PointsService_OffersAdmin_FullMethodName      = "/mall.v1.PointsService/OffersAdmin"
+	PointsService_OfferUpsert_FullMethodName      = "/mall.v1.PointsService/OfferUpsert"
+	PointsService_Redeem_FullMethodName           = "/mall.v1.PointsService/Redeem"
+	PointsService_Redemptions_FullMethodName      = "/mall.v1.PointsService/Redemptions"
+	PointsService_RedemptionsAdmin_FullMethodName = "/mall.v1.PointsService/RedemptionsAdmin"
+	PointsService_RedemptionGet_FullMethodName    = "/mall.v1.PointsService/RedemptionGet"
+	PointsService_RedemptionRetry_FullMethodName  = "/mall.v1.PointsService/RedemptionRetry"
 )
 
 // PointsServiceClient is the client API for PointsService service.
@@ -51,6 +60,15 @@ type PointsServiceClient interface {
 	AdminGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Adjust(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Ledger(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	MyLedger(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Offers(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	OffersAdmin(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	OfferUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Redeem(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Redemptions(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	RedemptionsAdmin(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	RedemptionGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	RedemptionRetry(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type pointsServiceClient struct {
@@ -169,6 +187,87 @@ func (c *pointsServiceClient) Ledger(ctx context.Context, in *ServiceRequest, op
 	return out, nil
 }
 
+func (c *pointsServiceClient) MyLedger(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PointsService_MyLedger_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pointsServiceClient) Offers(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PointsService_Offers_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pointsServiceClient) OffersAdmin(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PointsService_OffersAdmin_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pointsServiceClient) OfferUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PointsService_OfferUpsert_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pointsServiceClient) Redeem(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PointsService_Redeem_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pointsServiceClient) Redemptions(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PointsService_Redemptions_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pointsServiceClient) RedemptionsAdmin(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PointsService_RedemptionsAdmin_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pointsServiceClient) RedemptionGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PointsService_RedemptionGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pointsServiceClient) RedemptionRetry(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PointsService_RedemptionRetry_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PointsServiceServer is the server API for PointsService service.
 // All implementations must embed UnimplementedPointsServiceServer
 // for forward compatibility
@@ -185,6 +284,15 @@ type PointsServiceServer interface {
 	AdminGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Adjust(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Ledger(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	MyLedger(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Offers(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	OffersAdmin(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	OfferUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Redeem(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Redemptions(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	RedemptionsAdmin(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	RedemptionGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	RedemptionRetry(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedPointsServiceServer()
 }
 
@@ -227,6 +335,33 @@ func (UnimplementedPointsServiceServer) Adjust(context.Context, *ServiceRequest)
 }
 func (UnimplementedPointsServiceServer) Ledger(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ledger not implemented")
+}
+func (UnimplementedPointsServiceServer) MyLedger(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MyLedger not implemented")
+}
+func (UnimplementedPointsServiceServer) Offers(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Offers not implemented")
+}
+func (UnimplementedPointsServiceServer) OffersAdmin(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OffersAdmin not implemented")
+}
+func (UnimplementedPointsServiceServer) OfferUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OfferUpsert not implemented")
+}
+func (UnimplementedPointsServiceServer) Redeem(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Redeem not implemented")
+}
+func (UnimplementedPointsServiceServer) Redemptions(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Redemptions not implemented")
+}
+func (UnimplementedPointsServiceServer) RedemptionsAdmin(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RedemptionsAdmin not implemented")
+}
+func (UnimplementedPointsServiceServer) RedemptionGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RedemptionGet not implemented")
+}
+func (UnimplementedPointsServiceServer) RedemptionRetry(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RedemptionRetry not implemented")
 }
 func (UnimplementedPointsServiceServer) mustEmbedUnimplementedPointsServiceServer() {}
 
@@ -457,6 +592,168 @@ func _PointsService_Ledger_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PointsService_MyLedger_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PointsServiceServer).MyLedger(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PointsService_MyLedger_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PointsServiceServer).MyLedger(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PointsService_Offers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PointsServiceServer).Offers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PointsService_Offers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PointsServiceServer).Offers(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PointsService_OffersAdmin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PointsServiceServer).OffersAdmin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PointsService_OffersAdmin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PointsServiceServer).OffersAdmin(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PointsService_OfferUpsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PointsServiceServer).OfferUpsert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PointsService_OfferUpsert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PointsServiceServer).OfferUpsert(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PointsService_Redeem_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PointsServiceServer).Redeem(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PointsService_Redeem_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PointsServiceServer).Redeem(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PointsService_Redemptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PointsServiceServer).Redemptions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PointsService_Redemptions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PointsServiceServer).Redemptions(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PointsService_RedemptionsAdmin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PointsServiceServer).RedemptionsAdmin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PointsService_RedemptionsAdmin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PointsServiceServer).RedemptionsAdmin(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PointsService_RedemptionGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PointsServiceServer).RedemptionGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PointsService_RedemptionGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PointsServiceServer).RedemptionGet(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PointsService_RedemptionRetry_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PointsServiceServer).RedemptionRetry(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PointsService_RedemptionRetry_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PointsServiceServer).RedemptionRetry(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PointsService_ServiceDesc is the grpc.ServiceDesc for PointsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -511,6 +808,42 @@ var PointsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Ledger",
 			Handler:    _PointsService_Ledger_Handler,
+		},
+		{
+			MethodName: "MyLedger",
+			Handler:    _PointsService_MyLedger_Handler,
+		},
+		{
+			MethodName: "Offers",
+			Handler:    _PointsService_Offers_Handler,
+		},
+		{
+			MethodName: "OffersAdmin",
+			Handler:    _PointsService_OffersAdmin_Handler,
+		},
+		{
+			MethodName: "OfferUpsert",
+			Handler:    _PointsService_OfferUpsert_Handler,
+		},
+		{
+			MethodName: "Redeem",
+			Handler:    _PointsService_Redeem_Handler,
+		},
+		{
+			MethodName: "Redemptions",
+			Handler:    _PointsService_Redemptions_Handler,
+		},
+		{
+			MethodName: "RedemptionsAdmin",
+			Handler:    _PointsService_RedemptionsAdmin_Handler,
+		},
+		{
+			MethodName: "RedemptionGet",
+			Handler:    _PointsService_RedemptionGet_Handler,
+		},
+		{
+			MethodName: "RedemptionRetry",
+			Handler:    _PointsService_RedemptionRetry_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -66,7 +66,9 @@ func TestMySQLSearchDocumentPreservesExactSearchAndUpdates(t *testing.T) {
 	if err := r.Migrate(ctx); err != nil {
 		var generated []struct{ Name, Expression, Extra, Kind string }
 		_ = db.Raw(
-			"SELECT COLUMN_NAME AS name, GENERATION_EXPRESSION AS expression, EXTRA AS extra, DATA_TYPE AS kind FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND COLUMN_NAME LIKE 'search_%_v2'",
+			"SELECT COLUMN_NAME AS name, GENERATION_EXPRESSION AS expression, EXTRA AS " +
+				"extra, DATA_TYPE AS kind FROM information_schema.COLUMNS WHERE " +
+				"TABLE_SCHEMA=DATABASE() AND COLUMN_NAME LIKE 'search_%_v2'",
 		).
 			Scan(&generated).
 			Error
@@ -263,7 +265,9 @@ func TestMySQLSearchDocumentCoversThreeHundredThousandProducts(t *testing.T) {
 	}
 	ctx, db := mysqlSearchScratch(t)
 	started := time.Now()
-	digits := "(SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9)"
+	digits := "(SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL " +
+		"SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL " +
+		"SELECT 8 UNION ALL SELECT 9)"
 	sequence := "SELECT a.n+10*b.n+100*c.n+1000*d.n+10000*e.n+100000*f.n AS n FROM " + digits + " a CROSS JOIN " +
 		digits +
 		" b CROSS JOIN " +
@@ -275,7 +279,11 @@ func TestMySQLSearchDocumentCoversThreeHundredThousandProducts(t *testing.T) {
 		" e CROSS JOIN " +
 		digits +
 		" f"
-	statement := "INSERT INTO catalog_records (id,user_id,parent_id,kind,status,payload,created_at,updated_at) SELECT CONCAT('load-',LPAD(n,6,'0')),'','','sku','ACTIVE',JSON_OBJECT('name',CONCAT('普通背景商品 ',n),'brand','Baseline','category','手机数码','price_cents',10000+n,'sales',n,'description',REPEAT('load payload ',100)),'2025-01-01','2025-01-01' FROM (" +
+	statement := "INSERT INTO catalog_records (id,user_id,parent_id,kind,status,payload,created_at" +
+		",updated_at) SELECT CONCAT('load-',LPAD(n,6,'0')),'','','sku','ACTIVE',JSON_OBJE" +
+		"CT('name',CONCAT('普通背景商品 ',n),'brand','Baseline','category','手机" +
+		"数码','price_cents',10000+n,'sales',n,'description',REPEAT('load payload " +
+		"',100)),'2025-01-01','2025-01-01' FROM (" +
 		sequence +
 		") AS source WHERE n < 300000"
 	if err := db.Exec(statement).Error; err != nil {
@@ -284,7 +292,12 @@ func TestMySQLSearchDocumentCoversThreeHundredThousandProducts(t *testing.T) {
 	t.Logf("populate_300k_ms=%d", time.Since(started).Milliseconds())
 	for index, query := range []string{"养生壶", "猫粮", "冰箱"} {
 		body, _ := json.Marshal(
-			map[string]any{"name": "演示 " + query, "brand": "Sample", "category": "生活电器", "price_cents": 100 + index},
+			map[string]any{
+				"name":        "演示 " + query,
+				"brand":       "Sample",
+				"category":    "生活电器",
+				"price_cents": 100 + index,
+			},
 		)
 		row := domain.Record{
 			ID:        fmt.Sprintf("target-%d", index),

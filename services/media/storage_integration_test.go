@@ -216,6 +216,7 @@ func TestMinIORealUploadDownload(t *testing.T) {
 		t.Fatalf("object store accepted a length outside the signed POST policy: %d", code)
 	}
 	t.Log(
-		"Verified real S3 POST upload, Stat completion, signed GET byte equality, cross-user denial and signed-length enforcement",
+		"Verified real S3 POST upload, Stat completion, signed GET byte equality, " +
+			"cross-user denial and signed-length enforcement",
 	)
 }

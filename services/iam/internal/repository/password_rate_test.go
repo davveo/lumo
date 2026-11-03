@@ -38,7 +38,10 @@ func TestPasswordLimitsPersistAcrossRepositoriesAndExpire(t *testing.T) {
 	if e = other.BeginPasswordLogin(ctx, "another-buyer", "203.0.113.1"); e != nil {
 		t.Fatal("unrelated account blocked", e)
 	}
-	if e = db.Model(&PasswordRate{}).Where("id = ?", passwordRateID("buyer")).Updates(map[string]any{"blocked_until": time.Now().Add(-time.Second), "window_started": time.Now().Add(-2 * time.Minute)}).Error; e != nil {
+	if e = db.Model(&PasswordRate{}).Where("id = ?", passwordRateID("buyer")).Updates(map[string]any{
+		"blocked_until":  time.Now().Add(-time.Second),
+		"window_started": time.Now().Add(-2 * time.Minute),
+	}).Error; e != nil {
 		t.Fatal(e)
 	}
 	if e = other.BeginPasswordLogin(ctx, "buyer", "203.0.113.1"); e != nil {

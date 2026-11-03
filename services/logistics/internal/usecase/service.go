@@ -202,11 +202,14 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 	}
 	fee, allowed := policy.Quote(region, in.Subtotal, in.Quantity)
 	return platform.Result{
-		"shipping_cents": fee,
-		"provider":       policy.Name,
-		"serviceable":    allowed,
-		"region":         region,
-		"policy_version": policy.Version,
-		"policy":         policy,
+		"shipping_cents":    fee,
+		"estimated":         region == "",
+		"address_confirmed": region != "",
+		"promise":           policy.Promise(region, time.Now()),
+		"provider":          policy.Name,
+		"serviceable":       allowed,
+		"region":            region,
+		"policy_version":    policy.Version,
+		"policy":            policy,
 	}, nil
 }

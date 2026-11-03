@@ -110,7 +110,15 @@ func TestTraceExporterHonorsHTTPSAndLegacyPlaintextCollector(t *testing.T) {
 }
 
 func TestTraceExporterRejectsMalformedOrAmbiguousEndpoints(t *testing.T) {
-	for _, endpoint := range []string{"", "collector", "ftp://collector:4317", "https://", "https://user:secret@collector:4317", "https://collector:4317?key=value", "https://collector:4317#fragment"} {
+	for _, endpoint := range []string{
+		"",
+		"collector",
+		"ftp://collector:4317",
+		"https://",
+		"https://user:secret@collector:4317",
+		"https://collector:4317?key=value",
+		"https://collector:4317#fragment",
+	} {
 		if _, err := traceExporterOptions(endpoint); err == nil {
 			t.Fatalf("invalid exporter endpoint accepted: %q", endpoint)
 		}

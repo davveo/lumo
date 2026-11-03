@@ -51,7 +51,10 @@ func (r *Repository) migrateAdminListing(ctx context.Context) (spanErr0 error) {
 	readIndex := func() ([]indexColumn, error) {
 		var columns []indexColumn
 		err := r.db.WithContext(ctx).Raw(
-			"SELECT COLUMN_NAME AS column_name, SUB_PART AS sub_part, COLLATION AS collation, NON_UNIQUE AS non_unique FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ? ORDER BY SEQ_IN_INDEX",
+			"SELECT COLUMN_NAME AS column_name, SUB_PART AS sub_part, COLLATION AS "+
+				"collation, NON_UNIQUE AS non_unique FROM information_schema.STATISTICS WHERE "+
+				"TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ? ORDER BY "+
+				"SEQ_IN_INDEX",
 			"catalog_records", adminListingIndex,
 		).
 			Scan(&columns).Error

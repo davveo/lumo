@@ -12,12 +12,12 @@
   border-bottom: 1px solid var(--admin-border);
 }
 .op-filters .field {
-  flex: 1;
+  flex: 0 1 180px;
   min-width: 125px;
   margin: 0;
 }
 .op-filters .field:first-child {
-  flex: 2;
+  flex: 0 1 360px;
   min-width: 210px;
 }
 .op-filters .field input,
@@ -102,11 +102,13 @@
 }
 .iv-search {
   display: flex;
+  flex-wrap: wrap;
   align-items: end;
   gap: 12px;
 }
 .iv-search .field {
-  flex: 1;
+  flex: 0 1 420px;
+  min-width: min(100%, 240px);
   margin: 0;
 }
 .iv-layout {

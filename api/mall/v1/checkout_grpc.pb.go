@@ -21,11 +21,13 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	CheckoutService_Cancel_FullMethodName = "/mall.v1.CheckoutService/Cancel"
-	CheckoutService_Get_FullMethodName    = "/mall.v1.CheckoutService/Get"
-	CheckoutService_Paid_FullMethodName   = "/mall.v1.CheckoutService/Paid"
-	CheckoutService_Quote_FullMethodName  = "/mall.v1.CheckoutService/Quote"
-	CheckoutService_Submit_FullMethodName = "/mall.v1.CheckoutService/Submit"
+	CheckoutService_Cancel_FullMethodName        = "/mall.v1.CheckoutService/Cancel"
+	CheckoutService_Get_FullMethodName           = "/mall.v1.CheckoutService/Get"
+	CheckoutService_Paid_FullMethodName          = "/mall.v1.CheckoutService/Paid"
+	CheckoutService_Quote_FullMethodName         = "/mall.v1.CheckoutService/Quote"
+	CheckoutService_Submit_FullMethodName        = "/mall.v1.CheckoutService/Submit"
+	CheckoutService_ChangeAddress_FullMethodName = "/mall.v1.CheckoutService/ChangeAddress"
+	CheckoutService_Timeline_FullMethodName      = "/mall.v1.CheckoutService/Timeline"
 )
 
 // CheckoutServiceClient is the client API for CheckoutService service.
@@ -37,6 +39,8 @@ type CheckoutServiceClient interface {
 	Paid(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Quote(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Submit(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	ChangeAddress(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Timeline(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type checkoutServiceClient struct {
@@ -92,6 +96,24 @@ func (c *checkoutServiceClient) Submit(ctx context.Context, in *ServiceRequest, 
 	return out, nil
 }
 
+func (c *checkoutServiceClient) ChangeAddress(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CheckoutService_ChangeAddress_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *checkoutServiceClient) Timeline(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, CheckoutService_Timeline_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CheckoutServiceServer is the server API for CheckoutService service.
 // All implementations must embed UnimplementedCheckoutServiceServer
 // for forward compatibility
@@ -101,6 +123,8 @@ type CheckoutServiceServer interface {
 	Paid(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Quote(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Submit(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	ChangeAddress(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Timeline(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedCheckoutServiceServer()
 }
 
@@ -122,6 +146,12 @@ func (UnimplementedCheckoutServiceServer) Quote(context.Context, *ServiceRequest
 }
 func (UnimplementedCheckoutServiceServer) Submit(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Submit not implemented")
+}
+func (UnimplementedCheckoutServiceServer) ChangeAddress(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChangeAddress not implemented")
+}
+func (UnimplementedCheckoutServiceServer) Timeline(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Timeline not implemented")
 }
 func (UnimplementedCheckoutServiceServer) mustEmbedUnimplementedCheckoutServiceServer() {}
 
@@ -226,6 +256,42 @@ func _CheckoutService_Submit_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CheckoutService_ChangeAddress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CheckoutServiceServer).ChangeAddress(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CheckoutService_ChangeAddress_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CheckoutServiceServer).ChangeAddress(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CheckoutService_Timeline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CheckoutServiceServer).Timeline(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CheckoutService_Timeline_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CheckoutServiceServer).Timeline(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CheckoutService_ServiceDesc is the grpc.ServiceDesc for CheckoutService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -252,6 +318,14 @@ var CheckoutService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Submit",
 			Handler:    _CheckoutService_Submit_Handler,
+		},
+		{
+			MethodName: "ChangeAddress",
+			Handler:    _CheckoutService_ChangeAddress_Handler,
+		},
+		{
+			MethodName: "Timeline",
+			Handler:    _CheckoutService_Timeline_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

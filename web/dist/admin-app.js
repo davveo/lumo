@@ -23,6 +23,9 @@
     access.permissions?.includes(
       {
         overview: 'management/dashboard',
+        diagnostics: 'analytics/drilldown',
+        rewards: 'points/offers_admin',
+        workqueue: 'helpdesk/work_queue',
         orders: 'order/admin_list',
         payments: 'payment/admin_list',
         fulfillment: 'fulfillment/admin_list',
@@ -87,8 +90,8 @@
   const icon = (name) =>
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.overview}</svg>`;
   const groups = [
-    ['总览', ['overview']],
-    ['运行管理', ['tasks', 'audit']],
+    ['总览', ['overview', 'diagnostics']],
+    ['运行管理', ['workqueue', 'tasks', 'audit']],
     ['系统设置', ['paymentSettings', 'loginSettings', 'staff']],
     [
       '交易与履约',
@@ -109,7 +112,7 @@
       ['products', 'catalogImport', 'procurement', 'inventory', 'stockwatch', 'productAlerts', 'categories'],
     ],
     ['营销与装修', ['coupons', 'activities', 'special', 'recommendation', 'popups', 'settings']],
-    ['运营与服务', ['users', 'points', 'content', 'messages', 'interactions', 'tickets', 'analytics']],
+    ['运营与服务', ['users', 'points', 'rewards', 'content', 'messages', 'interactions', 'tickets', 'analytics']],
   ];
   const descriptions = {
     overview: '查看业务动态，快速进入日常管理。',
@@ -149,6 +152,9 @@
 
   const menus = [
     ['overview', '工作台'],
+    ['diagnostics', '经营明细'],
+    ['workqueue', '待办工作台'],
+    ['rewards', '积分兑换'],
     ['staff', '员工与权限'],
     ['catalogImport', '商品批量导入'],
     ['procurement', '采购与补货'],
@@ -264,6 +270,9 @@
     }
   }
   const editors = {
+    diagnostics: window.LumoDiagnosticsAdmin,
+    workqueue: window.LumoWorkQueueAdmin,
+    rewards: window.LumoRewardsAdmin,
     analytics: window.LumoServiceAdmin?.create('analytics'),
     tickets: window.LumoServiceAdmin?.create('tickets'),
     productAlerts: window.LumoAlertsAdmin,
@@ -312,6 +321,8 @@
         if (input) input.value = params.skuId;
       }
     }
+    if (params.recordId) await editors[next]?.openDetail?.(params.recordId);
+    if (next === 'diagnostics' && Object.keys(params).length) await editors[next]?.open?.(params);
     window.scrollTo(0, 0);
   }
   for (const [key, editor] of Object.entries(editors))
@@ -363,7 +374,7 @@
     for (const editor of Object.values(editors)) editor?.reset();
     nav();
     $('#admin-main').innerHTML =
-      `<div class="admin-login"><div class="admin-login-mark">L</div><span class="admin-eyebrow">LUMO 商城管理</span><h1>登录商城管理</h1><p class="admin-note">使用管理员账号处理支付、履约和售后。管理会话与商城顾客会话分别保存。</p><form id="admin-login"><label class="field">账号<input name="username" autocomplete="username" required></label><label class="field">密码<input type="password" name="password" autocomplete="current-password" required></label><button class="primary" type="submit">登录</button></form><div id="admin-error"></div></div>`;
+      `<div class="admin-login"><div class="admin-login-mark">L</div><span class="admin-eyebrow">LUMO 商城管理</span><h1>登录商城管理</h1><p class="admin-note">使用管理员账号处理支付、履约和售后。管理会话与商城顾客会话分别保存。</p><form id="admin-login"><label class="field">账号<input name="username" value="admin" autocomplete="username" required></label><label class="field">密码<input type="password" name="password" value="Admin@2026" autocomplete="current-password" required></label><button class="primary" type="submit">登录</button></form><div id="admin-error"></div></div>`;
   }
   function title(text, extra = '') {
     return `<div class="admin-title"><div><h1>${esc(text)}</h1></div><div class="admin-title-actions">${extra}<button class="outline" data-action="reload">${icon('refresh')}刷新</button></div></div>`;
@@ -683,6 +694,59 @@
     if (target)
       target.innerHTML = `<section class="admin-section">${window.LumoAdminDetails?.render(result, { title: '处理结果' }) || '操作已完成'}<div class="admin-trace">链路编号：${esc(lastTrace)}</div></section>`;
   }
+  let operationDraft = null;
+  function openOperationEditor(service, action, command) {
+    const row = rows.find((r) => r.id === command.id) || {},
+      title = action === C.Action.Moderate ? '审核内容' : action === C.Action.Inspect ? '验收退货' : '回复问题';
+    operationDraft = { service, action, command, owner: scope(), epoch };
+    const target = $('#operation-result') || $('#admin-result');
+    if (!target) return;
+    target.innerHTML = `<form id="admin-operation-form" class="admin-section admin-operation-editor"><div class="admin-panel-heading"><h2>${esc(title)}</h2><button class="outline" type="button" data-action="cancel-operation">取消</button></div><p class="admin-muted">${esc(row.kind === C.InteractionKind.Question ? '商品问答' : row.kind === C.InteractionKind.Review ? '商品评价' : '业务单据')} · ${esc(command.id)}</p><blockquote>${esc(row.body || row.reason || '请核对业务记录后处理。')}</blockquote>${action === C.Action.Moderate ? '<label class="field">审核结果<select name="approved"><option value="true">通过并公开</option><option value="false">驳回，不对外展示</option></select></label>' : action === C.Action.Inspect ? '<label class="field">退货品质<select name="condition"><option value="sellable">可售</option><option value="damaged">破损</option><option value="unsellable">不可售</option></select></label>' : `<label class="field">${esc(title)}<textarea name="body" maxlength="2000" rows="5" required placeholder="填写清晰、完整的答复">${esc(row.answer || '')}</textarea></label>`}<div class="admin-error" role="alert" data-operation-error></div><div class="admin-actions"><button class="primary" type="submit">${action === C.Action.Moderate ? '提交审核结果' : '确认提交'}</button><button class="outline" type="button" data-action="cancel-operation">取消</button></div></form>`;
+    target.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    target.querySelector('textarea,select')?.focus();
+  }
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-action="cancel-operation"]')) {
+      operationDraft = null;
+      const t = $('#operation-result') || $('#admin-result');
+      if (t) t.innerHTML = '';
+    }
+  });
+  document.addEventListener('submit', async (e) => {
+    if (e.target.id !== 'admin-operation-form') return;
+    e.preventDefault();
+    const d = operationDraft,
+      form = e.target;
+    if (busy || !d || d.owner !== scope() || d.epoch !== epoch) return;
+    const data = new FormData(form),
+      body = String(data.get('body') || '').trim();
+    if ([C.Action.Answer, C.Action.Reply].includes(d.action) && !body) return;
+    d.command.data =
+      d.action === C.Action.Moderate
+        ? { approved: data.get('approved') === 'true' }
+        : d.action === C.Action.Inspect
+          ? { condition: String(data.get('condition')) }
+          : { [d.action === C.Action.Answer ? 'answer' : 'body']: body };
+    busy = true;
+    const button = form.querySelector('button[type="submit"]');
+    if (button) button.disabled = true;
+    try {
+      const r = await call(d.service, d.action, d.command);
+      if (d.owner !== scope() || d.epoch !== epoch) return;
+      operationDraft = null;
+      message('操作已保存');
+      await load();
+      showResult(r);
+    } catch (error) {
+      if (d.owner === scope() && d.epoch === epoch) {
+        const el = form.querySelector('[data-operation-error]');
+        if (el) el.textContent = error.message;
+      }
+    } finally {
+      busy = false;
+      if (button) button.disabled = false;
+    }
+  });
   document.addEventListener('click', async (event) => {
     const target = event.target.closest('[data-tab],[data-action],[data-operation],[data-list-page]');
     if (!target) return;
@@ -734,27 +798,12 @@
       }
       return;
     }
-    if (!target.dataset.operation) return;
+    if (!target.dataset.operation?.includes('.')) return;
     const [service, action] = target.dataset.operation.split('.');
     const command = { id: target.dataset.id || '', data: {}, idempotency_key: idKey() };
-    if (action === C.Action.Inspect) {
-      const condition = prompt('退货品质：sellable / damaged / unsellable', C.StockCondition.Sellable);
-      if (condition === null) return;
-      if (![C.StockCondition.Sellable, C.StockCondition.Damaged, C.StockCondition.Unsellable].includes(condition)) {
-        message('请选择有效品质');
-        return;
-      }
-      command.data.condition = condition;
-    }
-    if (service === C.Service.Interaction && action === C.Action.Moderate) {
-      const approved = confirm('确定公开此内容？点击取消可选择驳回。');
-      if (!approved && !confirm('是否驳回此内容？')) return;
-      command.data.approved = approved;
-    }
-    if (action === C.Action.Answer || action === C.Action.Reply) {
-      const body = prompt('输入回复内容');
-      if (!body?.trim()) return;
-      command.data[action === C.Action.Answer ? 'answer' : 'body'] = body.trim();
+    if ([C.Action.Inspect, C.Action.Moderate, C.Action.Answer, C.Action.Reply].includes(action)) {
+      openOperationEditor(service, action, command);
+      return;
     }
     busy = true;
     target.disabled = true;

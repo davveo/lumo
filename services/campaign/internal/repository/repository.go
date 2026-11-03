@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/davveo/lumo/internal/adminconfig"
+	"github.com/davveo/lumo/internal/commercepolicy"
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/campaign/internal/domain"
@@ -142,53 +143,25 @@ func (r *Repository) Evaluate(ctx context.Context, c platform.Request) (spanResu
 }
 
 func evaluate(a domain.Activity, subtotal, quantity int64) (int64, string, string) {
-	policy := "v1"
-	modern := a.Kind == constants.CampaignKindReduction || a.Kind == constants.CampaignKindDiscount ||
-		a.Kind == constants.CampaignKindQuantityDiscount ||
-		a.Kind == constants.CampaignKindDirect
-	if modern {
-		policy = "v2"
-	}
-	reject := func(reason string) (int64, string, string) { return 0, reason, policy }
-	if !a.Active {
-		return reject("inactive")
-	}
-	if a.Threshold < 0 || a.Discount < 0 || a.Held < 0 || a.Used < 0 || a.Quota < 1 {
-		return reject("invalid_rule")
-	}
-	if subtotal < a.Threshold {
-		return reject("threshold_not_met")
-	}
-	if modern && (a.MinQuantity < 1 || quantity < a.MinQuantity) {
-		return reject("quantity_not_met")
-	}
-	if a.Held >= a.Quota || a.Used >= a.Quota-a.Held {
-		return reject("quota_exhausted")
-	}
-	discount := a.Discount
-	switch a.Kind {
-	case constants.CampaignKindFlash, constants.CampaignKindGroup, constants.CampaignKindAddon:
-		// Preserve the existing fixed-discount rules and their zero-discount
-		// flash/group quota contracts.
-	case constants.CampaignKindReduction, constants.CampaignKindDirect:
-		if discount < 1 {
-			return reject("invalid_rule")
-		}
-	case constants.CampaignKindDiscount, constants.CampaignKindQuantityDiscount:
-		if a.PayRateBPS < 1 || a.PayRateBPS >= 10000 {
-			return reject("invalid_rule")
-		}
-		// Split the multiplication so public preview amounts cannot overflow.
-		off := int64(10000) - a.PayRateBPS
-		discount = subtotal/10000*off + subtotal%10000*off/10000
-	default:
-		return reject("invalid_rule")
-	}
-	if modern && (discount < 1 || discount >= subtotal) {
-		return reject("amount_too_small")
-	}
-	return discount, "", policy
+	return commercepolicy.EvaluateCampaign(
+		commercepolicy.Campaign{
+			ID:          a.ID,
+			Kind:        a.Kind,
+			Name:        a.Name,
+			Threshold:   a.Threshold,
+			Discount:    a.Discount,
+			PayRateBPS:  a.PayRateBPS,
+			MinQuantity: a.MinQuantity,
+			Quota:       a.Quota,
+			Held:        a.Held,
+			Used:        a.Used,
+			Active:      a.Active,
+		},
+		subtotal,
+		quantity,
+	)
 }
+
 func (r *Repository) Reserve(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "repository.campaign.Reserve")
 	defer s.End()

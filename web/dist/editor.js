@@ -85,6 +85,7 @@
       category: raw.category,
       image: safeImage(raw.image, original?.image || 'speaker.jpg'),
       image_file_id: safeText(raw.image_file_id, 128),
+      service_policy: raw.service_policy || { configured: false },
       brand: safeText(raw.brand, 80, original?.brand || 'LUMO'),
       price: productPrice,
       old: Math.max(productPrice, numberValue(raw.old, 1, 9999999, productPrice)),
@@ -377,7 +378,17 @@
         )
         .join(
           '',
-        )}<p class="studio-tip">各颜色与规格分别记录库存</p><div class="studio-upload"><img id="studio-product-image-preview" src="${esc(asset(p.image))}" alt="商品图片预览"><div><label class="studio-field">商品图片<input name="image" id="studio-product-image" required value="${esc(p.image)}" placeholder="HTTPS 图片地址或本地上传"><small>也可保留现有素材文件名。</small></label><label class="studio-outline">${icon('camera')}上传图片<input id="studio-product-upload" type="file" accept="image/png,image/jpeg,image/webp" hidden></label></div></div><label class="studio-visible-check"><input type="checkbox" name="visible" ${p.visible !== false ? 'checked' : ''}>在商城中展示此商品</label><p class="studio-tip">${icon('info')}${original?.prices ? '修改售价时，其他规格价格会按相同差额调整。' : '原图私有上传，公开商品图会优化尺寸后由管理员发布。'}</p><div class="studio-form-actions"><button type="button" class="studio-outline" data-editor-action="close">取消</button><button type="submit" class="studio-primary">${icon('check')}保存商品</button></div></form>`,
+        )}<p class="studio-tip">各颜色与规格分别记录库存</p><div class="studio-upload"><img id="studio-product-image-preview" src="${esc(asset(p.image))}" alt="商品图片预览"><div><label class="studio-field">商品图片<input name="image" id="studio-product-image" required value="${esc(p.image)}" placeholder="HTTPS 图片地址或本地上传"><small>也可保留现有素材文件名。</small></label><label class="studio-outline">${icon('camera')}上传图片<input id="studio-product-upload" type="file" accept="image/png,image/jpeg,image/webp" hidden></label></div></div><fieldset><legend>商品服务与售后</legend><label class="studio-field"><input type="checkbox" name="service_configured" ${p.service_policy?.configured ? 'checked' : ''}>显示专属服务政策</label>${field('退换期限（收货后自然日，0为按说明）', 'return_days', p.service_policy?.return_days || 0, 'number', 'min="0" max="365"')}${field('保修月数（0为按说明）', 'warranty_months', p.service_policy?.warranty_months || 0, 'number', 'min="0" max="120"')}<label class="studio-field">退货运费<select name="return_shipping">${[
+        ['buyer', '买家承担'],
+        ['seller', '商家承担'],
+        ['case_by_case', '按售后责任认定'],
+      ]
+        .map(
+          ([v, n]) => `<option value="${v}" ${p.service_policy?.return_shipping === v ? 'selected' : ''}>${n}</option>`,
+        )
+        .join(
+          '',
+        )}</select></label><label class="studio-field">退换与保修条件说明<textarea name="service_explanation" maxlength="500">${esc(p.service_policy?.explanation || '')}</textarea></label></fieldset><label class="studio-visible-check"><input type="checkbox" name="visible" ${p.visible !== false ? 'checked' : ''}>在商城中展示此商品</label><p class="studio-tip">${icon('info')}${original?.prices ? '修改售价时，其他规格价格会按相同差额调整。' : '原图私有上传，公开商品图会优化尺寸后由管理员发布。'}</p><div class="studio-form-actions"><button type="button" class="studio-outline" data-editor-action="close">取消</button><button type="submit" class="studio-primary">${icon('check')}保存商品</button></div></form>`,
     );
   }
   let pendingImport = null;
@@ -473,6 +484,13 @@
           ...data,
           id: existing?.id || 'custom-' + Date.now().toString(36),
           visible: data.visible === 'on',
+          service_policy: {
+            configured: data.service_configured === 'on',
+            return_days: Number(data.return_days),
+            warranty_months: Number(data.warranty_months),
+            return_shipping: data.return_shipping,
+            explanation: data.service_explanation,
+          },
           image_file_id: form.querySelector('#studio-product-image')?.dataset.fileId || existing?.image_file_id,
         });
         const updates = [];

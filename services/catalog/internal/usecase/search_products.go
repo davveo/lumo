@@ -27,12 +27,16 @@ func (s *Service) SearchProducts(
 		return nil, status.Error(codes.PermissionDenied, "internal product search required")
 	}
 	var input struct {
-		Query    string `json:"query"`
-		Category string `json:"category"`
-		Brand    string `json:"brand"`
-		Sort     string `json:"sort"`
-		Limit    int    `json:"limit"`
-		Cursor   string `json:"cursor"`
+		Query     string `json:"query"`
+		Attribute string `json:"attribute"`
+		MinPrice  int64  `json:"min_price_cents"`
+		MaxPrice  int64  `json:"max_price_cents"`
+		Recovery  bool   `json:"recovery"`
+		Category  string `json:"category"`
+		Brand     string `json:"brand"`
+		Sort      string `json:"sort"`
+		Limit     int    `json:"limit"`
+		Cursor    string `json:"cursor"`
 	}
 	b, err := json.Marshal(c.Data)
 	if err != nil {
@@ -53,6 +57,11 @@ func (s *Service) SearchProducts(
 			return nil, bad("invalid product search text")
 		}
 	}
+	if len([]rune(input.Attribute)) > 60 || input.MinPrice < 0 || input.MaxPrice < 0 || input.MinPrice > 10000000000 ||
+		input.MaxPrice > 10000000000 ||
+		(input.MaxPrice > 0 && input.MaxPrice < input.MinPrice) {
+		return nil, bad("invalid search filters")
+	}
 	if input.Limit == 0 {
 		input.Limit = 100
 	}
@@ -70,7 +79,8 @@ func (s *Service) SearchProducts(
 		return nil, bad("invalid product search sort")
 	}
 	search := repository.ProductSearch{
-		Query:    input.Query,
+		Query:     input.Query,
+		Attribute: input.Attribute, MinPrice: input.MinPrice, MaxPrice: input.MaxPrice,
 		Category: input.Category,
 		Brand:    input.Brand,
 		Sort:     input.Sort,
@@ -80,6 +90,17 @@ func (s *Service) SearchProducts(
 	rows, err := s.repo.SearchProducts(ctx, search)
 	if err != nil {
 		return nil, err
+	}
+	recovery := []platform.Result{}
+	if input.Recovery && input.Cursor == "" && len(rows) == 0 {
+		fallback := repository.ProductSearch{Category: input.Category, Limit: 6}
+		related, e := s.repo.SearchProducts(ctx, fallback)
+		if e != nil {
+			return nil, e
+		}
+		for _, row := range related {
+			recovery = append(recovery, view(row))
+		}
 	}
 	hasMore := len(rows) > input.Limit
 	if hasMore {
@@ -96,10 +117,11 @@ func (s *Service) SearchProducts(
 		next = cursors[len(cursors)-1]
 	}
 	return platform.Result{
-		"items":        items,
-		"limit":        input.Limit,
-		"has_more":     hasMore,
-		"next_cursor":  next,
-		"item_cursors": cursors,
+		"items":          items,
+		"recovery_items": recovery,
+		"limit":          input.Limit,
+		"has_more":       hasMore,
+		"next_cursor":    next,
+		"item_cursors":   cursors,
 	}, nil
 }

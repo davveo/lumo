@@ -29,25 +29,35 @@ func TestIndependentOperationsKeepAuthorization(t *testing.T) {
 		count     int
 		protected []string
 	}{
-		{constants.ServiceAnalytics, analyticsmod.New, 5, []string{constants.ActionRecord, constants.ActionList, constants.ActionAdminList}},
+		{
+			constants.ServiceAnalytics,
+			analyticsmod.New,
+			7,
+			[]string{constants.ActionRecord, constants.ActionList, constants.ActionAdminList},
+		},
 		{constants.ServiceCart, cartmod.New, 6, []string{
 			constants.ActionList, constants.ActionAdd, constants.ActionSet,
 			constants.ActionRemove, constants.ActionClear, constants.ActionMerge,
 		}},
-		{constants.ServicePricing, pricingmod.New, 2, []string{constants.ActionQuote, constants.ActionGet}},
-		{constants.ServiceCheckout, checkoutmod.New, 5, []string{
-			constants.ActionQuote, constants.ActionSubmit, constants.ActionGet, constants.ActionPaid, constants.ActionCancel,
+		{
+			constants.ServicePricing,
+			pricingmod.New,
+			3,
+			[]string{constants.ActionQuote, constants.ActionGet, constants.ActionOptimize},
+		},
+		{constants.ServiceCheckout, checkoutmod.New, 7, []string{
+			constants.ActionQuote, constants.ActionSubmit, constants.ActionGet, constants.ActionPaid, constants.ActionCancel, constants.ActionChangeAddress, constants.ActionTimeline,
 		}},
 		{constants.ServiceCampaign, campaignmod.New, 8, []string{
 			constants.ActionReserve, constants.ActionConfirm, constants.ActionCancel,
 		}},
-		{constants.ServiceCoupon, couponmod.New, 12, []string{
+		{constants.ServiceCoupon, couponmod.New, 15, []string{
 			constants.ActionList, constants.ActionClaim, constants.ActionCalculate, constants.ActionReserve,
 			constants.ActionConfirm, constants.ActionCancel, constants.ActionRefund,
 		}},
-		{constants.ServicePoints, pointsmod.New, 12, []string{
+		{constants.ServicePoints, pointsmod.New, 21, []string{
 			constants.ActionGet, constants.ActionCheckin, constants.ActionReserve, constants.ActionConfirm,
-			constants.ActionCancel, constants.ActionRefund, constants.ActionReward,
+			constants.ActionCancel, constants.ActionRefund, constants.ActionReward, constants.ActionMyLedger,
 		}},
 		{constants.ServiceGroup, groupmod.New, 11, []string{
 			constants.ActionCreate, constants.ActionReserve, constants.ActionPaid, constants.ActionCancel, constants.ActionExpire,

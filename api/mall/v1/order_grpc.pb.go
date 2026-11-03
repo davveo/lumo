@@ -19,6 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
+	OrderService_ChangeAddress_FullMethodName    = "/mall.v1.OrderService/ChangeAddress"
+	OrderService_BeginDispatch_FullMethodName    = "/mall.v1.OrderService/BeginDispatch"
+	OrderService_Urge_FullMethodName             = "/mall.v1.OrderService/Urge"
 	OrderService_BatchGetOrders_FullMethodName   = "/mall.v1.OrderService/BatchGetOrders"
 	OrderService_AdminList_FullMethodName        = "/mall.v1.OrderService/AdminList"
 	OrderService_AdminSummary_FullMethodName     = "/mall.v1.OrderService/AdminSummary"
@@ -43,6 +46,9 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OrderServiceClient interface {
+	ChangeAddress(ctx context.Context, in *ChangeOrderAddressRequest, opts ...grpc.CallOption) (*Order, error)
+	BeginDispatch(ctx context.Context, in *OrderRequest, opts ...grpc.CallOption) (*Order, error)
+	Urge(ctx context.Context, in *OrderRequest, opts ...grpc.CallOption) (*Order, error)
 	BatchGetOrders(ctx context.Context, in *BatchGetOrdersRequest, opts ...grpc.CallOption) (*BatchGetOrdersResponse, error)
 	AdminList(ctx context.Context, in *AdminOrdersRequest, opts ...grpc.CallOption) (*AdminOrdersResponse, error)
 	AdminSummary(ctx context.Context, in *AdminOrdersRequest, opts ...grpc.CallOption) (*OrderSummaryResponse, error)
@@ -69,6 +75,33 @@ type orderServiceClient struct {
 
 func NewOrderServiceClient(cc grpc.ClientConnInterface) OrderServiceClient {
 	return &orderServiceClient{cc}
+}
+
+func (c *orderServiceClient) ChangeAddress(ctx context.Context, in *ChangeOrderAddressRequest, opts ...grpc.CallOption) (*Order, error) {
+	out := new(Order)
+	err := c.cc.Invoke(ctx, OrderService_ChangeAddress_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *orderServiceClient) BeginDispatch(ctx context.Context, in *OrderRequest, opts ...grpc.CallOption) (*Order, error) {
+	out := new(Order)
+	err := c.cc.Invoke(ctx, OrderService_BeginDispatch_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *orderServiceClient) Urge(ctx context.Context, in *OrderRequest, opts ...grpc.CallOption) (*Order, error) {
+	out := new(Order)
+	err := c.cc.Invoke(ctx, OrderService_Urge_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *orderServiceClient) BatchGetOrders(ctx context.Context, in *BatchGetOrdersRequest, opts ...grpc.CallOption) (*BatchGetOrdersResponse, error) {
@@ -237,6 +270,9 @@ func (c *orderServiceClient) RecordRefund(ctx context.Context, in *RecordRefundR
 // All implementations must embed UnimplementedOrderServiceServer
 // for forward compatibility
 type OrderServiceServer interface {
+	ChangeAddress(context.Context, *ChangeOrderAddressRequest) (*Order, error)
+	BeginDispatch(context.Context, *OrderRequest) (*Order, error)
+	Urge(context.Context, *OrderRequest) (*Order, error)
 	BatchGetOrders(context.Context, *BatchGetOrdersRequest) (*BatchGetOrdersResponse, error)
 	AdminList(context.Context, *AdminOrdersRequest) (*AdminOrdersResponse, error)
 	AdminSummary(context.Context, *AdminOrdersRequest) (*OrderSummaryResponse, error)
@@ -262,6 +298,15 @@ type OrderServiceServer interface {
 type UnimplementedOrderServiceServer struct {
 }
 
+func (UnimplementedOrderServiceServer) ChangeAddress(context.Context, *ChangeOrderAddressRequest) (*Order, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChangeAddress not implemented")
+}
+func (UnimplementedOrderServiceServer) BeginDispatch(context.Context, *OrderRequest) (*Order, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BeginDispatch not implemented")
+}
+func (UnimplementedOrderServiceServer) Urge(context.Context, *OrderRequest) (*Order, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Urge not implemented")
+}
 func (UnimplementedOrderServiceServer) BatchGetOrders(context.Context, *BatchGetOrdersRequest) (*BatchGetOrdersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BatchGetOrders not implemented")
 }
@@ -327,6 +372,60 @@ type UnsafeOrderServiceServer interface {
 
 func RegisterOrderServiceServer(s grpc.ServiceRegistrar, srv OrderServiceServer) {
 	s.RegisterService(&OrderService_ServiceDesc, srv)
+}
+
+func _OrderService_ChangeAddress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChangeOrderAddressRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrderServiceServer).ChangeAddress(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrderService_ChangeAddress_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrderServiceServer).ChangeAddress(ctx, req.(*ChangeOrderAddressRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OrderService_BeginDispatch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrderServiceServer).BeginDispatch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrderService_BeginDispatch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrderServiceServer).BeginDispatch(ctx, req.(*OrderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OrderService_Urge_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrderServiceServer).Urge(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrderService_Urge_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrderServiceServer).Urge(ctx, req.(*OrderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _OrderService_BatchGetOrders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -660,6 +759,18 @@ var OrderService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "mall.v1.OrderService",
 	HandlerType: (*OrderServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ChangeAddress",
+			Handler:    _OrderService_ChangeAddress_Handler,
+		},
+		{
+			MethodName: "BeginDispatch",
+			Handler:    _OrderService_BeginDispatch_Handler,
+		},
+		{
+			MethodName: "Urge",
+			Handler:    _OrderService_Urge_Handler,
+		},
 		{
 			MethodName: "BatchGetOrders",
 			Handler:    _OrderService_BatchGetOrders_Handler,

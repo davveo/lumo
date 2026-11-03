@@ -40,7 +40,7 @@
       window.LumoAPI.getToken?.() || '',
     ]);
   };
-  const searchSignature = () => JSON.stringify([ui.query, ui.category, data().filters, ui.sort]);
+  const searchSignature = () => JSON.stringify([ui.query, ui.category, data().filters, ui.sort, ui.min, ui.max]);
   function refreshSearch(force = false, more = false) {
     const signature = searchSignature(),
       owner = currentOwner();
@@ -56,7 +56,10 @@
       !String(ui.query || '').trim() &&
       ui.category === '全部好物' &&
       data().filters.brand === 'all' &&
-      !data().filters.inStock
+      !data().filters.inStock &&
+      !data().filters.attribute &&
+      !ui.min &&
+      !ui.max
     ) {
       remotePage = null;
       queryFlight = null;
@@ -78,6 +81,10 @@
           {
             data: {
               query: ui.query || '',
+              exact_query: data().filters.exactQuery === true,
+              attribute: data().filters.attribute || '',
+              min_price_cents: Math.round(Number(ui.min || 0) * 100),
+              max_price_cents: Math.round(Number(ui.max || 0) * 100),
               category: ui.category === '全部好物' ? '' : ui.category,
               brand: data().filters.brand === 'all' ? '' : data().filters.brand,
               in_stock: data().filters.inStock,
@@ -95,6 +102,11 @@
           { auth: false },
         );
         if (selected()) {
+          if (!continuing && ui.query)
+            window.LumoJourney?.search(
+              ui.query,
+              Number.isFinite(result.total) ? Number(result.total) : (result.items || []).length,
+            );
           const previous = continuing ? remotePage.items : [],
             previousInventory = continuing ? remotePage.inventory : [],
             merged = [...new Map([...previous, ...(result.items || [])].map((row) => [row.id, row])).values()],
@@ -106,6 +118,9 @@
           remotePage = {
             signature,
             owner,
+            recovery: result.alternatives || [],
+            corrected: result.corrected === true,
+            appliedQuery: result.applied_query || '',
             items: merged,
             inventory,
             next: result.next_cursor || '',
@@ -231,7 +246,12 @@
     const raw =
       state.discovery && typeof state.discovery === 'object' && !Array.isArray(state.discovery) ? state.discovery : {};
     const compareIds = [...new Set(comparison.map((id) => productFor(id)?.id).filter(Boolean))].slice(0, MAX_COMPARE);
-    const filters = { brand: cleanText(raw.filters?.brand) || 'all', inStock: raw.filters?.inStock === true };
+    const filters = {
+      brand: cleanText(raw.filters?.brand) || 'all',
+      inStock: raw.filters?.inStock === true,
+      attribute: cleanText(raw.filters?.attribute).slice(0, 60),
+      exactQuery: raw.filters?.exactQuery === true,
+    };
     state.discovery = { history, compareIds, filters };
     return state.discovery;
   }
@@ -247,17 +267,7 @@
     }
   }
   function recordSearchBehavior(query) {
-    if (!principal()) return;
-    const clean = query
-      .replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, '')
-      .replace(/\d{7,}/g, '')
-      .trim();
-    if (!clean) return;
-    const key = 'search-' + (crypto.randomUUID?.() || Date.now().toString(36));
-    api(C.Service.Analytics, C.Action.Record, {
-      idempotency_key: key,
-      data: { type: C.AnalyticsBehavior.Search, query: clean, page: '#/search', source: 'search' },
-    }).catch(() => {});
+    /* Search behavior is recorded with its resolved result count. */
   }
   function commitSearch(query) {
     const value = cleanText(query);
@@ -299,6 +309,8 @@
   }
   function resetFilters() {
     data().filters = { brand: 'all', inStock: false };
+    ui.min = '';
+    ui.max = '';
     catalogPage = 1;
     catalogSignature = '';
     save();
@@ -306,8 +318,17 @@
   function controls() {
     const current = data(),
       brands = [...new Set(products.filter((p) => p.visible !== false).map(brandFor))].sort();
-    const active = current.filters.brand !== 'all' || current.filters.inStock;
-    return `${queryError ? `<p class="disc-search-label" role="alert">${esc(queryError)}</p>` : ''}<div class="disc-controls"><label class="disc-brand-filter"><span>品牌</span><select data-discovery-filter="brand" aria-label="按品牌筛选商品"><option value="all">全部品牌</option>${brands.map((brand) => `<option value="${esc(brand)}" ${current.filters.brand === brand ? 'selected' : ''}>${esc(brand)}</option>`).join('')}</select></label><label class="disc-stock-filter"><input type="checkbox" data-discovery-filter="stock" ${current.filters.inStock ? 'checked' : ''}>仅看有货</label>${active ? '<button class="disc-clear-filters" data-discovery-action="reset-filters">清除筛选</button>' : ''}<a class="disc-compare-entry" href="#/compare">${icon('layers')}商品对比${current.compareIds.length ? `<span>${current.compareIds.length}</span>` : ''}</a></div>`;
+    const active =
+      current.filters.brand !== 'all' || current.filters.inStock || current.filters.attribute || ui.min || ui.max;
+    const page = remotePage?.signature === searchSignature() && remotePage.owner === currentOwner() ? remotePage : null;
+    const recovery =
+      page && !page.items.length && !page.hasMore
+        ? `<section class="disc-recovery"><h3>换个方式找好物</h3><button data-discovery-action="broaden">保留关键词，放宽筛选</button><p>其他在售好物</p>${(page.recovery || []).map((p) => `<a class="outline" href="#/product/${encodeURIComponent(p.product_id || p.id)}">${esc(p.name)} · ¥${(Number(p.price_cents) / 100).toFixed(2)} · 有货</a>`).join('')}</section>`
+        : '';
+    const correction = page?.corrected
+      ? `<p role="status">已按“${esc(page.appliedQuery)}”搜索 <button data-discovery-action="exact-query">仍搜索“${esc(ui.query)}”</button></p>`
+      : '';
+    return `${correction}${queryError ? `<p class="disc-search-label" role="alert">${esc(queryError)}</p>` : ''}${recovery}<div class="disc-controls"><label class="disc-brand-filter"><span>品牌</span><select data-discovery-filter="brand" aria-label="按品牌筛选商品"><option value="all">全部品牌</option>${brands.map((brand) => `<option value="${esc(brand)}" ${current.filters.brand === brand ? 'selected' : ''}>${esc(brand)}</option>`).join('')}</select></label><label class="disc-stock-filter"><input type="checkbox" data-discovery-filter="stock" ${current.filters.inStock ? 'checked' : ''}>仅看有货</label>${active ? '<button class="disc-clear-filters" data-discovery-action="reset-filters">清除筛选</button>' : ''}<label>规格关键词<input aria-label="按规格参数筛选商品" data-discovery-filter="attribute" maxlength="60" value="${esc(current.filters.attribute || '')}" placeholder="如 256GB、棉"></label><a class="disc-compare-entry" href="#/compare">${icon('layers')}商品对比${current.compareIds.length ? `<span>${current.compareIds.length}</span>` : ''}</a></div>`;
   }
   function paginate(list) {
     const current = data();
@@ -576,6 +597,7 @@
     const current = data();
     if (event.target.dataset.discoveryFilter === 'brand') current.filters.brand = event.target.value;
     if (event.target.dataset.discoveryFilter === 'stock') current.filters.inStock = event.target.checked;
+    if (event.target.dataset.discoveryFilter === 'attribute') current.filters.attribute = event.target.value.trim();
     catalogPage = 1;
     save();
     renderKeepScroll();
@@ -633,6 +655,20 @@
       const input = document.querySelector('#search-input'),
         panel = searchPanel();
       if (input && panel && !panel.hidden && owner === currentOwner()) showSearch(input, panel);
+      return;
+    }
+    if (action === 'exact-query') {
+      data().filters.exactQuery = true;
+      void refreshSearch(true)
+        .then(() => renderKeepScroll())
+        .catch((e) => toast(e.message));
+      return;
+    }
+    if (action === 'broaden') {
+      resetFilters();
+      void refreshSearch(true)
+        .then(() => renderKeepScroll())
+        .catch((e) => toast(e.message));
       return;
     }
     if (action === 'reset-filters') {
@@ -704,6 +740,10 @@
     readState: () => ({
       loading: queryLoading && queryOwner === currentOwner(),
       loaded: resolvedSearch === searchSignature() && resolvedOwner === currentOwner(),
+      appliedQuery:
+        remotePage?.signature === searchSignature() && remotePage.owner === currentOwner()
+          ? remotePage.appliedQuery
+          : ui.query,
       error: querySignature === searchSignature() && queryOwner === currentOwner() ? queryError : '',
       hasMore: remotePage?.signature === searchSignature() && remotePage.owner === currentOwner() && remotePage.hasMore,
     }),

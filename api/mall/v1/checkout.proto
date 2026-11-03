@@ -14,4 +14,6 @@ service CheckoutService {
   rpc Paid(ServiceRequest) returns (ServiceResponse);
   rpc Quote(ServiceRequest) returns (ServiceResponse);
   rpc Submit(ServiceRequest) returns (ServiceResponse);
+  rpc ChangeAddress(ServiceRequest) returns (ServiceResponse);
+  rpc Timeline(ServiceRequest) returns (ServiceResponse);
 }

@@ -45,20 +45,24 @@ func (s *Service) projectTransaction(ctx context.Context, e platform.Event) erro
 	if occurred.IsZero() {
 		occurred = time.Now().UTC()
 	}
+	var order platform.Result
 	items := e.Data["items"]
-	if items == nil && e.Type == constants.EventPaymentSucceeded && s.rpc != nil {
-		order, err := platform.NewClients(
+	if s.rpc != nil {
+		var callErr error
+		order, callErr = platform.NewClients(
 			s.rpc,
 		).Order.Get(
 			ctx,
 			platform.Request{ID: orderID, UserID: e.UserID, Role: constants.RoleSystem},
 		)
-		if err == nil {
+		if callErr != nil && status.Code(callErr) != codes.NotFound {
+			return callErr
+		}
+		if items == nil && order != nil {
 			items = order["items"]
-		} else if status.Code(err) != codes.NotFound {
-			return err
 		}
 	}
+
 	if items == nil {
 		items = []any{}
 	}
@@ -66,16 +70,15 @@ func (s *Service) projectTransaction(ctx context.Context, e platform.Event) erro
 	if err != nil {
 		return err
 	}
-	return s.repo.TransactionFact(
-		ctx,
-		domain.TransactionFact{
-			ID:          key,
-			OrderID:     orderID,
-			UserID:      e.UserID,
-			Kind:        kind,
-			AmountCents: platform.Int(e.Data, "amount_cents"),
-			Items:       string(raw),
-			OccurredAt:  occurred,
-		},
-	)
+	row := domain.TransactionFact{
+		ID:          key,
+		OrderID:     orderID,
+		UserID:      e.UserID,
+		Kind:        kind,
+		AmountCents: platform.Int(e.Data, "amount_cents"),
+		Items:       string(raw),
+		OccurredAt:  occurred,
+	}
+	attachAttribution(&row, order)
+	return s.repo.TransactionFact(ctx, row)
 }

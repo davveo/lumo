@@ -155,7 +155,13 @@ func (s *Service) OtpSend(ctx context.Context, c platform.Request) (spanResult0 
 	}
 	code := fmt.Sprintf("%06d", number.Int64())
 	expires := time.Now().UTC().Add(time.Duration(p.OTPTTL) * time.Second)
-	if e = s.repo.NewOTP(ctx, domain.AuthChallenge{ID: id, Provider: "phone", Subject: phone, Digest: otpDigest(id, phone, code), ExpiresAt: expires}, platform.Text(c.Data, "_client_ip"), p.OTPCooldown); e != nil {
+	if e = s.repo.NewOTP(ctx, domain.AuthChallenge{
+		ID:        id,
+		Provider:  "phone",
+		Subject:   phone,
+		Digest:    otpDigest(id, phone, code),
+		ExpiresAt: expires,
+	}, platform.Text(c.Data, "_client_ip"), p.OTPCooldown); e != nil {
 		return nil, e
 	}
 	out := platform.Result{"challenge_id": id, "expires_in": p.OTPTTL, "retry_after": p.OTPCooldown}
@@ -163,7 +169,14 @@ func (s *Service) OtpSend(ctx context.Context, c platform.Request) (spanResult0 
 	if endpoint == "" && demoAuth() {
 		out["demo_code"] = code
 	} else {
-		payload, _ := json.Marshal(map[string]any{"phone": phone, "code": code, "ttl_seconds": p.OTPTTL, "request_id": id, "sign_name": phoneProvider.Values["sign_name"], "template_id": phoneProvider.Values["template_id"]})
+		payload, _ := json.Marshal(map[string]any{
+			"phone":       phone,
+			"code":        code,
+			"ttl_seconds": p.OTPTTL,
+			"request_id":  id,
+			"sign_name":   phoneProvider.Values["sign_name"],
+			"template_id": phoneProvider.Values["template_id"],
+		})
 		request, e := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
 		if e != nil {
 			platform.TraceError(ctx, e)

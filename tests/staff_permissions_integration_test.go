@@ -62,7 +62,12 @@ func TestStaffRolesEnforceHTTPAndNamedRPCPermissions(t *testing.T) {
 		"staff_upsert",
 		platform.Text(employee, "id"),
 		"",
-		map[string]any{"role": "staff_finance", "expected_role": "staff_warehouse", "active": true, "reason": "调岗"},
+		map[string]any{
+			"role":          "staff_finance",
+			"expected_role": "staff_warehouse",
+			"active":        true,
+			"reason":        "调岗",
+		},
 	)
 	h.expect(401, token, "iam", "current", "", "", nil)
 	token = platform.Text(login("warehouse.worker", "Worker@2026"), "token")

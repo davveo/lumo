@@ -39,10 +39,38 @@ func TestTaskListExplainsBusinessFailureAndProtectsLiveWork(t *testing.T) {
 	)
 	now := time.Now().UTC()
 	for _, in := range []Inbox{
-		{Consumer: "order", EventID: "event-a", PayloadJSON: string(envelope), State: constants.InboxStateDead, Attempts: 5, ClaimToken: "claim", LastErrorCode: "Unavailable", LeaseUntil: now.Add(-time.Minute)},
-		{Consumer: "order", EventID: "event-live", PayloadJSON: string(envelope), State: constants.InboxStateDead, Attempts: 5, LeaseUntil: now.Add(time.Minute)},
-		{Consumer: "another", EventID: "event-other", PayloadJSON: string(envelope), State: constants.InboxStateDead, Attempts: 5},
-		{Consumer: "order", EventID: "event-done", PayloadJSON: string(envelope), State: constants.InboxStateDone, Attempts: 1},
+		{
+			Consumer:      "order",
+			EventID:       "event-a",
+			PayloadJSON:   string(envelope),
+			State:         constants.InboxStateDead,
+			Attempts:      5,
+			ClaimToken:    "claim",
+			LastErrorCode: "Unavailable",
+			LeaseUntil:    now.Add(-time.Minute),
+		},
+		{
+			Consumer:    "order",
+			EventID:     "event-live",
+			PayloadJSON: string(envelope),
+			State:       constants.InboxStateDead,
+			Attempts:    5,
+			LeaseUntil:  now.Add(time.Minute),
+		},
+		{
+			Consumer:    "another",
+			EventID:     "event-other",
+			PayloadJSON: string(envelope),
+			State:       constants.InboxStateDead,
+			Attempts:    5,
+		},
+		{
+			Consumer:    "order",
+			EventID:     "event-done",
+			PayloadJSON: string(envelope),
+			State:       constants.InboxStateDone,
+			Attempts:    1,
+		},
 	} {
 		if err = db.WithContext(ctx).Create(&in).Error; err != nil {
 			t.Fatal(err)

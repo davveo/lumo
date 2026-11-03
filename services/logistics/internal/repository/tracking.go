@@ -147,10 +147,28 @@ func (r *Repository) TrackUpdate(
 			}
 		}
 		if next == constants.TrackingStatusDelivered {
-			if e = tx.Model(&domain.DeliveryException{}).Where("logistics_id = ? AND status = ?", row.ID, constants.DeliveryExceptionStatusOpen).Updates(map[string]any{"status": constants.DeliveryExceptionStatusResolved, "resolution": "配送已签收", "resolved_by": c.UserID, "resolved_at": event.OccurredAt, "version": gorm.Expr("version + 1")}).Error; e != nil {
+			if e = tx.Model(&domain.DeliveryException{}).Where("logistics_id = ? AND status = ?", row.ID, constants.DeliveryExceptionStatusOpen).Updates(map[string]any{
+				"status":      constants.DeliveryExceptionStatusResolved,
+				"resolution":  "配送已签收",
+				"resolved_by": c.UserID,
+				"resolved_at": event.OccurredAt,
+				"version":     gorm.Expr("version + 1"),
+			}).Error; e != nil {
 				return e
 			}
-			if e = platform.Enqueue(ctx, tx, platform.Event{ID: row.ID + ":delivered", Type: "DeliveryConfirmed", AggregateID: row.ID, UserID: row.UserID, Data: map[string]any{"order_id": row.OrderID, "fulfillment_id": row.ID, "tracking_id": row.TrackingID, "kind": row.Kind, "provider": row.Provider}}); e != nil {
+			if e = platform.Enqueue(ctx, tx, platform.Event{
+				ID:          row.ID + ":delivered",
+				Type:        deliveryEventType(row.Kind),
+				AggregateID: row.ID,
+				UserID:      row.UserID,
+				Data: map[string]any{
+					"order_id":       row.OrderID,
+					"fulfillment_id": row.ID,
+					"tracking_id":    row.TrackingID,
+					"kind":           row.Kind,
+					"provider":       row.Provider,
+				},
+			}); e != nil {
 				return e
 			}
 		}
@@ -179,7 +197,13 @@ func (r *Repository) ResolveException(ctx context.Context, c platform.Request) (
 		if out.Version != platform.Int(c.Data, "expected_version") {
 			return status.Error(codes.Aborted, "异常记录已更新，请刷新")
 		}
-		if e := tx.Model(&out).Updates(map[string]any{"status": constants.DeliveryExceptionStatusResolved, "resolution": platform.Text(c.Data, "resolution"), "resolved_by": c.UserID, "resolved_at": time.Now().UTC(), "version": out.Version + 1}).Error; e != nil {
+		if e := tx.Model(&out).Updates(map[string]any{
+			"status":      constants.DeliveryExceptionStatusResolved,
+			"resolution":  platform.Text(c.Data, "resolution"),
+			"resolved_by": c.UserID,
+			"resolved_at": time.Now().UTC(),
+			"version":     out.Version + 1,
+		}).Error; e != nil {
 			return e
 		}
 		return tx.First(&out, "id = ?", c.ID).Error

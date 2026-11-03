@@ -4,6 +4,7 @@ import (
 	"github.com/davveo/lumo/internal/constants"
 
 	"context"
+	"encoding/json"
 	"time"
 
 	mallv1 "github.com/davveo/lumo/api/mall/v1"
@@ -60,7 +61,21 @@ func rpcTime(value *timestamppb.Timestamp) (time.Time, error) {
 }
 
 func orderMessage(order domain.Order) *mallv1.Order {
+	var history []domain.ServiceEvent
+	_ = json.Unmarshal([]byte(order.ServiceHistory), &history)
+	events := []*mallv1.OrderServiceEvent{}
+	for _, h := range history {
+		events = append(
+			events,
+			&mallv1.OrderServiceEvent{Kind: h.Kind, OccurredAt: timestamppb.New(h.OccurredAt), Region: h.Region},
+		)
+	}
+	var urged *timestamppb.Timestamp
+	if order.LastUrgedAt != nil {
+		urged = timestamppb.New(*order.LastUrgedAt)
+	}
 	return &mallv1.Order{
+		DispatchStarted: order.DispatchStarted, LastUrgedAt: urged, ServiceHistory: events,
 		Id:                  order.ID,
 		UserId:              order.UserID,
 		Status:              order.Status,
@@ -304,4 +319,42 @@ func staffReadActor(value *mallv1.OrderActor, action string) usecase.Actor {
 	a := actor(value)
 	a.Role = platform.StaffRoleAtBoundary(a.Role, "order", action)
 	return a
+}
+
+func (s *orderServer) ChangeAddress(ctx context.Context, in *mallv1.ChangeOrderAddressRequest) (*mallv1.Order, error) {
+	return callOrder(
+		ctx,
+		constants.ActionChangeAddress,
+		in.GetId(),
+		in,
+		func(ctx context.Context) (domain.Order, error) {
+			return s.service.ChangeAddress(
+				ctx,
+				usecase.ChangeAddressRequest{
+					OrderRequest:    usecase.OrderRequest{Actor: actor(in.GetActor()), ID: in.GetId()},
+					ExpectedVersion: in.GetExpectedVersion(),
+					Address:         in.GetAddressSnapshotJson(),
+					ShippingCents:   in.GetShippingCents(),
+				},
+			)
+		},
+	)
+}
+func (s *orderServer) BeginDispatch(ctx context.Context, in *mallv1.OrderRequest) (*mallv1.Order, error) {
+	return callOrder(
+		ctx,
+		constants.ActionBeginDispatch,
+		in.GetId(),
+		in,
+		func(ctx context.Context) (domain.Order, error) { return s.service.BeginDispatch(ctx, request(in)) },
+	)
+}
+func (s *orderServer) Urge(ctx context.Context, in *mallv1.OrderRequest) (*mallv1.Order, error) {
+	return callOrder(
+		ctx,
+		constants.ActionUrge,
+		in.GetId(),
+		in,
+		func(ctx context.Context) (domain.Order, error) { return s.service.Urge(ctx, request(in)) },
+	)
 }

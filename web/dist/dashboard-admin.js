@@ -121,7 +121,7 @@
       ['付费顾客', data.buyers],
       ['期间复购率', (data.repeat_purchase_bps / 100).toFixed(1) + '%'],
     ];
-    return `<section class="admin-section"><h2>经营分析</h2><button class="outline" data-db="history">同步或继续同步历史交易</button><div class="db-metrics">${cards.map(([label, value]) => `<div class="db-metric"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')}</div><h3>登录顾客转化漏斗</h3><div class="db-tasks">${(data.funnel || []).map((row) => `<div><strong>${labels[row.stage]}</strong> ${row.users} 人 · 同时到达此前阶段 ${row.cohort_users} 人</div>`).join('')}</div><p>${esc(data.funnel_scope)}</p><h3>销售数量排行</h3><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>商品</th><th>规格</th><th>已支付件数</th></tr></thead><tbody>${(data.top_products || []).map((row) => `<tr><td>${esc(row.name)}</td><td>${esc(row.sku_id)}</td><td>${esc(row.quantity)}</td></tr>`).join('')}</tbody></table></div><p>按实际收款和退款事件发生时间统计，UTC+8。复购指期间内至少两笔已支付订单。${data.historical_backfill ? '' : '当前为启用分析后的事件数据，可点击同步历史交易补全。'}</p></section>`;
+    return `<section class="admin-section"><div class="admin-panel-heading"><h2>经营分析</h2><button class="outline" data-db-tab="diagnostics">查看经营明细 ↗</button></div><button class="outline" data-db="history">同步或继续同步历史交易</button><div class="db-metrics">${cards.map(([label, value]) => `<div class="db-metric"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')}</div><h3>登录顾客转化漏斗</h3><div class="db-tasks">${(data.funnel || []).map((row) => `<div><strong>${labels[row.stage]}</strong> ${row.users} 人 · 同时到达此前阶段 ${row.cohort_users} 人</div>`).join('')}</div><p>${esc(data.funnel_scope)}</p><h3>销售数量排行</h3><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>商品</th><th>规格</th><th>已支付件数</th></tr></thead><tbody>${(data.top_products || []).map((row) => `<tr><td><button class="admin-text-button" data-db-product="${esc(row.sku_id)}">${esc(row.name)}</button></td><td>${esc(row.sku_id)}</td><td>${esc(row.quantity)}</td></tr>`).join('')}</tbody></table></div><p>按实际收款和退款事件发生时间统计，UTC+8。复购指期间内至少两笔已支付订单。${data.historical_backfill ? '' : '当前为启用分析后的事件数据，可点击同步历史交易补全。'}</p></section>`;
   }
   function trend(data, days) {
     if (!data.payment || !data.refund) return U.empty('趋势暂不可用', '支付或退款统计服务未返回，请刷新重试。');
@@ -149,8 +149,12 @@
     return `<div class="db-chart" role="img" aria-label="近${days}天支付与退款金额趋势"><div class="db-chart-axis"><span>${money(max)}</span><span>${money(max / 2)}</span><span>¥0</span></div><div class="db-bars">${rows.map((row, index) => `<div class="db-bar-group"><div class="db-bar-pair" title="${row.day} 收款 ${money(row.pay)}，退款 ${money(row.refund)}"><i style="height:${(row.pay / max) * 100}%"></i><i style="height:${(row.refund / max) * 100}%"></i></div><span>${days === 7 || index % 5 === 0 || index === days - 1 ? row.day.slice(5) : ''}</span></div>`).join('')}</div></div><details class="db-chart-data"><summary>查看每日金额</summary><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>日期</th><th>成功收款</th><th>成功退款</th></tr></thead><tbody>${rows.map((row) => `<tr><td>${row.day}</td><td>${money(row.pay)}</td><td>${money(row.refund)}</td></tr>`).join('')}</tbody></table></div></details>`;
   }
   document.addEventListener('click', async (event) => {
-    const el = event.target.closest('[data-db],[data-db-days],[data-db-tab]');
+    const el = event.target.closest('[data-db],[data-db-days],[data-db-tab],[data-db-product]');
     if (!el || !m.active() || m.state.busy) return;
+    if (el.dataset.dbProduct) {
+      m.adapter.navigate?.('diagnostics', { keyword: el.dataset.dbProduct, dimension: 'product', days: m.state.days });
+      return;
+    }
     if (el.dataset.dbTab) {
       m.adapter.navigate?.(el.dataset.dbTab);
       return;

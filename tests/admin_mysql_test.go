@@ -284,7 +284,9 @@ func TestMySQLAdminOperationsMigrationsAndCouponSnapshots(t *testing.T) {
 			t.Fatalf("MySQL adjustment audit missing: %+v %v", decoded, err)
 		}
 		var columns []struct{ ColumnName string }
-		if err = db.Raw("SELECT COLUMN_NAME AS column_name FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='adjustments' AND INDEX_NAME='idx_inventory_adjustment_history' ORDER BY SEQ_IN_INDEX").Scan(&columns).Error; err != nil {
+		if err = db.Raw("SELECT COLUMN_NAME AS column_name FROM information_schema.STATISTICS WHERE " +
+			"TABLE_SCHEMA=DATABASE() AND TABLE_NAME='adjustments' AND " +
+			"INDEX_NAME='idx_inventory_adjustment_history' ORDER BY SEQ_IN_INDEX").Scan(&columns).Error; err != nil {
 			t.Fatal(err)
 		}
 		if len(columns) != 3 || columns[0].ColumnName != "sku_id" || columns[1].ColumnName != "created_at" ||

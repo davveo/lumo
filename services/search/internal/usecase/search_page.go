@@ -39,6 +39,18 @@ func (s *Service) search(ctx context.Context, c platform.Request) (platform.Resu
 	), strings.TrimSpace(
 		platform.Text(c.Data, "brand"),
 	)
+	originalQuery := query
+	exactQuery, _ := c.Data["exact_query"].(bool)
+	if !exactQuery {
+		query = correctQuery(query, policy.Synonyms)
+	}
+	attribute := strings.TrimSpace(platform.Text(c.Data, "attribute"))
+	minPrice, maxPrice := platform.Int(c.Data, "min_price_cents"), platform.Int(c.Data, "max_price_cents")
+	if len([]rune(attribute)) > 60 || minPrice < 0 || maxPrice < 0 || minPrice > 10000000000 ||
+		maxPrice > 10000000000 ||
+		(maxPrice > 0 && maxPrice < minPrice) {
+		return nil, bad("invalid search filters")
+	}
 	stockOnly, _ := c.Data["in_stock"].(bool)
 	sortKey := platform.Text(c.Data, "sort")
 	if sortKey == "" {
@@ -62,7 +74,21 @@ func (s *Service) search(ctx context.Context, c platform.Request) (platform.Resu
 	if offset > 10000 {
 		return nil, bad("use cursor pagination beyond offset 10000")
 	}
-	b, _ := json.Marshal([]any{query, category, brand, sortKey, stockOnly, version})
+	b, _ := json.Marshal(
+		[]any{
+			originalQuery,
+			query,
+			category,
+			brand,
+			sortKey,
+			stockOnly,
+			version,
+			attribute,
+			minPrice,
+			maxPrice,
+			exactQuery,
+		},
+	)
 	hash := sha256.Sum256(b)
 	identity := hex.EncodeToString(hash[:])
 	position := pagePosition{Version: 1, Query: identity}
@@ -83,6 +109,7 @@ func (s *Service) search(ctx context.Context, c platform.Request) (platform.Resu
 	for _, brand := range policy.HiddenBrands {
 		hidden[brand] = true
 	}
+	alternatives := []platform.Result{}
 	items, inventory := []platform.Result{}, []platform.Result{}
 	matched, skip := position.Matched, offset
 	resume := position
@@ -92,7 +119,8 @@ func (s *Service) search(ctx context.Context, c platform.Request) (platform.Resu
 	// returned even for an empty partial page; it never masquerades as no hits.
 	{
 		data := map[string]any{
-			"query":    query,
+			"query":     query,
+			"attribute": attribute, "min_price_cents": minPrice, "max_price_cents": maxPrice, "recovery": true,
 			"category": category,
 			"brand":    brand,
 			"sort":     sortKey,
@@ -106,10 +134,11 @@ func (s *Service) search(ctx context.Context, c platform.Request) (platform.Resu
 			return nil, err
 		}
 		var page struct {
-			Items   []platform.Result `json:"items"`
-			Cursors []string          `json:"item_cursors"`
-			HasMore bool              `json:"has_more"`
-			Next    string            `json:"next_cursor"`
+			Items    []platform.Result `json:"items"`
+			Cursors  []string          `json:"item_cursors"`
+			HasMore  bool              `json:"has_more"`
+			Next     string            `json:"next_cursor"`
+			Recovery []platform.Result `json:"recovery_items"`
 		}
 		if err = platform.Decode(result, &page); err != nil {
 			return nil, err
@@ -155,6 +184,9 @@ func (s *Service) search(ctx context.Context, c platform.Request) (platform.Resu
 			candidates = append(candidates, row)
 			ids = append(ids, platform.Text(row, "id"))
 		}
+		for _, row := range page.Recovery {
+			ids = append(ids, platform.Text(row, "id"))
+		}
 		stocks := map[string]platform.Result{}
 		if len(ids) > 0 {
 			sort.Strings(ids)
@@ -174,6 +206,15 @@ func (s *Service) search(ctx context.Context, c platform.Request) (platform.Resu
 			for _, row := range rows.Items {
 				stocks[platform.Text(row, "sku_id")] = row
 			}
+		}
+		for _, row := range page.Recovery {
+			id := platform.Text(row, "id")
+			if excluded[id] || excluded[platform.Text(row, "product_id")] || hidden[platform.Text(row, "brand")] ||
+				platform.Int(stocks[id], "available") < 1 {
+				continue
+			}
+			row["available"] = platform.Int(stocks[id], "available")
+			alternatives = append(alternatives, row)
 		}
 		extra := false
 		for _, row := range candidates {
@@ -223,7 +264,8 @@ func (s *Service) search(ctx context.Context, c platform.Request) (platform.Resu
 		total = matched
 	}
 	return platform.Result{
-		"items":           items,
+		"items":          items,
+		"original_query": originalQuery, "applied_query": query, "corrected": originalQuery != query, "alternatives": alternatives,
 		"inventory_items": inventory,
 		"total":           total,
 		"total_exact":     exact,

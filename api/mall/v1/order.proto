@@ -75,6 +75,14 @@ message RecordRefundRequest {
   int64 amount_cents = 4;
 }
 
+message ChangeOrderAddressRequest {
+ OrderActor actor=1;
+ string id=2;
+ int64 expected_version=3;
+ bytes address_snapshot_json=4;
+ int64 shipping_cents=5;
+}
+message OrderServiceEvent {string kind=1;google.protobuf.Timestamp occurred_at=2;string region=3;}
 message Order {
   string id = 1;
   string user_id = 2;
@@ -96,6 +104,9 @@ message Order {
   // through a generic protobuf Struct, which would lose integer precision.
   bytes quote_snapshot_json = 17;
   bytes address_snapshot_json = 18;
+ bool dispatch_started=19;
+ google.protobuf.Timestamp last_urged_at=20;
+ repeated OrderServiceEvent service_history=21;
 }
 
 // One RPC per order use case. The legacy DomainService.Execute endpoint is
@@ -133,6 +144,9 @@ message OrderSummaryResponse {
 }
 
 service OrderService {
+ rpc ChangeAddress(ChangeOrderAddressRequest) returns (Order);
+ rpc BeginDispatch(OrderRequest) returns (Order);
+ rpc Urge(OrderRequest) returns (Order);
   rpc BatchGetOrders(BatchGetOrdersRequest) returns (BatchGetOrdersResponse);
  rpc AdminList(AdminOrdersRequest) returns (AdminOrdersResponse);
  rpc AdminSummary(AdminOrdersRequest) returns (OrderSummaryResponse);

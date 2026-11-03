@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"sort"
 	"strings"
 
@@ -409,97 +408,12 @@ func (s *Service) create(ctx context.Context, c platform.Request) (platform.Resu
 	if user != c.UserID && !staff(c) {
 		return nil, status.Error(codes.PermissionDenied, "order ownership mismatch")
 	}
-	state := platform.Text(o, "status")
-	if state != constants.OrderStatusReadyToFulfill && state != constants.OrderStatusShipped &&
-		state != constants.OrderStatusCompleted {
-		return nil, status.Error(codes.FailedPrecondition, "order is not eligible for aftersale")
+	prepared, err := prepareClaim(c, o, typ)
+	if err != nil {
+		return nil, err
 	}
-	if typ == constants.AftersaleTypeRefund &&
-		(state == constants.OrderStatusShipped || state == constants.OrderStatusCompleted) {
-		return nil, status.Error(
-			codes.FailedPrecondition,
-			"shipped order requires physical return or staff-reviewed return policy",
-		)
-	}
-	var items []orderLine
-	b, _ := json.Marshal(o["items"])
-	if err = json.Unmarshal(b, &items); err != nil || len(items) == 0 {
-		return nil, status.Error(codes.FailedPrecondition, "order lines unavailable")
-	}
-	purchased := map[string]int64{}
-	weights := map[string]int64{}
-	var base int64
-	for _, i := range items {
-		if i.SKUID == "" || i.Quantity <= 0 {
-			return nil, status.Error(codes.FailedPrecondition, "invalid order snapshot")
-		}
-		purchased[i.SKUID] += i.Quantity
-		unit := i.PriceCents
-		if unit == 0 {
-			unit = i.UnitPriceCents
-		}
-		line := unit * i.Quantity
-		if i.LineTotalCents > 0 {
-			line = i.LineTotalCents
-		}
-		if line <= 0 {
-			line = i.Quantity
-		}
-		weights[i.SKUID] += line
-		base += line
-	}
-	var requested []domain.Line
-	if c.Data["lines"] != nil {
-		b, _ = json.Marshal(c.Data["lines"])
-		if err = json.Unmarshal(b, &requested); err != nil {
-			return nil, status.Error(codes.InvalidArgument, "invalid aftersale lines")
-		}
-	} else {
-		for k, q := range purchased {
-			requested = append(requested, domain.Line{SKUID: k, Quantity: q})
-		}
-	}
-	if len(requested) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "aftersale lines required")
-	}
-	normalized := map[string]int64{}
-	for _, i := range requested {
-		if i.Quantity <= 0 || purchased[i.SKUID] == 0 {
-			return nil, status.Error(codes.InvalidArgument, "invalid requested quantity")
-		}
-		normalized[i.SKUID] += i.Quantity
-	}
-	requested = nil
-	for k, q := range normalized {
-		if q > purchased[k] {
-			return nil, status.Error(codes.FailedPrecondition, "quantity exceeds original purchase")
-		}
-		requested = append(requested, domain.Line{SKUID: k, Quantity: q})
-	}
-	if typ == constants.AftersaleTypeRefund && !wholeOrder(normalized, purchased) {
-		return nil, status.Error(
-			codes.FailedPrecondition,
-			"partial refund before shipment requires partial warehouse cancellation; only whole-order refund is supported",
-		)
-	}
-	sort.Slice(requested, func(i, j int) bool { return requested[i].SKUID < requested[j].SKUID })
-	payable := platform.Int(o, "payable_cents")
-	var weight int64
-	for _, l := range requested {
-		weight += weights[l.SKUID] * l.Quantity / purchased[l.SKUID]
-	}
-	// Prices and line quantities are bounded, but multiplying two valid order
-	// amounts can still overflow int64 before the proportional division.
-	var allocated big.Int
-	allocated.Mul(big.NewInt(payable), big.NewInt(weight))
-	allocated.Quo(&allocated, big.NewInt(base))
-	amount := allocated.Int64()
-	if typ == constants.AftersaleTypeExchange {
-		amount = 0
-	}
-	if typ != constants.AftersaleTypeExchange && amount <= 0 {
-		return nil, status.Error(codes.FailedPrecondition, "no refundable cash for requested lines")
-	}
+	purchased, weights, requested, amount, payable := prepared.Purchased, prepared.Weights, prepared.Requested, prepared.Amount, prepared.Payable
+
 	sum := sha256.Sum256([]byte(user + "\x00" + c.IdempotencyKey))
 	id, err := s.Repo.BusinessID(ctx, "aftersale", user+"\x00"+c.IdempotencyKey, fmt.Sprintf("as-%x", sum[:16]))
 	if err != nil {
@@ -542,6 +456,46 @@ func (s *Service) create(ctx context.Context, c platform.Request) (platform.Resu
 			)
 		}
 	}
+	var attachments struct {
+		IDs []string `json:"evidence_ids"`
+	}
+	if err = platform.Decode(c.Data, &attachments); err != nil {
+		return nil, err
+	}
+	if len(attachments.IDs) > 5 {
+		return nil, status.Error(codes.InvalidArgument, "最多提供 5 张售后图片")
+	}
+	if len(attachments.IDs) > 0 {
+		files, e := platform.NewClients(
+			s.RPC,
+		).Media.VerifyFiles(
+			ctx,
+			platform.Request{UserID: user, Role: constants.RoleSystem, Data: map[string]any{"ids": attachments.IDs}},
+		)
+		if e != nil {
+			return nil, e
+		}
+		var verified struct {
+			Items []platform.Result `json:"items"`
+		}
+		if e = platform.Decode(files, &verified); e != nil {
+			return nil, e
+		}
+		if len(verified.Items) != len(attachments.IDs) {
+			return nil, status.Error(codes.FailedPrecondition, "图片凭证校验不完整")
+		}
+		sort.Slice(verified.Items, func(i, j int) bool {
+			return platform.Text(verified.Items[i], "file_id") < platform.Text(verified.Items[j], "file_id")
+		})
+		raw, _ := json.Marshal(verified.Items)
+		row.EvidenceJSON = string(raw)
+	}
+	policy, e := s.Repo.Policy(ctx)
+	if e != nil {
+		return nil, e
+	}
+	rawPolicy, _ := json.Marshal(policy)
+	row.PolicyJSON = string(rawPolicy)
 	if err = s.Repo.Claim(ctx, row, purchased, payable); err != nil {
 		return nil, err
 	}

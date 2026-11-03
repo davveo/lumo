@@ -98,3 +98,20 @@ func (a legacyAdapter) refunded(ctx context.Context, command platform.Command) (
 	}
 	return orderwire.Result(orderMessage(order)), nil
 }
+
+func (a legacyAdapter) changeAddress(ctx context.Context, c platform.Command) (platform.Result, error) {
+	raw, _ := json.Marshal(c.Data["address"])
+	o, e := a.service.ChangeAddress(
+		ctx,
+		usecase.ChangeAddressRequest{
+			OrderRequest:    legacyRequest(c),
+			ExpectedVersion: platform.Int(c.Data, "expected_version"),
+			Address:         raw,
+			ShippingCents:   platform.Int(c.Data, "shipping_cents"),
+		},
+	)
+	if e != nil {
+		return nil, e
+	}
+	return orderwire.Result(orderMessage(o)), nil
+}

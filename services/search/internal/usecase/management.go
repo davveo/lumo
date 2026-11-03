@@ -34,6 +34,14 @@ func (s *Service) PolicyUpsert(ctx context.Context, c platform.Request) (spanRes
 		return nil, e
 	}
 	p := in.Config
+	if len(p.Synonyms) > 100 {
+		return nil, bad("too many search aliases")
+	}
+	for a, b := range p.Synonyms {
+		if strings.TrimSpace(a) == "" || strings.TrimSpace(b) == "" || len([]rune(a)) > 80 || len([]rune(b)) > 80 {
+			return nil, bad("invalid search alias")
+		}
+	}
 	switch p.DefaultSort {
 	case "",
 		constants.CatalogSortPriceAsc,

@@ -21,4 +21,7 @@ service CouponService {
   rpc TemplatesByIds(ServiceRequest) returns (ServiceResponse);
   rpc TemplatesSnapshot(ServiceRequest) returns (ServiceResponse);
   rpc Calculate(ServiceRequest) returns (ServiceResponse);
+  rpc ReminderGet(ServiceRequest) returns (ServiceResponse);
+  rpc ReminderUpdate(ServiceRequest) returns (ServiceResponse);
+  rpc IssueReward(ServiceRequest) returns (ServiceResponse);
 }

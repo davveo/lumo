@@ -131,9 +131,12 @@ function setup(file, backend) {
   assert.match(a.window.LumoDiscovery.compareBar(), /Apple Phone/);
   a.window.LumoDiscovery.commitSearch('Apple buyer@example.test 13800138000');
   await tick();
-  const behavior = a.calls.find((c) => c.service === 'analytics');
-  assert.equal(behavior.command.data.type, 'search');
-  assert.equal(behavior.command.data.query, 'Apple');
+  assert.equal(a.calls.filter((c) => c.service === 'analytics').length, 0, 'search is tracked after results resolve');
+  const telemetry = [];
+  a.window.LumoJourney = { search: (query, count) => telemetry.push({ query, count }) };
+  await a.window.LumoDiscovery.refreshSearch();
+  assert.equal(telemetry.at(-1).query, 'Apple buyer@example.test 13800138000');
+  assert.equal(telemetry.at(-1).count, 1);
   a.setUser(null);
   assert.equal(a.window.LumoDiscovery.compareBar(), '');
   assert.doesNotMatch(a.window.LumoDiscovery.page(), /disc-compare-table-panel/);

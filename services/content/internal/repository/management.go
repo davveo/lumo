@@ -81,7 +81,15 @@ func (r *Repository) AdminUpsert(
 		before, _ := json.Marshal(old)
 		after, _ := json.Marshal(next)
 		return tx.WithContext(ctx).
-			Create(&adminconfig.Change{ID: platform.ID("content-change"), DocumentID: next.ID, Version: next.Version, ActorID: actor, Reason: reason, Before: string(before), After: string(after)}).
+			Create(&adminconfig.Change{
+				ID:         platform.ID("content-change"),
+				DocumentID: next.ID,
+				Version:    next.Version,
+				ActorID:    actor,
+				Reason:     reason,
+				Before:     string(before),
+				After:      string(after),
+			}).
 			Error
 	})
 	return next, e

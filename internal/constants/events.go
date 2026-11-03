@@ -2,6 +2,14 @@ package constants
 
 // enum:Event
 const (
+	EventRedemptionRequested          = "RedemptionRequested"
+	EventRedemptionRecoveryRequested  = "RedemptionRecoveryRequested"
+	EventRedemptionIssued             = "RedemptionIssued"
+	EventRedemptionRefunded           = "RedemptionRefunded"
+	EventRewardShipped                = "RewardShipped"
+	EventRewardDelivered              = "RewardDelivered"
+	EventCouponExpiring               = "CouponExpiring"
+	EventOrderUrged                   = "OrderUrged"
 	EventAftersaleRecoveryRequested   = "AftersaleRecoveryRequested"
 	EventFulfillmentRecoveryRequested = "FulfillmentRecoveryRequested"
 	EventCheckoutRecoveryRequested    = "CheckoutRecoveryRequested"

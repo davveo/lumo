@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
+	"github.com/davveo/lumo/services/analytics/internal/domain"
 	"unicode/utf8"
 )
 
@@ -76,6 +77,25 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 
 func (s *Service) seed(context.Context) error { return nil }
 func (s *Service) event(ctx context.Context, e platform.Event) error {
+	if e.Type == constants.EventOrderPaymentAccepted && s.rpc != nil {
+		order, err := platform.NewClients(
+			s.rpc,
+		).Order.Get(
+			ctx,
+			platform.Request{ID: e.AggregateID, UserID: e.UserID, Role: constants.RoleSystem},
+		)
+		if err != nil {
+			return err
+		}
+		fact := domain.TransactionFact{OrderID: e.AggregateID}
+		attachAttribution(&fact, order)
+		if fact.CostKnown {
+			if err = s.repo.SetOrderAttribution(ctx, fact); err != nil {
+				return err
+			}
+		}
+	}
+
 	if err := s.projectTransaction(ctx, e); err != nil {
 		return err
 	}

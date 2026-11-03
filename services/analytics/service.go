@@ -25,5 +25,6 @@ func New(d platform.Dependencies) platform.Module {
 			constants.EventPaymentSucceeded,
 		},
 		OnEvent: s.OnEvent,
+		Tick:    s.Tick,
 	}
 }

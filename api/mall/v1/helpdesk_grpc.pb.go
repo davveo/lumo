@@ -21,13 +21,20 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	HelpdeskService_AdminList_FullMethodName = "/mall.v1.HelpdeskService/AdminList"
-	HelpdeskService_Close_FullMethodName     = "/mall.v1.HelpdeskService/Close"
-	HelpdeskService_Create_FullMethodName    = "/mall.v1.HelpdeskService/Create"
-	HelpdeskService_Faq_FullMethodName       = "/mall.v1.HelpdeskService/Faq"
-	HelpdeskService_Get_FullMethodName       = "/mall.v1.HelpdeskService/Get"
-	HelpdeskService_List_FullMethodName      = "/mall.v1.HelpdeskService/List"
-	HelpdeskService_Reply_FullMethodName     = "/mall.v1.HelpdeskService/Reply"
+	HelpdeskService_AdminList_FullMethodName    = "/mall.v1.HelpdeskService/AdminList"
+	HelpdeskService_Close_FullMethodName        = "/mall.v1.HelpdeskService/Close"
+	HelpdeskService_Create_FullMethodName       = "/mall.v1.HelpdeskService/Create"
+	HelpdeskService_Faq_FullMethodName          = "/mall.v1.HelpdeskService/Faq"
+	HelpdeskService_Get_FullMethodName          = "/mall.v1.HelpdeskService/Get"
+	HelpdeskService_List_FullMethodName         = "/mall.v1.HelpdeskService/List"
+	HelpdeskService_Reply_FullMethodName        = "/mall.v1.HelpdeskService/Reply"
+	HelpdeskService_WorkQueue_FullMethodName    = "/mall.v1.HelpdeskService/WorkQueue"
+	HelpdeskService_WorkDetail_FullMethodName   = "/mall.v1.HelpdeskService/WorkDetail"
+	HelpdeskService_AssignWork_FullMethodName   = "/mall.v1.HelpdeskService/AssignWork"
+	HelpdeskService_SaveView_FullMethodName     = "/mall.v1.HelpdeskService/SaveView"
+	HelpdeskService_Views_FullMethodName        = "/mall.v1.HelpdeskService/Views"
+	HelpdeskService_PolicyGet_FullMethodName    = "/mall.v1.HelpdeskService/PolicyGet"
+	HelpdeskService_PolicyUpsert_FullMethodName = "/mall.v1.HelpdeskService/PolicyUpsert"
 )
 
 // HelpdeskServiceClient is the client API for HelpdeskService service.
@@ -41,6 +48,13 @@ type HelpdeskServiceClient interface {
 	Get(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	List(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Reply(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	WorkQueue(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	WorkDetail(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	AssignWork(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	SaveView(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Views(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PolicyGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PolicyUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type helpdeskServiceClient struct {
@@ -114,6 +128,69 @@ func (c *helpdeskServiceClient) Reply(ctx context.Context, in *ServiceRequest, o
 	return out, nil
 }
 
+func (c *helpdeskServiceClient) WorkQueue(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, HelpdeskService_WorkQueue_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *helpdeskServiceClient) WorkDetail(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, HelpdeskService_WorkDetail_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *helpdeskServiceClient) AssignWork(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, HelpdeskService_AssignWork_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *helpdeskServiceClient) SaveView(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, HelpdeskService_SaveView_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *helpdeskServiceClient) Views(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, HelpdeskService_Views_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *helpdeskServiceClient) PolicyGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, HelpdeskService_PolicyGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *helpdeskServiceClient) PolicyUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, HelpdeskService_PolicyUpsert_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // HelpdeskServiceServer is the server API for HelpdeskService service.
 // All implementations must embed UnimplementedHelpdeskServiceServer
 // for forward compatibility
@@ -125,6 +202,13 @@ type HelpdeskServiceServer interface {
 	Get(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	List(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Reply(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	WorkQueue(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	WorkDetail(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	AssignWork(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	SaveView(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Views(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PolicyGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedHelpdeskServiceServer()
 }
 
@@ -152,6 +236,27 @@ func (UnimplementedHelpdeskServiceServer) List(context.Context, *ServiceRequest)
 }
 func (UnimplementedHelpdeskServiceServer) Reply(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Reply not implemented")
+}
+func (UnimplementedHelpdeskServiceServer) WorkQueue(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WorkQueue not implemented")
+}
+func (UnimplementedHelpdeskServiceServer) WorkDetail(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WorkDetail not implemented")
+}
+func (UnimplementedHelpdeskServiceServer) AssignWork(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AssignWork not implemented")
+}
+func (UnimplementedHelpdeskServiceServer) SaveView(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SaveView not implemented")
+}
+func (UnimplementedHelpdeskServiceServer) Views(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Views not implemented")
+}
+func (UnimplementedHelpdeskServiceServer) PolicyGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PolicyGet not implemented")
+}
+func (UnimplementedHelpdeskServiceServer) PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PolicyUpsert not implemented")
 }
 func (UnimplementedHelpdeskServiceServer) mustEmbedUnimplementedHelpdeskServiceServer() {}
 
@@ -292,6 +397,132 @@ func _HelpdeskService_Reply_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _HelpdeskService_WorkQueue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HelpdeskServiceServer).WorkQueue(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HelpdeskService_WorkQueue_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HelpdeskServiceServer).WorkQueue(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _HelpdeskService_WorkDetail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HelpdeskServiceServer).WorkDetail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HelpdeskService_WorkDetail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HelpdeskServiceServer).WorkDetail(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _HelpdeskService_AssignWork_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HelpdeskServiceServer).AssignWork(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HelpdeskService_AssignWork_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HelpdeskServiceServer).AssignWork(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _HelpdeskService_SaveView_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HelpdeskServiceServer).SaveView(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HelpdeskService_SaveView_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HelpdeskServiceServer).SaveView(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _HelpdeskService_Views_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HelpdeskServiceServer).Views(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HelpdeskService_Views_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HelpdeskServiceServer).Views(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _HelpdeskService_PolicyGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HelpdeskServiceServer).PolicyGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HelpdeskService_PolicyGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HelpdeskServiceServer).PolicyGet(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _HelpdeskService_PolicyUpsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HelpdeskServiceServer).PolicyUpsert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HelpdeskService_PolicyUpsert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HelpdeskServiceServer).PolicyUpsert(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // HelpdeskService_ServiceDesc is the grpc.ServiceDesc for HelpdeskService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -326,6 +557,34 @@ var HelpdeskService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Reply",
 			Handler:    _HelpdeskService_Reply_Handler,
+		},
+		{
+			MethodName: "WorkQueue",
+			Handler:    _HelpdeskService_WorkQueue_Handler,
+		},
+		{
+			MethodName: "WorkDetail",
+			Handler:    _HelpdeskService_WorkDetail_Handler,
+		},
+		{
+			MethodName: "AssignWork",
+			Handler:    _HelpdeskService_AssignWork_Handler,
+		},
+		{
+			MethodName: "SaveView",
+			Handler:    _HelpdeskService_SaveView_Handler,
+		},
+		{
+			MethodName: "Views",
+			Handler:    _HelpdeskService_Views_Handler,
+		},
+		{
+			MethodName: "PolicyGet",
+			Handler:    _HelpdeskService_PolicyGet_Handler,
+		},
+		{
+			MethodName: "PolicyUpsert",
+			Handler:    _HelpdeskService_PolicyUpsert_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -144,7 +144,12 @@ func TestCampaignAdminValidatesEachRuleAndPagesInactiveRecords(t *testing.T) {
 		{"kind": constants.CampaignKindFlash}, {"quota": int64(0)}, {"quota": int64(1000000001)},
 		{"active": nil}, {"pay_rate_bps": int64(9000)}, {"discount_cents": int64(0)},
 		{"kind": constants.CampaignKindDiscount, "discount_cents": int64(0), "pay_rate_bps": int64(10000)},
-		{"kind": constants.CampaignKindQuantityDiscount, "discount_cents": int64(0), "pay_rate_bps": int64(8500), "min_quantity": int64(1)},
+		{
+			"kind":           constants.CampaignKindQuantityDiscount,
+			"discount_cents": int64(0),
+			"pay_rate_bps":   int64(8500),
+			"min_quantity":   int64(1),
+		},
 	} {
 		data := managementRule()
 		for key, value := range invalid {

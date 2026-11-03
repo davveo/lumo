@@ -106,7 +106,10 @@ func (s *Service) AdminList(ctx context.Context, c platform.Request) (spanResult
 			summary += "（历史记录未提供对象）"
 		}
 		v["summary"] = summary
-		v["record_category"] = map[string]string{constants.AnalyticsKindBehavior: "访问互动", constants.AnalyticsKindPurchaseEvent: "交易结果"}[r.Kind]
+		v["record_category"] = map[string]string{
+			constants.AnalyticsKindBehavior:      "访问互动",
+			constants.AnalyticsKindPurchaseEvent: "交易结果",
+		}[r.Kind]
 		items = append(items, v)
 	}
 	result := adminquery.Result(items, total, f)

@@ -110,3 +110,12 @@ func (s *Service) requireMember(ctx context.Context, c platform.Request) (spanEr
 	}
 	return nil
 }
+
+// MyLedger always derives the owner from the authenticated principal.
+func (s *Service) MyLedger(ctx context.Context, c platform.Request) (platform.Result, error) {
+	if e := platform.RequireUser(c); e != nil {
+		return nil, e
+	}
+	c.ID = c.UserID
+	return s.Repo.Ledger(ctx, c)
+}

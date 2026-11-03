@@ -11,4 +11,5 @@ import "api/mall/v1/service_request.proto";
 service PricingService {
   rpc Get(ServiceRequest) returns (ServiceResponse);
   rpc Quote(ServiceRequest) returns (ServiceResponse);
+  rpc Optimize(ServiceRequest) returns (ServiceResponse);
 }

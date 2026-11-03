@@ -103,7 +103,16 @@ func describeTask(row Result, kind, service, payload, carrier string, now time.T
 		refs = append(refs, Result{"label": label, "id": id})
 	}
 	add(meta[1], event.AggregateID)
-	for _, entry := range [][2]string{{"order_id", "订单"}, {"payment_id", "支付单"}, {"refund_id", "退款单"}, {"aftersale_id", "售后单"}, {"sku_id", "商品 SKU"}, {"invoice_id", "发票"}, {"ticket_id", "工单"}, {"group_id", "拼团"}} {
+	for _, entry := range [][2]string{
+		{"order_id", "订单"},
+		{"payment_id", "支付单"},
+		{"refund_id", "退款单"},
+		{"aftersale_id", "售后单"},
+		{"sku_id", "商品 SKU"},
+		{"invoice_id", "发票"},
+		{"ticket_id", "工单"},
+		{"group_id", "拼团"},
+	} {
 		add(entry[1], Text(event.Data, entry[0]))
 	}
 	row["business_references"] = refs

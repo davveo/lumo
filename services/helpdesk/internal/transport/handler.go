@@ -8,12 +8,19 @@ import (
 
 func New(s *usecase.Service) *platform.MethodHandler {
 	return platform.NewMethodHandler(constants.ServiceHelpdesk, map[string]platform.Operation{
-		constants.ActionAdminList: s.AdminList,
-		constants.ActionFaq:       s.Faq,
-		constants.ActionList:      s.List,
-		constants.ActionGet:       s.Get,
-		constants.ActionCreate:    s.Create,
-		constants.ActionReply:     s.Reply,
-		constants.ActionClose:     s.Close,
+		constants.ActionAdminList:    s.AdminList,
+		constants.ActionWorkQueue:    s.WorkQueue,
+		constants.ActionWorkDetail:   s.WorkDetail,
+		constants.ActionAssignWork:   s.AssignWork,
+		constants.ActionSaveView:     s.SaveView,
+		constants.ActionViews:        s.Views,
+		constants.ActionPolicyGet:    s.PolicyGet,
+		constants.ActionPolicyUpsert: s.PolicyUpsert,
+		constants.ActionFaq:          s.Faq,
+		constants.ActionList:         s.List,
+		constants.ActionGet:          s.Get,
+		constants.ActionCreate:       s.Create,
+		constants.ActionReply:        s.Reply,
+		constants.ActionClose:        s.Close,
 	}, nil)
 }

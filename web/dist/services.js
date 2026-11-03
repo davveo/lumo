@@ -71,6 +71,7 @@
     memory = emptyData();
     readStates = emptyReadStates();
     ui.invoiceForm = null;
+    ui.ticketDrafts = {};
     if (faqBase !== (window.LumoAPI?.getBase?.() || '')) {
       FAQS.splice(0);
       faqAt = 0;
@@ -120,16 +121,22 @@
             : C.MessageType.Order,
       title: r.title || labels[event] || event,
       body: r.body || '业务编号 ' + (r.business_id || ''),
-      target: isProduct
-        ? '#/product/' +
-          (products.find((p) => p.skuId === r.sku_id || p.variants?.some((v) => v.sku_id === r.sku_id))?.id || r.sku_id)
-        : isTicket
-          ? '#/member/support/tickets'
-          : isInvoice
-            ? '#/member/invoices'
-            : /Refund/.test(event)
-              ? '#/member/aftersales'
-              : '#/member/orders',
+      target:
+        event === C.Event.CouponExpiring
+          ? '#/member/coupons'
+          : /Redemption|RewardShipped|RewardDelivered/.test(event)
+            ? '#/member/points'
+            : isProduct
+              ? '#/product/' +
+                (products.find((p) => p.skuId === r.sku_id || p.variants?.some((v) => v.sku_id === r.sku_id))?.id ||
+                  r.sku_id)
+              : isTicket
+                ? '#/member/support/tickets'
+                : isInvoice
+                  ? '#/member/invoices'
+                  : /Refund/.test(event)
+                    ? '#/member/aftersales'
+                    : '#/member/orders',
       at: at(r.created_at),
       read: r.status === C.NotificationStatus.Read,
     };
@@ -640,24 +647,24 @@
         '',
       )}</div>${rows.length ? `<div class="svc-ticket-list">${rows.map((row) => `<article class="svc-ticket-card"><div class="svc-ticket-heading"><span class="svc-ticket-type">${icon('support')}</span><div><h2>${esc(row.title)}</h2><small>${esc(row.id)} · ${date(row.at)}</small></div><span class="mem-badge ${row.status === C.TicketViewStatus.Closed ? 'svc-muted-badge' : row.status === C.TicketViewStatus.Answered ? 'svc-success-badge' : ''}">${{ open: '待处理', answered: '已回复', closed: '已关闭' }[row.status]}</span></div><p class="svc-ticket-description">${esc(row.detail)}</p><div class="svc-ticket-meta"><span>${esc(row.type)}</span>${row.orderId ? `<span>关联订单 ${esc(row.orderId)}</span>` : '<span>购物咨询</span>'}</div><div class="svc-ticket-actions">${button('查看会话', 'view-ticket', row.id)}${row.status === C.TicketViewStatus.Closed ? '' : `${button('补充说明', 'reply-ticket', row.id)}${button('关闭工单', 'close-ticket', row.id)}`}</div></article>`).join('')}</div>` : empty('暂时没有服务工单', '可以关联具体订单，记录需要帮助的问题。', 'support', button('创建工单', 'new-ticket', '', true))}</section>`;
   }
-  function newTicket(feedback = false) {
+  function newTicket(feedback = false, orderID = '') {
     const orders = window.LumoMember?.listOrders('all') || state.orders;
     modal(
       feedback ? '意见反馈' : '创建服务工单',
-      `<form id="service-ticket-form"><label class="field">问题类型<select name="type">${['订单问题', '配送问题', '商品问题', '发票问题', '售后问题', '其他问题'].map((label) => `<option${feedback && label === '其他问题' ? ' selected' : ''}>${label}</option>`).join('')}</select></label><label class="field">关联订单（选填）<select name="orderId"><option value="">不关联订单</option>${orders.map((order) => `<option value="${esc(order.id)}">${esc(order.id)} · ¥${money(order.totals.total)}</option>`).join('')}</select></label><label class="field">问题标题<input name="title" maxlength="80" required placeholder="一句话描述你的问题"></label><label class="field">详细说明<textarea name="detail" rows="4" maxlength="500" required placeholder="请描述问题和希望获得的帮助"></textarea></label><label class="field">问题附件（选填，最大 10 MiB）<input type="file" name="attachment" accept="image/png,image/jpeg,image/webp,application/pdf,text/plain"></label><div class="svc-modal-actions"><button class="outline" type="button" data-action="close-modal">取消</button><button class="primary" type="submit">提交工单</button></div></form>`,
+      `<form id="service-ticket-form"><label class="field">问题类型<select name="type">${['订单问题', '配送问题', '商品问题', '发票问题', '售后问题', '其他问题'].map((label) => `<option${feedback && label === '其他问题' ? ' selected' : ''}>${label}</option>`).join('')}</select></label><label class="field">关联订单（选填）<select name="orderId"><option value="">不关联订单</option>${orders.map((order) => `<option value="${esc(order.id)}" ${order.id === orderID ? 'selected' : ''}>${esc(order.id)} · ¥${money(order.totals.total)}</option>`).join('')}</select></label><label class="field">问题标题<input name="title" maxlength="80" required placeholder="一句话描述你的问题"></label><label class="field">详细说明<textarea name="detail" rows="4" maxlength="500" required placeholder="请描述问题和希望获得的帮助"></textarea></label><label class="field">问题附件（选填，最大 10 MiB）<input type="file" name="attachment" accept="image/png,image/jpeg,image/webp,application/pdf,text/plain"></label><div class="svc-modal-actions"><button class="outline" type="button" data-action="close-modal">取消</button><button class="primary" type="submit">提交工单</button></div></form>`,
     );
   }
-  async function viewTicket(id, reply = false) {
+  async function viewTicket(id, reply = false, offset = 0) {
     return readDialog(
       reply ? '补充工单说明' : '工单会话',
       'rows',
-      () => call(C.Service.Helpdesk, C.Action.Get, { id }),
+      () => call(C.Service.Helpdesk, C.Action.Get, { id, data: { message_limit: 20, message_offset: offset } }),
       (raw) => {
         const row = mapTicket(raw);
         const files = [...String(raw.body || '').matchAll(/\[附件:([^|\]]+)\|([^\]]+)\]/g)];
         modal(
           reply ? '补充工单说明' : '工单会话',
-          `<p class="modal-desc">${esc(row.title)} · ${esc(row.id)}</p><div class="svc-ticket-chat">${row.messages.map((message) => `<div class="svc-chat-message ${message.role}"><span>${icon(message.role === C.ConversationRole.User ? 'user' : 'support')}</span><div><p>${esc(message.text)}</p><time>${date(message.at)}</time></div></div>`).join('')}</div>${files.map((f) => button('下载附件：' + f[1], 'download-attachment', f[2])).join('')}${reply && row.status !== C.TicketViewStatus.Closed ? `<form id="service-ticket-reply-form" data-id="${esc(row.id)}"><label class="field">补充说明<textarea name="message" rows="3" maxlength="500" required></textarea></label><button class="primary" type="submit">发送补充说明</button></form>` : ''}`,
+          `<section class="svc-conversation-view"><header class="svc-conversation-header"><h3>${esc(row.title)}</h3><p>${esc({ open: '待处理', answered: '客服已回复', closed: '已关闭' }[row.status] || '服务跟进中')} · 创建于 ${date(row.at)}</p><small>工单 ${esc(row.id)}${row.orderId ? ' · 订单 ' + esc(row.orderId) : ''}</small></header><div class="svc-ticket-chat" role="log" aria-label="工单会话记录">${row.messages.map((message, i) => `<article class="svc-chat-message ${message.role}"><span>${icon(message.role === C.ConversationRole.User ? 'user' : 'support')}</span><div><strong>${message.role === C.ConversationRole.User ? '我' : '商城客服'}${i === 0 ? ' · 发起问题' : ''}</strong><p>${esc(message.text.replace(/\[附件:([^|\]]+)\|([^\]]+)\]/g, '[附件：$1]'))}</p><time>${date(message.at)}</time></div></article>`).join('')}</div>${Number(raw.message_total) > 20 ? `<nav class="mem-pager" aria-label="工单回复分页"><span>共 ${Number(raw.message_total)} 条回复</span><div><button class="outline" data-service-action="ticket-page" data-id="${esc(id)}" data-value="${Math.max(0, offset - 20)}" ${offset <= 0 ? 'disabled' : ''}>上一页</button><span>第 ${Math.floor(offset / 20) + 1} / ${Math.ceil(Number(raw.message_total) / 20)} 页</span><button class="outline" data-service-action="ticket-page" data-id="${esc(id)}" data-value="${offset + 20}" ${offset + 20 >= Number(raw.message_total) ? 'disabled' : ''}>下一页</button></div></nav>` : ''}${files.length ? `<div class="svc-modal-actions">${files.map((f) => button('下载附件：' + f[1], 'download-attachment', f[2])).join('')}</div>` : ''}${row.status === C.TicketViewStatus.Closed ? '<p class="svc-conversation-closed">工单已关闭，以上会话记录可继续查看。</p>' : `<form id="service-ticket-reply-form" data-id="${esc(row.id)}"><label class="field">继续回复<textarea name="message" rows="3" maxlength="500" required placeholder="补充问题或回复客服…">${esc(ui.ticketDrafts?.[id] || '')}</textarea></label><div class="svc-modal-actions"><button class="outline" type="button" data-action="close-modal">稍后再说</button><button class="primary" type="submit">发送回复</button></div></form>`}</section>`,
         );
       },
       reply ? 'reply-ticket' : 'view-ticket',
@@ -805,6 +812,7 @@
         redraw();
       }
       if (action === 'new-ticket') newTicket();
+      if (action === 'ticket-page') await viewTicket(id, true, Math.max(0, Number(value) || 0));
       if (action === 'view-ticket' || action === 'reply-ticket') await viewTicket(id, action === 'reply-ticket');
       if (action === 'close-ticket') {
         await call(C.Service.Helpdesk, C.Action.Close, { id });
@@ -825,6 +833,13 @@
       showError(e);
     } finally {
       b.disabled = false;
+    }
+  });
+  document.addEventListener('input', (e) => {
+    const f = e.target.closest('#service-ticket-reply-form');
+    if (f?.dataset.id && e.target.name === 'message') {
+      ui.ticketDrafts ||= {};
+      ui.ticketDrafts[f.dataset.id] = e.target.value;
     }
   });
   document.addEventListener('submit', async (event) => {
@@ -879,6 +894,7 @@
         if (checkout) memory.checkout = request;
         else await createInvoice(orderById(form.dataset.order), request);
         ui.invoiceForm = null;
+        ui.ticketDrafts = {};
         closeModal();
         redraw();
         toast(checkout ? '发票信息已保存' : '发票申请已提交');
@@ -914,6 +930,7 @@
           idempotency_key: form.dataset.requestKey,
           data: { body },
         });
+        delete (ui.ticketDrafts ||= {})[form.dataset.id];
         await refresh(true);
         closeModal();
         redraw();
@@ -955,6 +972,9 @@
     invoiceState,
     model,
     uploadAttachment,
+    openOrderTicket: (id) => {
+      if (guard(location.hash)) newTicket(false, id);
+    },
   };
   window.addEventListener('lumo:logout', reset);
 })();

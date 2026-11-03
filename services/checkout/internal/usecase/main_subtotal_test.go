@@ -50,8 +50,16 @@ func TestPreviouslyIssuedQuotesCannotBypassBenefitRules(t *testing.T) {
 		{"flash coupon", map[string]any{"activity_kind": "flash", "coupon_id": "owned"}, true},
 		{"group points", map[string]any{"activity_kind": "group", "points": 1}, true},
 		{"legacy group coupon", map[string]any{"group_id": "team", "coupon_id": "owned"}, true},
-		{"addon points too high", map[string]any{"points": 201, "subtotal_cents": 3000, "main_subtotal_cents": 2000}, true},
-		{"addon points at limit", map[string]any{"points": 200, "subtotal_cents": 3000, "main_subtotal_cents": 2000}, false},
+		{
+			"addon points too high",
+			map[string]any{"points": 201, "subtotal_cents": 3000, "main_subtotal_cents": 2000},
+			true,
+		},
+		{
+			"addon points at limit",
+			map[string]any{"points": 200, "subtotal_cents": 3000, "main_subtotal_cents": 2000},
+			false,
+		},
 		{"legacy ordinary points", map[string]any{"points": 300, "subtotal_cents": 3000}, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

@@ -358,7 +358,14 @@ func loadRoot(t *testing.T, root string) *graph {
 					continue
 				}
 				key := pkg + "."
-				f := &function{pkg: pkg, body: d.Body, types: map[string]string{}, funcs: map[string]string{}, edges: map[string]bool{}, operation: map[string]bool{}}
+				f := &function{
+					pkg:       pkg,
+					body:      d.Body,
+					types:     map[string]string{},
+					funcs:     map[string]string{},
+					edges:     map[string]bool{},
+					operation: map[string]bool{},
+				}
 				if d.Recv != nil {
 					recv := d.Recv.List[0]
 					typ := receiverType(recv.Type)

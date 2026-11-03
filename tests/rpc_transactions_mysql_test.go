@@ -122,7 +122,19 @@ func TestMySQLCouponPreflightDoesNotLockTemplateAndRechecksNewRequirements(t *te
 		t.Fatal(e)
 	}
 	now := time.Now().UTC()
-	if e := db.Table("templates").Create(map[string]any{"id": "preflight-template", "name": "Preflight", "amount": 100, "minimum": 1000, "valid_days": 7, "remaining": 10, "active": true, "min_points": 1, "min_growth": 0, "expires_at": now.Add(time.Hour), "created_at": now}).Error; e != nil {
+	if e := db.Table("templates").Create(map[string]any{
+		"id":         "preflight-template",
+		"name":       "Preflight",
+		"amount":     100,
+		"minimum":    1000,
+		"valid_days": 7,
+		"remaining":  10,
+		"active":     true,
+		"min_points": 1,
+		"min_growth": 0,
+		"expires_at": now.Add(time.Hour),
+		"created_at": now,
+	}).Error; e != nil {
 		t.Fatal(e)
 	}
 	claimed := make(chan error, 1)
@@ -165,7 +177,13 @@ func TestMySQLConcurrentRestockBatchDoesNotDuplicateStock(t *testing.T) {
 	if e := m.Migrate(ctx); e != nil {
 		t.Fatal(e)
 	}
-	if _, e := m.Handle(ctx, platform.Command{Action: "adjust", ID: "batch-sku", UserID: "admin", Role: "admin", Data: map[string]any{"on_hand": 0}}); e != nil {
+	if _, e := m.Handle(ctx, platform.Command{
+		Action: "adjust",
+		ID:     "batch-sku",
+		UserID: "admin",
+		Role:   "admin",
+		Data:   map[string]any{"on_hand": 0},
+	}); e != nil {
 		t.Fatal(e)
 	}
 	cmd := platform.Command{

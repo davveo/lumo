@@ -154,7 +154,11 @@ func TestAdministrativeProviderParametersAndReadableOperations(t *testing.T) {
 		"provider_upsert",
 		"wechat",
 		"",
-		map[string]any{"values": map[string]string{"api_v3_key": "too-short"}, "version": 0, "reason": "校验密钥格式"},
+		map[string]any{
+			"values":  map[string]string{"api_v3_key": "too-short"},
+			"version": 0,
+			"reason":  "校验密钥格式",
+		},
 	)
 	h.expect(
 		400,
@@ -163,7 +167,11 @@ func TestAdministrativeProviderParametersAndReadableOperations(t *testing.T) {
 		"provider_upsert",
 		"alipay",
 		"",
-		map[string]any{"values": map[string]string{"app_private_key": "not-a-key"}, "version": 1, "reason": "校验私钥"},
+		map[string]any{
+			"values":  map[string]string{"app_private_key": "not-a-key"},
+			"version": 1,
+			"reason":  "校验私钥",
+		},
 	)
 	// Behavior records show the actual product/search rather than a generic kind.
 	h.call(
@@ -212,7 +220,13 @@ func TestAdministrativeProviderParametersAndReadableOperations(t *testing.T) {
 	if platform.Int(transactions, "total") != 1 || platform.Text(mapItems(transactions)[0], "action_label") != "完成订单" {
 		t.Fatal(transactions)
 	}
-	if e = c.modules["analytics"].OnEvent(context.Background(), platform.Event{ID: "readable-refund", Type: "RefundSucceeded", UserID: "demo", AggregateID: "RFND_456", Data: map[string]any{"order_id": "ORD_123", "amount_cents": 600}}); e != nil {
+	if e = c.modules["analytics"].OnEvent(context.Background(), platform.Event{
+		ID:          "readable-refund",
+		Type:        "RefundSucceeded",
+		UserID:      "demo",
+		AggregateID: "RFND_456",
+		Data:        map[string]any{"order_id": "ORD_123", "amount_cents": 600},
+	}); e != nil {
 		t.Fatal(e)
 	}
 	refunds := h.call(admin, "analytics", "admin_list", "", "", map[string]any{"event_type": "RefundSucceeded"})

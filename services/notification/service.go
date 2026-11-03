@@ -19,6 +19,7 @@ func New(d platform.Dependencies) platform.Module {
 		Operations: t.Operations(),
 		Topics: []string{
 			constants.EventShipmentException,
+			constants.EventCouponExpiring, constants.EventRedemptionIssued, constants.EventRedemptionRefunded, constants.EventRewardShipped, constants.EventRewardDelivered,
 			constants.EventProductPriceReached, constants.EventProductBackInStock,
 			constants.EventOrderAwaitingPayment,
 			constants.EventOrderPaymentAccepted,

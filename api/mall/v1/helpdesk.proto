@@ -16,4 +16,11 @@ service HelpdeskService {
   rpc Get(ServiceRequest) returns (ServiceResponse);
   rpc List(ServiceRequest) returns (ServiceResponse);
   rpc Reply(ServiceRequest) returns (ServiceResponse);
+  rpc WorkQueue(ServiceRequest) returns (ServiceResponse);
+  rpc WorkDetail(ServiceRequest) returns (ServiceResponse);
+  rpc AssignWork(ServiceRequest) returns (ServiceResponse);
+  rpc SaveView(ServiceRequest) returns (ServiceResponse);
+  rpc Views(ServiceRequest) returns (ServiceResponse);
+  rpc PolicyGet(ServiceRequest) returns (ServiceResponse);
+  rpc PolicyUpsert(ServiceRequest) returns (ServiceResponse);
 }

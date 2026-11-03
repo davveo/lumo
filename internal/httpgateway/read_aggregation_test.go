@@ -194,7 +194,12 @@ func TestReadBatchPreflightsAllCommandsBeforeAnyDomainCall(t *testing.T) {
 		{"guest private read", "", []any{readItem("a", "member", "get", "")}, 401},
 		{"user admin read", "buyer", []any{readItem("a", "payment", "list", "")}, 403},
 		{"nested aggregation", "", []any{readItem("a", "storefront", "batch", "")}, 403},
-		{"internal recommendation ranking", "admin", []any{readItem("a", "recommendation", "rank_bootstrap", "")}, 403},
+		{
+			"internal recommendation ranking",
+			"admin",
+			[]any{readItem("a", "recommendation", "rank_bootstrap", "")},
+			403,
+		},
 		{"internal catalog search", "admin", []any{readItem("a", "catalog", "search_products", "")}, 403},
 		{
 			"duplicate keys",

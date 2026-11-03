@@ -154,7 +154,10 @@ func TestRPCAuthenticationAndPublicHealth(t *testing.T) {
 	exporter, _ := tracing(t)
 	server, err := NewRPCServer(
 		"correct-token",
-		Module{Name: "test", Handle: func(context.Context, Command) (Result, error) { return Result{"ok": true}, nil }},
+		Module{
+			Name:   "test",
+			Handle: func(context.Context, Command) (Result, error) { return Result{"ok": true}, nil },
+		},
 	)
 	if err != nil {
 		t.Fatal(err)

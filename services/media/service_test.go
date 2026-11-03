@@ -15,6 +15,7 @@ import (
 )
 
 type fakeStore struct {
+	stats                 int
 	objects               map[string]domain.StoredObject
 	uploadKey, uploadType string
 	uploadSize            int64
@@ -42,6 +43,7 @@ func (f *fakeStore) SignUpload(
 	}, nil
 }
 func (f *fakeStore) Stat(_ context.Context, key string) (domain.StoredObject, error) {
+	f.stats++
 	o, ok := f.objects[key]
 	if !ok {
 		return o, errors.New("not uploaded")
@@ -205,5 +207,46 @@ func TestMediaWrongObjectMIMECannotComplete(t *testing.T) {
 	}
 	if f.downloads != 0 {
 		t.Fatal("signed download for rejected upload")
+	}
+}
+
+func TestEvidenceMetadataBatchDoesNotStatEachObject(t *testing.T) {
+	store := &fakeStore{objects: map[string]domain.StoredObject{}}
+	m := module(t, store)
+	ctx := context.Background()
+	ids := []string{}
+	for _, name := range []string{"a.jpg", "b.jpg", "c.jpg"} {
+		v, e := m.Operations["create"](
+			ctx,
+			platform.Request{
+				UserID: "buyer",
+				Role:   "user",
+				Data:   map[string]any{"file_name": name, "content_type": "image/jpeg", "size": 4},
+			},
+		)
+		if e != nil {
+			t.Fatal(e)
+		}
+		id := platform.Text(v, "id")
+		store.objects[store.uploadKey] = domain.StoredObject{Size: 4, ContentType: "image/jpeg", ETag: "verified"}
+		if _, e = m.Operations["complete"](ctx, platform.Request{ID: id, UserID: "buyer", Role: "user"}); e != nil {
+			t.Fatal(e)
+		}
+		ids = append(ids, id)
+	}
+	before := store.stats
+	v, e := m.Operations["verify_files"](
+		ctx,
+		platform.Request{UserID: "buyer", Role: "system", Data: map[string]any{"ids": ids}},
+	)
+	if e != nil || store.stats != before {
+		t.Fatal(v, e, store.stats, before)
+	}
+	_, e = m.Operations["verify_files"](
+		ctx,
+		platform.Request{UserID: "other", Role: "system", Data: map[string]any{"ids": ids}},
+	)
+	if status.Code(e) != codes.PermissionDenied {
+		t.Fatal(e)
 	}
 }

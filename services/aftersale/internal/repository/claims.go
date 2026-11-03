@@ -44,7 +44,8 @@ func (r *Repository) Claim(
 			if old.UserID != row.UserID || old.OrderID != row.OrderID {
 				return status.Error(codes.PermissionDenied, "aftersale identity conflict")
 			}
-			if old.Type != row.Type || old.LinesJSON != row.LinesJSON || old.ReplacementSKU != row.ReplacementSKU {
+			if old.Type != row.Type || old.LinesJSON != row.LinesJSON || old.ReplacementSKU != row.ReplacementSKU ||
+				old.EvidenceJSON != row.EvidenceJSON {
 				return status.Error(codes.AlreadyExists, "idempotency key reused with a different aftersale request")
 			}
 			*row = old
@@ -63,48 +64,10 @@ func (r *Repository) Claim(
 		).Error; err != nil {
 			return err
 		}
-		used := map[string]int64{}
-		var claimedCash int64
-		hasExchange := false
-		for _, a := range existing {
-			claimedCash += a.AmountCents
-			if a.Type == constants.AftersaleTypeExchange {
-				hasExchange = true
-			}
-			var lines []domain.Line
-			if err = json.Unmarshal([]byte(a.LinesJSON), &lines); err != nil {
-				return err
-			}
-			for _, l := range lines {
-				used[l.SKUID] += l.Quantity
-			}
-		}
-		var requested []domain.Line
-		if err = json.Unmarshal([]byte(row.LinesJSON), &requested); err != nil {
+		if err = adjustClaim(row, purchased, payable, existing); err != nil {
 			return err
 		}
-		if len(requested) == 0 {
-			return status.Error(codes.InvalidArgument, "aftersale lines required")
-		}
-		for _, l := range requested {
-			if l.Quantity <= 0 || purchased[l.SKUID] <= 0 || used[l.SKUID]+l.Quantity > purchased[l.SKUID] {
-				return status.Error(codes.FailedPrecondition, "aftersale quantity exceeds purchased unclaimed quantity")
-			}
-			used[l.SKUID] += l.Quantity
-		}
-		// The last cash-return application absorbs integer allocation rounding.
-		all := true
-		for sku, qty := range purchased {
-			if used[sku] != qty {
-				all = false
-			}
-		}
-		if all && row.Type != constants.AftersaleTypeExchange && !hasExchange {
-			row.AmountCents = payable - claimedCash
-		}
-		if row.Type != constants.AftersaleTypeExchange && row.AmountCents <= 0 {
-			return status.Error(codes.FailedPrecondition, "cash refund quota is exhausted")
-		}
+
 		if err = tx.WithContext(ctx).Create(row).Error; err != nil {
 			return err
 		}
@@ -126,4 +89,64 @@ func (r *Repository) ByReplacement(ctx context.Context, id string) (spanResult0 
 		return nil, status.Error(codes.NotFound, "exchange application not found")
 	}
 	return &row, err
+}
+
+// adjustClaim is shared by the non-reserving preview and the locked commit.
+func adjustClaim(row *domain.Record, purchased map[string]int64, payable int64, existing []domain.Record) error {
+	used := map[string]int64{}
+	var claimedCash int64
+	hasExchange := false
+	for _, a := range existing {
+		claimedCash += a.AmountCents
+		if a.Type == constants.AftersaleTypeExchange {
+			hasExchange = true
+		}
+		var lines []domain.Line
+		if err := json.Unmarshal([]byte(a.LinesJSON), &lines); err != nil {
+			return err
+		}
+		for _, l := range lines {
+			used[l.SKUID] += l.Quantity
+		}
+	}
+	var requested []domain.Line
+	if err := json.Unmarshal([]byte(row.LinesJSON), &requested); err != nil {
+		return err
+	}
+	if len(requested) == 0 {
+		return status.Error(codes.InvalidArgument, "aftersale lines required")
+	}
+	for _, l := range requested {
+		if l.Quantity <= 0 || purchased[l.SKUID] <= 0 || used[l.SKUID]+l.Quantity > purchased[l.SKUID] {
+			return status.Error(codes.FailedPrecondition, "aftersale quantity exceeds purchased unclaimed quantity")
+		}
+		used[l.SKUID] += l.Quantity
+	}
+	// The last cash-return application absorbs integer allocation rounding.
+	all := true
+	for sku, qty := range purchased {
+		if used[sku] != qty {
+			all = false
+		}
+	}
+	if all && row.Type != constants.AftersaleTypeExchange && !hasExchange {
+		row.AmountCents = payable - claimedCash
+	}
+	if row.Type != constants.AftersaleTypeExchange && row.AmountCents <= 0 {
+		return status.Error(codes.FailedPrecondition, "cash refund quota is exhausted")
+	}
+	return nil
+}
+
+func (r *Repository) PreviewClaim(
+	ctx context.Context,
+	row *domain.Record,
+	purchased map[string]int64,
+	payable int64,
+) error {
+	var existing []domain.Record
+	if e := r.DB.WithContext(ctx).Where("order_id = ? AND status NOT IN ?", row.OrderID, []string{constants.AftersaleStatusRejected, constants.AftersaleStatusCancelled}).Find(&existing).Error; e != nil {
+		return e
+	}
+	return adjustClaim(row, purchased, payable, existing)
 }

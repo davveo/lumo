@@ -721,3 +721,94 @@ test('read and read-all update precise unread totals and only revalidate message
   await f.services.refresh(true, ['messages']);
   assert.equal(f.services.unreadCount(), 0);
 });
+
+test('coupon wallet pages six cards and resets page on status or account changes', async (t) => {
+  const f = fixture();
+  t.after(() => f.dispose());
+  f.setHandler(async (service, action) =>
+    service === 'coupon' && action === 'list'
+      ? {
+          items: Array.from({ length: 19 }, (_, i) => ({
+            id: 'coupon-' + i,
+            template_name: '好券' + i,
+            status: i === 18 ? 'USED' : 'AVAILABLE',
+            amount_cents: 100,
+            min_cents: 0,
+            expires_at: '2099-01-01T00:00:00Z',
+          })),
+        }
+      : { items: [] },
+  );
+  await f.member.refresh(true, ['coupons']);
+  let html = f.view('coupons', 'available');
+  assert.equal((html.match(/<article class="mem-coupon-card/g) || []).length, 6);
+  assert.match(html, /第 1 \/ 3 页/);
+  await f.app.click({ memberListPage: '3', list: 'coupons' });
+  html = f.view('coupons', 'available');
+  assert.match(html, /第 3 \/ 3 页/);
+  assert.match(html, /好券12/);
+  assert.doesNotMatch(html, />好券0</);
+  html = f.view('coupons', 'used');
+  assert.match(html, /第 1 \/ 1 页/);
+  assert.match(html, /好券18/);
+});
+test('points ledger requests bounded owned pages and discards a response after account change', async (t) => {
+  const f = fixture();
+  t.after(() => f.dispose());
+  f.setHandler(async (service, action, command) =>
+    service === 'points' && action === 'my_ledger'
+      ? {
+          items: [
+            { id: 'ledger-' + command.data.page, kind: 'CHECKIN', amount: 20, created_at: '2026-11-01T00:00:00Z' },
+          ],
+          total: 125,
+        }
+      : service === 'points'
+        ? { available: 40, ledger: [] }
+        : { items: [] },
+  );
+  await f.member.refresh(true, ['points', 'profile', 'addresses']);
+  await f.app.ctx.LumoMemberView.refreshLedger();
+  let html = f.view('points');
+  assert.match(html, /第 1 \/ 13 页/);
+  await f.app.click({ memberListPage: '13', list: 'points' });
+  html = f.view('points');
+  assert.match(html, /第 13 \/ 13 页/);
+  assert.equal(f.calls.at(-1).command.data.page, 13);
+  assert.equal(f.calls.at(-1).command.data.page_size, 10);
+  const gate = deferred();
+  f.setHandler(() => gate.promise);
+  const pending = f.app.ctx.LumoMemberView.refreshLedger();
+  f.setSession('other', 'token-other');
+  gate.resolve({ items: [{ kind: 'PRIVATE_OLD_ACCOUNT', amount: 10 }], total: 1 });
+  await pending;
+  html = f.view('points');
+  assert.doesNotMatch(html, /PRIVATE_OLD_ACCOUNT/);
+});
+
+test('opening points directly loads the real membership and owned gift addresses', async (t) => {
+  const f = fixture();
+  t.after(() => f.dispose());
+  f.app.ctx.location.hash = '#/member/points';
+  f.setHandler(async (service) =>
+    service === 'member'
+      ? { display_name: '买家', growth: 250, policy: { gold_growth: 500 }, level: 'member' }
+      : service === 'points'
+        ? {
+            available: 200,
+            ledger: [],
+            checkin_days: 120,
+            signed_today: false,
+            signed_day: new Date().toISOString().slice(0, 10),
+            policy: { checkin_points: 7, deduction_bps: 500, reward_per_yuan: 2 },
+          }
+        : { items: [{ id: 'own', recipient: '收件人', province: '上海', address: '测试路' }] },
+  );
+  await f.member.refreshForView();
+  const m = f.member.model();
+  assert.equal(m.membership.nextAt, 500);
+  assert.equal(m.membership.remaining, 250);
+  assert.equal(m.signInDays, 120);
+  assert.equal(m.addresses[0].id, 'own');
+  assert.match(f.view('points'), /每日签到 \+7/);
+});

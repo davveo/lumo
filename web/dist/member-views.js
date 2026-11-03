@@ -58,7 +58,7 @@
     coupons: ['coupons'],
     favorites: ['favorites'],
     history: ['history'],
-    points: ['points'],
+    points: ['points', 'profile', 'addresses'],
     aftersales: ['aftersales'],
     settings: ['profile'],
   };
@@ -189,7 +189,7 @@
       [C.OrderViewStatus.Group, 'layers', '待成团'],
       ['aftersale', 'return', '退款 / 售后'],
     ];
-    return `<section class="mem-hero"><div class="mem-hero-profile"><span class="mem-avatar">${esc(initials(data.profile.nickname))}</span><div><span class="mem-kicker">WELCOME TO YOUR EVERYDAY</span><h1>${greeting}，${esc(data.profile.nickname)}</h1><button class="mem-hero-edit" data-member-action="edit-profile">编辑个人资料${icon('edit')}</button></div></div><div class="mem-hero-actions"><span class="mem-badge mem-gold-badge">${icon('sparkles')}${esc(data.profile.level || 'LUMO 生活会员')}</span><button class="mem-primary" data-member-action="signin" ${data.signedToday ? 'disabled' : ''}>${icon(data.signedToday ? 'check' : 'coin')}${data.signedToday ? '今日已签到' : '签到领 20 积分'}</button><small>最近签到 ${data.signInDays} 天</small></div></section>
+    return `<section class="mem-hero"><div class="mem-hero-profile"><span class="mem-avatar">${esc(initials(data.profile.nickname))}</span><div><span class="mem-kicker">WELCOME TO YOUR EVERYDAY</span><h1>${greeting}，${esc(data.profile.nickname)}</h1><button class="mem-hero-edit" data-member-action="edit-profile">编辑个人资料${icon('edit')}</button></div></div><div class="mem-hero-actions"><span class="mem-badge mem-gold-badge">${icon('sparkles')}${esc(data.profile.level || 'LUMO 生活会员')}</span><button class="mem-primary" data-member-action="signin" ${data.signedToday ? 'disabled' : ''}>${icon(data.signedToday ? 'check' : 'coin')}${data.signedToday ? '今日已签到' : '签到领 ' + Number(data.pointsPolicy?.checkin_points ?? 20) + ' 积分'}</button><small>累计签到 ${data.signInDays} 天</small></div></section>
       <section class="mem-panel mem-wallet" aria-label="我的资产">${[
         ['coupons', 'ticket', '可用优惠券', counts.coupons, '张好券，留给心动时刻'],
         ['points', 'coin', '可用积分', data.points, '100 积分可抵 ¥1'],
@@ -226,7 +226,7 @@
       active = member().activeAftersale?.(id);
     let actions = '';
     if (code === C.OrderViewStatus.Pending)
-      return `${button('取消订单', 'cancel-pending', id)}${button('继续付款', 'resume-payment', id, true)}`;
+      return `<button class="mem-outline" data-order-service="open" data-id="${esc(id)}">订单详情</button>${button('取消订单', 'cancel-pending', id)}${button('继续付款', 'resume-payment', id, true)}`;
     if (order.paidAt)
       actions += `<button class="mem-outline" data-action="order-details" data-id="${esc(id)}">订单详情</button>`;
 
@@ -289,6 +289,91 @@
   function addressesView(data) {
     return `${pageHead('收货地址', '管理常用收货地址，下次下单更轻松。', button('新增收货地址', 'add-address', '', true))}<div class="mem-notice">${icon('pin')}共 ${data.addresses.length} 个地址 · 默认地址用于快捷下单，结算时可自由切换。</div>${data.addresses.length ? `<div class="mem-address-grid">${data.addresses.map((a) => `<article class="mem-address-card ${a.isDefault ? 'active' : ''}"><div class="mem-address-head"><strong>${esc(a.name)}</strong><span>${esc(mask(a.phone))}</span>${a.label ? `<i>${esc(a.label)}</i>` : ''}</div><div class="mem-address-body"><p>${esc(a.region)}</p><strong>${esc(a.detail)}</strong></div><div class="mem-address-actions">${a.isDefault ? '<span class="mem-badge">默认地址</span>' : `<button data-member-action="default-address" data-id="${esc(a.id)}" aria-label="将${esc(a.name)}的地址设为默认">设为默认</button>`}<span></span><button data-member-action="edit-address" data-id="${esc(a.id)}" aria-label="编辑${esc(a.name)}的地址">${icon('edit')}编辑</button><button data-member-action="delete-address" data-id="${esc(a.id)}" aria-label="删除${esc(a.name)}的地址">${icon('trash')}删除</button></div></article>`).join('')}<button class="mem-address-add" data-member-action="add-address">${icon('plus')}<strong>添加新地址</strong><span>让好物送到每一个日常</span></button></div>` : `<section class="mem-panel">${emptyState('添加你的第一个地址', '保存常用地址，下单时即可快速选择。', '', '', 'pin')}${button('新增收货地址', 'add-address', '', true)}</section>`}<p class="mem-section-note">地址保存到账户，历史订单保留提交时的收货快照。</p>`;
   }
+  const walletSize = 6,
+    ledgerSize = 10;
+  let walletPage = 1,
+    walletKey = '',
+    ledgerRevision = 0;
+  let ledger = { owner: '', page: 1, total: 0, items: [], busy: false, loaded: false, error: '' };
+  const listOwner = () => JSON.stringify([LumoAPI.getBase?.(), LumoAPI.getToken?.()]);
+  function listPager(kind, page, total, size, busy = false) {
+    return `<nav class="mem-pager" aria-label="${kind === 'coupons' ? '优惠券' : '积分明细'}分页"><span>共 ${Number(total)} 条 · 每页 ${size} 条</span><div><button class="mem-outline" data-member-list-page="${page - 1}" data-list="${kind}" ${busy || page <= 1 ? 'disabled' : ''}>上一页</button><span>第 ${page} / ${Math.max(1, Math.ceil(total / size))} 页</span><button class="mem-outline" data-member-list-page="${page + 1}" data-list="${kind}" ${busy || page * size >= total ? 'disabled' : ''}>下一页</button></div></nav>`;
+  }
+  async function readLedger(force = false) {
+    const owner = listOwner();
+    if (ledger.owner !== owner) {
+      ledgerRevision++;
+      ledger = { owner, page: 1, total: 0, items: [], busy: false, loaded: false, error: '' };
+    }
+    if (!LumoAuth.isLoggedIn() || ledger.busy || (!force && ledger.loaded)) return;
+    const ticket = ++ledgerRevision,
+      page = ledger.page;
+    ledger.busy = true;
+    ledger.error = '';
+    try {
+      const r = await LumoAPI.call('points', 'my_ledger', { data: { page, page_size: ledgerSize } });
+      if (ticket !== ledgerRevision || owner !== listOwner()) return;
+      ledger.items = (r.items || []).map(member().mapPointEntry);
+      ledger.total = Number(r.total || 0);
+      ledger.loaded = true;
+      const last = Math.max(1, Math.ceil(ledger.total / ledgerSize));
+      if (page > last) {
+        ledger.page = last;
+        ledger.loaded = false;
+      }
+    } catch (e) {
+      if (ticket === ledgerRevision && owner === listOwner()) ledger.error = e.message;
+    } finally {
+      if (ticket === ledgerRevision && owner === listOwner()) {
+        ledger.busy = false;
+        renderKeepScroll();
+      }
+    }
+  }
+  function ledgerView() {
+    const ready = ledger.owner === listOwner() && ledger.loaded;
+    if (ledger.error)
+      return `<section class="mem-panel" role="alert"><p>${esc(ledger.error)}</p><button class="mem-outline" data-member-ledger-retry>重新加载积分明细</button></section>`;
+    if (!ready)
+      return `<section class="mem-panel"><div class="mem-section-head"><h2>积分明细</h2></div>${skeleton('rows', { count: 5, label: '正在读取积分明细' })}</section>`;
+    return `<section class="mem-panel" id="member-ledger" aria-busy="${ledger.busy}"><div class="mem-section-head"><h2>积分明细</h2><small>共 ${ledger.total} 条记录</small></div>${ledger.items.length ? `<div class="mem-table-wrap"><table class="mem-table"><thead><tr><th>积分来源</th><th>时间</th><th>积分变化</th></tr></thead><tbody>${ledger.items.map((row) => `<tr><td><strong>${esc(row.title)}</strong>${row.orderId ? `<small>${row.orderId.startsWith('RDM_') ? '兑换单' : '订单'} ${esc(row.orderId)}</small>` : ''}</td><td>${date(row.at, true)}</td><td class="${row.delta >= 0 ? 'mem-positive' : 'mem-negative'}">${row.delta > 0 ? '+' : ''}${row.delta}</td></tr>`).join('')}</tbody></table></div>` : emptyState('暂无积分明细', '完成签到或购物后可在这里查看积分记录。', '', '', 'coin')}${listPager('points', ledger.page, ledger.total, ledgerSize, ledger.busy)}</section>`;
+  }
+  window.addEventListener('lumo:points-updated', () => {
+    ledgerRevision++;
+    ledger.busy = false;
+    ledger.loaded = false;
+    ledger.error = '';
+  });
+  function afterRender() {
+    window.LumoRewards?.afterRender?.();
+    if (location.hash.split('/')[2] === 'points' && !ledger.error) void readLedger();
+  }
+  document.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-member-ledger-retry]')) {
+      await readLedger(true);
+      return;
+    }
+    const b = e.target.closest('[data-member-list-page]');
+    if (!b || b.disabled) return;
+    const page = Number(b.dataset.memberListPage);
+    if (!Number.isSafeInteger(page) || page < 1) return;
+    if (b.dataset.list === 'coupons') {
+      walletPage = page;
+      renderKeepScroll();
+      document.querySelector('.mem-tabs')?.scrollIntoView?.({ block: 'start' });
+    }
+    if (b.dataset.list === 'points' && !ledger.busy) {
+      ledger.page = page;
+      await readLedger(true);
+    }
+  });
+  for (const name of ['lumo:logout', 'lumo:login', 'lumo:api-base-changed'])
+    window.addEventListener(name, () => {
+      ledgerRevision++;
+      ledger = { owner: '', page: 1, total: 0, items: [], busy: false, loaded: false, error: '' };
+      walletKey = '';
+      walletPage = 1;
+    });
   function couponsView(filter) {
     const tabs = [
       [C.CouponViewStatus.Available, '可使用'],
@@ -297,9 +382,17 @@
       [C.CouponViewStatus.Expired, '已过期'],
     ];
     if (!tabs.some(([id]) => id === filter)) filter = C.CouponViewStatus.Available;
+    const reminder = window.LumoRewards?.reminderView() || '';
     const coupons = member().coupons(),
       visible = coupons.filter((c) => c.status === filter);
-    return `${pageHead('我的优惠券', '每一张好券，都让喜欢更近一点。', '<button class="mem-text-button" data-member-action="coupon-rules">使用规则' + icon('info') + '</button>')}<section class="mem-claim-banner"><div><span class="mem-kicker">A LITTLE GIFT FOR YOU</span><h2>好券都在领券中心</h2><p>限时好券与会员专享券，满足条件即可领取。</p></div><a class="mem-primary" href="#/coupons">去领券中心${icon('arrow')}</a></section><section class="mem-panel"><nav class="mem-tabs" aria-label="优惠券状态">${tabs.map(([id, label]) => `<a href="#/member/coupons/${id}" class="${filter === id ? 'active' : ''}" ${filter === id ? 'aria-current="page"' : ''}>${label}<span>${coupons.filter((c) => c.status === id).length}</span></a>`).join('')}</nav>${visible.length ? `<div class="mem-coupon-grid">${visible.map((c) => `<article class="mem-coupon-card ${c.status !== C.CouponViewStatus.Available ? 'is-disabled' : ''}"><div class="mem-coupon-value">${window.LumoCouponBenefits ? esc(window.LumoCouponBenefits.face(c.rule)) : price(c.value)}<span>${esc(window.LumoCouponBenefits?.condition(c.rule) || '满 ¥' + money(c.min) + ' 可用')}</span></div><div class="mem-coupon-main"><span class="mem-badge">${esc(window.LumoCouponBenefits?.scope(c.rule) || '普通商品专享')}</span><h3>${esc(c.title)}</h3><p>有效期至 ${date(c.expiresAt)}</p><small>每单限 1 张 · 不适用于拼团、秒杀</small></div><div class="mem-coupon-action">${c.status === C.CouponViewStatus.Available ? button(c.selected ? '已选 · 去使用' : '去使用', 'use-coupon', c.id) : `<span>${c.status === C.CouponViewStatus.Used ? '已使用' : c.status === C.CouponViewStatus.Frozen ? '订单占用' : '已过期'}</span>`}</div></article>`).join('')}</div>` : emptyState(filter === C.CouponViewStatus.Used ? '还没有使用过的优惠券' : filter === C.CouponViewStatus.Expired ? '暂时没有过期优惠券' : '好券正在路上', filter === C.CouponViewStatus.Available ? '去领券中心领取好券，再挑选喜欢的好物。' : '优惠券使用状态会自动更新在这里。', '', '', 'ticket')}</section><p class="mem-section-note">优惠券按普通商品优惠前金额判断门槛；换购品不参与满减计算。</p>`;
+    const key = listOwner() + '|' + filter;
+    if (key !== walletKey) {
+      walletKey = key;
+      walletPage = 1;
+    }
+    walletPage = Math.min(walletPage, Math.max(1, Math.ceil(visible.length / walletSize)));
+    const pageCoupons = visible.slice((walletPage - 1) * walletSize, walletPage * walletSize);
+    return `${pageHead('我的优惠券', '每一张好券，都让喜欢更近一点。', '<button class="mem-text-button" data-member-action="coupon-rules">使用规则' + icon('info') + '</button>')}<section class="mem-claim-banner"><div><span class="mem-kicker">A LITTLE GIFT FOR YOU</span><h2>好券都在领券中心</h2><p>限时好券与会员专享券，满足条件即可领取。</p></div><a class="mem-primary" href="#/coupons">去领券中心${icon('arrow')}</a></section>${reminder}<section class="mem-panel"><nav class="mem-tabs" aria-label="优惠券状态">${tabs.map(([id, label]) => `<a href="#/member/coupons/${id}" class="${filter === id ? 'active' : ''}" ${filter === id ? 'aria-current="page"' : ''}>${label}<span>${coupons.filter((c) => c.status === id).length}</span></a>`).join('')}</nav>${visible.length ? `<div class="mem-coupon-grid">${pageCoupons.map((c) => `<article class="mem-coupon-card ${c.status !== C.CouponViewStatus.Available ? 'is-disabled' : ''}"><div class="mem-coupon-value">${window.LumoCouponBenefits ? esc(window.LumoCouponBenefits.face(c.rule)) : price(c.value)}<span>${esc(window.LumoCouponBenefits?.condition(c.rule) || '满 ¥' + money(c.min) + ' 可用')}</span></div><div class="mem-coupon-main"><span class="mem-badge">${esc(window.LumoCouponBenefits?.scope(c.rule) || '普通商品专享')}</span><h3>${esc(c.title)}</h3><p>有效期至 ${date(c.expiresAt)}</p><small>每单限 1 张 · 不适用于拼团、秒杀</small></div><div class="mem-coupon-action">${c.status === C.CouponViewStatus.Available ? button(c.selected ? '已选 · 去使用' : '去使用', 'use-coupon', c.id) : `<span>${c.status === C.CouponViewStatus.Used ? '已使用' : c.status === C.CouponViewStatus.Frozen ? '订单占用' : '已过期'}</span>`}</div></article>`).join('')}</div>` : emptyState(filter === C.CouponViewStatus.Used ? '还没有使用过的优惠券' : filter === C.CouponViewStatus.Expired ? '暂时没有过期优惠券' : '好券正在路上', filter === C.CouponViewStatus.Available ? '去领券中心领取好券，再挑选喜欢的好物。' : '优惠券使用状态会自动更新在这里。', '', '', 'ticket')}${visible.length ? listPager('coupons', walletPage, visible.length, walletSize) : ''}</section><p class="mem-section-note">优惠券按普通商品优惠前金额判断门槛；换购品不参与满减计算。</p>`;
   }
   function productForMember(p) {
     if (p.visible !== false) return productCard(p);
@@ -312,15 +405,19 @@
     return `${pageHead(isHistory ? '浏览足迹' : '我的收藏', isHistory ? '最近看过的好物，帮你记在这里。' : '把每一次心动，都留在触手可及的地方。', isHistory && list.length ? '<button class="mem-text-button" data-member-action="clear-history">' + icon('trash') + '清空足迹</button>' : '')}<section class="mem-panel"><div class="mem-section-head"><h2>${isHistory ? '最近浏览' : '收藏好物'} <small>${list.length} 件</small></h2>${smallLink('#/', '继续逛逛')}</div>${list.length ? `<div class="mem-product-grid">${list.map((row) => `<div class="mem-product-wrap">${productForMember(row.product)}<div class="mem-product-meta"><span>${row.product.visible === false ? '商品暂时下架' : isHistory ? date(row.at, true) : '心动好物，随时回来看看'}</span><button data-member-action="${isHistory ? 'remove-history' : 'remove-favorite'}" data-id="${esc(row.id)}" aria-label="${isHistory ? '移除足迹' : '取消收藏'}${esc(row.product.name)}">${icon('trash')}</button></div></div>`).join('')}</div>` : emptyState(isHistory ? '还没有浏览足迹' : '收藏夹等你填满', isHistory ? '浏览商品详情后，就能在这里重新找到。' : '点击商品卡片上的爱心，即可收藏。', '#/', '发现喜欢的好物', isHistory ? 'clock' : 'heart')}</section>`;
   }
   function pointsView(data) {
-    return `${pageHead('我的积分', '每一次参与，都积攒一点美好。')}<section class="mem-points-hero"><div><span class="mem-kicker">LUMO REWARDS</span><p>当前可用积分</p><strong>${money(data.points)}<small>积分</small></strong><span>100 积分抵 ¥1，最多抵扣商品金额的 10%</span><p>冻结 ${money(data.frozenPoints || 0)} 分 · 待回收 ${money(data.debtPoints || 0)} 分</p></div><div><button class="mem-primary" data-member-action="signin" ${data.signedToday ? 'disabled' : ''}>${icon(data.signedToday ? 'check' : 'coin')}${data.signedToday ? '今天已签到' : '每日签到 +20'}</button><p>最近签到 ${data.signInDays} 天</p></div></section><div class="mem-points-rules">${[
-      ['coin', '每日签到', '每天签到一次，可获得 20 积分。'],
-      ['bag', '购物回馈', '订单完成后，按实付每 ¥1 奖励 1 积分。'],
-      ['ticket', '积分抵扣', '每 100 积分抵 ¥1，最多抵扣 10%。'],
+    const policy = data.pointsPolicy || {},
+      checkin = Number(policy.checkin_points ?? 20),
+      rate = Number(policy.deduction_bps ?? 1000) / 100,
+      reward = Number(policy.reward_per_yuan ?? 1);
+    return `${pageHead('我的积分', '每一次参与，都积攒一点美好。')}<section class="mem-points-hero"><div><span class="mem-kicker">LUMO REWARDS</span><p>当前可用积分</p><strong>${money(data.points)}<small>积分</small></strong><span>100 积分抵 ¥1，最多抵扣商品金额的 ${rate}%</span><p>冻结 ${money(data.frozenPoints || 0)} 分 · 待回收 ${money(data.debtPoints || 0)} 分</p></div><div><button class="mem-primary" data-member-action="signin" ${data.signedToday ? 'disabled' : ''}>${icon(data.signedToday ? 'check' : 'coin')}${data.signedToday ? '今天已签到' : '每日签到 +' + checkin}</button><p>累计签到 ${data.signInDays} 天</p></div></section><div class="mem-points-rules">${[
+      ['coin', '每日签到', `每天签到一次，可获得 ${checkin} 积分。`],
+      ['bag', '购物回馈', `订单完成后，按实付每 ¥1 奖励 ${reward} 积分。`],
+      ['ticket', '积分抵扣', `每 100 积分抵 ¥1，最多抵扣 ${rate}%。`],
     ]
       .map(([symbol, title, description]) => `<div>${icon(symbol)}<h3>${title}</h3><p>${description}</p></div>`)
       .join(
         '',
-      )}</div><section class="mem-panel"><div class="mem-section-head"><h2>积分明细</h2><small>共 ${data.pointLog.length} 条记录</small></div>${data.pointLog.length ? `<div class="mem-table-wrap"><table class="mem-table"><thead><tr><th>积分来源</th><th>时间</th><th>积分变化</th></tr></thead><tbody>${data.pointLog.map((row) => `<tr><td><strong>${esc(row.title)}</strong>${row.orderId ? `<small>订单 ${esc(row.orderId)}</small>` : ''}</td><td>${date(row.at, true)}</td><td class="${row.delta >= 0 ? 'mem-positive' : 'mem-negative'}">${row.delta > 0 ? '+' : ''}${row.delta}</td></tr>`).join('')}</tbody></table></div>` : emptyState('积分明细会记录在这里', '现在签到，获得今天的第一份积分。', '', '', 'coin')}</section><p class="mem-section-note">积分按服务端流水记录，100 积分抵 ¥1，最多抵扣商品金额的 10%；订单完成后发放奖励。</p>`;
+      )}</div>${window.LumoRewards?.view(data) || ''}${ledgerView()}<p class="mem-section-note">积分按服务端流水记录，100 积分抵 ¥1，最多抵扣商品金额的 ${rate}%；订单完成后发放奖励。</p>`;
   }
   function aftersalesView(data) {
     const names = {
@@ -402,5 +499,5 @@
       renderKeepScroll();
     }
   });
-  window.LumoMemberView = { page };
+  window.LumoMemberView = { page, afterRender, refreshLedger: () => readLedger(true) };
 })();

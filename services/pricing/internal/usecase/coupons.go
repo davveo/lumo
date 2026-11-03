@@ -38,10 +38,23 @@ func (s *Service) chooseCoupon(
 	if e = platform.Decode(value, &data); e != nil {
 		return "", 0, nil, e
 	}
+	return chooseCouponRows(mode, id, subtotal, remaining, lines, data.Items)
+}
+
+func chooseCouponRows(
+	mode, id string,
+	subtotal, remaining int64,
+	lines []couponrules.Line,
+	rows []map[string]any,
+) (string, int64, []platform.Result, error) {
+	options := []platform.Result{}
+	if mode == "none" || mode != "auto" && id == "" {
+		return "", 0, options, nil
+	}
 	selected := ""
 	best := int64(0)
 	found := false
-	for _, row := range data.Items {
+	for _, row := range rows {
 		cid := platform.Text(row, "id")
 		why := ""
 		discount := int64(0)

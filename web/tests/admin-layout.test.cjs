@@ -60,6 +60,7 @@ function fixture({ role = 'admin', session = true } = {}) {
   }
   return {
     app,
+    fire,
     calls,
     handlers,
     async start() {
@@ -308,4 +309,60 @@ test('long ticket content has a compact escaped preview while its full text rema
   await f.filter('keyword', '最后的检索词');
   assert.match(f.list(), /long-ticket/);
   assert.equal(f.calls.length, calls);
+});
+
+test('module preparation buttons never send bare operations as service names', async (t) => {
+  const f = fixture();
+  t.after(() => f.app.dispose());
+  await f.start();
+  const before = f.calls.length;
+  await f.app.click({ operation: 'dispatch' });
+  await f.app.click({ operation: 'adjust_demo' });
+  assert.equal(f.calls.length, before);
+  f.app.load('admin-ui.js');
+  f.app.load('operations-admin.js');
+  const m = f.app.ctx.LumoOperationsAdmin.create('fulfillment');
+  f.app.ids.set('op-fulfillment', new Element('op-fulfillment'));
+  m.configure({ isAdmin: () => true, scope: () => 'test', draw() {}, call: async () => ({ items: [], total: 0 }) });
+  m.state.detail = { id: 'shipment', status: 'READY', lines: [] };
+  m.state.ready = true;
+  const html = m.render();
+  assert.match(html, /data-op-operation="dispatch"/);
+  assert.doesNotMatch(html, /data-operation="dispatch"/);
+  const button = new Element('prepare');
+  button.dataset = { op: 'prepare', opOperation: 'dispatch' };
+  button.closest = function (selector) {
+    return selector === '#op-fulfillment' ? this : Element.prototype.closest.call(this, selector);
+  };
+  await f.fire('click', button);
+  assert.equal(m.state.action.operation, 'dispatch');
+  assert.equal(f.calls.length, before);
+});
+test('question answers and moderation use inline forms with the original content', async (t) => {
+  const f = fixture();
+  t.after(() => f.app.dispose());
+  f.app.ids.set('operation-result', new Element('operation-result'));
+  f.app.ctx.prompt = () => {
+    throw Error('native prompt must not open');
+  };
+  f.app.ctx.confirm = () => {
+    throw Error('native confirm must not open');
+  };
+  f.handlers.set('interaction/list', () => ({
+    items: [{ id: 'question-a', kind: 'question', body: '请问可以水洗吗？', status: 'PENDING' }],
+  }));
+  await f.start();
+  await f.tab('interactions');
+  let before = f.calls.length;
+  await f.app.click({ operation: 'interaction.answer', id: 'question-a' });
+  let html = f.app.ids.get('operation-result').innerHTML;
+  assert.match(html, /admin-operation-form/);
+  assert.match(html, /textarea/);
+  assert.match(html, /请问可以水洗吗/);
+  assert.equal(f.calls.length, before);
+  await f.app.click({ operation: 'interaction.moderate', id: 'question-a' });
+  html = f.app.ids.get('operation-result').innerHTML;
+  assert.match(html, /通过并公开/);
+  assert.match(html, /驳回，不对外展示/);
+  assert.equal(f.calls.length, before);
 });

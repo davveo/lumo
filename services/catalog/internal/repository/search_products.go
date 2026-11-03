@@ -13,6 +13,8 @@ import (
 
 type ProductSearch struct {
 	Query, Category, Brand, Sort string
+	Attribute                    string
+	MinPrice, MaxPrice           int64
 	Limit                        int
 	Cursor                       string
 }
@@ -79,6 +81,27 @@ func (r *Repository) SearchProducts(
 		}
 		return "CAST(COALESCE(" + text(path) + ",0) AS " + kind + ")"
 	}
+	if input.MinPrice > 0 {
+		query = query.Where(number("$.price_cents")+" >= ?", input.MinPrice)
+	}
+	if input.MaxPrice > 0 {
+		query = query.Where(number("$.price_cents")+" <= ?", input.MaxPrice)
+	}
+	if input.Attribute != "" {
+		value := "%" + searchLike(input.Attribute) + "%"
+		query = query.Where(
+			"(LOWER(COALESCE("+text(
+				"$.options",
+			)+",'')) LIKE ? ESCAPE '!' OR LOWER(COALESCE("+text(
+				"$.specs",
+			)+",'')) LIKE ? ESCAPE '!' OR LOWER(COALESCE("+text(
+				"$.colors",
+			)+",'')) LIKE ? ESCAPE '!')",
+			value,
+			value,
+			value,
+		)
+	}
 	rank := "0"
 	switch input.Sort {
 	case constants.CatalogSortPriceAsc:
@@ -101,4 +124,8 @@ func (r *Repository) SearchProducts(
 		return nil, status.FromContextError(ctx.Err()).Err()
 	}
 	return rows, err
+}
+
+func searchLike(v string) string {
+	return strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(strings.ToLower(v))
 }

@@ -21,5 +21,6 @@ func New(d platform.Dependencies) platform.Module {
 		Operations: h.Operations(),
 		Topics:     []string{constants.EventRefundSucceeded},
 		OnEvent:    u.OnEvent,
+		Tick:       u.Tick,
 	}
 }

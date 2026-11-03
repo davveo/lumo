@@ -171,7 +171,10 @@ func TestCenterTrustedConditionsAndClaimIdempotency(t *testing.T) {
 	expectCenterState(t, items, "member-80", "conditions_unmet")
 	// Copy a second conditional template to assert one read per service per listing.
 	if err := db.Exec(
-		"INSERT INTO templates(id,name,amount,minimum,valid_days,remaining,active,min_points,min_growth,expires_at) SELECT 'points-copy',name,amount,minimum,valid_days,remaining,active,min_points,min_growth,expires_at FROM templates WHERE id='points-30'",
+		"INSERT INTO templates(id,name,amount,minimum,valid_days,remaining,active,min_poi" +
+			"nts,min_growth,expires_at) SELECT 'points-copy',name,amount,minimum,valid_days,r" +
+			"emaining,active,min_points,min_growth,expires_at FROM templates WHERE " +
+			"id='points-30'",
 	).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -206,7 +209,12 @@ func TestCenterTrustedConditionsAndClaimIdempotency(t *testing.T) {
 	}
 	// Retrying an existing claim remains successful even when every current rule fails.
 	if err := db.Table("templates").Where("id = ?", "points-30").Updates(
-		map[string]any{"active": false, "remaining": 0, "expires_at": time.Now().Add(-time.Hour), "min_points": 100000},
+		map[string]any{
+			"active":     false,
+			"remaining":  0,
+			"expires_at": time.Now().Add(-time.Hour),
+			"min_points": 100000,
+		},
 	).Error; err != nil {
 		t.Fatal(err)
 	}

@@ -79,7 +79,14 @@ func TestCommerceMetricsDeduplicatePaymentsAndRefunds(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	for key, want := range map[string]int64{"paid_cents": 30000, "refund_cents": 3000, "net_cents": 27000, "paid_orders": 2, "average_order_cents": 15000, "repeat_purchase_bps": 10000} {
+	for key, want := range map[string]int64{
+		"paid_cents":          30000,
+		"refund_cents":        3000,
+		"net_cents":           27000,
+		"paid_orders":         2,
+		"average_order_cents": 15000,
+		"repeat_purchase_bps": 10000,
+	} {
 		if platform.Int(result, key) != want {
 			t.Fatal(key, result)
 		}
@@ -120,7 +127,17 @@ func TestMetricsHistoryBackfillIsIdempotent(t *testing.T) {
 	c := newCluster(t)
 	ctx := context.Background()
 	at := time.Now().Add(-time.Hour).UTC()
-	if err := c.dbs["payment"].Table("payments").Create(map[string]any{"id": "history-payment", "order_id": "history-order", "user_id": "demo", "amount": 9000, "status": "SUCCEEDED", "provider": "demo", "paid_at": at, "created_at": at, "updated_at": at}).Error; err != nil {
+	if err := c.dbs["payment"].Table("payments").Create(map[string]any{
+		"id":         "history-payment",
+		"order_id":   "history-order",
+		"user_id":    "demo",
+		"amount":     9000,
+		"status":     "SUCCEEDED",
+		"provider":   "demo",
+		"paid_at":    at,
+		"created_at": at,
+		"updated_at": at,
+	}).Error; err != nil {
 		t.Fatal(err)
 	}
 	for run := 0; run < 2; run++ {

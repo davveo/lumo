@@ -193,7 +193,14 @@ func (r *Repository) ReceivePurchase(
 				qty  int64
 			}{{constants.PurchaseMovementReceipt, good}, {constants.PurchaseMovementDamaged, line.Damaged}} {
 				if move.qty > 0 {
-					if e = tx.Create(&domain.Ledger{ID: receiptID + ":" + line.SKUID + ":" + move.kind, ReferenceID: order.ID, UserID: c.UserID, SKUID: line.SKUID, Quantity: move.qty, Kind: move.kind}).Error; e != nil {
+					if e = tx.Create(&domain.Ledger{
+						ID:          receiptID + ":" + line.SKUID + ":" + move.kind,
+						ReferenceID: order.ID,
+						UserID:      c.UserID,
+						SKUID:       line.SKUID,
+						Quantity:    move.qty,
+						Kind:        move.kind,
+					}).Error; e != nil {
 						return e
 					}
 				}
@@ -209,7 +216,12 @@ func (r *Repository) ReceivePurchase(
 			}
 		}
 		data, _ := json.Marshal(purchased)
-		if e = tx.Model(&order).Updates(map[string]any{"lines": string(data), "status": statusValue, "version": order.Version + 1, "updated_at": time.Now().UTC()}).Error; e != nil {
+		if e = tx.Model(&order).Updates(map[string]any{
+			"lines":      string(data),
+			"status":     statusValue,
+			"version":    order.Version + 1,
+			"updated_at": time.Now().UTC(),
+		}).Error; e != nil {
 			return e
 		}
 		received, _ := json.Marshal(lines)

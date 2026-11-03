@@ -294,7 +294,12 @@ func retryServiceTask(ctx context.Context, db *gorm.DB, m Module, c Request) (Re
 			v := tx.WithContext(ctx).
 				Model(&Outbox{}).
 				Where("id = ? AND state IN ? AND lease_until <= ?", c.ID, []string{constants.OutboxStatePending, constants.OutboxStatePublishing}, now).
-				Updates(map[string]any{"state": constants.OutboxStatePending, "next_attempt_at": now, "claim_token": "", "lease_until": now})
+				Updates(map[string]any{
+					"state":           constants.OutboxStatePending,
+					"next_attempt_at": now,
+					"claim_token":     "",
+					"lease_until":     now,
+				})
 			if v.Error != nil {
 				return v.Error
 			}

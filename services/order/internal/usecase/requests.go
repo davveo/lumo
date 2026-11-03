@@ -38,3 +38,10 @@ type RecordRefundRequest struct {
 	RefundID    string
 	AmountCents int64
 }
+
+type ChangeAddressRequest struct {
+	OrderRequest
+	ExpectedVersion int64
+	Address         json.RawMessage
+	ShippingCents   int64
+}

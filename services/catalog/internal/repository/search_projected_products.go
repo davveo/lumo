@@ -39,6 +39,26 @@ func projectedProductQuery(input ProductSearch) (string, []any) {
 			clauses = append(clauses, expression+" = ?")
 			args = append(args, field.value)
 		}
+		price := "search_price_v2"
+		if long {
+			price = text("$.price_cents")
+		}
+		if input.MinPrice > 0 {
+			clauses = append(clauses, "CAST("+price+" AS SIGNED) >= ?")
+			args = append(args, input.MinPrice)
+		}
+		if input.MaxPrice > 0 {
+			clauses = append(clauses, "CAST("+price+" AS SIGNED) <= ?")
+			args = append(args, input.MaxPrice)
+		}
+		if input.Attribute != "" {
+			matches := []string{}
+			for _, path := range []string{"$.options", "$.specs", "$.colors"} {
+				matches = append(matches, "LOWER(COALESCE("+text(path)+",'')) LIKE ? ESCAPE '!'")
+				args = append(args, "%"+searchLike(input.Attribute)+"%")
+			}
+			clauses = append(clauses, "("+strings.Join(matches, " OR ")+")")
+		}
 		if input.Query != "" {
 			value := "%" + strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").
 				Replace(strings.ToLower(input.Query)) +
@@ -110,7 +130,10 @@ func projectedProductQuery(input ProductSearch) (string, []any) {
 	if field != "" {
 		finalOrder = "hits.sort_value " + direction + ", " + finalOrder
 	}
-	columns := "catalog_records.id, catalog_records.user_id, catalog_records.parent_id, catalog_records.kind, catalog_records.status, catalog_records.payload, catalog_records.created_at, catalog_records.updated_at, hits.sort_value AS search_sort_value"
+	columns := "catalog_records.id, catalog_records.user_id, catalog_records.parent_id, " +
+		"catalog_records.kind, catalog_records.status, catalog_records.payload, " +
+		"catalog_records.created_at, catalog_records.updated_at, hits.sort_value AS " +
+		"search_sort_value"
 	return "SELECT " + columns + " FROM (" + candidates +
 		") AS hits JOIN catalog_records ON catalog_records.id = hits.id ORDER BY " +
 		finalOrder, args

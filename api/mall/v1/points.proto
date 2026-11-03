@@ -21,4 +21,13 @@ service PointsService {
   rpc AdminGet(ServiceRequest) returns (ServiceResponse);
   rpc Adjust(ServiceRequest) returns (ServiceResponse);
   rpc Ledger(ServiceRequest) returns (ServiceResponse);
+  rpc MyLedger(ServiceRequest) returns (ServiceResponse);
+  rpc Offers(ServiceRequest) returns (ServiceResponse);
+  rpc OffersAdmin(ServiceRequest) returns (ServiceResponse);
+  rpc OfferUpsert(ServiceRequest) returns (ServiceResponse);
+  rpc Redeem(ServiceRequest) returns (ServiceResponse);
+  rpc Redemptions(ServiceRequest) returns (ServiceResponse);
+  rpc RedemptionsAdmin(ServiceRequest) returns (ServiceResponse);
+  rpc RedemptionGet(ServiceRequest) returns (ServiceResponse);
+  rpc RedemptionRetry(ServiceRequest) returns (ServiceResponse);
 }

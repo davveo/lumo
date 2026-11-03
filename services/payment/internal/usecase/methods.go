@@ -28,9 +28,19 @@ func paymentCapabilities() []platform.Result {
 			"name":       "演示支付",
 			"configured": os.Getenv("DEMO_MODE") == "true" || os.Getenv("DEMO_MODE") == "1",
 		},
-		{"id": "wechat", "name": "微信支付", "configured": false, "reason": "尚未接入微信支付渠道适配器"},
+		{
+			"id":         "wechat",
+			"name":       "微信支付",
+			"configured": false,
+			"reason":     "尚未接入微信支付渠道适配器",
+		},
 		{"id": "alipay", "name": "支付宝", "configured": false, "reason": "尚未接入支付宝渠道适配器"},
-		{"id": "card", "name": "银行卡", "configured": false, "reason": "尚未接入银行卡收单渠道适配器"},
+		{
+			"id":         "card",
+			"name":       "银行卡",
+			"configured": false,
+			"reason":     "尚未接入银行卡收单渠道适配器",
+		},
 	}
 }
 func (s *Service) PolicyUpsert(ctx context.Context, c platform.Request) (spanResult0 platform.Result, spanErr0 error) {
@@ -74,7 +84,11 @@ func (s *Service) Methods(ctx context.Context, c platform.Request) (spanResult0 
 	if p.Demo && (os.Getenv("DEMO_MODE") == "true" || os.Getenv("DEMO_MODE") == "1") {
 		items = append(
 			items,
-			platform.Result{"id": constants.PaymentProviderDemo, "name": "演示支付", "description": "模拟支付渠道，不产生真实扣款"},
+			platform.Result{
+				"id":          constants.PaymentProviderDemo,
+				"name":        "演示支付",
+				"description": "模拟支付渠道，不产生真实扣款",
+			},
 		)
 	}
 	return platform.Result{"items": items, "version": v}, nil

@@ -14,6 +14,7 @@ const (
 
 // enum:FulfillmentKind
 const (
+	FulfillmentKindGift     = "GIFT"
 	FulfillmentKindOrder    = "ORDER"
 	FulfillmentKindExchange = "EXCHANGE"
 	FulfillmentKindReturn   = "RETURN"

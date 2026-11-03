@@ -26,6 +26,8 @@ const (
 	AnalyticsService_Record_FullMethodName      = "/mall.v1.AnalyticsService/Record"
 	AnalyticsService_Dashboard_FullMethodName   = "/mall.v1.AnalyticsService/Dashboard"
 	AnalyticsService_SyncHistory_FullMethodName = "/mall.v1.AnalyticsService/SyncHistory"
+	AnalyticsService_Track_FullMethodName       = "/mall.v1.AnalyticsService/Track"
+	AnalyticsService_Drilldown_FullMethodName   = "/mall.v1.AnalyticsService/Drilldown"
 )
 
 // AnalyticsServiceClient is the client API for AnalyticsService service.
@@ -37,6 +39,8 @@ type AnalyticsServiceClient interface {
 	Record(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Dashboard(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	SyncHistory(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Track(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Drilldown(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type analyticsServiceClient struct {
@@ -92,6 +96,24 @@ func (c *analyticsServiceClient) SyncHistory(ctx context.Context, in *ServiceReq
 	return out, nil
 }
 
+func (c *analyticsServiceClient) Track(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, AnalyticsService_Track_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *analyticsServiceClient) Drilldown(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, AnalyticsService_Drilldown_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AnalyticsServiceServer is the server API for AnalyticsService service.
 // All implementations must embed UnimplementedAnalyticsServiceServer
 // for forward compatibility
@@ -101,6 +123,8 @@ type AnalyticsServiceServer interface {
 	Record(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Dashboard(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	SyncHistory(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Track(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Drilldown(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedAnalyticsServiceServer()
 }
 
@@ -122,6 +146,12 @@ func (UnimplementedAnalyticsServiceServer) Dashboard(context.Context, *ServiceRe
 }
 func (UnimplementedAnalyticsServiceServer) SyncHistory(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SyncHistory not implemented")
+}
+func (UnimplementedAnalyticsServiceServer) Track(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Track not implemented")
+}
+func (UnimplementedAnalyticsServiceServer) Drilldown(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Drilldown not implemented")
 }
 func (UnimplementedAnalyticsServiceServer) mustEmbedUnimplementedAnalyticsServiceServer() {}
 
@@ -226,6 +256,42 @@ func _AnalyticsService_SyncHistory_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AnalyticsService_Track_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AnalyticsServiceServer).Track(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AnalyticsService_Track_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AnalyticsServiceServer).Track(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AnalyticsService_Drilldown_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AnalyticsServiceServer).Drilldown(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AnalyticsService_Drilldown_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AnalyticsServiceServer).Drilldown(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AnalyticsService_ServiceDesc is the grpc.ServiceDesc for AnalyticsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -252,6 +318,14 @@ var AnalyticsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SyncHistory",
 			Handler:    _AnalyticsService_SyncHistory_Handler,
+		},
+		{
+			MethodName: "Track",
+			Handler:    _AnalyticsService_Track_Handler,
+		},
+		{
+			MethodName: "Drilldown",
+			Handler:    _AnalyticsService_Drilldown_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

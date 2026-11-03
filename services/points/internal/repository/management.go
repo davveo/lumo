@@ -131,7 +131,14 @@ func (r *Repository) Adjust(ctx context.Context, c platform.Request) (spanResult
 			return e
 		}
 		return tx.WithContext(ctx).
-			Create(&domain.Ledger{ID: id, UserID: c.ID, Amount: amount, Kind: constants.PointsLedgerKindManual, ActorID: c.UserID, Reason: reason}).
+			Create(&domain.Ledger{
+				ID:      id,
+				UserID:  c.ID,
+				Amount:  amount,
+				Kind:    constants.PointsLedgerKindManual,
+				ActorID: c.UserID,
+				Reason:  reason,
+			}).
 			Error
 	})
 	if e != nil {

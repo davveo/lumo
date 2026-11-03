@@ -608,7 +608,11 @@ func TestInteractionPendingAdminAndHelpfulReadModel(t *testing.T) {
 		"",
 		"demo",
 		"user",
-		map[string]any{"kind": "question", "sku_id": "iphone--1-2", "body": "Does the 512GB model support this color?"},
+		map[string]any{
+			"kind":   "question",
+			"sku_id": "iphone--1-2",
+			"body":   "Does the 512GB model support this color?",
+		},
 	)
 	c.IdempotencyKey = "variant-question"
 	q := run(t, p, "interaction", c)

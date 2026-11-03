@@ -13,4 +13,5 @@ service MediaService {
   rpc Create(ServiceRequest) returns (ServiceResponse);
   rpc Download(ServiceRequest) returns (ServiceResponse);
   rpc Get(ServiceRequest) returns (ServiceResponse);
+  rpc VerifyFiles(ServiceRequest) returns (ServiceResponse);
 }

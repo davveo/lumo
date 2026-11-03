@@ -21,8 +21,9 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	PricingService_Get_FullMethodName   = "/mall.v1.PricingService/Get"
-	PricingService_Quote_FullMethodName = "/mall.v1.PricingService/Quote"
+	PricingService_Get_FullMethodName      = "/mall.v1.PricingService/Get"
+	PricingService_Quote_FullMethodName    = "/mall.v1.PricingService/Quote"
+	PricingService_Optimize_FullMethodName = "/mall.v1.PricingService/Optimize"
 )
 
 // PricingServiceClient is the client API for PricingService service.
@@ -31,6 +32,7 @@ const (
 type PricingServiceClient interface {
 	Get(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	Quote(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Optimize(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type pricingServiceClient struct {
@@ -59,12 +61,22 @@ func (c *pricingServiceClient) Quote(ctx context.Context, in *ServiceRequest, op
 	return out, nil
 }
 
+func (c *pricingServiceClient) Optimize(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, PricingService_Optimize_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PricingServiceServer is the server API for PricingService service.
 // All implementations must embed UnimplementedPricingServiceServer
 // for forward compatibility
 type PricingServiceServer interface {
 	Get(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	Quote(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Optimize(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedPricingServiceServer()
 }
 
@@ -77,6 +89,9 @@ func (UnimplementedPricingServiceServer) Get(context.Context, *ServiceRequest) (
 }
 func (UnimplementedPricingServiceServer) Quote(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Quote not implemented")
+}
+func (UnimplementedPricingServiceServer) Optimize(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Optimize not implemented")
 }
 func (UnimplementedPricingServiceServer) mustEmbedUnimplementedPricingServiceServer() {}
 
@@ -127,6 +142,24 @@ func _PricingService_Quote_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PricingService_Optimize_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PricingServiceServer).Optimize(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PricingService_Optimize_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PricingServiceServer).Optimize(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PricingService_ServiceDesc is the grpc.ServiceDesc for PricingService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -141,6 +174,10 @@ var PricingService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Quote",
 			Handler:    _PricingService_Quote_Handler,
+		},
+		{
+			MethodName: "Optimize",
+			Handler:    _PricingService_Optimize_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

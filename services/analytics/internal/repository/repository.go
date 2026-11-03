@@ -23,7 +23,7 @@ func (r *Repository) Migrate(ctx context.Context) (spanErr0 error) {
 	defer func() { platform.TraceError(ctx, spanErr0) }()
 
 	return r.db.WithContext(ctx).
-		AutoMigrate(&domain.Record{}, &domain.BehaviorFact{}, &domain.TransactionFact{}, &domain.MetricsHistory{})
+		AutoMigrate(&domain.Record{}, &domain.BehaviorFact{}, &domain.TransactionFact{}, &domain.MetricsHistory{}, &domain.JourneyEvent{}, &domain.JourneyLimit{})
 }
 func (r *Repository) Get(ctx context.Context, id string) (spanResult0 domain.Record, spanErr0 error) {
 	ctx, s := platform.Start(ctx, "analytics.repository.Get")

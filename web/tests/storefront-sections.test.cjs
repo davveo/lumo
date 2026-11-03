@@ -73,7 +73,7 @@ test('switching tabs during an in-flight member read still loads the new tab aft
   await Promise.all([first, second]);
   assert.deepEqual(
     calls.map((row) => row.service),
-    ['engagement', 'points'],
+    ['engagement', 'member', 'address', 'points'],
   );
   assert.equal(app.ctx.LumoMember.model().points, 50);
 });

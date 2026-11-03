@@ -111,6 +111,12 @@ func (s *Service) Reward(ctx context.Context, c platform.Request) (traceResult p
 }
 
 func (s *Service) OnEvent(ctx context.Context, e platform.Event) error {
+	if e.Type == constants.EventRedemptionRequested || e.Type == constants.EventRedemptionRecoveryRequested {
+		return s.processRedemption(ctx, e.AggregateID)
+	}
+	if e.Type == constants.EventRewardShipped || e.Type == constants.EventRewardDelivered {
+		return s.Repo.RewardShipment(ctx, e)
+	}
 	if e.Type == constants.EventRefundSucceeded {
 		_, err := s.Refund(
 			ctx,

@@ -89,7 +89,12 @@ func (s *Service) providerReady(ctx context.Context, id string) (bool, error) {
 }
 func (s *Service) loginCapabilities(ctx context.Context) ([]platform.Result, error) {
 	items := []platform.Result{}
-	for _, row := range []struct{ ID, Name string }{{"password", "账号密码"}, {"phone", "手机验证码"}, {"wechat", "微信"}, {"qq", "QQ"}} {
+	for _, row := range []struct{ ID, Name string }{
+		{"password", "账号密码"},
+		{"phone", "手机验证码"},
+		{"wechat", "微信"},
+		{"qq", "QQ"},
+	} {
 		ready, e := s.providerReady(ctx, row.ID)
 		if e != nil {
 			return nil, e

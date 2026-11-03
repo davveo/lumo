@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"github.com/davveo/lumo/internal/adminconfig"
 	"time"
 
 	"github.com/davveo/lumo/internal/platform"
@@ -23,6 +24,9 @@ func (r *Repository) Migrate(ctx context.Context) (spanErr0 error) {
 	defer s.End()
 	defer func() { platform.TraceError(ctx, spanErr0) }()
 
+	if e := adminconfig.Migrate(ctx, r.DB); e != nil {
+		return e
+	}
 	return r.DB.WithContext(ctx).AutoMigrate(&domain.Record{}, &domain.OrderGuard{})
 }
 func (r *Repository) Get(ctx context.Context, id string) (spanResult0 *domain.Record, spanErr0 error) {
@@ -138,6 +142,9 @@ func (r *Repository) ListPage(
 	c platform.Request,
 ) ([]domain.Record, platform.Result, error) {
 	q := r.DB.Model(&domain.Record{})
+	if id := platform.Text(c.Data, "order_id"); id != "" {
+		q = q.Where("order_id = ?", id)
+	}
 	if user != "" {
 		q = q.Where("user_id = ?", user)
 	}
@@ -145,7 +152,7 @@ func (r *Repository) ListPage(
 		ctx,
 		q,
 		c,
-		"aftersale",
+		"aftersale:"+platform.Text(c.Data, "order_id"),
 		func(row domain.Record) (string, time.Time) { return row.ID, row.CreatedAt },
 	)
 }

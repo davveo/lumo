@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/davveo/lumo/internal/attribution"
 	"github.com/davveo/lumo/internal/commercepolicy"
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/couponrules"
@@ -167,6 +168,11 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 		unit := platform.Int(p, "price_cents")
 		if unit <= 0 || unit > 10000000000 {
 			return nil, status.Error(codes.FailedPrecondition, "invalid product price")
+		}
+		if policy, ok := p["service_policy"]; ok {
+			if e := platform.Decode(map[string]any{"service_policy": policy}, &line); e != nil {
+				return nil, e
+			}
 		}
 		line.Name = platform.Text(p, "name")
 		line.Category = platform.Text(p, "category")
@@ -377,6 +383,13 @@ func (s *Service) Quote(ctx context.Context, c platform.Request) (traceResult pl
 		"shipping_region":   shipping["region"],
 		"membership_policy": membership,
 		"policy_version":    constants.PricingPolicyVersionDemo,
+	}
+	var tracking struct {
+		Attribution attribution.Context `json:"attribution"`
+	}
+	_ = platform.Decode(c.Data, &tracking)
+	if tracking.Attribution.Valid() {
+		out["attribution"] = tracking.Attribution.Normalized()
 	}
 	out["activity_kind"], out["activity_name"] = kind, platform.Text(camp, "name")
 	out["pay_rate_bps"], out["min_quantity"] = platform.Int(camp, "pay_rate_bps"), platform.Int(camp, "min_quantity")

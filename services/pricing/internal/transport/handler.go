@@ -10,8 +10,9 @@ import (
 
 func New(s *usecase.Service) *platform.MethodHandler {
 	return platform.NewMethodHandler(constants.ServicePricing, map[string]platform.Operation{
-		constants.ActionQuote: s.Quote,
-		constants.ActionGet:   s.Get,
+		constants.ActionOptimize: s.Optimize,
+		constants.ActionQuote:    s.Quote,
+		constants.ActionGet:      s.Get,
 	}, validate)
 }
 

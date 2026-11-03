@@ -7,7 +7,7 @@ import (
 	"github.com/davveo/lumo/services/refund/internal/domain"
 )
 
-var managementSpec = adminquery.Spec{
+var managementSpec = adminquery.Spec{ID: "id",
 	State:  "status",
 	Amount: "amount",
 	Search: []string{"id", "order_id", "user_id", "payment_id", "reason"},

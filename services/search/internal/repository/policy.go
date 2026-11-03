@@ -7,10 +7,11 @@ import (
 )
 
 type Policy struct {
-	DefaultSort  string   `json:"default_sort"`
-	MaxResults   int      `json:"max_results"`
-	ExcludedIDs  []string `json:"excluded_ids"`
-	HiddenBrands []string `json:"hidden_brands"`
+	Synonyms     map[string]string `json:"synonyms"`
+	DefaultSort  string            `json:"default_sort"`
+	MaxResults   int               `json:"max_results"`
+	ExcludedIDs  []string          `json:"excluded_ids"`
+	HiddenBrands []string          `json:"hidden_brands"`
 }
 
 func DefaultPolicy() Policy {

@@ -21,18 +21,22 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	AftersaleService_Approve_FullMethodName      = "/mall.v1.AftersaleService/Approve"
-	AftersaleService_Cancel_FullMethodName       = "/mall.v1.AftersaleService/Cancel"
-	AftersaleService_Create_FullMethodName       = "/mall.v1.AftersaleService/Create"
-	AftersaleService_Exchange_FullMethodName     = "/mall.v1.AftersaleService/Exchange"
-	AftersaleService_Get_FullMethodName          = "/mall.v1.AftersaleService/Get"
-	AftersaleService_Inspect_FullMethodName      = "/mall.v1.AftersaleService/Inspect"
-	AftersaleService_List_FullMethodName         = "/mall.v1.AftersaleService/List"
-	AftersaleService_Refund_FullMethodName       = "/mall.v1.AftersaleService/Refund"
-	AftersaleService_Reject_FullMethodName       = "/mall.v1.AftersaleService/Reject"
-	AftersaleService_Return_FullMethodName       = "/mall.v1.AftersaleService/Return"
-	AftersaleService_AdminList_FullMethodName    = "/mall.v1.AftersaleService/AdminList"
-	AftersaleService_AdminSummary_FullMethodName = "/mall.v1.AftersaleService/AdminSummary"
+	AftersaleService_Approve_FullMethodName          = "/mall.v1.AftersaleService/Approve"
+	AftersaleService_Cancel_FullMethodName           = "/mall.v1.AftersaleService/Cancel"
+	AftersaleService_Create_FullMethodName           = "/mall.v1.AftersaleService/Create"
+	AftersaleService_Exchange_FullMethodName         = "/mall.v1.AftersaleService/Exchange"
+	AftersaleService_Get_FullMethodName              = "/mall.v1.AftersaleService/Get"
+	AftersaleService_Inspect_FullMethodName          = "/mall.v1.AftersaleService/Inspect"
+	AftersaleService_List_FullMethodName             = "/mall.v1.AftersaleService/List"
+	AftersaleService_Refund_FullMethodName           = "/mall.v1.AftersaleService/Refund"
+	AftersaleService_Reject_FullMethodName           = "/mall.v1.AftersaleService/Reject"
+	AftersaleService_Return_FullMethodName           = "/mall.v1.AftersaleService/Return"
+	AftersaleService_AdminList_FullMethodName        = "/mall.v1.AftersaleService/AdminList"
+	AftersaleService_AdminSummary_FullMethodName     = "/mall.v1.AftersaleService/AdminSummary"
+	AftersaleService_Preview_FullMethodName          = "/mall.v1.AftersaleService/Preview"
+	AftersaleService_PolicyGet_FullMethodName        = "/mall.v1.AftersaleService/PolicyGet"
+	AftersaleService_PolicyUpsert_FullMethodName     = "/mall.v1.AftersaleService/PolicyUpsert"
+	AftersaleService_EvidenceDownload_FullMethodName = "/mall.v1.AftersaleService/EvidenceDownload"
 )
 
 // AftersaleServiceClient is the client API for AftersaleService service.
@@ -51,6 +55,10 @@ type AftersaleServiceClient interface {
 	Return(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	AdminList(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	AdminSummary(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Preview(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PolicyGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	PolicyUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	EvidenceDownload(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type aftersaleServiceClient struct {
@@ -169,6 +177,42 @@ func (c *aftersaleServiceClient) AdminSummary(ctx context.Context, in *ServiceRe
 	return out, nil
 }
 
+func (c *aftersaleServiceClient) Preview(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, AftersaleService_Preview_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aftersaleServiceClient) PolicyGet(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, AftersaleService_PolicyGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aftersaleServiceClient) PolicyUpsert(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, AftersaleService_PolicyUpsert_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aftersaleServiceClient) EvidenceDownload(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, AftersaleService_EvidenceDownload_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AftersaleServiceServer is the server API for AftersaleService service.
 // All implementations must embed UnimplementedAftersaleServiceServer
 // for forward compatibility
@@ -185,6 +229,10 @@ type AftersaleServiceServer interface {
 	Return(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	AdminList(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	AdminSummary(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Preview(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PolicyGet(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	EvidenceDownload(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedAftersaleServiceServer()
 }
 
@@ -227,6 +275,18 @@ func (UnimplementedAftersaleServiceServer) AdminList(context.Context, *ServiceRe
 }
 func (UnimplementedAftersaleServiceServer) AdminSummary(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AdminSummary not implemented")
+}
+func (UnimplementedAftersaleServiceServer) Preview(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Preview not implemented")
+}
+func (UnimplementedAftersaleServiceServer) PolicyGet(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PolicyGet not implemented")
+}
+func (UnimplementedAftersaleServiceServer) PolicyUpsert(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PolicyUpsert not implemented")
+}
+func (UnimplementedAftersaleServiceServer) EvidenceDownload(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EvidenceDownload not implemented")
 }
 func (UnimplementedAftersaleServiceServer) mustEmbedUnimplementedAftersaleServiceServer() {}
 
@@ -457,6 +517,78 @@ func _AftersaleService_AdminSummary_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AftersaleService_Preview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AftersaleServiceServer).Preview(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AftersaleService_Preview_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AftersaleServiceServer).Preview(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AftersaleService_PolicyGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AftersaleServiceServer).PolicyGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AftersaleService_PolicyGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AftersaleServiceServer).PolicyGet(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AftersaleService_PolicyUpsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AftersaleServiceServer).PolicyUpsert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AftersaleService_PolicyUpsert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AftersaleServiceServer).PolicyUpsert(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AftersaleService_EvidenceDownload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AftersaleServiceServer).EvidenceDownload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AftersaleService_EvidenceDownload_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AftersaleServiceServer).EvidenceDownload(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AftersaleService_ServiceDesc is the grpc.ServiceDesc for AftersaleService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -511,6 +643,22 @@ var AftersaleService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AdminSummary",
 			Handler:    _AftersaleService_AdminSummary_Handler,
+		},
+		{
+			MethodName: "Preview",
+			Handler:    _AftersaleService_Preview_Handler,
+		},
+		{
+			MethodName: "PolicyGet",
+			Handler:    _AftersaleService_PolicyGet_Handler,
+		},
+		{
+			MethodName: "PolicyUpsert",
+			Handler:    _AftersaleService_PolicyUpsert_Handler,
+		},
+		{
+			MethodName: "EvidenceDownload",
+			Handler:    _AftersaleService_EvidenceDownload_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

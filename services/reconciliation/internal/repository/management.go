@@ -152,7 +152,11 @@ func (r *Repository) Claim(ctx context.Context) (spanResult0 *domain.Run, spanEr
 	v := r.db.WithContext(ctx).
 		Model(&domain.Run{}).
 		Where("id = ? AND (claim = ? OR lease_until <= ?)", row.ID, "", now).
-		Updates(map[string]any{"claim": token, "lease_until": now.Add(2 * time.Minute), "status": constants.ReconciliationStatusRunning})
+		Updates(map[string]any{
+			"claim":       token,
+			"lease_until": now.Add(2 * time.Minute),
+			"status":      constants.ReconciliationStatusRunning,
+		})
 	if v.Error != nil {
 		return nil, v.Error
 	}
@@ -207,7 +211,16 @@ func (r *Repository) Progress(
 		return tx.WithContext(ctx).
 			Model(&domain.Run{}).
 			Where("id = ? AND claim = ?", row.ID, row.Claim).
-			Updates(map[string]any{"offset": held.Offset + processed, "checked": held.Checked + processed, "total": total, "difference_count": held.DifferenceCount + inserted, "status": state, "error": message, "claim": "", "lease_until": time.Now().UTC()}).
+			Updates(map[string]any{
+				"offset":           held.Offset + processed,
+				"checked":          held.Checked + processed,
+				"total":            total,
+				"difference_count": held.DifferenceCount + inserted,
+				"status":           state,
+				"error":            message,
+				"claim":            "",
+				"lease_until":      time.Now().UTC(),
+			}).
 			Error
 	})
 }
@@ -233,7 +246,12 @@ func (r *Repository) Resume(ctx context.Context, c platform.Request) (spanResult
 		result := tx.WithContext(ctx).
 			Model(&domain.Run{}).
 			Where("id = ? AND status = ?", c.ID, constants.ReconciliationStatusFailed).
-			Updates(map[string]any{"status": constants.ReconciliationStatusQueued, "error": "", "claim": "", "lease_until": time.Now().UTC()})
+			Updates(map[string]any{
+				"status":      constants.ReconciliationStatusQueued,
+				"error":       "",
+				"claim":       "",
+				"lease_until": time.Now().UTC(),
+			})
 		if result.Error != nil {
 			return result.Error
 		}

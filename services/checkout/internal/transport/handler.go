@@ -10,11 +10,13 @@ import (
 
 func New(s *usecase.Service) *platform.MethodHandler {
 	return platform.NewMethodHandler(constants.ServiceCheckout, map[string]platform.Operation{
-		constants.ActionQuote:  s.Quote,
-		constants.ActionSubmit: s.Submit,
-		constants.ActionGet:    s.Get,
-		constants.ActionPaid:   s.Paid,
-		constants.ActionCancel: s.Cancel,
+		constants.ActionQuote:         s.Quote,
+		constants.ActionChangeAddress: s.ChangeAddress,
+		constants.ActionTimeline:      s.Timeline,
+		constants.ActionSubmit:        s.Submit,
+		constants.ActionGet:           s.Get,
+		constants.ActionPaid:          s.Paid,
+		constants.ActionCancel:        s.Cancel,
 	}, validate)
 }
 

@@ -6,6 +6,7 @@ import (
 	"github.com/davveo/lumo/internal/constants"
 	"github.com/davveo/lumo/internal/platform"
 	"github.com/davveo/lumo/services/helpdesk/internal/domain"
+	"time"
 )
 
 func (r *Repository) AdminList(
@@ -20,7 +21,7 @@ func (r *Repository) AdminList(
 		ctx,
 		r.db.WithContext(ctx).Where("kind = ?", constants.HelpdeskKindTicket),
 		c.Data,
-		adminquery.Spec{State: "status", Search: []string{"id", "user_id", "payload"}},
+		adminquery.Spec{ID: "id", State: "status", Search: []string{"id", "user_id", "payload"}},
 	)
 }
 
@@ -43,4 +44,27 @@ func (r *Repository) MessagePage(
 	}
 	err := q.Order("created_at ASC,id ASC").Limit(limit).Offset(offset).Find(&rows).Error
 	return rows, total, err
+}
+
+func (r *Repository) ForOrder(
+	ctx context.Context,
+	user, id string,
+	c platform.Request,
+) ([]domain.Record, platform.Result, error) {
+	path := "JSON_EXTRACT(payload,'$.order_id')"
+	if r.db.Dialector.Name() == "mysql" {
+		path = "JSON_UNQUOTE(" + path + ")"
+	}
+	q := r.db.Model(&domain.Record{}).
+		Where("kind = ? AND (parent_id = ? OR (parent_id = '' AND "+path+" = ?))", constants.HelpdeskKindTicket, id, id)
+	if user != "" {
+		q = q.Where("user_id = ?", user)
+	}
+	return platform.ReadListPage(
+		ctx,
+		q,
+		c,
+		"helpdesk-order:"+id,
+		func(r domain.Record) (string, time.Time) { return r.ID, r.CreatedAt },
+	)
 }

@@ -20,7 +20,9 @@ type searchPosition struct {
 }
 
 func searchIdentity(input ProductSearch) string {
-	b, _ := json.Marshal([]string{input.Query, input.Category, input.Brand, input.Sort})
+	b, _ := json.Marshal(
+		[]any{input.Query, input.Category, input.Brand, input.Sort, input.Attribute, input.MinPrice, input.MaxPrice},
+	)
 	sum := sha256.Sum256(b)
 	return hex.EncodeToString(sum[:])
 }

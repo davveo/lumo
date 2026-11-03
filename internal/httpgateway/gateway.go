@@ -24,6 +24,7 @@ import (
 // An HTTP action must appear here. In particular, internal money/resource/state
 // commands cannot be accessed by choosing arbitrary service/action URL values.
 var publicActions = actionSet(map[string][]string{
+	constants.ServiceAnalytics:      {constants.ActionTrack},
 	constants.ServiceIAM:            {constants.ActionLogin, constants.ActionRegister},
 	constants.ServiceCatalog:        {constants.ActionList, constants.ActionGet, constants.ActionBatchGet},
 	constants.ServiceSearch:         {constants.ActionQuery},
@@ -85,18 +86,42 @@ var userActions = actionSet(map[string][]string{
 	},
 	constants.ServiceInteraction: {constants.ActionCreate, constants.ActionLike},
 	constants.ServiceAnalytics:   {constants.ActionRecord},
-	constants.ServicePricing:     {constants.ActionQuote, constants.ActionGet},
-	constants.ServiceCheckout:    {constants.ActionQuote, constants.ActionSubmit, constants.ActionCancel},
-	constants.ServiceOrder:       {constants.ActionList, constants.ActionGet, constants.ActionComplete},
-	constants.ServicePayment:     {constants.ActionCreate, constants.ActionGet, constants.ActionSubmitDemo},
-	constants.ServiceRefund:      {constants.ActionGet},
-	constants.ServiceCoupon:      {constants.ActionList, constants.ActionClaim},
-	constants.ServicePoints:      {constants.ActionGet, constants.ActionCheckin},
+	constants.ServicePricing:     {constants.ActionQuote, constants.ActionGet, constants.ActionOptimize},
+	constants.ServiceCheckout: {
+		constants.ActionQuote,
+		constants.ActionSubmit,
+		constants.ActionCancel,
+		constants.ActionChangeAddress,
+		constants.ActionTimeline,
+	},
+	constants.ServiceOrder: {
+		constants.ActionList,
+		constants.ActionGet,
+		constants.ActionComplete,
+		constants.ActionUrge,
+	},
+	constants.ServicePayment: {constants.ActionCreate, constants.ActionGet, constants.ActionSubmitDemo},
+	constants.ServiceRefund:  {constants.ActionGet},
+	constants.ServiceCoupon: {
+		constants.ActionList,
+		constants.ActionClaim,
+		constants.ActionReminderGet,
+		constants.ActionReminderUpdate,
+	},
+	constants.ServicePoints: {
+		constants.ActionGet,
+		constants.ActionCheckin,
+		constants.ActionMyLedger,
+		constants.ActionOffers,
+		constants.ActionRedeem,
+		constants.ActionRedemptions,
+		constants.ActionRedemptionGet,
+	},
 	constants.ServiceGroup:       {constants.ActionCreate},
 	constants.ServiceFlash:       {constants.ActionRequest, constants.ActionGet},
 	constants.ServiceFulfillment: {constants.ActionGet},
 	constants.ServiceLogistics:   {constants.ActionGet},
-	constants.ServiceAftersale: {
+	constants.ServiceAftersale: {constants.ActionPreview, constants.ActionPolicyGet, constants.ActionEvidenceDownload,
 		constants.ActionList,
 		constants.ActionGet,
 		constants.ActionCreate,
@@ -120,6 +145,12 @@ var userActions = actionSet(map[string][]string{
 	constants.ServiceStorefront: {constants.ActionPopupClaim, constants.ActionAccountSummary},
 })
 var adminActions = actionSet(map[string][]string{
+	constants.ServicePoints: {
+		constants.ActionOffersAdmin,
+		constants.ActionOfferUpsert,
+		constants.ActionRedemptionsAdmin,
+		constants.ActionRedemptionRetry,
+	},
 	constants.ServiceOrder:      {constants.ActionAdminList, constants.ActionAdminSummary},
 	constants.ServiceManagement: {constants.ActionDashboard},
 	constants.ServiceIAM:        {constants.ActionAdminList, constants.ActionAdminSummary, constants.ActionSetActive},
@@ -141,7 +172,7 @@ var adminActions = actionSet(map[string][]string{
 		constants.ActionInspectReturn,
 	},
 	constants.ServiceLogistics: {constants.ActionDeliver},
-	constants.ServiceAftersale: {constants.ActionAdminList, constants.ActionAdminSummary,
+	constants.ServiceAftersale: {constants.ActionPolicyUpsert, constants.ActionAdminList, constants.ActionAdminSummary,
 		constants.ActionApprove,
 		constants.ActionReject,
 		constants.ActionInspect,
@@ -171,6 +202,15 @@ var adminActions = actionSet(map[string][]string{
 })
 
 var reads = map[string]bool{
+	constants.ActionOffers: true, constants.ActionOffersAdmin: true, constants.ActionRedemptions: true, constants.ActionRedemptionsAdmin: true, constants.ActionRedemptionGet: true,
+	constants.ActionReminderGet:       true,
+	constants.ActionWorkQueue:         true,
+	constants.ActionWorkDetail:        true,
+	constants.ActionViews:             true,
+	constants.ActionPreview:           true,
+	constants.ActionEvidenceDownload:  true,
+	constants.ActionTimeline:          true,
+	constants.ActionMyLedger:          true,
 	constants.ActionAdjustments:       true,
 	constants.ActionAdminSummary:      true,
 	constants.ActionDashboard:         true,

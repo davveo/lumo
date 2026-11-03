@@ -261,7 +261,21 @@ func sensitiveTraceKey(key string) bool {
 			return true
 		}
 	}
-	for _, part := range []string{"密码", "口令", "令牌", "密钥", "手机号", "电话号码", "收件人", "地址", "身份证", "银行卡", "邮箱", "用户名", "姓名"} {
+	for _, part := range []string{
+		"密码",
+		"口令",
+		"令牌",
+		"密钥",
+		"手机号",
+		"电话号码",
+		"收件人",
+		"地址",
+		"身份证",
+		"银行卡",
+		"邮箱",
+		"用户名",
+		"姓名",
+	} {
 		if strings.Contains(key, part) {
 			return true
 		}

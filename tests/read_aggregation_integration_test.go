@@ -288,7 +288,14 @@ func TestHTTPReadSectionsBatchOnlyRelatedReadsAndIsolatePrincipals(t *testing.T)
 		t.Fatal("summary omitted actual coupon balance", summary)
 	}
 	counted.expectCount(t, "iam", "validate", 1)
-	for _, entry := range [][2]string{{"address", "list"}, {"order", "list"}, {"aftersale", "list"}, {"invoice", "list"}, {"helpdesk", "list"}, {"interaction", "list"}} {
+	for _, entry := range [][2]string{
+		{"address", "list"},
+		{"order", "list"},
+		{"aftersale", "list"},
+		{"invoice", "list"},
+		{"helpdesk", "list"},
+		{"interaction", "list"},
+	} {
 		counted.expectCount(t, entry[0], entry[1], 0)
 	}
 	for _, call := range counted.snapshot() {

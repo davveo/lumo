@@ -17,7 +17,7 @@ func New(d platform.Dependencies) platform.Module {
 		Seed:       s.Seed,
 		Handle:     t.Handle,
 		Operations: t.Operations(),
-		Topics:     nil,
+		Topics:     []string{constants.EventOrderUrged},
 		OnEvent:    s.OnEvent,
 	}
 }
