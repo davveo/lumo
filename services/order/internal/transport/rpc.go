@@ -76,7 +76,7 @@ func orderMessage(order domain.Order) *mallv1.Order {
 	}
 	return &mallv1.Order{
 		FulfillmentProgressJson: []byte(order.FulfillmentProgress), FulfillmentVersion: order.FulfillmentVersion,
- DispatchStarted: order.DispatchStarted, LastUrgedAt: urged, ServiceHistory: events,
+		DispatchStarted: order.DispatchStarted, LastUrgedAt: urged, ServiceHistory: events,
 		Id:                  order.ID,
 		UserId:              order.UserID,
 		Status:              order.Status,

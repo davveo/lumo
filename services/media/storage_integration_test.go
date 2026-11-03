@@ -3,7 +3,9 @@ package media_test
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
+	"github.com/davveo/lumo/internal/constants"
 	"image"
 	"image/color"
 	"image/png"
@@ -192,6 +194,61 @@ func TestMinIORealUploadDownload(t *testing.T) {
 	}
 	if platform.Text(completed, "status") != "READY" {
 		t.Fatal("Stat-verified upload not READY")
+	}
+	// Exercise the actual conditional object reader and the export writer, not
+	// only a fake storage adapter, against this isolated S3 endpoint.
+	preview, previewErr := m.Handle(
+		ctx,
+		platform.Command{Action: constants.ActionReadReviewImage, ID: id, UserID: "demo", Role: constants.RoleSystem},
+	)
+	if previewErr != nil {
+		t.Fatal(previewErr)
+	}
+	previewBytes, decodeErr := base64.StdEncoding.DecodeString(platform.Text(preview, "file_content"))
+	if decodeErr != nil {
+		t.Fatal(decodeErr)
+	}
+	_, format, decodeErr := image.DecodeConfig(bytes.NewReader(previewBytes))
+	if decodeErr != nil || format != "jpeg" {
+		t.Fatal("private review image was not sanitized", format, decodeErr)
+	}
+	csv := []byte("name,quantity\ncoffee,2\n")
+	exported, exportErr := m.Handle(
+		ctx,
+		platform.Command{
+			Action: constants.ActionStoreExport,
+			ID:     "isolated-export",
+			UserID: "demo",
+			Role:   constants.RoleSystem,
+			Data: map[string]any{
+				"file_content": base64.StdEncoding.EncodeToString(csv),
+				"expires_at":   time.Now().Add(time.Hour).UTC().Format(time.RFC3339),
+			},
+		},
+	)
+	if exportErr != nil {
+		t.Fatal(exportErr)
+	}
+	exportLink, exportErr := m.Handle(
+		ctx,
+		platform.Command{
+			Action: constants.ActionDownload,
+			ID:     platform.Text(exported, "file_id"),
+			UserID: "demo",
+			Role:   constants.RoleUser,
+		},
+	)
+	if exportErr != nil {
+		t.Fatal(exportErr)
+	}
+	exportResponse, exportErr := client.Get(platform.Text(exportLink, "download_url"))
+	if exportErr != nil {
+		t.Fatal(exportErr)
+	}
+	csvBytes, exportErr := io.ReadAll(exportResponse.Body)
+	_ = exportResponse.Body.Close()
+	if exportErr != nil || exportResponse.StatusCode != http.StatusOK || !bytes.Equal(csvBytes, csv) {
+		t.Fatal("private CSV object did not round trip", exportErr)
 	}
 	download := platform.Text(completed, "download_url")
 	if !strings.HasPrefix(download, "http://127.0.0.1:19001/") {

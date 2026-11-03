@@ -8,8 +8,8 @@ import (
 
 func New(s *usecase.Service) *platform.MethodHandler {
 	return platform.NewMethodHandler(constants.ServiceInventory, map[string]platform.Operation{
- constants.ActionCancelLines: s.CancelLines,
- constants.ActionDispatchLines: s.DispatchLines,
+		constants.ActionCancelLines:        s.CancelLines,
+		constants.ActionDispatchLines:      s.DispatchLines,
 		constants.ActionSupplierList:       s.SupplierList,
 		constants.ActionSupplierUpsert:     s.SupplierUpsert,
 		constants.ActionReplenishmentGet:   s.ReplenishmentGet,

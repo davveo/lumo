@@ -230,6 +230,8 @@
     if (order.paidAt)
       actions += `<button class="mem-outline" data-action="order-details" data-id="${esc(id)}">订单详情</button>`;
 
+    if (order.backendStatus === C.OrderStatus.PartiallyShipped)
+      actions += button('包裹物流', 'service-help', id, false, 'data-value="logistics"');
     if (code === C.OrderViewStatus.Receiving && !active)
       actions +=
         button('查看物流', 'service-help', id, false, 'data-value="logistics"') +

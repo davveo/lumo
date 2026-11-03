@@ -12,9 +12,9 @@
   const names = {
     CREATED: '订单创建',
     SUCCEEDED: '支付已成功',
-    PARTIALLY_DISPATCHED:'部分包裹已发货',
- PARTIALLY_SHIPPED:'部分发货',
- READY: '仓库待出库',
+    PARTIALLY_DISPATCHED: '部分包裹已发货',
+    PARTIALLY_SHIPPED: '部分发货',
+    READY: '仓库待出库',
     DISPATCHING: '仓库处理中',
     DISPATCHED: '已出库',
     CANCELLED: '已取消',
@@ -58,7 +58,7 @@
     const addresses = LumoMember.model().addresses || [];
     modal(
       '订单详情',
-      `<section id="order-service-view" class="order-service-view"><div class="svc-conversation-header"><h3>${esc(LumoMember.orderLabel(o))}</h3><p>订单 ${esc(o.id)} · ${date(raw.created_at)}</p></div>${orderItems(o.items)}${amountLines(o.totals)}${window.LumoShipmentTracking?.summary(current.fulfillment?.plan,o.items)||''}${current.fulfillment?.parcelized?`<button class="outline" data-order-service="parcels">查看各包裹物流</button>`:''}<dl class="service-definition"><div><dt>收货人</dt><dd>${esc(o.address.name)} · ${esc(o.address.phone.slice(0, 3) + '****' + o.address.phone.slice(-4))}</dd></div><div><dt>收货地址</dt><dd>${esc(o.address.region + ' ' + o.address.detail)}</dd></div></dl><div class="svc-modal-actions">${modifiable ? `<button class="outline" data-order-service="address" ${busy ? 'disabled' : ''}>修改收货地址</button>` : ''}${ready ? `<button class="outline" data-order-service="urge" ${busy || urged ? 'disabled' : ''}>${urged ? '已催发货 · 24 小时内请勿重复' : '催发货'}</button>` : ''}<button class="outline" data-order-service="support" ${busy ? 'disabled' : ''}>联系此订单客服</button><button class="outline" data-order-service="refresh" ${busy ? 'disabled' : ''}>刷新进度</button></div>${editing ? `<form id="order-change-address"><label class="field">选择本次收货地址<select name="address_id" required ${busy ? 'disabled' : ''}>${addresses.map((a) => `<option value="${esc(a.id)}" ${a.id === o.address.id ? 'selected' : ''}>${esc(a.name)} · ${esc(a.region + ' ' + a.detail)}</option>`).join('')}</select></label><p class="secure-note">仅在仓库开始处理前可修改。新地址须可配送，且运费与原订单一致。</p>${addresses.length ? '<button class="primary" ' + (busy ? 'disabled' : '') + '>确认修改地址</button>' : '<a class="outline" href="#/member/addresses" data-action="close-modal">先添加收货地址</a>'}</form>` : ''}${error ? `<p class="api-config-error" role="alert">${esc(error)}</p>` : ''}<h3 class="order-timeline-heading">订单服务进度</h3>${current.partial ? '<p class="secure-note">展示当前可读取的最近进展，部分记录暂不可用或超过展示上限。</p>' : ''}<ol class="service-timeline order-service-timeline" aria-label="订单全流程进度">${(current.events || []).map((e, i, all) => `<li class="done ${i === all.length - 1 ? 'current' : ''}"><strong>${esc(names[e.status] || e.status)}<small> · ${esc(source[e.kind] || '订单')}</small></strong><time>${date(e.at)}</time>${['aftersale', 'helpdesk'].includes(e.kind) ? `<p>${esc(e.id)}</p>` : ''}</li>`).join('')}</ol>${
+      `<section id="order-service-view" class="order-service-view"><div class="svc-conversation-header"><h3>${esc(LumoMember.orderLabel(o))}</h3><p>订单 ${esc(o.id)} · ${date(raw.created_at)}</p></div>${orderItems(o.items)}${amountLines(o.totals)}${window.LumoShipmentTracking?.summary(current.fulfillment?.plan, o.items) || ''}${current.fulfillment?.parcelized ? `<button class="outline" data-order-service="parcels">查看各包裹物流</button>` : ''}<dl class="service-definition"><div><dt>收货人</dt><dd>${esc(o.address.name)} · ${esc(o.address.phone.slice(0, 3) + '****' + o.address.phone.slice(-4))}</dd></div><div><dt>收货地址</dt><dd>${esc(o.address.region + ' ' + o.address.detail)}</dd></div></dl><div class="svc-modal-actions">${modifiable ? `<button class="outline" data-order-service="address" ${busy ? 'disabled' : ''}>修改收货地址</button>` : ''}${ready ? `<button class="outline" data-order-service="urge" ${busy || urged ? 'disabled' : ''}>${urged ? '已催发货 · 24 小时内请勿重复' : '催发货'}</button>` : ''}<button class="outline" data-order-service="support" ${busy ? 'disabled' : ''}>联系此订单客服</button><button class="outline" data-order-service="refresh" ${busy ? 'disabled' : ''}>刷新进度</button></div>${editing ? `<form id="order-change-address"><label class="field">选择本次收货地址<select name="address_id" required ${busy ? 'disabled' : ''}>${addresses.map((a) => `<option value="${esc(a.id)}" ${a.id === o.address.id ? 'selected' : ''}>${esc(a.name)} · ${esc(a.region + ' ' + a.detail)}</option>`).join('')}</select></label><p class="secure-note">仅在仓库开始处理前可修改。新地址须可配送，且运费与原订单一致。</p>${addresses.length ? '<button class="primary" ' + (busy ? 'disabled' : '') + '>确认修改地址</button>' : '<a class="outline" href="#/member/addresses" data-action="close-modal">先添加收货地址</a>'}</form>` : ''}${error ? `<p class="api-config-error" role="alert">${esc(error)}</p>` : ''}<h3 class="order-timeline-heading">订单服务进度</h3>${current.partial ? '<p class="secure-note">展示当前可读取的最近进展，部分记录暂不可用或超过展示上限。</p>' : ''}<ol class="service-timeline order-service-timeline" aria-label="订单全流程进度">${(current.events || []).map((e, i, all) => `<li class="done ${i === all.length - 1 ? 'current' : ''}"><strong>${esc(names[e.status] || e.status)}<small> · ${esc(source[e.kind] || '订单')}</small></strong><time>${date(e.at)}</time>${['aftersale', 'helpdesk'].includes(e.kind) ? `<p>${esc(e.id)}</p>` : ''}</li>`).join('')}</ol>${
         o.items.some((i) => i.service_policy?.configured)
           ? `<details><summary>查看下单时的商品服务政策</summary>${o.items
               .filter((i) => i.service_policy?.configured)
@@ -97,8 +97,11 @@
     const b = e.target.closest('[data-order-service]');
     if (!b || b.disabled) return;
     const action = b.dataset.orderService;
-    if(action==='parcels'){await LumoShipmentTracking.open(current.order.id);return;}
- if (action === 'open' || action === 'retry') {
+    if (action === 'parcels') {
+      await LumoShipmentTracking.open(current.order.id);
+      return;
+    }
+    if (action === 'open' || action === 'retry') {
       await open(b.dataset.id);
       return;
     }

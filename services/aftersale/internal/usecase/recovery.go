@@ -42,9 +42,12 @@ func (s *Service) recoverOne(ctx context.Context, e platform.Event) error {
 	}
 	req := platform.Request{ID: row.ID, UserID: row.UserID, Role: constants.RoleSystem, Data: map[string]any{}}
 	switch row.Status {
- case constants.AftersaleStatusApproving:_,err=s.approveRefund(ctx,row)
- case constants.AftersaleStatusCancelling:_,err=s.releaseRefund(ctx,row,false)
- case constants.AftersaleStatusRejecting:_,err=s.releaseRefund(ctx,row,true)
+	case constants.AftersaleStatusApproving:
+		_, err = s.approveRefund(ctx, row)
+	case constants.AftersaleStatusCancelling:
+		_, err = s.releaseRefund(ctx, row, false)
+	case constants.AftersaleStatusRejecting:
+		_, err = s.releaseRefund(ctx, row, true)
 	case constants.AftersaleStatusInspecting:
 		req.Data["condition"] = row.Condition
 		_, err = s.Inspect(ctx, req)

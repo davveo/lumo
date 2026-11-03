@@ -8,7 +8,9 @@ The cash amount is allocated from original order cash payment; the last cash-ret
 
 Return/refund: REQUESTED → APPROVED → RETURNING → INSPECTING → INSPECTED → REFUND_REQUESTED → REFUNDING → COMPLETED. Refund-only skips physical return but first requires confirmed fulfillment cancellation. Damaged or unsellable returns never increase sellable inventory.
 
-Before shipment, refund-only applications must cover the whole order because warehouse cancellation releases the entire order allocation. Partial refund-only applications are rejected before creating a claim or cancelling fulfillment. Physical returns after shipment can still cover selected purchased lines.
+Paid, unshipped quantities can be cancelled by selected SKU and quantity. Approval persists APPROVING before requesting a warehouse line hold, then becomes APPROVED. Cancelling or rejecting an approved application releases its hold through a recoverable intermediate state. A refund starts only after the warehouse confirms cancellation of those exact lines. If a definitive hold rejection discovers shipment, the application stays editable/cancellable rather than sending an order-wide cancellation. Unpaid orders retain whole-order cancellation.
+
+For partially shipped orders, refund-only claims consume the unshipped pool; return/exchange claims consume the dispatched pool. Both also share the original per-SKU quantity guard. Prices and paid totals remain immutable; the last cash claim absorbs cent rounding. Warehouse dispatch revalidates competing holds under the same order lock. A return cannot include a cancelled, never-shipped unit.
 
 Exchange: receive/inspect old goods → reserve and confirm replacement inventory → create a separate replacement fulfillment → EXCHANGING → replacement delivery → COMPLETED. The implementation accepts same-SKU or equal-price replacement; a price-changing replacement is explicitly rejected until a differential-payment workflow is configured. It does not grant a free upgrade or pretend a supplementary payment exists.
 

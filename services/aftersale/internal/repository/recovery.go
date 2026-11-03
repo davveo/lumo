@@ -18,7 +18,7 @@ func (r *Repository) Pending(ctx context.Context) (spanResult0 []domain.Record, 
 		Where(
 			"status IN ?",
 			[]string{
- constants.AftersaleStatusApproving,constants.AftersaleStatusCancelling,constants.AftersaleStatusRejecting,
+				constants.AftersaleStatusApproving, constants.AftersaleStatusCancelling, constants.AftersaleStatusRejecting,
 				constants.AftersaleStatusInspecting,
 				constants.AftersaleStatusRefundRequested,
 				constants.AftersaleStatusExchangePreparing,

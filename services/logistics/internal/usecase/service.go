@@ -67,8 +67,8 @@ func (s *Service) Create(ctx context.Context, c platform.Request) (traceResult p
 		return nil, err
 	}
 	r := &domain.Record{
-		LinesJSON:platform.Text(c.Data,"lines_json"),
- ID:         c.ID,
+		LinesJSON:  platform.Text(c.Data, "lines_json"),
+		ID:         c.ID,
 		OrderID:    orderID,
 		UserID:     c.UserID,
 		Kind:       kind,

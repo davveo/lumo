@@ -25,4 +25,5 @@ service FulfillmentService {
   rpc CancelLines(ServiceRequest) returns (ServiceResponse);
   rpc ParcelCreate(ServiceRequest) returns (ServiceResponse);
   rpc ParcelCancel(ServiceRequest) returns (ServiceResponse);
+  rpc Deliver(ServiceRequest) returns (ServiceResponse);
 }

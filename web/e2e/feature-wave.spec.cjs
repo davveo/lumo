@@ -1,8 +1,10 @@
 const { test, expect } = require('@playwright/test');
+let sharedAdminToken = '';
 async function admin(page) {
   await page.goto('/admin.html');
   await page.locator('#admin-login button[type="submit"]').click();
   await expect(page.locator('#admin-session')).toBeVisible();
+  sharedAdminToken = await page.evaluate(() => sessionStorage.getItem('lumo-admin-session-v1'));
 }
 test('customer journey rules and manual checks persist in the admin portal', async ({ page, request }) => {
   const login = await request.post('/api/v1/iam/login', {
@@ -180,6 +182,128 @@ test('reviews show an honest empty score and support moderation reasons and resu
     await page.locator('[data-product-extra-action="retry"]').filter({ hasText: '刷新评价' }).click();
     await expect(page.locator('.pex-rating-score')).toContainText('1 条公开评价');
     await expect(page.locator('.pex-rating-score')).not.toContainText('暂无评分');
+  } finally {
+    await context.close();
+  }
+});
+
+test('partial item cancellation and two parcel deliveries preserve quantities through the UI', async ({
+  page,
+  browser,
+  request,
+}) => {
+  await page.goto('/#/login');
+  await page.waitForFunction(() => window.LumoAuth?.model().methodsLoaded && !window.LumoAuth.model().checking);
+  await page.locator('#auth-username').fill('demo');
+  await page.locator('#auth-password').fill('Lumo@2026');
+  await page.locator('#auth-login-form button[type="submit"]').click();
+  await expect.poll(() => page.evaluate(() => window.LumoAuth?.user()?.id)).toBe('demo');
+  const call = (service, action, command = {}) =>
+    page.evaluate(({ service, action, command }) => LumoAPI.call(service, action, command), {
+      service,
+      action,
+      command,
+    });
+  let token = sharedAdminToken;
+  if (!token) {
+    const login = await request.post('/api/v1/iam/login', {
+      data: { data: { username: 'admin', password: 'Admin@2026' } },
+    });
+    token = (await login.json()).data.token;
+  }
+  const staff = async (service, action, command = {}) => {
+    const response = await request.post(`/api/v1/${service}/${action}`, {
+      headers: { Authorization: 'Bearer ' + token },
+      data: command,
+    });
+    expect(response.ok()).toBe(true);
+    return (await response.json()).data;
+  };
+  const quote = await call('checkout', 'quote', {
+    data: {
+      items: [
+        { sku_id: 'coffee', quantity: 2 },
+        { sku_id: 'headphones', quantity: 1 },
+      ],
+      coupon_mode: 'none',
+    },
+  });
+  const order = await call('checkout', 'submit', {
+    idempotency_key: 'browser-split-parcels',
+    data: {
+      quote_id: quote.quote_id,
+      address: { recipient: '拆包验收', phone: '13800138000', address: '隔离测试路1号' },
+    },
+  });
+  const payment = await call('payment', 'create', { id: order.order_id });
+  await call('payment', 'submit_demo', { id: payment.id });
+  await expect.poll(async () => (await call('order', 'get', { id: order.order_id })).status).toBe('READY_TO_FULFILL');
+  await page.goto('/#/member/orders');
+  await page.locator(`[data-member-action="aftersale"][data-id="${order.order_id}"]`).click();
+  const form = page.locator('#member-aftersale-form');
+  await expect(form).toBeVisible();
+  await expect(form.locator('[name="line-0"]')).not.toHaveAttribute('readonly', '');
+  await form.locator('[name="line-0"]').fill('1');
+  await form.locator('[name="line-1"]').fill('0');
+  await form.locator('button[type="submit"]').click();
+  await expect(form).toHaveCount(0);
+  const claims = await staff('aftersale', 'admin_list', { data: { keyword: order.order_id } }),
+    claim = claims.items.find((r) => r.order_id === order.order_id);
+  expect(claim).toBeTruthy();
+  expect(JSON.parse(claim.lines_json)).toEqual([{ sku_id: 'coffee', quantity: 1 }]);
+  await staff('aftersale', 'approve', { id: claim.id });
+  await staff('aftersale', 'refund', { id: claim.id });
+  const context = await browser.newContext({ baseURL: process.env.BROWSER_BASE_URL });
+  try {
+    const panel = await context.newPage();
+    await panel.addInitScript((t) => sessionStorage.setItem('lumo-admin-session-v1', t), token);
+    await panel.goto('/admin.html');
+    await expect(panel.locator('#admin-session')).toBeVisible();
+    await panel.locator('[data-tab="fulfillment"]').click();
+    await expect(panel.locator('#op-fulfillment [data-op-filter] button.primary')).toBeEnabled();
+    await panel.locator('#op-fulfillment [data-op-filter] [name="keyword"]').fill(order.order_id);
+    await panel.locator('#op-fulfillment [data-op-filter] button.primary').click();
+    await expect(panel.locator('#op-fulfillment [data-op="detail"]')).toHaveCount(1);
+    await panel.locator(`#op-fulfillment [data-op="detail"][data-id="${order.order_id}"]`).click();
+    await expect(panel.locator('.parcel-workspace')).toBeVisible();
+    await panel.locator('[data-parcel-sku="coffee"]').fill('1');
+    await panel.locator('[data-parcel-create]').evaluate((f) => f.requestSubmit());
+    await expect(panel.locator('.parcel-card')).toHaveCount(1);
+    await panel.locator('[data-parcel-sku="headphones"]').fill('1');
+    await panel.locator('[data-parcel-create]').evaluate((f) => f.requestSubmit());
+    await expect(panel.locator('.parcel-card')).toHaveCount(2);
+    await panel.screenshot({ path: '/private/tmp/lumo-parcel-admin-desktop.png', fullPage: true });
+    await panel.setViewportSize({ width: 390, height: 844 });
+    await expect.poll(() => panel.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await panel.screenshot({ path: '/private/tmp/lumo-parcel-admin-mobile.png', fullPage: true });
+    await panel.setViewportSize({ width: 1440, height: 1000 });
+    const cards = panel.locator('.parcel-card');
+    await cards.nth(0).getByRole('button', { name: '确认出库', exact: true }).click();
+    await panel.locator('[data-op-confirm] button[type="submit"], [data-op-confirm] button.primary').first().click();
+    await expect(cards.nth(0)).toContainText('已发货');
+    await expect
+      .poll(async () => (await call('order', 'get', { id: order.order_id })).status)
+      .toBe('PARTIALLY_SHIPPED');
+    await page.evaluate((id) => LumoShipmentTracking.open(id), order.order_id);
+    await expect(page.locator('.parcel-progress-summary')).toContainText('待发货');
+    await expect(page.locator('.tracking-shipment')).toHaveCount(1);
+    await page.screenshot({ path: '/private/tmp/lumo-parcel-member-progress.png', fullPage: true });
+    await cards.nth(0).getByRole('button', { name: '确认演示签收', exact: true }).click();
+    await panel.locator('[data-op-confirm] button.primary').click();
+    await expect(cards.nth(0)).toContainText('已签收');
+    await expect
+      .poll(async () => (await call('order', 'get', { id: order.order_id })).status)
+      .toBe('PARTIALLY_SHIPPED');
+    await cards.nth(1).getByRole('button', { name: '确认出库', exact: true }).click();
+    await panel.locator('[data-op-confirm] button.primary').click();
+    await expect(cards.nth(1)).toContainText('已发货');
+    await expect.poll(async () => (await call('order', 'get', { id: order.order_id })).status).toBe('SHIPPED');
+    await cards.nth(1).getByRole('button', { name: '确认演示签收', exact: true }).click();
+    await panel.locator('[data-op-confirm] button.primary').click();
+    await expect(cards.nth(1)).toContainText('已签收');
+    await expect.poll(async () => (await call('order', 'get', { id: order.order_id })).status).toBe('COMPLETED');
+    const final = await call('order', 'get', { id: order.order_id });
+    expect(final.payable_cents).toBe(quote.payable_cents);
   } finally {
     await context.close();
   }

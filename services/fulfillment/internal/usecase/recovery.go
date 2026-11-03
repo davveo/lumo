@@ -41,8 +41,11 @@ func (s *Service) recoverOne(ctx context.Context, e platform.Event) error {
 		return nil
 	}
 	req := platform.Request{ID: row.ID, UserID: row.UserID, Role: constants.RoleSystem, Data: map[string]any{}}
-	if row.Kind==constants.FulfillmentKindCancellation{_,err=s.cancelHeld(ctx,row);return err}
- if row.Status == constants.FulfillmentStatusDispatching {
+	if row.Kind == constants.FulfillmentKindCancellation {
+		_, err = s.cancelHeld(ctx, row)
+		return err
+	}
+	if row.Status == constants.FulfillmentStatusDispatching {
 		_, err = s.Dispatch(ctx, req)
 	} else {
 		_, err = s.Cancel(ctx, req)

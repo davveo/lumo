@@ -70,7 +70,8 @@ func (s *Service) BeginDispatch(ctx context.Context, in OrderRequest) (domain.Or
 		in,
 		internalAccess,
 		func(_ *repository.Tx, o *domain.Order) (transition, error) {
-			if (o.Status != constants.OrderStatusReadyToFulfill && o.Status!=constants.OrderStatusPartiallyShipped) || !o.ResourcesCommitted {
+			if (o.Status != constants.OrderStatusReadyToFulfill && o.Status != constants.OrderStatusPartiallyShipped) ||
+				!o.ResourcesCommitted {
 				return transition{}, status.Error(codes.FailedPrecondition, "order is not ready for warehouse dispatch")
 			}
 			if o.DispatchStarted {

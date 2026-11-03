@@ -155,7 +155,13 @@
     ],
     [C.Service.Order]: [C.Action.List, C.Action.AdminList, C.Action.AdminSummary],
     [C.Service.Aftersale]: [C.Action.List, C.Action.Get, C.Action.AdminList, C.Action.AdminSummary],
-    [C.Service.Fulfillment]: [C.Action.LineState,C.Action.List, C.Action.Get, C.Action.AdminList, C.Action.AdminSummary],
+    [C.Service.Fulfillment]: [
+      C.Action.LineState,
+      C.Action.List,
+      C.Action.Get,
+      C.Action.AdminList,
+      C.Action.AdminSummary,
+    ],
     [C.Service.Invoice]: [C.Action.List, C.Action.Get, C.Action.Reversals, C.Action.AdminList, C.Action.AdminSummary],
     [C.Service.Notification]: [C.Action.List, C.Action.TemplatesAdmin],
     [C.Service.Payment]: [

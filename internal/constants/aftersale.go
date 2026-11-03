@@ -2,10 +2,10 @@ package constants
 
 // enum:AftersaleStatus
 const (
-	AftersaleStatusApproving = "APPROVING"
- AftersaleStatusCancelling = "CANCELLING"
- AftersaleStatusRejecting = "REJECTING"
- AftersaleStatusRequested         = "REQUESTED"
+	AftersaleStatusApproving         = "APPROVING"
+	AftersaleStatusCancelling        = "CANCELLING"
+	AftersaleStatusRejecting         = "REJECTING"
+	AftersaleStatusRequested         = "REQUESTED"
 	AftersaleStatusApproved          = "APPROVED"
 	AftersaleStatusRejected          = "REJECTED"
 	AftersaleStatusCancelled         = "CANCELLED"

@@ -11,7 +11,7 @@ import (
 
 func (s *Service) Topics() []string {
 	return []string{
- constants.EventFulfillmentProgress,
+		constants.EventFulfillmentProgress,
 		constants.EventPaymentSucceeded,
 		constants.EventRefundSucceeded,
 		constants.EventShipmentDispatched,
@@ -30,7 +30,8 @@ func (s *Service) OnEvent(ctx context.Context, event platform.Event) error {
 		ID:    platform.Text(event.Data, "order_id"),
 	}
 	switch event.Type {
- case constants.EventFulfillmentProgress:return s.parcelProgress(ctx,event)
+	case constants.EventFulfillmentProgress:
+		return s.parcelProgress(ctx, event)
 	case constants.EventPaymentSucceeded:
 		_, err := s.AcceptPayment(ctx, AcceptPaymentRequest{
 			OrderRequest: request,
@@ -47,13 +48,15 @@ func (s *Service) OnEvent(ctx context.Context, event platform.Event) error {
 		})
 		return err
 	case constants.EventShipmentDispatched:
-		if platform.Text(event.Data, "kind") == constants.FulfillmentKindExchange || platform.Text(event.Data,"kind")==constants.FulfillmentKindParcel {
+		if platform.Text(event.Data, "kind") == constants.FulfillmentKindExchange ||
+			platform.Text(event.Data, "kind") == constants.FulfillmentKindParcel {
 			return nil
 		}
 		_, err := s.Shipped(ctx, request)
 		return err
 	case constants.EventDeliveryConfirmed:
-		if platform.Text(event.Data, "kind") == constants.FulfillmentKindExchange || platform.Text(event.Data,"kind")==constants.FulfillmentKindParcel {
+		if platform.Text(event.Data, "kind") == constants.FulfillmentKindExchange ||
+			platform.Text(event.Data, "kind") == constants.FulfillmentKindParcel {
 			return nil
 		}
 		_, err := s.Complete(ctx, request)

@@ -22,7 +22,11 @@ type Service struct {
 }
 
 func (s *Service) Topics() []string {
-	return []string{constants.EventFulfillmentRecoveryRequested, constants.EventOrderReadyToFulfill, constants.EventDeliveryConfirmed}
+	return []string{
+		constants.EventFulfillmentRecoveryRequested,
+		constants.EventOrderReadyToFulfill,
+		constants.EventDeliveryConfirmed,
+	}
 }
 func internal(c platform.Request) bool {
 	return c.Role == constants.RoleSystem || c.Role == constants.RoleAdmin
@@ -34,8 +38,10 @@ func owned(c platform.Request, r *domain.Record) error {
 	return nil
 }
 func (s *Service) OnEvent(ctx context.Context, e platform.Event) (traceErr error) {
-	if e.Type == constants.EventDeliveryConfirmed {return s.deliveredParcel(ctx,e)}
- if e.Type == constants.EventFulfillmentRecoveryRequested {
+	if e.Type == constants.EventDeliveryConfirmed {
+		return s.deliveredParcel(ctx, e)
+	}
+	if e.Type == constants.EventFulfillmentRecoveryRequested {
 		return s.recoverOne(ctx, e)
 	}
 	if e.Type != constants.EventOrderReadyToFulfill {
@@ -244,7 +250,9 @@ func (s *Service) Dispatch(ctx context.Context, c platform.Request) (traceResult
 	if err != nil {
 		return nil, err
 	}
-if r.Kind==constants.FulfillmentKindParcel{return s.dispatchParcel(ctx,r)}
+	if r.Kind == constants.FulfillmentKindParcel {
+		return s.dispatchParcel(ctx, r)
+	}
 	if r.Status == constants.FulfillmentStatusDispatched {
 		return platform.Map(r), nil
 	}
@@ -334,9 +342,15 @@ func (s *Service) Get(ctx context.Context, c platform.Request) (traceResult plat
 	if err = owned(c, r); err != nil {
 		return nil, err
 	}
-	out:=platform.Map(r)
- if r.Parcelized&&r.Kind==constants.FulfillmentKindOrder{plan,e:=s.Repo.PlanState(ctx,r.ID);if e!=nil{return nil,e};out["plan"]=plan.Result()}
- return out, nil
+	out := platform.Map(r)
+	if r.Parcelized && r.Kind == constants.FulfillmentKindOrder {
+		plan, e := s.Repo.PlanState(ctx, r.ID)
+		if e != nil {
+			return nil, e
+		}
+		out["plan"] = plan.Result()
+	}
+	return out, nil
 }
 
 func (s *Service) InspectReturn(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {

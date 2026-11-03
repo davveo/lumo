@@ -39,7 +39,7 @@ func TestIndependentOperationsKeepWireContractsAndAuthorization(t *testing.T) {
 		},
 		{
 			"fulfillment",
-			"line_state hold_lines release_hold cancel_lines parcel_create parcel_cancel list get create_exchange create_gift dispatch cancel inspect_return inspect_returns admin_list admin_summary",
+			"deliver line_state hold_lines release_hold cancel_lines parcel_create parcel_cancel list get create_exchange create_gift dispatch cancel inspect_return inspect_returns admin_list admin_summary",
 			"dispatch",
 			fulfillment.New,
 			codes.PermissionDenied,

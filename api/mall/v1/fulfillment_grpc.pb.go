@@ -37,6 +37,7 @@ const (
 	FulfillmentService_CancelLines_FullMethodName    = "/mall.v1.FulfillmentService/CancelLines"
 	FulfillmentService_ParcelCreate_FullMethodName   = "/mall.v1.FulfillmentService/ParcelCreate"
 	FulfillmentService_ParcelCancel_FullMethodName   = "/mall.v1.FulfillmentService/ParcelCancel"
+	FulfillmentService_Deliver_FullMethodName        = "/mall.v1.FulfillmentService/Deliver"
 )
 
 // FulfillmentServiceClient is the client API for FulfillmentService service.
@@ -59,6 +60,7 @@ type FulfillmentServiceClient interface {
 	CancelLines(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	ParcelCreate(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 	ParcelCancel(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
+	Deliver(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error)
 }
 
 type fulfillmentServiceClient struct {
@@ -213,6 +215,15 @@ func (c *fulfillmentServiceClient) ParcelCancel(ctx context.Context, in *Service
 	return out, nil
 }
 
+func (c *fulfillmentServiceClient) Deliver(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*ServiceResponse, error) {
+	out := new(ServiceResponse)
+	err := c.cc.Invoke(ctx, FulfillmentService_Deliver_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // FulfillmentServiceServer is the server API for FulfillmentService service.
 // All implementations must embed UnimplementedFulfillmentServiceServer
 // for forward compatibility
@@ -233,6 +244,7 @@ type FulfillmentServiceServer interface {
 	CancelLines(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	ParcelCreate(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	ParcelCancel(context.Context, *ServiceRequest) (*ServiceResponse, error)
+	Deliver(context.Context, *ServiceRequest) (*ServiceResponse, error)
 	mustEmbedUnimplementedFulfillmentServiceServer()
 }
 
@@ -287,6 +299,9 @@ func (UnimplementedFulfillmentServiceServer) ParcelCreate(context.Context, *Serv
 }
 func (UnimplementedFulfillmentServiceServer) ParcelCancel(context.Context, *ServiceRequest) (*ServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ParcelCancel not implemented")
+}
+func (UnimplementedFulfillmentServiceServer) Deliver(context.Context, *ServiceRequest) (*ServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Deliver not implemented")
 }
 func (UnimplementedFulfillmentServiceServer) mustEmbedUnimplementedFulfillmentServiceServer() {}
 
@@ -589,6 +604,24 @@ func _FulfillmentService_ParcelCancel_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FulfillmentService_Deliver_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FulfillmentServiceServer).Deliver(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FulfillmentService_Deliver_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FulfillmentServiceServer).Deliver(ctx, req.(*ServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // FulfillmentService_ServiceDesc is the grpc.ServiceDesc for FulfillmentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -659,6 +692,10 @@ var FulfillmentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ParcelCancel",
 			Handler:    _FulfillmentService_ParcelCancel_Handler,
+		},
+		{
+			MethodName: "Deliver",
+			Handler:    _FulfillmentService_Deliver_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

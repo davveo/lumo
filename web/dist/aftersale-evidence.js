@@ -31,7 +31,7 @@
       order_id: current.order.id,
       type: { '仅退款': 'refund', '退货退款': 'return', '换货': 'exchange' }[String(data.get('type'))],
       lines: current.order.items
-        .map((item, i) => ({ sku_id: LumoCommerce.skuForItem(item), quantity: Number(data.get('line-' + i)||0) }))
+        .map((item, i) => ({ sku_id: LumoCommerce.skuForItem(item), quantity: Number(data.get('line-' + i) || 0) }))
         .filter((i) => i.quantity > 0),
     };
   }
@@ -68,14 +68,37 @@
     }
   }
   function quantityLimits() {
-    if(!current)return;const form=current.form,order=current.order,type=lines(form).type;
-    const claimed=(LumoMember.model().aftersales||[]).filter(a=>a.orderId===order.id&&!['REJECTED','CANCELLED'].includes(a.backendStatus));
-    order.items.forEach((item,i)=>{
-      const sku=LumoCommerce.skuForItem(item),p=(order.fulfillment_progress||[]).find(l=>l.sku_id===sku);
-      const shipped=p?Number(p.shipped||0)+Number(p.dispatching||0):['SHIPPED','COMPLETED'].includes(order.backendStatus)?Number(item.qty):0;
-      let available=type==='refund'?Number(item.qty)-shipped:shipped;
-      claimed.filter(a=>(type==='refund')===(a.type==='仅退款')).forEach(a=>parse(a.lines_json,[]).forEach(l=>{if(l.sku_id===sku)available-=Number(l.quantity)}));
-      const input=form.elements.namedItem('line-'+i);if(input){input.max=String(Math.max(0,available));input.value=input.max;input.disabled=available<=0;}
+    if (!current) return;
+    const form = current.form,
+      order = current.order,
+      type = lines(form).type;
+    const claimed = (LumoMember.model().aftersales || []).filter(
+      (a) =>
+        a.orderId === order.id &&
+        ![LumoConstants.AftersaleStatus.Rejected, LumoConstants.AftersaleStatus.Cancelled].includes(a.backendStatus),
+    );
+    order.items.forEach((item, i) => {
+      const sku = LumoCommerce.skuForItem(item),
+        p = (order.fulfillment_progress || []).find((l) => l.sku_id === sku);
+      const shipped = p
+        ? Number(p.shipped || 0)
+        : [LumoConstants.OrderStatus.Shipped, LumoConstants.OrderStatus.Completed].includes(order.backendStatus)
+          ? Number(item.qty)
+          : 0;
+      let available = type === 'refund' ? Number(item.qty) - shipped - Number(p?.dispatching || 0) : shipped;
+      claimed
+        .filter((a) => (type === 'refund') === (a.type === '仅退款'))
+        .forEach((a) =>
+          parse(a.lines_json, []).forEach((l) => {
+            if (l.sku_id === sku) available -= Number(l.quantity);
+          }),
+        );
+      const input = form.elements.namedItem('line-' + i);
+      if (input) {
+        input.max = String(Math.max(0, available));
+        input.value = input.max;
+        input.disabled = available <= 0;
+      }
     });
   }
   function attach(order) {
@@ -83,7 +106,7 @@
     const form = document.getElementById('member-aftersale-form');
     if (!form) return;
     current = { form, order, scope: scope(), files: [], busy: false };
- quantityLimits();
+    quantityLimits();
     void preview();
   }
   function evidenceFor(form) {
@@ -98,7 +121,11 @@
     return `<section class="after-case-detail"><dl class="service-definition"><div><dt>售后单号</dt><dd>${esc(a.id)}</dd></div><div><dt>关联订单</dt><dd>${esc(a.orderId || a.order_id)}</dd></div><div><dt>申请类型</dt><dd>${esc(a.type)}</dd></div><div><dt>申请金额</dt><dd>¥${(Number(a.amount_cents || 0) / 100).toFixed(2)}</dd></div><div><dt>申请原因</dt><dd>${esc(a.reason || '')}</dd></div><div><dt>寄回单号</dt><dd>${esc(a.return_tracking || '尚未提交')}</dd></div></dl>${files.length ? `<h3>申请图片凭证</h3><div class="svc-modal-actions">${files.map((f) => `<button class="outline" data-after-evidence="${esc(f.file_id)}" data-case="${esc(a.id)}">查看图片：${esc(f.file_name)}</button>`).join('')}</div>` : ''}<h3>处理与寄回说明</h3>${policy(p)}${p.return_address ? `<p>请在审核通过后寄回：${esc(p.return_recipient)} ${esc(p.return_phone)}<br>${esc(p.return_address)}</p>` : '<p>退货地址尚未配置，请在审核通过后联系客服确认，勿自行寄回。</p>'}<p class="secure-note">保存好包装与运单凭证，实际到账时间以原支付渠道为准。</p></section>`;
   }
   document.addEventListener('change', async (e) => {
- if(e.target.matches('#member-aftersale-form [name="type"]')){quantityLimits();void preview();return;}
+    if (e.target.matches('#member-aftersale-form [name="type"]')) {
+      quantityLimits();
+      void preview();
+      return;
+    }
     const form = e.target.closest('#member-aftersale-form');
     if (!form || current?.form !== form) return;
     if (e.target.name !== 'evidence_upload') {

@@ -8,12 +8,13 @@ import (
 
 func New(s *usecase.Service) *platform.MethodHandler {
 	return platform.NewMethodHandler(constants.ServiceFulfillment, map[string]platform.Operation{
- constants.ActionLineState: s.LineState,
- constants.ActionHoldLines: s.HoldLines,
- constants.ActionReleaseHold: s.ReleaseHold,
- constants.ActionCancelLines: s.CancelLines,
- constants.ActionParcelCreate: s.ParcelCreate,
- constants.ActionParcelCancel: s.ParcelCancel,
+		constants.ActionDeliver:        s.Deliver,
+		constants.ActionLineState:      s.LineState,
+		constants.ActionHoldLines:      s.HoldLines,
+		constants.ActionReleaseHold:    s.ReleaseHold,
+		constants.ActionCancelLines:    s.CancelLines,
+		constants.ActionParcelCreate:   s.ParcelCreate,
+		constants.ActionParcelCancel:   s.ParcelCancel,
 		constants.ActionCreateGift:     s.CreateGift,
 		constants.ActionInspectReturns: s.InspectReturns,
 		constants.ActionAdminList:      s.AdminList,

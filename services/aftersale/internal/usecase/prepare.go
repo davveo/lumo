@@ -22,7 +22,7 @@ func prepareClaim(c platform.Request, o platform.Result, typ string) (preparedCl
 	var err error
 	state := platform.Text(o, "status")
 	if state != constants.OrderStatusReadyToFulfill && state != constants.OrderStatusShipped &&
-		state != constants.OrderStatusCompleted && state!=constants.OrderStatusPartiallyShipped {
+		state != constants.OrderStatusCompleted && state != constants.OrderStatusPartiallyShipped {
 		return preparedClaim{}, status.Error(codes.FailedPrecondition, "order is not eligible for aftersale")
 	}
 	var items []orderLine

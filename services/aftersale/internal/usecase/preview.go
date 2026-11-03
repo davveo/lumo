@@ -75,7 +75,7 @@ func (s *Service) Preview(ctx context.Context, c platform.Request) (platform.Res
 		LinesJSON:   string(lines),
 		AmountCents: prepared.Amount,
 	}
-	if e = s.Repo.PreviewClaim(ctx, row, prepared.Purchased, prepared.Payable,stageLimits(o,prepared.Purchased,typ)); e != nil {
+	if e = s.Repo.PreviewClaim(ctx, row, prepared.Purchased, prepared.Payable, stageLimits(o, prepared.Purchased, typ)); e != nil {
 		return nil, e
 	}
 	var snapshot struct {

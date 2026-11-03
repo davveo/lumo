@@ -240,6 +240,7 @@ var namedOperationActions = map[string]map[string]string{
 		"CancelLines":    constants.ActionCancelLines,
 		"ParcelCreate":   constants.ActionParcelCreate,
 		"ParcelCancel":   constants.ActionParcelCancel,
+		"Deliver":        constants.ActionDeliver,
 	},
 	constants.ServiceGroup: {
 		"Cancel":     constants.ActionCancel,
@@ -1626,6 +1627,14 @@ func (client FulfillmentMethods) ParcelCancel(
 	return invokeMethod(
 		ctx, client.caller, constants.ServiceFulfillment, "ParcelCancel",
 		constants.ActionParcelCancel, request,
+	)
+}
+func (client FulfillmentMethods) Deliver(
+	ctx context.Context, request Request,
+) (Result, error) {
+	return invokeMethod(
+		ctx, client.caller, constants.ServiceFulfillment, "Deliver",
+		constants.ActionDeliver, request,
 	)
 }
 
@@ -4220,6 +4229,12 @@ var namedServiceRPCs = map[string]map[string]serviceRPC{
 				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
 				return mallv1.NewFulfillmentServiceClient(connection).ParcelCancel(ctx, request)
 			}},
+		constants.ActionDeliver: {
+			fullMethod: mallv1.FulfillmentService_Deliver_FullMethodName,
+			invoke: func(ctx context.Context, connection grpc.ClientConnInterface,
+				request *mallv1.ServiceRequest) (*mallv1.ServiceResponse, error) {
+				return mallv1.NewFulfillmentServiceClient(connection).Deliver(ctx, request)
+			}},
 	},
 	constants.ServiceGroup: {
 		constants.ActionCancel: {
@@ -6151,6 +6166,11 @@ func (server *fulfillmentRPCServer) ParcelCancel(
 	ctx context.Context, request *mallv1.ServiceRequest,
 ) (*mallv1.ServiceResponse, error) {
 	return serveMethod(ctx, server.operations[constants.ActionParcelCancel], request)
+}
+func (server *fulfillmentRPCServer) Deliver(
+	ctx context.Context, request *mallv1.ServiceRequest,
+) (*mallv1.ServiceResponse, error) {
+	return serveMethod(ctx, server.operations[constants.ActionDeliver], request)
 }
 
 type groupRPCServer struct {

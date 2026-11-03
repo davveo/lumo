@@ -442,15 +442,86 @@
   flex-wrap: wrap;
 }
 
-.parcel-create {padding:24px 0;border-top:1px solid var(--border,#e5e7eb);margin-top:20px}
-.parcel-quantity-list {display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:16px}
-.parcel-quantity-list .field {display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:20px;padding:16px;background:#f8fafc;border-radius:12px}
-.parcel-quantity-list .field small {display:block;margin-top:6px;color:#7b8799}
-.parcel-quantity-list input {width:88px;min-width:70px;flex:0 0 88px}
-.parcel-card-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:20px;margin-top:24px}
-.parcel-card {border:1px solid #e5e7eb;border-radius:16px;padding:22px;min-width:0}
-.parcel-card header {display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
-.parcel-card>small,.parcel-card p {overflow-wrap:anywhere;color:#7b8799}
-.parcel-card ul {list-style:none;padding:0;margin:20px 0}
-.parcel-card li {display:flex;justify-content:space-between;gap:16px;padding:8px 0}
-.parcel-card .admin-actions {margin-top:22px;gap:12px}
+.parcel-create {
+  padding: 24px 0;
+  border-top: 1px solid var(--border, #e5e7eb);
+  margin-top: 20px;
+}
+.parcel-quantity-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.parcel-quantity-list .field {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+.parcel-quantity-list .field small {
+  display: block;
+  margin-top: 6px;
+  color: #7b8799;
+}
+.parcel-quantity-list input {
+  width: 88px;
+  min-width: 70px;
+  flex: 0 0 88px;
+}
+.parcel-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+.parcel-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 22px;
+  min-width: 0;
+}
+.parcel-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.parcel-card > small,
+.parcel-card p {
+  overflow-wrap: anywhere;
+  color: #7b8799;
+}
+.parcel-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+}
+.parcel-card li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+}
+.parcel-card .admin-actions {
+  margin-top: 22px;
+  gap: 12px;
+}
+.parcel-workspace > .admin-panel-heading {
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.parcel-workspace > .admin-panel-heading > div {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.parcel-workspace > .admin-panel-heading > button {
+  flex: none;
+  white-space: nowrap;
+}

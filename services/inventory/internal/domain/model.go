@@ -46,9 +46,9 @@ type Adjustment struct {
 // LineOperation is an immutable receipt; operation IDs cannot be reused with
 // another reservation, direction or quantity.
 type LineOperation struct {
- ID string `gorm:"primaryKey;size:120"`
- ReservationID string `gorm:"index;size:120"`
- Kind string `gorm:"size:30"`
- LinesJSON string `gorm:"type:text"`
- CreatedAt time.Time
+	ID            string `gorm:"primaryKey;size:120"`
+	ReservationID string `gorm:"index;size:120"`
+	Kind          string `gorm:"size:30"`
+	LinesJSON     string `gorm:"type:text"`
+	CreatedAt     time.Time
 }

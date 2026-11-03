@@ -645,6 +645,10 @@
         {
           "action": "ActionParcelCancel",
           "method": "ParcelCancel"
+        },
+        {
+          "action": "ActionDeliver",
+          "method": "Deliver"
         }
       ]
     },
