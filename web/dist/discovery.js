@@ -14,6 +14,8 @@
   let catalogSignature = '';
   let lastTotal = 0;
   let remotePage = null;
+  let attributeDraft = null,
+    attributeFocus = null;
   let activeSuggestion = -1;
   let comparison = [],
     history = [],
@@ -41,6 +43,8 @@
     ]);
   };
   const searchSignature = () => JSON.stringify([ui.query, ui.category, data().filters, ui.sort, ui.min, ui.max]);
+  const attributeContext = () =>
+    JSON.stringify([currentOwner(), ui.query, ui.category, data().filters.attribute || '']);
   function refreshSearch(force = false, more = false) {
     const signature = searchSignature(),
       owner = currentOwner();
@@ -308,6 +312,7 @@
     return rows;
   }
   function resetFilters() {
+    attributeDraft = null;
     data().filters = { brand: 'all', inStock: false };
     ui.min = '';
     ui.max = '';
@@ -315,20 +320,37 @@
     catalogSignature = '';
     save();
   }
+  function currentSearchPage() {
+    return remotePage?.signature === searchSignature() && remotePage.owner === currentOwner() ? remotePage : null;
+  }
   function controls() {
     const current = data(),
       brands = [...new Set(products.filter((p) => p.visible !== false).map(brandFor))].sort();
+    const draftKey = attributeContext(),
+      focused = document.activeElement;
+    if (attributeDraft?.key !== draftKey) attributeDraft = null;
+    attributeFocus =
+      focused?.id === 'discovery-attribute'
+        ? { key: draftKey, start: focused.selectionStart, end: focused.selectionEnd }
+        : null;
+    const attributeValue = attributeDraft?.value ?? current.filters.attribute ?? '';
+    if (current.filters.brand !== 'all' && !brands.includes(current.filters.brand))
+      brands.unshift(current.filters.brand);
     const active =
-      current.filters.brand !== 'all' || current.filters.inStock || current.filters.attribute || ui.min || ui.max;
-    const page = remotePage?.signature === searchSignature() && remotePage.owner === currentOwner() ? remotePage : null;
-    const recovery =
-      page && !page.items.length && !page.hasMore
-        ? `<section class="disc-recovery"><h3>换个方式找好物</h3><button data-discovery-action="broaden">保留关键词，放宽筛选</button><p>其他在售好物</p>${(page.recovery || []).map((p) => `<a class="outline" href="#/product/${encodeURIComponent(p.product_id || p.id)}">${esc(p.name)} · ¥${(Number(p.price_cents) / 100).toFixed(2)} · 有货</a>`).join('')}</section>`
-        : '';
+        current.filters.brand !== 'all' || current.filters.inStock || current.filters.attribute || ui.min || ui.max,
+      page = currentSearchPage();
     const correction = page?.corrected
-      ? `<p role="status">已按“${esc(page.appliedQuery)}”搜索 <button data-discovery-action="exact-query">仍搜索“${esc(ui.query)}”</button></p>`
+      ? `<div class="disc-correction" role="status">${icon('search')}<span>已为你搜索 <strong>${esc(page.appliedQuery)}</strong></span><button data-discovery-action="exact-query">仍搜索“${esc(ui.query)}”</button></div>`
       : '';
-    return `${correction}${queryError ? `<p class="disc-search-label" role="alert">${esc(queryError)}</p>` : ''}${recovery}<div class="disc-controls"><label class="disc-brand-filter"><span>品牌</span><select data-discovery-filter="brand" aria-label="按品牌筛选商品"><option value="all">全部品牌</option>${brands.map((brand) => `<option value="${esc(brand)}" ${current.filters.brand === brand ? 'selected' : ''}>${esc(brand)}</option>`).join('')}</select></label><label class="disc-stock-filter"><input type="checkbox" data-discovery-filter="stock" ${current.filters.inStock ? 'checked' : ''}>仅看有货</label>${active ? '<button class="disc-clear-filters" data-discovery-action="reset-filters">清除筛选</button>' : ''}<label>规格关键词<input aria-label="按规格参数筛选商品" data-discovery-filter="attribute" maxlength="60" value="${esc(current.filters.attribute || '')}" placeholder="如 256GB、棉"></label><a class="disc-compare-entry" href="#/compare">${icon('layers')}商品对比${current.compareIds.length ? `<span>${current.compareIds.length}</span>` : ''}</a></div>`;
+    return `${correction}${queryError ? `<p class="disc-search-label" role="alert">${esc(queryError)}</p>` : ''}<section class="disc-filter-surface" aria-label="商品筛选"><div class="disc-controls"><label class="disc-brand-filter"><span>品牌</span><select data-discovery-filter="brand" aria-label="按品牌筛选商品"><option value="all">全部品牌</option>${brands.map((brand) => `<option value="${esc(brand)}" ${current.filters.brand === brand ? 'selected' : ''}>${esc(brand)}</option>`).join('')}</select></label><form id="discovery-attribute-form" class="disc-spec-filter"><label for="discovery-attribute">规格关键词</label><div>${icon('search')}<input id="discovery-attribute" name="attribute" aria-label="按规格参数筛选商品" maxlength="60" value="${esc(attributeValue)}" placeholder="容量、材质等，如 256GB"><button type="submit">筛选规格</button></div></form><label class="disc-stock-filter"><input type="checkbox" data-discovery-filter="stock" ${current.filters.inStock ? 'checked' : ''}><span>仅看有货</span></label><a class="disc-compare-entry" href="#/compare">${icon('layers')}商品对比${current.compareIds.length ? `<span>${current.compareIds.length}</span>` : ''}</a></div>${active ? `<div class="disc-active-filters"><span>当前筛选</span>${current.filters.brand !== 'all' ? `<span class="disc-filter-chip">${esc(current.filters.brand)}</span>` : ''}${current.filters.attribute ? `<button class="disc-filter-chip" data-discovery-action="clear-attribute">${esc(current.filters.attribute)} ${icon('close')}</button>` : ''}${current.filters.inStock ? '<span class="disc-filter-chip">仅看有货</span>' : ''}${ui.min || ui.max ? `<span class="disc-filter-chip">¥${esc(ui.min || '0')} – ${ui.max ? '¥' + esc(ui.max) : '不限'}</span>` : ''}<button class="disc-clear-filters" data-discovery-action="reset-filters">清除筛选</button></div>` : ''}</section>`;
+  }
+  function emptyResults() {
+    const page = currentSearchPage(),
+      current = data(),
+      filtered =
+        current.filters.brand !== 'all' || current.filters.inStock || current.filters.attribute || ui.min || ui.max;
+    const alternatives = page?.recovery || [];
+    return `<section class="disc-empty-results"><div class="disc-empty-symbol">${icon('search')}</div><div><h3>${ui.query ? '暂时没有找到相关好物' : '当前筛选下没有合适的好物'}</h3><p>${filtered ? '可以保留关键词，放宽品牌、规格或价格条件再试试。' : '试试更简短的关键词，或从下方好物中寻找灵感。'}</p><div class="disc-empty-actions">${filtered ? '<button class="primary" data-discovery-action="broaden">放宽筛选条件</button>' : '<button class="primary" data-discovery-action="focus-search">换个关键词</button>'}<button class="outline" data-action="reset-filters">浏览全部好物</button></div></div></section>${alternatives.length ? `<section class="disc-recovery"><div class="disc-recovery-heading"><div><h3>也许你会喜欢</h3><p>这些在售好物，也值得看看</p></div><span>${alternatives.length} 件好物</span></div><div class="disc-recovery-grid">${alternatives.map((p) => `<a class="disc-recovery-card" href="#/product/${encodeURIComponent(p.product_id || p.id)}"><div class="disc-recovery-image"><img src="${esc(asset(p.image))}" alt="${esc(p.name)}" loading="lazy"></div><div class="disc-recovery-copy"><span>${esc(p.category || p.brand || '精选好物')}</span><h4>${esc(p.name)}</h4><div><strong>¥${(Number(p.price_cents) / 100).toFixed(2)}</strong><small>有货</small></div></div>${icon('chevron')}</a>`).join('')}</div></section>` : ''}`;
   }
   function paginate(list) {
     const current = data();
@@ -507,6 +529,13 @@
     }, 250);
   }
   function afterRender() {
+    const focus = attributeFocus;
+    attributeFocus = null;
+    if (focus?.key === attributeContext()) {
+      const field = document.querySelector('#discovery-attribute');
+      field?.focus({ preventScroll: true });
+      if (focus.start != null) field?.setSelectionRange?.(focus.start, focus.end);
+    }
     if (
       (!window.LumoConnection || window.LumoConnection.ready) &&
       (querySignature !== searchSignature() || queryOwner !== currentOwner())
@@ -545,6 +574,8 @@
   });
   document.addEventListener('input', (event) => {
     if (event.target.id === 'search-input') drawSuggestions(event.target);
+    if (event.target.id === 'discovery-attribute')
+      attributeDraft = { key: attributeContext(), value: String(event.target.value || '').slice(0, 60) };
   });
   document.addEventListener('focusout', (event) => {
     if (inSearchContext(event.target) && !inSearchContext(event.relatedTarget)) closeSearch();
@@ -592,12 +623,21 @@
     event.target.setAttribute('aria-activedescendant', options[activeSuggestion].id);
     options[activeSuggestion].scrollIntoView({ block: 'nearest' });
   });
+  document.addEventListener('submit', (event) => {
+    if (event.target.id !== 'discovery-attribute-form') return;
+    event.preventDefault();
+    data().filters.attribute = cleanText(String(new FormData(event.target).get('attribute') || ''), 60);
+    attributeDraft = null;
+    catalogPage = 1;
+    save();
+    renderKeepScroll();
+  });
   document.addEventListener('change', (event) => {
     if (!event.target.dataset.discoveryFilter) return;
     const current = data();
     if (event.target.dataset.discoveryFilter === 'brand') current.filters.brand = event.target.value;
     if (event.target.dataset.discoveryFilter === 'stock') current.filters.inStock = event.target.checked;
-    if (event.target.dataset.discoveryFilter === 'attribute') current.filters.attribute = event.target.value.trim();
+
     catalogPage = 1;
     save();
     renderKeepScroll();
@@ -662,6 +702,19 @@
       void refreshSearch(true)
         .then(() => renderKeepScroll())
         .catch((e) => toast(e.message));
+      return;
+    }
+    if (action === 'focus-search') {
+      const input = document.querySelector('#search-input');
+      input?.focus();
+      input?.select?.();
+      return;
+    }
+    if (action === 'clear-attribute') {
+      data().filters.attribute = '';
+      attributeDraft = null;
+      save();
+      renderKeepScroll();
       return;
     }
     if (action === 'broaden') {
@@ -753,6 +806,7 @@
     commitSearch,
     filter,
     controls,
+    emptyResults,
     paginate,
     pagination,
     compareButton,

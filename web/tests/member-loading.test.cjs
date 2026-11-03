@@ -332,6 +332,37 @@ test('service models and unread counts reset on token/base changes even without 
   assert.equal(f.services.readState('messages').loaded, false);
 });
 
+test('switching message categories during a pending read fetches the new category and ignores the old page', async (t) => {
+  const f = fixture();
+  t.after(() => f.dispose());
+  const old = deferred();
+  f.setHandler((service, action, command) => {
+    if (service !== 'notification') return Promise.resolve({ items: [] });
+    return command.data.filter === 'all'
+      ? old.promise
+      : Promise.resolve({
+          items: [{ id: 'service-message', event_type: 'TicketReplied', status: 'UNREAD' }],
+          page: 1,
+          total: 1,
+          unread_total: 7,
+        });
+  });
+  f.app.ctx.location.hash = '#/member/messages/all';
+  const first = f.services.refreshForView();
+  f.app.ctx.location.hash = '#/member/messages/service';
+  const second = f.services.refreshForView();
+  old.resolve({ items: [{ id: 'stale-message', event_type: 'OrderClosed' }], page: 3, total: 30 });
+  await Promise.all([first, second]);
+  assert.deepEqual(
+    f.calls.map((row) => row.command.data.filter),
+    ['all', 'service'],
+  );
+  assert.equal(f.services.model().messages[0].id, 'service-message');
+  assert.equal(f.services.readState('messages').loaded, true);
+  assert.equal(f.services.unreadCount(), 7);
+  assert.match(f.services.content('messages', 'service'), /第 1 \/ 1 页/);
+});
+
 test('service retry retains cached information while background reads run and recover', async (t) => {
   const f = fixture();
   t.after(() => f.dispose());
@@ -811,4 +842,58 @@ test('opening points directly loads the real membership and owned gift addresses
   assert.equal(m.signInDays, 120);
   assert.equal(m.addresses[0].id, 'own');
   assert.match(f.view('points'), /每日签到 \+7/);
+});
+
+test('inbox requests ten rows per page and resets pages when the category changes', async (t) => {
+  const f = fixture();
+  t.after(() => f.dispose());
+  const all = Array.from({ length: 25 }, (_, i) => ({
+    id: 'msg-' + i,
+    title: '消息' + i,
+    event_type: i % 2 ? 'TicketReplied' : 'OrderClosed',
+    message_type: i % 2 ? 'service' : 'order',
+    status: i < 10 ? 'READ' : 'UNREAD',
+    created_at: '2026-11-01T00:00:00Z',
+  }));
+  f.setHandler(async (service, action, c) => {
+    if (service !== 'notification') return { items: [] };
+    if (action === 'read_all') {
+      all.forEach((r) => (r.status = 'READ'));
+      return { marked_read: 15 };
+    }
+    const rows = all.filter(
+      (r) =>
+        c.data.filter === 'all' ||
+        (c.data.filter === 'unread' && r.status !== 'READ') ||
+        r.message_type === c.data.filter,
+    );
+    const page = Math.min(c.data.page, Math.max(1, Math.ceil(rows.length / 10)));
+    return {
+      items: rows.slice((page - 1) * 10, page * 10),
+      total: rows.length,
+      page,
+      unread_total: all.filter((r) => r.status !== 'READ').length,
+    };
+  });
+  f.app.ctx.location.hash = '#/member/messages/all';
+  await f.services.refreshForView();
+  let html = f.services.content('messages', 'all');
+  assert.equal((html.match(/<article class="svc-message /g) || []).length, 10);
+  assert.match(html, /共 25 条 · 每页 10 条/);
+  assert.match(html, /第 1 \/ 3 页/);
+  await f.app.click({ serviceAction: 'message-page', value: '3' });
+  html = f.services.content('messages', 'all');
+  assert.equal((html.match(/<article class="svc-message /g) || []).length, 5);
+  assert.match(html, /消息24/);
+  assert.equal(f.calls.at(-1).command.data.page, 3);
+  f.app.ctx.location.hash = '#/member/messages/unread';
+  await f.services.refreshForView();
+  html = f.services.content('messages', 'unread');
+  assert.equal(f.calls.at(-1).command.data.page, 1);
+  assert.equal(f.calls.at(-1).command.data.page_size, 10);
+  assert.equal(f.services.unreadCount(), 15);
+  await f.app.click({ serviceAction: 'read-all' });
+  html = f.services.content('messages', 'unread');
+  assert.match(html, /消息已全部读完/);
+  assert.match(html, /第 1 \/ 1 页/);
 });

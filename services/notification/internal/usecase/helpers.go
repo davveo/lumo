@@ -40,6 +40,7 @@ func payload(r domain.Record) map[string]any {
 }
 func view(r domain.Record) platform.Result {
 	v := payload(r)
+	v["message_type"] = domain.MessageCategory(platform.Text(v, "event_type"))
 	v["id"] = r.ID
 	v["user_id"] = r.UserID
 	v["status"] = r.Status

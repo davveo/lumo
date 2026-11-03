@@ -40,7 +40,9 @@
           demoPhone = p.id === 'phone' && p.configured && !p.values?.webhook_url;
         return `<article class="channel-profile"><div class="channel-profile-heading"><div><h3>${esc(p.name)}</h3><p>${demoPhone ? '演示验证码模式 · 尚未配置真实短信通道' : complete ? '参数已配置' : '待补充渠道参数'}${p.reason ? ' · ' + esc(p.reason) : ''}</p></div><button type="button" class="outline" data-access="provider" data-id="${esc(p.id)}" aria-expanded="${open}">${open ? '收起参数' : '配置参数'}</button></div>${
           open
-            ? `<form data-provider-form data-id="${esc(p.id)}"><div class="admin-form">${(p.fields || [])
+            ? `<form data-provider-form data-id="${esc(p.id)}" class="admin-form-stack"><div class="admin-form">${(
+                p.fields || []
+              )
                 .map((f) => {
                   const value = draft[f.key] ?? p.values?.[f.key] ?? '',
                     configured = !!p.secret_configured?.[f.key],
@@ -103,7 +105,7 @@
           ) +
           (!s.ready
             ? window.LumoSkeleton.render('form', { count: 5 })
-            : `<form data-access-form class="admin-section"><div class="access-switches">${definition.switches
+            : `<form data-access-form class="admin-section admin-form-stack"><div class="access-switches">${definition.switches
                 .map(([name, label, id]) => {
                   const capability = s.capabilities.find((row) => row.id === id),
                     missing = capability && capability.configured === false;

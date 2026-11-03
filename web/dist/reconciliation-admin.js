@@ -39,7 +39,7 @@
         '核对内部支付台账与订单，查看差异及待同步事项。',
         `<button class="outline" data-rc="refresh" ${s.busy ? 'disabled' : ''}>刷新</button><button class="primary" data-rc="prepare" ${s.busy ? 'disabled' : ''}>执行内部对账</button>`,
       ) +
-      `<div class="admin-inline-note">当前核对最近100条内部支付单，展示最近30次对账记录。尚未接入外部支付渠道账单，本页不代表全账期渠道对账。</div>${s.confirm ? `<form data-rc-run class="op-confirm"><h2>确认执行内部对账</h2><p>读取当前内部支付与订单台账，生成一份新的核对报告，不修改订单及收款金额。</p><div class="admin-actions"><button class="primary" ${s.busy ? 'disabled' : ''}>确认执行</button><button type="button" class="outline" data-rc="cancel">取消</button></div></form>` : ''}${
+      `<div class="admin-inline-note">当前核对最近100条内部支付单，展示最近30次对账记录。尚未接入外部支付渠道账单，本页不代表全账期渠道对账。</div>${s.confirm ? `<form data-rc-run class="op-confirm"><h2>确认执行内部对账</h2><p>读取当前内部支付与订单台账，生成一份新的核对报告，不修改订单及收款金额。</p><div class="admin-actions admin-form-actions"><button class="primary" ${s.busy ? 'disabled' : ''}>确认执行</button><button type="button" class="outline" data-rc="cancel">取消</button></div></form>` : ''}${
         !s.ready
           ? s.error
             ? U.empty('对账记录读取失败')

@@ -316,7 +316,7 @@ test('home, category and search share one catalogue shell and primary navigation
   ]) {
     f.app.evaluate('Object.assign(ui,' + JSON.stringify({ category, query }) + ');');
     const html = f.render();
-    assert.match(html, /class="container storefront-page catalog-page"/);
+    assert.match(html, /class="container storefront-page catalog-page(?: is-search-results)?"/);
     assert.equal(header(html).replace('value="后台商品"', 'value=""'), header(home));
     assert.equal((html.match(/aria-label="商品分类"/g) || []).length, 1);
     assert.deepEqual(items(html), items(home));

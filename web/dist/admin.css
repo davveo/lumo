@@ -898,6 +898,40 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
 }
+.admin-body .admin-form-stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--admin-space-5);
+}
+.admin-form-stack > * {
+  min-width: 0;
+}
+.admin-form-stack > :is(.admin-panel-heading, .admin-error, .access-switches, p, blockquote) {
+  margin-block: 0;
+}
+.admin-form-stack > .admin-error:empty {
+  display: none;
+}
+.admin-section > button + .admin-form-stack,
+.admin-form-actions + .admin-form-stack {
+  margin-top: var(--admin-space-5);
+}
+.admin-body .admin-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--admin-space-3);
+  max-width: none;
+  margin-block: var(--admin-space-5);
+  grid-column: 1 / -1;
+}
+.admin-form-actions:last-child {
+  margin-bottom: 0;
+}
+.admin-body :is(.admin-form, .admin-form-stack, .op-confirm) > .admin-form-actions,
+.admin-form-stack > .admin-form-footer {
+  margin-block: 0;
+}
 .admin-body .field {
   display: flex;
   flex-direction: column;
@@ -950,6 +984,7 @@
 .admin-form-footer {
   grid-column: 1 / -1;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: var(--admin-space-5);

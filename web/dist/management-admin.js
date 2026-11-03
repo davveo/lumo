@@ -747,7 +747,7 @@
           }[row.kind] || row.kind,
         ),
       ]),
-    )}${U.pager(diffs.total, s.detailPage, 8, 'mg-detail', s.busy)}</section><section class="admin-section"><h2>处理备注 · 最近50条</h2><form data-mg-note><label class="field">跟进情况<textarea name="body" data-mg-note-text rows="3" maxlength="2000" required>${esc(s.noteText)}</textarea></label><button class="primary" ${s.busy ? 'disabled' : ''}>添加备注</button></form><ol class="mg-notes" tabindex="0" aria-label="对账处理备注">${(r.notes || []).map((n) => `<li><p>${esc(n.body)}</p><small>${esc(n.actor_id)} · ${date(n.created_at)}</small></li>`).join('')}</ol></section>`;
+    )}${U.pager(diffs.total, s.detailPage, 8, 'mg-detail', s.busy)}</section><section class="admin-section"><h2>处理备注 · 最近50条</h2><form data-mg-note class="admin-form-stack"><label class="field">跟进情况<textarea name="body" data-mg-note-text rows="3" maxlength="2000" required>${esc(s.noteText)}</textarea></label><div class="admin-form-actions"><button class="primary" ${s.busy ? 'disabled' : ''}>添加备注</button></div></form><ol class="mg-notes" tabindex="0" aria-label="对账处理备注">${(r.notes || []).map((n) => `<li><p>${esc(n.body)}</p><small>${esc(n.actor_id)} · ${date(n.created_at)}</small></li>`).join('')}</ol></section>`;
   }
   function simpleTable(headers, rows) {
     return rows.length

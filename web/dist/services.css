@@ -1529,3 +1529,45 @@
   font-size: 15px;
   margin: 24px 0 14px;
 }
+
+.svc-message-panel {
+  scroll-margin-top: 100px;
+}
+.svc-message-pager {
+  border-top: 1px solid #eef0f3;
+  padding-top: 22px;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.svc-message-pager > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.svc-message-pager [aria-current='page'] {
+  background: var(--red);
+  color: #fff;
+  border-color: var(--red);
+}
+.svc-message-pager button {
+  min-width: 34px;
+}
+.svc-message-pager small,
+.svc-page-gap {
+  color: #929ba8;
+  font-size: 11px;
+}
+@media (max-width: 600px) {
+  .svc-message-pager {
+    justify-content: center;
+  }
+  .svc-message-pager > span {
+    width: 100%;
+    text-align: center;
+  }
+  .svc-message-pager button {
+    min-height: 38px;
+    padding: 7px 10px;
+  }
+}

@@ -112,7 +112,6 @@
   }
   function insights(data) {
     if (!data) return '<p class="admin-error">经营分析暂不可用，请刷新重试。</p>';
-    const labels = { view: '浏览商品', add_cart: '加入购物车', checkout: '进入结算', paid: '完成支付' };
     const cards = [
       ['期间实付', money(data.paid_cents)],
       ['期间退款', money(data.refund_cents)],
@@ -121,7 +120,17 @@
       ['付费顾客', data.buyers],
       ['期间复购率', (data.repeat_purchase_bps / 100).toFixed(1) + '%'],
     ];
-    return `<section class="admin-section"><div class="admin-panel-heading"><h2>经营分析</h2><button class="outline" data-db-tab="diagnostics">查看经营明细 ↗</button></div><button class="outline" data-db="history">同步或继续同步历史交易</button><div class="db-metrics">${cards.map(([label, value]) => `<div class="db-metric"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')}</div><h3>登录顾客转化漏斗</h3><div class="db-tasks">${(data.funnel || []).map((row) => `<div><strong>${labels[row.stage]}</strong> ${row.users} 人 · 同时到达此前阶段 ${row.cohort_users} 人</div>`).join('')}</div><p>${esc(data.funnel_scope)}</p><h3>销售数量排行</h3><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>商品</th><th>规格</th><th>已支付件数</th></tr></thead><tbody>${(data.top_products || []).map((row) => `<tr><td><button class="admin-text-button" data-db-product="${esc(row.sku_id)}">${esc(row.name)}</button></td><td>${esc(row.sku_id)}</td><td>${esc(row.quantity)}</td></tr>`).join('')}</tbody></table></div><p>按实际收款和退款事件发生时间统计，UTC+8。复购指期间内至少两笔已支付订单。${data.historical_backfill ? '' : '当前为启用分析后的事件数据，可点击同步历史交易补全。'}</p></section>`;
+    return `<section class="admin-section"><div class="admin-panel-heading"><h2>经营分析</h2><button class="outline" data-db-tab="diagnostics">查看经营明细 ↗</button></div><button class="outline" data-db="history">同步或继续同步历史交易</button><div class="db-metrics analytics-insight-metrics">${cards.map(([label, value]) => `<div class="db-metric"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')}</div>${reach(data)}<h3>销售数量排行</h3><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>商品</th><th>规格</th><th>已支付件数</th></tr></thead><tbody>${(data.top_products || []).map((row) => `<tr><td><button class="admin-text-button" data-db-product="${esc(row.sku_id)}">${esc(row.name)}</button></td><td>${esc(row.sku_id)}</td><td>${esc(row.quantity)}</td></tr>`).join('')}</tbody></table></div><p>按实际收款和退款事件发生时间统计，UTC+8。复购指期间内至少两笔已支付订单。${data.historical_backfill ? '' : '当前为启用分析后的事件数据，可点击同步历史交易补全。'}</p></section>`;
+  }
+  function reach(data) {
+    const rows = [
+      ['view', '浏览商品'],
+      ['add_cart', '加入购物车'],
+      ['checkout', '进入结算'],
+      ['paid', '完成支付'],
+    ].map(([stage, label]) => ({ label, ...(data.funnel || []).find((row) => row.stage === stage) }));
+    const maximum = Math.max(1, ...rows.map((row) => Number(row.cohort_users) || 0));
+    return `<div class="analytics-reach-heading"><h3>登录顾客阶段到达</h3><span>按阶段统计人数</span></div><ol class="analytics-reach" aria-label="登录顾客阶段到达">${rows.map((row) => `<li><span>${row.label}</span><strong>${row.users == null ? '—' : Number(row.users).toLocaleString('zh-CN')}<small>人到达</small></strong><div class="analytics-reach-track" aria-hidden="true"><i style="width:${Math.min(100, Math.max(0, ((Number(row.cohort_users) || 0) / maximum) * 100))}%"></i></div><p>同时到达此前阶段 ${row.cohort_users == null ? '—' : Number(row.cohort_users).toLocaleString('zh-CN')} 人</p></li>`).join('')}</ol><p class="analytics-reach-note">${esc(data.funnel_scope || '按期间登录顾客的阶段到达人数统计，不代表严格的行为先后顺序。')}</p>`;
   }
   function trend(data, days) {
     if (!data.payment || !data.refund) return U.empty('趋势暂不可用', '支付或退款统计服务未返回，请刷新重试。');

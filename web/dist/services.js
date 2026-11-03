@@ -18,7 +18,21 @@
   const loggedIn = () => !!window.LumoAuth?.isLoggedIn();
   const call = (service, action, command = {}, options) => window.LumoAPI.call(service, action, command, options);
   const owner = () => window.LumoAuth?.user()?.id || window.LumoAuth?.user()?.user_id || '';
-  const ui = { messageFilter: C.MessageFilter.All, faqQuery: '', ticketFilter: 'all', invoiceForm: null };
+  const messageSize = 10;
+  const messageFilters = [
+    C.MessageFilter.All,
+    C.MessageFilter.Unread,
+    C.MessageType.Order,
+    C.MessageType.Activity,
+    C.MessageType.Service,
+  ];
+  const ui = {
+    messagePage: 1,
+    messageFilter: C.MessageFilter.All,
+    faqQuery: '',
+    ticketFilter: 'all',
+    invoiceForm: null,
+  };
   const FAQS = [];
   let memory;
   let version = 0,
@@ -30,6 +44,7 @@
     return {
       messages: [],
       unreadTotal: null,
+      messageTotal: 0,
       invoices: [],
       tickets: [],
       chat: [],
@@ -70,6 +85,8 @@
     inFlight = null;
     memory = emptyData();
     readStates = emptyReadStates();
+    ui.messagePage = 1;
+    ui.messageFilter = C.MessageFilter.All;
     ui.invoiceForm = null;
     ui.ticketDrafts = {};
     if (faqBase !== (window.LumoAPI?.getBase?.() || '')) {
@@ -112,13 +129,20 @@
       isProduct = [C.Event.ProductPriceReached, C.Event.ProductBackInStock].includes(event);
     return {
       id: r.id,
-      type: isProduct
-        ? C.MessageType.Activity
-        : /Group/.test(event)
+      type:
+        r.message_type ||
+        ([C.Event.CouponExpiring].includes(event)
           ? C.MessageType.Activity
-          : isService
+          : /Redemption|RewardShipped|RewardDelivered|ShipmentException/.test(event)
             ? C.MessageType.Service
-            : C.MessageType.Order,
+            : null) ||
+        (isProduct
+          ? C.MessageType.Activity
+          : /Group/.test(event)
+            ? C.MessageType.Activity
+            : isService
+              ? C.MessageType.Service
+              : C.MessageType.Order),
       title: r.title || labels[event] || event,
       body: r.body || '业务编号 ' + (r.business_id || ''),
       target:
@@ -184,18 +208,38 @@
       ],
     };
   }
+  function messageKey() {
+    return JSON.stringify([ui.messageFilter, ui.messagePage]);
+  }
+  function selectMessageFilter(filter) {
+    if (!messageFilters.includes(filter)) filter = C.MessageFilter.All;
+    if (ui.messageFilter !== filter) {
+      ui.messageFilter = filter;
+      ui.messagePage = 1;
+      readStates.messages = { loading: false, loaded: false, error: '' };
+    }
+    return filter;
+  }
   async function refresh(force = false, resources = ['faq', 'messages', 'invoices', 'tickets']) {
     ensureScope();
     const requested = new Set(resources);
     if (!requested.size) return model();
     if (inFlight) {
-      if (!force && [...requested].every((key) => inFlight.resources.has(key))) return inFlight.promise;
+      if (
+        !force &&
+        [...requested].every((key) => inFlight.resources.has(key)) &&
+        (!requested.has('messages') || inFlight.messageRequest === messageKey())
+      )
+        return inFlight.promise;
       await inFlight.promise.catch(() => {});
       return refresh(force, [...requested]);
     }
     const v = version,
       scope = serviceScope(),
-      pending = { resources: requested };
+      messageRequest = messageKey(),
+      messagePage = ui.messagePage,
+      messageFilter = ui.messageFilter,
+      pending = { resources: requested, messageRequest };
     inFlight = pending;
     const base = window.LumoAPI.getBase?.() || '',
       needFaq = requested.has('faq') && (!faqAt || faqBase !== base || Date.now() - faqAt > 60000),
@@ -211,7 +255,9 @@
           ? call(C.Service.Content, C.Action.List, { data: { kind: C.ContentKind.Faq, limit: 100 } }, { auth: false })
           : null,
         authenticated && requested.has('messages')
-          ? call(C.Service.Notification, C.Action.List, { data: { limit: 100 } })
+          ? call(C.Service.Notification, C.Action.List, {
+              data: { page: messagePage, page_size: messageSize, filter: messageFilter },
+            })
           : null,
         authenticated && requested.has('invoices')
           ? window.LumoAPI.listAll
@@ -226,7 +272,7 @@
       const keys = ['faq', 'messages', 'invoices', 'tickets'],
         values = results.map((result, index) => {
           const key = keys[index];
-          if (!requested.has(key)) return null;
+          if (!requested.has(key) || (key === 'messages' && messageRequest !== messageKey())) return null;
           readStates[key] = {
             loading: false,
             loaded: readStates[key].loaded || result.status === 'fulfilled',
@@ -255,6 +301,11 @@
       } else {
         if (messages) {
           memory.messages = (messages.items || []).map(mapMessage);
+          memory.messageTotal = Number.isFinite(Number(messages.total))
+            ? Math.max(0, Number(messages.total))
+            : memory.messages.length;
+          if (Number.isSafeInteger(Number(messages.page)) && Number(messages.page) > 0)
+            ui.messagePage = Number(messages.page);
           const unread = Number(messages.unread_total);
           memory.unreadTotal =
             messages.unread_total != null && Number.isFinite(unread) && unread >= 0
@@ -310,13 +361,14 @@
   function sync() {
     ensureScope();
   }
-  function refreshForView() {
+  function refreshForView(force = false) {
     const route = (location.hash || '#/').slice(2).split('/');
+    if (route[0] === 'member' && route[1] === 'messages') selectMessageFilter(route[2] || C.MessageFilter.All);
     const resources =
       route[0] === 'member'
         ? { messages: ['messages'], invoices: ['invoices'], support: ['faq', 'tickets'] }[route[1]] || []
         : [];
-    return refresh(false, resources);
+    return refresh(force, resources);
   }
   function unreadCount() {
     ensureScope();
@@ -340,23 +392,33 @@
   function empty(title, description, symbol = 'info', action = '') {
     return `<div class="svc-empty"><span>${icon(symbol)}</span><h3>${esc(title)}</h3><p>${esc(description)}</p>${action}</div>`;
   }
-  function messagesContent(filter) {
-    const validFilters = [
-      C.MessageFilter.All,
-      C.MessageFilter.Unread,
-      C.MessageType.Order,
-      C.MessageType.Activity,
-      C.MessageType.Service,
-    ];
-    if (!validFilters.includes(filter)) filter = ui.messageFilter;
-    if (!validFilters.includes(filter)) filter = C.MessageFilter.All;
-    ui.messageFilter = filter;
-    const messages = data().messages.filter((row) =>
-      filter === C.MessageFilter.All || filter === C.MessageFilter.Unread
-        ? filter !== C.MessageFilter.Unread || !row.read
-        : row.type === filter,
+  function messagePager() {
+    const total = memory.messageTotal,
+      pages = Math.max(1, Math.ceil(total / messageSize)),
+      busy = readState('messages').loading,
+      page = ui.messagePage;
+    const numbers = [...new Set([1, page - 1, page, page + 1, pages].filter((n) => n > 0 && n <= pages))].sort(
+      (a, b) => a - b,
     );
-    return `${heading('消息中心', '好物动态与服务进展，及时为你送达。', button('全部标为已读', 'read-all', '', false, data().messages.some((row) => !row.read) ? '' : 'disabled'))}<section class="mem-panel"><nav class="mem-tabs svc-tabs" aria-label="消息分类">${[
+    let previous = 0;
+    const links = numbers
+      .map((n) => {
+        const gap = previous && n - previous > 1 ? '<span class="svc-page-gap">…</span>' : '';
+        previous = n;
+        return `${gap}<button class="mem-outline" data-service-action="message-page" data-value="${n}" ${busy ? 'disabled' : ''} ${n === page ? 'aria-current="page"' : ''} aria-label="第 ${n} 页">${n}</button>`;
+      })
+      .join('');
+    return `<nav class="mem-pager svc-message-pager" aria-label="消息分页"><span>共 ${total} 条 · 每页 ${messageSize} 条</span><div>${button('上一页', 'message-page', '', false, `data-value="${page - 1}" ${busy || page <= 1 ? 'disabled' : ''}`)}${links}${button('下一页', 'message-page', '', false, `data-value="${page + 1}" ${busy || page >= pages ? 'disabled' : ''}`)}</div><small>第 ${page} / ${pages} 页</small></nav>`;
+  }
+  function messagesContent(filter) {
+    filter = selectMessageFilter(filter);
+    const messages = data()
+      .messages.filter(
+        (row) =>
+          filter === C.MessageFilter.All || (filter === C.MessageFilter.Unread && !row.read) || row.type === filter,
+      )
+      .slice(0, messageSize);
+    return `${heading('消息中心', '好物动态与服务进展，及时为你送达。', button('全部标为已读', 'read-all', '', false, unreadCount() > 0 ? '' : 'disabled'))}<section class="mem-panel svc-message-panel"><nav class="mem-tabs svc-tabs" aria-label="消息分类">${[
       [C.MessageFilter.All, '全部消息'],
       [C.MessageFilter.Unread, '未读'],
       [C.MessageType.Order, '订单通知'],
@@ -365,11 +427,11 @@
     ]
       .map(
         ([id, label]) =>
-          `<a href="#/member/messages/${id}" class="${filter === id ? 'active' : ''}" ${filter === id ? 'aria-current="page"' : ''}>${label}${id === C.MessageFilter.Unread ? `<span>${data().messages.filter((row) => !row.read).length}</span>` : ''}</a>`,
+          `<a href="#/member/messages/${id}" class="${filter === id ? 'active' : ''}" ${filter === id ? 'aria-current="page"' : ''}>${label}${id === C.MessageFilter.Unread ? `<span>${unreadCount()}</span>` : ''}</a>`,
       )
       .join(
         '',
-      )}</nav>${messages.length ? `<div class="svc-message-list">${messages.map((row) => `<article class="svc-message ${row.read ? '' : 'is-unread'}"><span class="svc-message-icon ${row.type}">${icon(row.type === C.MessageType.Order ? 'bag' : row.type === C.MessageType.Activity ? 'ticket' : 'support')}</span><div class="svc-message-copy"><div><h2>${esc(row.title)}</h2><time>${date(row.at)}</time></div><p>${esc(row.body)}</p><div class="svc-message-actions">${button('查看详情', 'open-message', row.id)}${row.read ? '<span>已读</span>' : button('标为已读', 'read-message', row.id)}</div></div>${row.read ? '' : '<i class="svc-unread-dot" aria-label="未读"></i>'}</article>`).join('')}</div>` : empty(filter === C.MessageFilter.Unread ? '消息已全部读完' : '暂时没有相关消息', '订单和服务进展会记录在这里。', 'info')}</section>`;
+      )}</nav>${messages.length ? `<div class="svc-message-list">${messages.map((row) => `<article class="svc-message ${row.read ? '' : 'is-unread'}"><span class="svc-message-icon ${row.type}">${icon(row.type === C.MessageType.Order ? 'bag' : row.type === C.MessageType.Activity ? 'ticket' : 'support')}</span><div class="svc-message-copy"><div><h2>${esc(row.title)}</h2><time>${date(row.at)}</time></div><p>${esc(row.body)}</p><div class="svc-message-actions">${button('查看详情', 'open-message', row.id)}${row.read ? '<span>已读</span>' : button('标为已读', 'read-message', row.id)}</div></div>${row.read ? '' : '<i class="svc-unread-dot" aria-label="未读"></i>'}</article>`).join('')}</div>` : empty(filter === C.MessageFilter.Unread ? '消息已全部读完' : '暂时没有相关消息', '订单和服务进展会记录在这里。', 'info')}${messagePager()}</section>`;
   }
   function invoiceName(invoice) {
     return invoice.kind === C.InvoiceKind.Company ? '企业抬头' : '个人抬头';
@@ -673,6 +735,7 @@
   }
   function content(tab, filter = 'all') {
     sync();
+    if (tab === 'messages') selectMessageFilter(filter);
     const key =
         tab === 'messages' ? 'messages' : tab === 'invoices' ? 'invoices' : filter === 'tickets' ? 'tickets' : 'faq',
       status = readState(key),
@@ -738,6 +801,7 @@
     const action = b.dataset.serviceAction,
       id = b.dataset.id,
       value = b.dataset.value;
+    const actionScope = serviceScope();
     b.disabled = true;
     try {
       if (action === 'retry-read') {
@@ -746,8 +810,27 @@
         await request;
         redraw();
       }
+      if (action === 'message-page') {
+        const page = Number(value);
+        if (
+          !Number.isSafeInteger(page) ||
+          page < 1 ||
+          page > Math.max(1, Math.ceil(memory.messageTotal / messageSize)) ||
+          readState('messages').loading
+        )
+          return;
+        ui.messagePage = page;
+        readStates.messages.loaded = false;
+        const pending = refresh(true, ['messages']);
+        redraw();
+        await pending;
+        redraw();
+        document.querySelector('.svc-message-panel')?.scrollIntoView?.({ block: 'start' });
+        return;
+      }
       if (action === 'read-all') {
         await call(C.Service.Notification, C.Action.ReadAll);
+        if (actionScope !== serviceScope()) return;
         memory.messages.forEach((message) => (message.read = true));
         memory.unreadTotal = 0;
         await refresh(true, ['messages']);
@@ -756,6 +839,7 @@
       if (action === 'read-message' || action === 'open-message') {
         const row = memory.messages.find((m) => m.id === id);
         await call(C.Service.Notification, C.Action.Read, { id });
+        if (actionScope !== serviceScope()) return;
         if (row && !row.read) {
           row.read = true;
           if (memory.unreadTotal != null) memory.unreadTotal = Math.max(0, memory.unreadTotal - 1);

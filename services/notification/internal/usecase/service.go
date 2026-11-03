@@ -18,7 +18,49 @@ func (s *Service) List(ctx context.Context, c platform.Request) (traceResult pla
 		return nil, e
 	}
 
-	return s.list(ctx, c, c.UserID, constants.NotificationKindInbox, "")
+	if _, paged := c.Data["page"]; !paged {
+		return s.list(ctx, c, c.UserID, constants.NotificationKindInbox, "")
+	}
+	page, size := int(platform.Int(c.Data, "page")), int(platform.Int(c.Data, "page_size"))
+	if page < 1 || page > 100000 {
+		return nil, bad("page must be 1..100000")
+	}
+	if size == 0 {
+		size = 10
+	}
+	if size < 1 || size > 50 {
+		return nil, bad("page_size must be 1..50")
+	}
+	filter := platform.Text(c.Data, "filter")
+	if filter == "" {
+		filter = constants.MessageFilterAll
+	}
+	switch filter {
+	case constants.MessageFilterAll,
+		constants.MessageFilterUnread,
+		constants.MessageTypeOrder,
+		constants.MessageTypeActivity,
+		constants.MessageTypeService:
+	default:
+		return nil, bad("unsupported inbox filter")
+	}
+	result, e := s.repo.InboxPage(ctx, c.UserID, filter, page, size)
+	if e != nil {
+		return nil, e
+	}
+	items := []platform.Result{}
+	for _, row := range result.Items {
+		items = append(items, view(row))
+	}
+	return platform.Result{
+		"items":        items,
+		"total":        result.Total,
+		"all_total":    result.AllTotal,
+		"unread_total": result.UnreadTotal,
+		"page":         result.Page,
+		"page_size":    result.PageSize,
+		"filter":       filter,
+	}, nil
 }
 
 func (s *Service) Read(ctx context.Context, c platform.Request) (traceResult platform.Result, traceErr error) {

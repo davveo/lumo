@@ -1,0 +1,465 @@
+.diag-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.diag-overview-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 20px;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  background: var(--admin-surface);
+}
+.diag-metric-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent);
+}
+.diag-overview-card > div {
+  min-width: 0;
+}
+.diag-overview-card > div > span {
+  color: var(--admin-text);
+  font-size: 12px;
+}
+.diag-overview-card strong {
+  display: block;
+  margin: 7px 0;
+  font-size: 26px;
+  font-weight: 650;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.diag-overview-card small {
+  font-size: 11px;
+  color: var(--admin-subtle);
+  line-height: 1.6;
+}
+.diag-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.diag-section-heading h2 {
+  margin: 0;
+}
+.diag-section-heading p {
+  margin: 7px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--admin-muted);
+}
+.diag-period,
+.diag-record-badge {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: var(--admin-muted);
+  background: var(--admin-disabled-bg);
+  font-size: 11px;
+}
+.diag-funnel-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(235px, 1fr);
+  gap: 32px;
+}
+.diag-funnel {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 24px;
+}
+.diag-funnel-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+.diag-step-number {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  margin-top: 1px;
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent);
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 650;
+}
+.diag-step-content {
+  flex: 1;
+  min-width: 0;
+}
+.diag-step-heading,
+.diag-step-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.diag-step-heading > span {
+  font-size: 13px;
+  font-weight: 550;
+}
+.diag-step-heading strong {
+  font-size: 22px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+.diag-step-heading small {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--admin-subtle);
+}
+.diag-funnel-track,
+.analytics-reach-track {
+  height: 12px;
+  margin: 10px 0 9px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--admin-disabled-bg);
+}
+.diag-funnel-track i,
+.analytics-reach-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--admin-accent);
+}
+.diag-funnel-step:nth-child(2) .diag-funnel-track i {
+  opacity: 0.8;
+}
+.diag-funnel-step:nth-child(3) .diag-funnel-track i {
+  opacity: 0.6;
+}
+.diag-funnel-step:nth-child(4) .diag-funnel-track i {
+  opacity: 0.45;
+}
+.diag-step-caption {
+  color: var(--admin-subtle);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.diag-step-caption b {
+  font-weight: 550;
+  color: var(--admin-text);
+  margin-left: 3px;
+}
+.diag-funnel-summary {
+  align-self: stretch;
+  padding: 24px;
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  background: var(--admin-surface-subtle);
+}
+.diag-funnel-summary > span {
+  font-size: 12px;
+  color: var(--admin-text);
+}
+.diag-funnel-summary > strong {
+  display: block;
+  margin: 13px 0 9px;
+  color: var(--admin-accent);
+  font-size: 40px;
+  font-weight: 650;
+  letter-spacing: -1px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.diag-funnel-summary > p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--admin-muted);
+}
+.diag-session-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--admin-border);
+}
+.diag-session-split span,
+.diag-coverage > span {
+  display: block;
+  font-size: 11px;
+  color: var(--admin-subtle);
+}
+.diag-session-split b {
+  display: block;
+  margin-top: 7px;
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.diag-coverage {
+  margin-top: 22px;
+}
+.diag-coverage time {
+  display: block;
+  margin-top: 7px;
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--admin-muted);
+  overflow-wrap: anywhere;
+}
+.diag-funnel-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--admin-line);
+  color: var(--admin-muted);
+  font-size: 11px;
+  line-height: 1.8;
+}
+.admin-body .diag-funnel-note svg {
+  width: 15px;
+  height: 15px;
+  margin-top: 2px;
+  color: var(--admin-subtle);
+}
+.diag-record-badge.is-incomplete {
+  background: var(--admin-warning-bg);
+  color: var(--admin-warning-text);
+}
+.diag-section-heading p > strong {
+  color: var(--admin-ink);
+  font-weight: 600;
+  margin-left: 5px;
+}
+.diag-discount-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.diag-discount-card {
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid var(--admin-border);
+  min-width: 0;
+}
+.diag-discount-card > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.diag-discount-card h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--admin-text);
+}
+.diag-discount-card > strong {
+  display: block;
+  margin: 18px 0 8px;
+  font-size: 27px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.diag-discount-card > span {
+  color: var(--admin-subtle);
+  font-size: 11px;
+}
+.diag-cost-note {
+  color: var(--admin-muted);
+  font-size: 11px;
+  line-height: 1.8;
+  margin: 16px 0 0;
+}
+.diag-method {
+  margin-top: 18px;
+  color: var(--admin-muted);
+  font-size: 11px;
+  line-height: 1.8;
+}
+.diag-method summary {
+  cursor: pointer;
+  width: fit-content;
+}
+.diag-method p {
+  padding: 14px 16px;
+  background: var(--admin-surface-subtle);
+  border-radius: 8px;
+  margin: 10px 0 0;
+}
+.analytics-reach-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin: 28px 0 16px;
+}
+.analytics-reach-heading h3 {
+  margin: 0;
+  font-size: 13px;
+}
+.analytics-reach-heading span {
+  font-size: 11px;
+  color: var(--admin-subtle);
+}
+.analytics-reach {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.analytics-reach > li {
+  padding: 16px;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  background: var(--admin-surface-subtle);
+  min-width: 0;
+}
+.analytics-reach > li > span {
+  color: var(--admin-text);
+  font-size: 12px;
+}
+.analytics-reach strong {
+  display: block;
+  font-size: 25px;
+  margin-top: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.analytics-reach small {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--admin-subtle);
+  margin-left: 5px;
+}
+.analytics-reach-track {
+  height: 6px;
+  margin-top: 16px;
+}
+.analytics-reach p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--admin-muted);
+}
+.analytics-reach-note {
+  margin: 14px 0 28px;
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--admin-muted);
+}
+.analytics-insight-metrics {
+  margin-top: 20px;
+}
+@media (min-width: 1800px) {
+  .diag-overview {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+@media (max-width: 1050px) {
+  .diag-funnel-layout {
+    grid-template-columns: minmax(0, 1.6fr) minmax(210px, 1fr);
+    gap: 24px;
+  }
+  .diag-funnel-summary {
+    padding: 20px;
+  }
+  .diag-overview-card {
+    padding: 16px;
+    gap: 10px;
+  }
+  .analytics-reach {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .diag-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .diag-overview-card {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+  }
+  .diag-overview-card strong {
+    font-size: 24px;
+  }
+  .diag-funnel-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+  .diag-funnel-summary {
+    padding: 20px;
+  }
+  .diag-session-split {
+    margin-top: 20px;
+  }
+  .diag-section-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .diag-section-heading p {
+    font-size: 11px;
+  }
+  .diag-discount-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .diag-discount-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 16px;
+  }
+  .diag-discount-card > strong {
+    margin: 0;
+    font-size: 24px;
+    text-align: right;
+  }
+  .diag-discount-card > span {
+    grid-column: 1 / -1;
+  }
+  .diag-step-heading strong {
+    font-size: 20px;
+  }
+  .diag-step-heading small {
+    font-size: 10px;
+  }
+  .diag-step-caption {
+    flex-wrap: wrap;
+    gap: 2px 8px;
+  }
+  .diag-funnel-step {
+    gap: 10px;
+  }
+  .analytics-reach {
+    gap: 10px;
+  }
+  .analytics-reach > li {
+    padding: 14px;
+  }
+  .analytics-reach-heading {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+}
