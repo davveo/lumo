@@ -3,18 +3,18 @@ package domain
 import "time"
 
 type Run struct {
-	Reason          string    `gorm:"size:240" json:"reason"`
-	From            string    `gorm:"size:10" json:"from"`
-	To              string    `gorm:"size:10" json:"to"`
-	ActorID         string    `gorm:"size:128" json:"actor_id"`
-	Offset          int64     `json:"offset"`
-	Total           int64     `json:"total"`
-	Checked         int64     `json:"checked"`
-	DifferenceCount int64     `json:"difference_count"`
-	Error           string    `gorm:"size:255" json:"error,omitempty"`
-	LeaseUntil      time.Time `json:"-"`
-	Claim           string    `gorm:"size:80" json:"-"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	Reason          string     `gorm:"size:240" json:"reason"`
+	From            string     `gorm:"size:10" json:"from"`
+	To              string     `gorm:"size:10" json:"to"`
+	ActorID         string     `gorm:"size:128" json:"actor_id"`
+	Offset          int64      `json:"offset"`
+	Total           int64      `json:"total"`
+	Checked         int64      `json:"checked"`
+	DifferenceCount int64      `json:"difference_count"`
+	Error           string     `gorm:"size:255" json:"error,omitempty"`
+	LeaseUntil      *time.Time `json:"-"`
+	Claim           string     `gorm:"size:80" json:"-"`
+	UpdatedAt       time.Time  `json:"updated_at"`
 
 	ID        string    `gorm:"primaryKey;size:80" json:"id"`
 	Status    string    `gorm:"size:32"            json:"status"`

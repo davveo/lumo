@@ -773,6 +773,8 @@
         }),
         ready: true,
       };
+    if (s.key === 'stockwatch' && s.mode === 'adjustments' && window.LumoAdminDemo?.active())
+      s.filters.sku ||= window.LumoAdminDemo.sampleSKU();
     if (s.key === 'stockwatch' && s.mode === 'adjustments' && !s.filters.sku)
       return { items: [], total: 0, ready: true };
     const [service, action] = source(s),

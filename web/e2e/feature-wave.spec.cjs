@@ -19,12 +19,14 @@ test('customer journey rules and manual checks persist in the admin portal', asy
   expect(cart.ok()).toBe(true);
   await admin(page);
   await page.locator('[data-tab="journeys"]').click();
+  await page.locator('#journeys-admin-root [data-admin-section="editor"]').click();
   const form = page.locator('#journey-rule-form');
   await form.locator('[name="name"]').fill('浏览器购物车提醒');
   await form.locator('[name="delay_minutes"]').fill('1');
   await form.locator('[name="enabled"]').selectOption('true');
   await form.locator('button').click();
   await expect(page.locator('#journeys-admin-root')).toContainText('浏览器购物车提醒');
+  await page.locator('#journeys-admin-root [data-admin-section="manual"]').click();
   await page.locator('#journey-customer-search [name="keyword"]').fill('demo');
   await page.locator('#journey-customer-search button').click();
   await page.getByRole('button', { name: /^demo ·/ }).click();
@@ -51,6 +53,7 @@ test('product server drafts survive reload and versions can be reviewed and rest
   await expect(page.locator('.publishing-panel')).toContainText('服务器草稿 v1');
   await page.reload();
   await page.locator('[data-tab="products"]').click();
+  await page.locator('#product-admin-root [data-admin-section="drafts"]').click();
   await page.locator(`[data-pub="open-draft"][data-id="${id}"]`).click();
   await expect(form.locator('[name="name"]')).toHaveValue('浏览器发布版本商品');
   await page.locator('[data-pub="check"]').click();

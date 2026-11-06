@@ -94,6 +94,10 @@ func TestExportsSurvivePagesAndRecheckAccess(t *testing.T) {
 		t.Fatal(e)
 	}
 	var count int64
+	db.Model(&domain.ExportJob{}).Where("lease_until IS NULL").Count(&count)
+	if count != 1 {
+		t.Fatal("unclaimed exports must persist a NULL lease, never a MySQL zero date", count)
+	}
 	db.Model(&domain.ExportJob{}).Count(&count)
 	if count != 1 {
 		t.Fatal("duplicate job", count)

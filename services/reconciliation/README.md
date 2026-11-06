@@ -9,3 +9,5 @@ transport 通过 `MethodHandler` 注册方法并执行边界校验与链路追�
 
 - `list` → `List(context.Context, platform.Request)`。
 - `run` → `Run(context.Context, platform.Request)`。
+
+对账任务尚未领取时，`lease_until` 为 SQL NULL，不写入 Go 零日期。领取后保存实际租约截止时间，兼容 MySQL 严格日期校验。

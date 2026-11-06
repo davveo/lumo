@@ -103,10 +103,19 @@ def source_files():
             ("tests", "*.cjs"),
         )
         for path in (ROOT / directory).glob(pattern)
-        if path.name != "constants.js"
+        if path.name not in {"constants.js", "admin-tailwind.css"}
     )
     web_files.extend(
-        [".prettierrc.json", "package.json", "package-lock.json", "web/build.cjs", "playwright.config.cjs"]
+        [
+            ".prettierrc.json",
+            "package.json",
+            "package-lock.json",
+            "web/build.cjs",
+            "web/styles/admin.css",
+            "scripts/build-admin-css.cjs",
+            "scripts/seed-admin-demo.cjs",
+            "playwright.config.cjs",
+        ]
     )
     web_files.extend(path.relative_to(ROOT).as_posix() for path in (ROOT / "web/e2e").glob("*.cjs"))
     python_files = sorted(

@@ -28,7 +28,18 @@
   const currentScope = () => adapter.scope?.() || '';
   const publishingAllowed = () =>
     Boolean(window.LumoProductPublishing) && (!adapter.can || adapter.can('catalog', 'draft_save'));
-  let publication = null;
+  let publication = null,
+    sectionTab = 'catalog';
+  let pageTabs;
+  const getPageTabs = () =>
+    (pageTabs ||= window.LumoAdminUI?.createTabs?.('product-admin-root', {
+      get: () => sectionTab,
+      set: (value) => {
+        sectionTab = value;
+      },
+      active: () => active() && authorized(),
+      busy: () => busy,
+    }));
   const publicationState = () => (publication ||= window.LumoProductPublishing.initial());
 
   const draw = () => adapter.draw?.();
@@ -63,6 +74,7 @@
     search = '';
     status = '';
     publication = null;
+    sectionTab = 'catalog';
   }
   function checkScope() {
     if (owner !== currentScope()) reset();
@@ -256,10 +268,21 @@
   function list() {
     return `<section class="admin-list-panel"><div class="admin-list-toolbar"><label class="admin-search"><input type="search" data-pd-filter="search" value="${esc(search)}" placeholder="在本页搜索名称、编号、品牌" aria-label="搜索本页商品" ${busy ? 'disabled' : ''}></label><label class="admin-status-filter">状态<select data-pd-filter="status" ${busy ? 'disabled' : ''}><option value="">全部状态</option><option value="${C.CatalogStatus.Active}" ${status === C.CatalogStatus.Active ? 'selected' : ''}>已上架</option><option value="${C.CatalogStatus.Disabled}" ${status === C.CatalogStatus.Disabled ? 'selected' : ''}>未上架</option></select></label></div><div id="product-admin-list">${listRows()}</div></section>`;
   }
+  function catalogTabs() {
+    const pageTabs = getPageTabs();
+    const sections = [['catalog', '商品目录'], ...(publishingAllowed() ? [['drafts', '服务端草稿']] : [])];
+    if (!pageTabs)
+      return list() + (publishingAllowed() ? window.LumoProductPublishing.list(publicationState(), busy) : '');
+    return (
+      pageTabs.bar(sections, '商品管理功能') +
+      pageTabs.panel('catalog', list()) +
+      (publishingAllowed() ? pageTabs.panel('drafts', window.LumoProductPublishing.list(publicationState(), busy)) : '')
+    );
+  }
   function render() {
     checkScope();
     if (!authorized()) return '';
-    return `<div id="product-admin-root"><div class="admin-title"><div><h1>${draft ? (original ? '编辑商品' : '新建商品') : '商品管理'}</h1><p>维护商品资料、价格与上下架，库存独立管理。</p></div><div class="admin-title-actions">${draft ? `<button class="outline" data-pd-action="back" ${busy ? 'disabled' : ''}>返回列表（放弃未保存修改）</button>` : `<button class="outline" data-pd-action="reload" ${busy ? 'disabled' : ''}>刷新</button><button class="primary" data-pd-action="new" ${busy || !ready ? 'disabled' : ''}>新建商品</button>`}</div></div>${error ? `<div class="admin-error" role="alert">${esc(error)}</div>` : ''}${loadingDraft ? window.LumoSkeleton?.render('form', { count: 6, label: '正在读取商品详情' }) || '' : draft ? editor() : !ready ? (error ? '' : window.LumoSkeleton?.render('table', { count: 6, label: '正在读取商品目录' }) || '') : list() + (publishingAllowed() ? window.LumoProductPublishing.list(publicationState(), busy) : '')}</div>`;
+    return `<div id="product-admin-root"><div class="admin-title"><div><h1>${draft ? (original ? '编辑商品' : '新建商品') : '商品管理'}</h1><p>维护商品资料、价格与上下架，库存独立管理。</p></div><div class="admin-title-actions">${draft ? `<button class="outline" data-pd-action="back" ${busy ? 'disabled' : ''}>返回列表（放弃未保存修改）</button>` : `<button class="outline" data-pd-action="reload" ${busy ? 'disabled' : ''}>刷新</button><button class="primary" data-pd-action="new" ${busy || !ready ? 'disabled' : ''}>新建商品</button>`}</div></div>${error ? `<div class="admin-error" role="alert">${esc(error)}</div>` : ''}${loadingDraft ? window.LumoSkeleton?.render('form', { count: 6, label: '正在读取商品详情' }) || '' : draft ? editor() : !ready ? (error ? '' : window.LumoSkeleton?.render('table', { count: 6, label: '正在读取商品目录' }) || '') : catalogTabs()}</div>`;
   }
   async function save() {
     let price, old;
@@ -331,6 +354,7 @@
       rows = result.rows;
       total = result.total;
       ready = true;
+      sectionTab = 'catalog';
       draft = null;
       original = null;
       changed.clear();

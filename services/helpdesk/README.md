@@ -28,3 +28,5 @@ transport 通过 `MethodHandler` 注册方法并执行边界校验与链路追�
 - `create` → `Create(context.Context, platform.Request)`。
 - `reply` → `Reply(context.Context, platform.Request)`。
 - `close` → `Close(context.Context, platform.Request)`。
+
+导出任务尚未领取时，`lease_until` 使用可空时间并写入 SQL NULL；完成批次释放租约时同样清空。避免严格 MySQL 模式拒绝 Go 零时间 `0000-00-00`，也保留原有 claim token、超时接管与幂等语义。

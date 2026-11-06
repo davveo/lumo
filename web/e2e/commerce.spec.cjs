@@ -26,6 +26,8 @@ test('background updates preserve the active login form DOM and typed credential
   await expect
     .poll(() => page.evaluate(() => window.LumoAuth.model().methodsLoaded && !window.LumoAuth.model().methodsLoading))
     .toBe(true);
+  await expect(page.locator('#auth-username')).toHaveValue('demo');
+  await expect(page.locator('#auth-password')).toHaveValue('Lumo@2026');
   await page.locator('#auth-username').fill('draft-buyer');
   await page.locator('#auth-password').fill('PrivateDraft123');
   const preserved = await page.evaluate(() => {
@@ -60,6 +62,8 @@ test('customer registers through the storefront and logs in as an ordinary membe
   expect(account.role).toBe('user');
   expect(account.username).toBe('browser_buyer');
   await expect(page).toHaveURL(/#\/login/);
+  await expect(page.locator('#auth-username')).toHaveValue('browser_buyer');
+  await expect(page.locator('#auth-password')).toHaveValue('');
   await login(page, 'browser_buyer', 'Member@2026', account.user_id);
   expect((await api(page, 'iam', 'current')).user_id).toBe(account.user_id);
   expect(await page.evaluate(() => window.LumoAuth.user().role)).toBe('user');
@@ -196,12 +200,13 @@ test('administrators manage employees, import products and receive procurement i
   await expect.poll(() => page.evaluate(() => window.LumoDashboardAdmin.state.data?.insights?.days)).toBe(90);
   await expect.poll(() => page.evaluate(() => window.LumoDashboardAdmin.state.data?.degraded)).toBe(false);
   await page.locator('[data-tab="staff"]').click();
+  await page.locator('#staff-admin-root [data-admin-section="editor"]').click();
   const staff = page.locator('#staff-save-form');
   await staff.locator('[name="username"]').fill('browser_warehouse');
   await staff.locator('[name="role"]').selectOption('staff_warehouse');
   await staff.locator('[name="password"]').fill('Warehouse@2026');
   await staff.locator('[name="reason"]').fill('浏览器验收仓库岗位');
-  await staff.locator('button').click();
+  await staff.getByRole('button', { name: '保存员工', exact: true }).click();
   await expect(page.locator('#staff-admin-root')).toContainText('browser_warehouse');
 
   await page.locator('[data-tab="catalogImport"]').click();
@@ -213,14 +218,16 @@ test('administrators manage employees, import products and receive procurement i
   });
   await upload.locator('button').click();
   await expect(page.locator('[data-import-commit]')).toBeEnabled();
-  page.once('dialog', (dialog) => dialog.accept());
   await page.locator('[data-import-commit]').click();
+  await page.locator('[data-admin-feedback][open] button.primary').click();
   await expect
     .poll(() => page.evaluate(() => window.LumoCatalogImportAdmin.state.job?.status), { timeout: 20000 })
     .toBe('COMPLETED');
   await page.locator('[data-tab="procurement"]').click();
+  await page.locator('#procurement-admin-root [data-admin-section="create"]').click();
   const purchase = page.locator('#procurement-create-form');
   await purchase.locator('[name="supplier"]').fill('浏览器供应商');
+  await page.locator('#procurement-admin-root [data-admin-section="picker"]').click();
   await page.locator('#procurement-catalog-form [name="keyword"]').fill('browser-import');
   await page.locator('#procurement-catalog-form button').click();
   await expect(page.locator('[data-supply-product="browser-import"]')).toContainText('浏览器导入商品');
@@ -299,6 +306,7 @@ test('shipment exceptions push to the customer and expose an owned timeline', as
     await admin.locator('#admin-login [name="password"]').fill('Admin@2026');
     await admin.locator('#admin-login button[type="submit"]').click();
     await admin.locator('[data-tab="shipments"]').click();
+    await admin.locator('#shipments-admin-root [data-admin-section="manual"]').click();
     const form = admin.locator('#shipment-update-form');
     await form.locator('[name="tracking_id"]').fill(waybill.tracking_id);
     await form.locator('[name="status"]').selectOption('EXCEPTION');
@@ -320,8 +328,10 @@ test('shipment exceptions push to the customer and expose an owned timeline', as
     await expect.poll(() => page.evaluate(() => window.pushUpdates.length)).toBeGreaterThan(1);
     await page.evaluate((id) => window.LumoShipmentTracking.open(id), shipment.id);
     await expect(page.locator('.tracking-timeline')).toContainText('浏览器配送异常验收');
-    admin.once('dialog', (dialog) => dialog.accept('已联系收件人确认次日重派'));
+    await admin.locator('#shipments-admin-root [data-admin-section="exceptions"]').click();
     await admin.locator('[data-shipment-resolve]').click();
+    await admin.locator('[data-admin-dialog-input]').fill('已联系收件人确认次日重派');
+    await admin.locator('[data-admin-feedback][open] button.primary').click();
     await expect(admin.locator('[data-shipment-resolve]')).toHaveCount(0);
   } finally {
     await context.close();

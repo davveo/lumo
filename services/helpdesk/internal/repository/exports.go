@@ -143,7 +143,7 @@ func (r *Repository) ExportProgress(
 			}
 		}
 		held.Claim = ""
-		held.LeaseUntil = time.Now().UTC()
+		held.LeaseUntil = nil
 		return tx.WithContext(ctx).Save(&held).Error
 	})
 }

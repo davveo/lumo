@@ -310,7 +310,18 @@
         s.selected = new Set(s.results.filter((v) => !v.ok).map((v) => v.service + ':' + v.id));
       },
     );
-    if (ok) await m.refresh();
+    if (ok) {
+      const failed = s.results.filter((item) => !item.ok);
+      if (failed.length)
+        U.feedback?.error(
+          failed
+            .map((item) => `${labels[item.service] || item.service} · ${item.id}：${item.error || '未能更新'}`)
+            .join('\n'),
+          { title: `${failed.length} 项分派未完成` },
+        );
+      else m.adapter.message?.(`已更新 ${s.results.length} 项负责人`);
+      await m.refresh();
+    }
   });
   window.LumoWorkQueueAdmin = m;
 })();

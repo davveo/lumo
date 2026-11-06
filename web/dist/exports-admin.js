@@ -71,7 +71,7 @@
                     : j.status === C.ExportStatus.Ready
                       ? 100
                       : 0;
-              return `<tr><td><strong>${esc(reports[j.source] || '业务报表')}</strong><small>${esc(j.id)}</small><details><summary>查看筛选条件</summary><p>${esc(filters(j.filters))}</p></details>${j.error ? `<p class="admin-error">${esc(j.error)}</p>` : ''}</td><td><span class="admin-state">${expired ? '已到期' : esc(labels[j.status] || j.status)}</span><progress max="100" value="${pct}" aria-label="导出进度"></progress><small>${j.processed} / ${j.total < 0 ? '待统计' : j.total} 条</small></td><td>${date(j.created_at)}<small>到期 ${date(j.expires_at)}</small></td><td>${!expired && j.status === C.ExportStatus.Ready ? `<button class="primary" data-export-download="${esc(j.id)}">下载CSV</button>` : ''}${!expired && j.status === C.ExportStatus.Failed ? `<button class="outline" data-export-retry="${esc(j.id)}">重试此任务</button>` : ''}</td></tr>`;
+              return `<tr><td><strong>${esc(reports[j.source] || '业务报表')}</strong><small>${esc(j.id)}</small><details><summary>查看筛选条件</summary><p>${esc(filters(j.filters))}</p></details>${j.error ? `<button class="admin-text-button export-failure" data-export-error="${esc(j.id)}">查看失败原因</button>` : ''}</td><td><span class="admin-state">${expired ? '已到期' : esc(labels[j.status] || j.status)}</span><progress max="100" value="${pct}" aria-label="导出进度"></progress><small>${j.processed} / ${j.total < 0 ? '待统计' : j.total} 条</small></td><td>${date(j.created_at)}<small>到期 ${date(j.expires_at)}</small></td><td>${!expired && j.status === C.ExportStatus.Ready ? `<button class="primary" data-export-download="${esc(j.id)}">下载CSV</button>` : ''}${!expired && j.status === C.ExportStatus.Failed ? `<button class="outline" data-export-retry="${esc(j.id)}">重试此任务</button>` : ''}</td></tr>`;
             })
             .join('') || '<tr><td colspan="4">暂无任务，可在管理列表中点击“导出全部匹配记录”。</td></tr>'
         }</tbody></table></div>${U.pager(s.total, s.page, 10, 'export', s.busy)}</section>`
@@ -79,6 +79,12 @@
     },
   );
   document.addEventListener('click', async (event) => {
+    const errorButton = event.target.closest('[data-export-error]');
+    if (errorButton && m.active()) {
+      const job = m.state.items.find((j) => j.id === errorButton.dataset.exportError);
+      if (job) U.feedback?.error(job.error, { title: '导出未完成' });
+      return;
+    }
     if (!m.active() || m.state.busy) return;
     const b = event.target.closest(
       '[data-export-page],[data-export-refresh],[data-export-retry],[data-export-download]',

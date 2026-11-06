@@ -154,7 +154,7 @@
     $('#admin-nav-toggle')?.setAttribute('aria-expanded', 'false');
   }
 
-  const scope = () => API.getBase() + '|' + token;
+  const scope = () => API.getBase() + '|' + token + '|preview:' + (window.LumoAdminDemo?.active() ? 1 : 0);
   const placeholder = (type, count, label) => window.LumoSkeleton?.render(type, { count, label }) || '';
   function loadingPage(name) {
     return (
@@ -266,20 +266,22 @@
   const idKey = () =>
     'admin-' + (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(16).slice(2));
   const message = (text) => {
-    const el = $('#admin-toast');
-    el.textContent = text;
-    el.style.display = 'block';
-    setTimeout(() => {
-      el.style.display = 'none';
-    }, 3500);
+    if (window.LumoAdminFeedback) window.LumoAdminFeedback.success(text);
   };
   async function call(service, action, command = {}) {
-    const session = token;
+    const session = token,
+      origin = scope();
     try {
+      if (
+        window.LumoAdminDemo?.active() &&
+        !(service === C.Service.IAM && [C.Action.Current, C.Action.Logout].includes(action))
+      )
+        return await window.LumoAdminDemo.call(service, action, command);
       const result = await API.call(service, action, command, { token: session, auth: true });
       if (session === token) lastTrace = API.requests()[0]?.traceId || '';
       return result;
     } catch (error) {
+      if (origin !== scope()) throw error;
       if (error.status === 401 && session === token) {
         token = '';
         window.LumoReviewMedia?.close();
@@ -287,6 +289,7 @@
         epoch++;
         login();
       }
+      window.LumoAdminFeedback?.error(error);
       throw error;
     }
   }
@@ -357,11 +360,23 @@
       scope,
       call,
       draw: () => {
-        if (tab === key && token) $('#admin-main').innerHTML = editor.render();
+        if (tab === key && token) renderMain(editor.render());
       },
       notify: message,
+      fail: (error) => window.LumoAdminFeedback?.error(error),
       navigate,
     });
+  window.LumoAdminDemo?.configure({
+    onChange: () => {
+      epoch++;
+      snapshots.clear();
+      rowSnapshots.clear();
+      listFilters.clear();
+      for (const editor of Object.values(editors)) editor?.reset?.();
+      load();
+      window.scrollTo(0, 0);
+    },
+  });
   window.LumoReviewMedia?.configureAdmin({ call, scope });
   window.LumoAdminSearch?.configure({
     call,
@@ -643,7 +658,7 @@
     const focusId = ['admin-list-search', 'admin-list-status'].includes(focused?.id) ? focused.id : '';
     const start = focused?.selectionStart,
       end = focused?.selectionEnd;
-    $('#admin-main').innerHTML = html;
+    $('#admin-main').innerHTML = (token ? window.LumoAdminDemo?.banner() || '' : '') + html;
     if (focusId) {
       const replacement = $('#' + focusId);
       replacement?.focus({ preventScroll: true });
@@ -664,7 +679,7 @@
       main = $('#admin-main'),
       cached = snapshots.get(key);
     rows = rowSnapshots.get(key) || [];
-    main.innerHTML = cached || loadingPage(name);
+    renderMain(cached || loadingPage(name));
     main.setAttribute('aria-busy', 'true');
     const current = () => revision === epoch && origin === scope() && !!token;
     const show = (html) => {
@@ -676,7 +691,7 @@
       if (editors[tab]) {
         const editor = editors[tab],
           pending = editor.refresh();
-        if (current()) main.innerHTML = editor.render();
+        if (current()) renderMain(editor.render());
         await pending;
         show(editor.render());
         return;
@@ -850,7 +865,7 @@
         sessionStorage.removeItem(tokenKey);
         login();
       } catch (error) {
-        message(error.message);
+        window.LumoAdminFeedback?.error(error);
       }
       return;
     }
@@ -878,7 +893,7 @@
     } catch (error) {
       const el = $('#operation-result');
       if (el) el.innerHTML = errorHTML(error);
-      else message(error.message);
+      else window.LumoAdminFeedback?.error(error);
     } finally {
       busy = false;
       target.disabled = false;
@@ -961,7 +976,7 @@
     } catch (error) {
       const el = $('#admin-error') || $('#admin-result');
       if (el) el.innerHTML = errorHTML(error);
-      else message(error.message);
+      else window.LumoAdminFeedback?.error(error);
     } finally {
       busy = false;
       button.disabled = false;

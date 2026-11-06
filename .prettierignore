@@ -7,3 +7,6 @@ api/mall/v1/*.pb.go
 
 # HTML text whitespace is observable. Keep text nodes while editing tag attributes.
 web/dist/*.html
+
+# Compiled Tailwind output; editable source is web/styles/admin.css.
+web/dist/admin-tailwind.css

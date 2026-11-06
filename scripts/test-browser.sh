@@ -4,6 +4,7 @@ PROJECT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$PROJECT_DIR"
 TEST_TEMP=$(mktemp -d)
 TEST_SERVER_PID=''
+export LUMO_E2E_ADMIN_SESSION_FILE="$TEST_TEMP/admin-session"
 cleanup() {
   if [ -n "$TEST_SERVER_PID" ]; then
     kill "$TEST_SERVER_PID" 2>/dev/null || true

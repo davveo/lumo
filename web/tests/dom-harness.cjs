@@ -149,6 +149,14 @@ function createHarness(directory, baseURL, options = {}) {
     crypto,
     localStorage: storage(),
     sessionStorage: storage(),
+    MutationObserver: class {
+      observe() {}
+      disconnect() {}
+      takeRecords() {
+        return [];
+      }
+    },
+    queueMicrotask,
     CustomEvent: class {
       constructor(type, options) {
         this.type = type;

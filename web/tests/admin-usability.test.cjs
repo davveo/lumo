@@ -197,3 +197,46 @@ test('generic business results display Chinese fields and hide secret material',
   assert.match(html, /业务说明/);
   assert.doesNotMatch(html, /<pre|private-key-value|"status"/);
 });
+
+test('saving provider parameters retains an unsaved policy draft and its original version', async (t) => {
+  let version = 8;
+  const f = fixture(
+    'loginSettings',
+    async (_, action) => {
+      if (action === 'provider_get')
+        return {
+          items: [
+            {
+              id: 'qq',
+              name: 'QQ登录',
+              fields: [{ key: 'app_id', label: 'App ID', type: 'text' }],
+              values: {},
+              version: 1,
+            },
+          ],
+        };
+      if (action === 'provider_upsert') {
+        version = 9;
+        return {};
+      }
+      return { config: { password_enabled: true }, version };
+    },
+    true,
+  );
+  t.after(() => f.app.dispose());
+  await f.m.refresh();
+  f.m.state.config.password_enabled = false;
+  f.m.state.policyDirty = true;
+  f.m.state.reason = '未保存的开关草稿';
+  await f.app.click({ access: 'section', id: 'providers' });
+  await f.form('[data-provider-form]', { app_id: 'new-app', reason: '保存独立参数' }, { id: 'qq' });
+  await f.app.click({ access: 'section', id: 'methods' });
+  assert.equal(f.m.state.config.password_enabled, false);
+  assert.equal(f.m.state.version, 8, 'the original policy version must guard against overwriting newer server state');
+  assert.equal(f.m.state.reason, '未保存的开关草稿');
+  assert.equal(f.m.state.policyDirty, true);
+  await f.app.click({ access: 'refresh' });
+  assert.equal(f.m.state.policyDirty, false);
+  assert.equal(f.m.state.config.password_enabled, true);
+  assert.equal(f.m.state.version, 9);
+});

@@ -19,8 +19,9 @@ type Repository struct {
 	searchDocumentIndexed bool
 }
 
-func New(db *gorm.DB) *Repository { return &Repository{db: db} }
-func (r *Repository) Migrate(ctx context.Context) (spanErr0 error) {
+func New(db *gorm.DB) *Repository                       { return &Repository{db: db} }
+func (r *Repository) Migrate(ctx context.Context) error { return r.migrateWithConnection(ctx) }
+func (r *Repository) migrate(ctx context.Context) (spanErr0 error) {
 	if e := platform.MigrateBusinessIDs(ctx, r.db); e != nil {
 		return e
 	}

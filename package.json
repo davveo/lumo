@@ -5,7 +5,10 @@
   "scripts": {
     "build:web": "node web/build.cjs",
     "format": "python3 scripts/format.py",
-    "format:check": "python3 scripts/format.py --check"
+    "format:check": "python3 scripts/format.py --check",
+    "build:admin-css": "node scripts/build-admin-css.cjs",
+    "check:admin-css": "node scripts/build-admin-css.cjs --check",
+    "seed:admin-demo": "node scripts/seed-admin-demo.cjs --apply"
   },
   "config": {
     "golinesVersion": "v0.13.0",
@@ -14,7 +17,9 @@
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
-    "prettier": "3.9.10"
+    "@tailwindcss/cli": "4.3.3",
+    "prettier": "3.9.10",
+    "tailwindcss": "4.3.4"
   },
   "engines": {
     "node": ">=22"

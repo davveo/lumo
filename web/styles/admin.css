@@ -1,0 +1,774 @@
+/* Tailwind is compiled locally. Existing storefront reset remains in control. */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+@source '../dist/admin.html';
+@source '../dist/*admin*.js';
+@source '../dist/admin-feedback.js';
+@theme {
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --shadow-panel: 0 2px 6px #17255404, 0 12px 32px #17255404;
+}
+.admin-body {
+  --admin-accent: var(--color-brand-600);
+  --admin-accent-hover: var(--color-brand-700);
+  --admin-accent-soft: var(--color-brand-50);
+  --admin-accent-border: var(--color-brand-200);
+  --admin-ink: #172554;
+  --admin-text: #475569;
+  --admin-muted: #64748b;
+  --admin-subtle: #94a3b8;
+  --admin-bg: #f3f5fa;
+  --admin-border: #e2e8f0;
+  --admin-line: #edf1f7;
+  --admin-input-border: #d8e0ec;
+  --admin-radius: 16px;
+  --admin-radius-control: 10px;
+  --admin-sidebar-width: 236px;
+  --admin-header-height: 72px;
+  @apply antialiased text-slate-700;
+  background: radial-gradient(ellipse at 75% 0%, #e8edff88, transparent 35%), var(--admin-bg);
+  scrollbar-gutter: stable;
+}
+.admin-body .admin-header {
+  height: 72px;
+  @apply border-b border-slate-200/80 bg-white/95 shadow-xs;
+  backdrop-filter: blur(16px);
+  gap: 20px;
+}
+.admin-body .admin-breadcrumb {
+  @apply text-xs;
+}
+.admin-body .admin-breadcrumb strong {
+  @apply font-semibold text-slate-800;
+}
+.admin-body .admin-sidebar {
+  @apply border-r border-slate-200 bg-white;
+  box-shadow: 4px 0 32px #17255403;
+}
+.admin-body .admin-sidebar-brand {
+  height: 80px;
+  @apply px-6;
+}
+.admin-body .admin-sidebar .brand b {
+  @apply text-brand-600;
+  letter-spacing: -1.2px;
+}
+.admin-body .admin-sidebar .brand span {
+  @apply text-slate-500;
+}
+.admin-body #admin-nav {
+  @apply px-3;
+}
+.admin-body .admin-nav-group {
+  @apply mb-5;
+}
+.admin-body .admin-nav-group h2 {
+  @apply px-4 pb-2 text-[10px] font-semibold tracking-wider text-slate-400;
+}
+.admin-body .admin-nav-btn {
+  @apply rounded-xl text-slate-600 font-medium transition-colors;
+  min-height: 42px;
+  gap: 12px;
+}
+.admin-body .admin-nav-btn:hover {
+  @apply bg-slate-50 text-slate-900;
+}
+.admin-body .admin-nav-btn.active {
+  @apply bg-brand-50 text-brand-700 font-semibold;
+  box-shadow: inset 0 0 0 1px #c7d2fe55;
+}
+.admin-body .admin-nav-btn.active svg {
+  @apply text-brand-500;
+}
+.admin-body .admin-nav-btn.active::before {
+  @apply bg-brand-500;
+  left: -12px;
+  height: 22px;
+}
+.admin-body .admin-sidebar-caption {
+  @apply text-slate-400;
+}
+.admin-body .admin-avatar {
+  @apply bg-brand-50 text-brand-600 ring-4 ring-brand-50/50;
+}
+.admin-body .admin-shell {
+  padding: 30px 32px 0;
+}
+.admin-body .admin-title {
+  @apply mb-7 items-start gap-5;
+}
+.admin-body .admin-title h1 {
+  @apply mt-1 text-[25px] font-bold tracking-tight text-slate-900;
+  line-height: 1.4;
+}
+.admin-page-eyebrow {
+  @apply text-[9px] font-bold tracking-[0.18em] text-brand-500;
+}
+.admin-page-description {
+  @apply mt-2 max-w-2xl text-xs leading-6 text-slate-500;
+}
+.admin-body .admin-section,
+.admin-body .admin-list-panel {
+  @apply border border-slate-200/90 bg-white shadow-panel;
+  border-radius: 16px;
+}
+.admin-body .admin-section {
+  @apply p-6;
+}
+.admin-body .admin-section > h2,
+.admin-body .admin-panel-heading h2 {
+  @apply text-[15px] font-bold tracking-tight text-slate-900;
+}
+.admin-body .admin-panel-heading {
+  @apply mb-5 gap-4;
+}
+.admin-body .admin-panel-heading > span {
+  @apply rounded-full bg-slate-50 px-2.5 py-1 text-[10px] font-medium text-slate-500;
+}
+.admin-body .admin-note,
+.admin-body .admin-muted {
+  @apply text-slate-500 leading-6;
+}
+.admin-body .admin-section-heading svg {
+  @apply rounded-xl bg-brand-50 p-2 text-brand-600;
+  box-sizing: content-box;
+}
+.admin-body button.primary,
+.admin-body a.primary,
+.admin-body .primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl border border-transparent bg-brand-600 px-4 text-xs font-semibold text-white shadow-sm transition-colors;
+  min-height: 40px;
+  box-shadow: 0 3px 8px #4f46e51a;
+}
+.admin-body button.primary:hover:not(:disabled),
+.admin-body a.primary:hover {
+  @apply bg-brand-700;
+}
+.admin-body button.outline,
+.admin-body a.outline,
+.admin-body .outline {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 shadow-xs transition-colors;
+  min-height: 40px;
+}
+.admin-body button.outline:hover:not(:disabled),
+.admin-body a.outline:hover {
+  @apply border-brand-200 bg-brand-50 text-brand-700;
+}
+.admin-body button:focus-visible,
+.admin-body a:focus-visible {
+  @apply outline-none ring-4 ring-brand-100;
+  outline-offset: 2px;
+}
+.admin-body button:disabled,
+.admin-body button[aria-disabled='true'] {
+  @apply cursor-not-allowed opacity-45 shadow-none;
+}
+.admin-body .admin-actions {
+  @apply flex-wrap gap-2.5;
+}
+.admin-body .admin-form-actions,
+.admin-body .admin-form-footer {
+  @apply mt-6 gap-3 border-t border-slate-100 pt-5;
+}
+.admin-body .admin-actions button[data-operation],
+.admin-body .admin-table .admin-actions .outline {
+  min-height: 34px;
+  @apply rounded-lg px-3 text-[11px];
+}
+.admin-body button.danger,
+.admin-body .admin-actions .danger {
+  @apply border-rose-200 bg-rose-50 text-rose-600;
+}
+.admin-body .field {
+  @apply gap-2 text-xs font-medium text-slate-600;
+}
+.admin-body input:not([type='checkbox']):not([type='radio']),
+.admin-body select,
+.admin-body textarea {
+  @apply rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 shadow-xs;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.admin-body input:not([type='checkbox']):not([type='radio']):focus,
+.admin-body select:focus,
+.admin-body textarea:focus {
+  @apply border-brand-500 outline-none ring-4 ring-brand-50;
+}
+.admin-body input::placeholder,
+.admin-body textarea::placeholder {
+  @apply text-slate-400;
+}
+.admin-body .field small {
+  @apply text-[11px] font-normal leading-5 text-slate-400;
+}
+.admin-body input[type='checkbox'],
+.admin-body input[type='radio'] {
+  accent-color: var(--admin-accent);
+}
+.admin-body .admin-query-form,
+.admin-body .admin-list-toolbar,
+.admin-body .op-filters {
+  @apply gap-4 border-slate-100 bg-white;
+}
+.admin-body .admin-query-form > .field:first-child,
+.admin-body .op-filters > .field:first-child {
+  flex: 0 1 340px;
+}
+.admin-body .admin-table {
+  @apply text-xs;
+}
+.admin-body .admin-table th {
+  @apply border-b border-slate-200 bg-slate-50/90 px-5 py-3.5 text-[11px] font-semibold tracking-wide text-slate-500;
+}
+.admin-body .admin-table td {
+  @apply border-b border-slate-100 px-5 py-4 text-slate-600;
+}
+.admin-body .admin-table td strong {
+  @apply font-semibold text-slate-800;
+}
+.admin-body .admin-table td small {
+  @apply mt-1.5 text-[10px] leading-5 text-slate-400;
+}
+.admin-body .admin-table tbody tr:hover {
+  @apply bg-brand-50/40;
+}
+.admin-body .admin-table td:first-child,
+.admin-body .admin-table td:nth-child(2) {
+  width: auto;
+}
+.admin-body .admin-table td:last-child {
+  min-width: 130px;
+}
+.admin-body .wq-table th:first-child,
+.admin-body .wq-table td:first-child {
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  padding-left: 18px;
+  padding-right: 12px;
+}
+.admin-body .wq-table td:nth-child(2) {
+  width: 38%;
+}
+.admin-body .wq-table td:nth-child(3) {
+  width: 14%;
+}
+.admin-body .wq-table td:nth-child(4) {
+  width: 20%;
+}
+.admin-body .wq-table td:nth-child(5) {
+  white-space: nowrap;
+}
+.admin-body .admin-amount {
+  @apply font-semibold text-slate-900;
+  font-variant-numeric: tabular-nums;
+}
+.admin-body .admin-pagination {
+  @apply gap-4 border-t border-slate-100 px-5 py-4 text-[11px] text-slate-500;
+}
+.admin-body .admin-pagination button {
+  @apply rounded-lg text-[11px];
+  min-height: 32px;
+}
+.admin-body .admin-state,
+.admin-body .admin-badge {
+  @apply inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-semibold text-slate-500;
+  line-height: 1.5;
+}
+.admin-body .admin-state.success,
+.admin-body .admin-state.positive {
+  @apply border-emerald-100 bg-emerald-50 text-emerald-700;
+}
+.admin-body .admin-state.warning,
+.admin-body .admin-state.pending {
+  @apply border-amber-100 bg-amber-50 text-amber-700;
+}
+.admin-body .admin-state.danger {
+  @apply border-rose-100 bg-rose-50 text-rose-600;
+}
+.admin-body .admin-state.processing {
+  @apply border-sky-100 bg-sky-50 text-sky-700;
+}
+.admin-body .admin-empty {
+  @apply min-h-52 gap-3 rounded-xl bg-slate-50/60 px-6 py-10 text-center;
+}
+.admin-body .admin-empty strong {
+  @apply text-sm font-semibold text-slate-700;
+}
+.admin-body .admin-empty span {
+  @apply max-w-md text-xs leading-6 text-slate-400;
+}
+.admin-body .admin-inline-note,
+.admin-body .admin-note-box {
+  @apply rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-xs leading-6 text-indigo-600;
+}
+.admin-body .op-confirm {
+  @apply mt-5 rounded-xl border border-brand-100 bg-brand-50/50 p-5;
+  border-left: 3px solid var(--admin-accent);
+}
+.admin-body .op-confirm h3 {
+  @apply text-sm font-semibold text-slate-800;
+}
+.admin-body .op-confirm p {
+  @apply mt-2 mb-4 text-xs leading-6 text-slate-500;
+}
+.admin-body .op-definition {
+  @apply gap-x-8 gap-y-5;
+}
+.admin-body .op-definition dt {
+  @apply text-[11px] text-slate-400;
+}
+.admin-body .op-definition dd {
+  @apply mt-2 text-xs leading-6 text-slate-700;
+}
+.admin-body .db-metric,
+.admin-body .admin-card {
+  @apply rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-panel;
+}
+.admin-body .db-metric:nth-child(1),
+.admin-body .admin-card:first-child {
+  @apply border-brand-600 bg-brand-600 text-white;
+  background: linear-gradient(125deg, #4f46e5, #6366f1);
+}
+.admin-body .db-metric:nth-child(2) {
+  @apply border-sky-100;
+  background: linear-gradient(125deg, #fff, #f0f9ff);
+}
+.admin-body .db-metric:nth-child(3) {
+  @apply border-emerald-100;
+  background: linear-gradient(125deg, #fff, #f0fdf4);
+}
+.admin-body .db-metric:nth-child(4) {
+  @apply border-amber-100;
+  background: linear-gradient(125deg, #fff, #fffbeb);
+}
+.admin-body .db-metric:first-child small,
+.admin-body .admin-card:first-child small,
+.admin-body .admin-card:first-child > div {
+  @apply text-indigo-100;
+}
+.admin-body .db-metric strong,
+.admin-body .admin-card strong {
+  @apply tracking-tight;
+  font-variant-numeric: tabular-nums;
+}
+.admin-body .access-switches {
+  @apply grid grid-cols-2 gap-4;
+}
+.admin-body .access-setting {
+  @apply gap-5 rounded-xl border border-slate-200 p-5;
+  align-items: center;
+  min-height: 108px;
+}
+.admin-body .access-setting:has(input:checked) {
+  @apply border-brand-200 bg-brand-50/40;
+}
+.admin-body .access-setting > span {
+  min-width: 0;
+}
+.admin-body .access-setting strong {
+  @apply text-[13px] font-semibold text-slate-800;
+}
+.admin-body .access-setting small {
+  @apply text-[11px] leading-5 text-slate-500;
+}
+.admin-body .access-setting input[role='switch'] {
+  height: 26px;
+  min-height: 26px;
+  width: 44px;
+  flex: 0 0 44px;
+}
+.admin-body .access-setting input[role='switch']:checked {
+  @apply bg-brand-600;
+}
+.admin-body .channel-profile {
+  @apply rounded-xl border border-slate-200 bg-white p-5;
+}
+.admin-body .channel-profile-heading h3 {
+  @apply text-sm font-semibold text-slate-800;
+}
+.admin-body .channel-profile-heading p {
+  @apply mt-2 text-xs leading-5 text-slate-500;
+}
+.admin-body .admin-login {
+  @apply rounded-3xl border border-slate-200 bg-white p-9 shadow-panel;
+}
+.admin-body .admin-login-mark {
+  @apply rounded-2xl bg-brand-600 shadow-lg shadow-indigo-200;
+}
+.admin-body .admin-global-search {
+  @apply rounded-xl border border-slate-200 bg-slate-50;
+}
+.admin-body .admin-global-search input {
+  @apply border-0 bg-transparent shadow-none;
+}
+.admin-body .admin-global-search:focus-within {
+  @apply border-brand-300 bg-white ring-4 ring-brand-50;
+}
+.admin-body .admin-footer {
+  @apply mt-8 border-t border-slate-200/70 py-6 text-[10px] text-slate-400;
+}
+.admin-body [data-feedback-forwarded] {
+  display: none !important;
+}
+.admin-feedback-dialog {
+  @apply w-full max-w-[460px] overflow-visible rounded-3xl border border-slate-200 bg-white p-0 text-slate-700 shadow-2xl;
+  max-height: calc(100dvh - 40px);
+  margin: auto;
+}
+.admin-feedback-dialog::backdrop {
+  background: #0f172a66;
+  backdrop-filter: blur(4px);
+}
+.admin-feedback-content {
+  @apply relative flex max-h-[calc(100dvh-40px)] flex-col overflow-auto p-7;
+}
+.admin-feedback-close {
+  @apply absolute right-4 top-4 inline-flex size-8 items-center justify-center rounded-full text-2xl text-slate-400;
+}
+.admin-feedback-close:hover {
+  @apply bg-slate-100 text-slate-700;
+}
+.admin-feedback-icon {
+  @apply mb-5 flex size-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-600 ring-8 ring-brand-50/50;
+}
+.admin-feedback-icon svg {
+  width: 26px;
+  height: 26px;
+}
+.admin-feedback-dialog[data-kind='error'] .admin-feedback-icon {
+  @apply bg-rose-50 text-rose-500 ring-rose-50/50;
+}
+.admin-feedback-eyebrow {
+  @apply text-[10px] font-semibold tracking-wider text-slate-400;
+}
+.admin-feedback-copy h2 {
+  @apply mt-1 text-xl font-bold tracking-tight text-slate-900;
+}
+.admin-feedback-copy > p {
+  @apply mt-3 whitespace-pre-wrap break-words text-[13px] leading-7 text-slate-500;
+}
+.admin-feedback-trace {
+  @apply mt-5 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 text-[11px] text-slate-500;
+}
+.admin-feedback-trace code {
+  @apply mt-3 block break-all font-mono text-xs text-slate-600;
+}
+.admin-feedback-trace p {
+  @apply mt-2 text-[10px] text-slate-400;
+}
+.admin-feedback-actions {
+  @apply mt-7 flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-5;
+}
+.admin-feedback-field {
+  @apply mt-5;
+}
+.admin-feedback-field textarea {
+  @apply w-full;
+}
+.admin-body #admin-toast {
+  @apply fixed bottom-6 right-6 left-auto z-[100] max-w-sm items-center gap-3 rounded-xl border border-emerald-100 bg-white px-5 py-3.5 text-xs font-medium text-slate-700 shadow-xl;
+  transform: none;
+}
+.admin-body #admin-toast svg {
+  @apply text-emerald-500;
+}
+@media (max-width: 1100px) {
+  .admin-body .admin-shell {
+    padding: 24px 24px 0;
+  }
+  .admin-body .admin-header {
+    padding: 0 24px;
+  }
+  .admin-body .admin-title h1 {
+    font-size: 23px;
+  }
+}
+@media (max-width: 800px) {
+  .admin-body .admin-shell {
+    padding: 24px 16px 0;
+  }
+  .admin-body .admin-header {
+    padding: 0 16px;
+    gap: 12px;
+  }
+  .admin-body .admin-section {
+    padding: 20px;
+  }
+  .admin-body .access-switches {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 640px) {
+  .admin-body .admin-title {
+    gap: 16px;
+  }
+  .admin-body .admin-title h1 {
+    font-size: 21px;
+  }
+  .admin-body .admin-section {
+    padding: 18px;
+  }
+  .admin-body .admin-query-form > .field:first-child,
+  .admin-body .op-filters > .field:first-child {
+    flex-basis: 100%;
+  }
+  .admin-body button.primary,
+  .admin-body button.outline {
+    min-height: 44px;
+  }
+  .admin-body #admin-toast {
+    left: 16px;
+    right: 16px;
+    bottom: 20px;
+    max-width: none;
+  }
+  .admin-feedback-dialog {
+    width: calc(100% - 32px);
+  }
+  .admin-feedback-content {
+    padding: 24px;
+  }
+  .admin-body .admin-pagination {
+    padding: 16px;
+  }
+  .admin-body .admin-page-description {
+    font-size: 11px;
+    line-height: 1.9;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-body *,
+  .admin-body *::before,
+  .admin-body *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+.admin-body .admin-demo-banner {
+  @apply mb-6 flex flex-wrap items-center gap-4 rounded-2xl border border-amber-200 bg-amber-50/80 px-5 py-4;
+}
+.admin-demo-dot {
+  @apply size-2.5 shrink-0 rounded-full bg-amber-400 ring-4 ring-amber-100;
+}
+.admin-demo-banner > div {
+  @apply flex-1;
+  min-width: 200px;
+}
+.admin-demo-banner strong {
+  @apply text-xs font-semibold text-amber-900;
+}
+.admin-demo-banner p {
+  @apply mt-1 text-[11px] leading-5 text-amber-700;
+}
+.admin-body #admin-demo-toggle {
+  @apply whitespace-nowrap;
+  min-height: 32px;
+  font-size: 11px;
+  padding: 0 12px;
+}
+.admin-body #admin-demo-toggle[aria-pressed='true'] {
+  @apply border-amber-200 bg-amber-50 text-amber-700;
+}
+.admin-body[data-admin-auth='false'] #admin-demo-toggle {
+  display: none;
+}
+@media (max-width: 640px) {
+  .admin-body .admin-header {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 72px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .admin-body #admin-demo-toggle {
+    min-height: 32px;
+  }
+  .admin-body .admin-global-search {
+    order: 5;
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .admin-body .admin-session {
+    margin-left: auto;
+  }
+}
+html:has(.admin-body) {
+  scrollbar-gutter: stable;
+}
+.admin-body:has(.admin-feedback-dialog[open]) {
+  overflow: hidden;
+}
+.admin-feedback-dialog {
+  overscroll-behavior: contain;
+}
+.admin-body {
+  --red: var(--color-brand-600);
+  --red-dark: var(--color-brand-700);
+  --pale: var(--color-brand-50);
+}
+.admin-body :is(.ca-button, .ce-button, .pa-button, .pm-button) {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 shadow-xs;
+  min-height: 38px;
+}
+.admin-body :is(.ca-primary, .ce-primary, .pa-primary, .pm-primary) {
+  @apply border-brand-600 bg-brand-600 text-white;
+}
+.admin-body :is(.ca-button, .ce-button, .pa-button, .pm-button):hover:not(:disabled) {
+  @apply border-brand-200 bg-brand-50 text-brand-700;
+}
+.admin-body :is(.ca-primary, .ce-primary, .pa-primary, .pm-primary):hover:not(:disabled) {
+  @apply border-brand-700 bg-brand-700 text-white;
+}
+.admin-body :is(.mg-tabs, .pm-tabs) {
+  @apply inline-flex max-w-full flex-wrap gap-1.5 rounded-2xl bg-slate-100/80 p-1.5;
+}
+.admin-body :is(.mg-tabs, .pm-tabs) button {
+  @apply rounded-xl border-transparent bg-transparent text-slate-500 shadow-none;
+  min-height: 36px;
+}
+.admin-body :is(.mg-tabs, .pm-tabs) button.active {
+  @apply border-transparent bg-white text-brand-700 shadow-sm;
+}
+.admin-body .admin-page-tabs {
+  @apply flex max-w-full gap-1 rounded-2xl border border-slate-200 bg-slate-100/80 p-1.5;
+  width: fit-content;
+  overflow-x: auto;
+  margin-bottom: 20px;
+  scrollbar-width: thin;
+}
+.admin-body .admin-page-tabs > [role='tab'] {
+  @apply inline-flex shrink-0 items-center justify-center rounded-xl border-transparent bg-transparent px-5 py-2.5 text-xs font-semibold whitespace-nowrap text-slate-500 shadow-none;
+  min-height: 40px;
+}
+.admin-body .admin-page-tabs > [role='tab']:hover:not(:disabled) {
+  @apply bg-white/70 text-brand-700;
+}
+.admin-body .admin-page-tabs > [aria-selected='true'] {
+  @apply bg-white text-brand-700 shadow-sm;
+}
+.admin-body .admin-page-tabs > [role='tab']:focus-visible {
+  outline: 2px solid var(--admin-accent);
+  outline-offset: -2px;
+}
+.admin-body .admin-page-panel {
+  min-width: 0;
+  overflow-anchor: none;
+}
+.admin-body .admin-page-panel > :first-child {
+  margin-top: 0;
+}
+.admin-body .admin-page-panel .admin-table-wrap {
+  max-height: clamp(280px, calc(100dvh - 360px), 640px);
+}
+.admin-body .admin-page-panel .admin-table-wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+@media (max-width: 640px) {
+  .admin-body .admin-page-tabs {
+    width: 100%;
+  }
+  .admin-body .admin-page-tabs > [role='tab'] {
+    padding: 9px 14px;
+  }
+}
+.admin-body :is(.ce-dialog, .ca-dialog, .pa-dialog) {
+  @apply rounded-3xl border border-slate-200 bg-white shadow-2xl;
+}
+.admin-body .admin-actions > button:not(.primary):not(.outline) {
+  @apply inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] font-semibold text-slate-600;
+  min-height: 34px;
+}
+.admin-body .admin-actions > button:not(.primary):not(.outline):hover:not(:disabled) {
+  @apply border-brand-200 bg-brand-50 text-brand-700;
+}
+.admin-body .export-failure {
+  @apply mt-2 text-[11px] font-medium text-rose-500;
+}
+/* The legacy .outline button name also matches a Tailwind utility. */
+.admin-body .outline {
+  outline: none;
+}
+.admin-body .admin-state::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+/* Search wrappers own their border and focus ring. */
+.admin-body :is(.admin-search, .admin-global-search) input[type='search'],
+.admin-body :is(.admin-search, .admin-global-search) input[type='search']:focus {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  outline: none;
+}
+.admin-body .admin-search:focus-within {
+  @apply border-brand-300 ring-4 ring-brand-50;
+}
+.admin-body .admin-state:has(i)::before {
+  display: none;
+}
+/* Keep frequent row actions reachable while long transaction columns scroll. */
+.admin-body .op-table th:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 3;
+  background: #f8fafc;
+}
+.admin-body .op-table td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  background: #fff;
+  box-shadow: -5px 0 12px -8px #64748b66;
+}
+.admin-body .op-table tr:hover td:last-child {
+  background: #f8f9ff;
+}
+.admin-body .op-table {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 960px;
+}
+.admin-body .op-table th:first-child {
+  width: 19%;
+}
+.admin-body .op-table th:nth-child(2) {
+  width: 14%;
+}
+.admin-body .op-table th:nth-last-child(2) {
+  width: 150px;
+}
+.admin-body .op-table th:last-child {
+  width: 130px;
+}
+.admin-body .op-table td:first-child {
+  min-width: 0;
+}
+.admin-body .op-table th:nth-child(3) {
+  width: 105px;
+}
+.admin-body .op-table td:nth-child(3) {
+  white-space: nowrap;
+}
+.admin-body .op-table td:nth-child(2),
+.admin-body .op-table td:nth-child(6) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

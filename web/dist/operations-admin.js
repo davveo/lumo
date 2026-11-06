@@ -201,8 +201,62 @@
   };
   const label = (value) => names[value] || value || '—';
   const statusText = (key, value) => statuses[key]?.[value] || value || '—';
-  const badge = (key, value) =>
-    `<span class="admin-state ${[C.PaymentStatus.Pending, C.FulfillmentStatus.Ready, C.AftersaleStatus.Requested].includes(value) ? 'pending' : 'neutral'}">${esc(statusText(key, value))}</span>`;
+  const tones = {
+    orders: {
+      success: [C.OrderStatus.Paid, C.OrderStatus.Delivered, C.OrderStatus.Completed],
+      pending: [
+        C.OrderStatus.PendingPayment,
+        C.OrderStatus.AwaitingPayment,
+        C.OrderStatus.ReadyToFulfill,
+        C.OrderStatus.WaitingGroup,
+        C.OrderStatus.AwaitingGroup,
+      ],
+      processing: [
+        C.OrderStatus.Creating,
+        C.OrderStatus.Fulfilling,
+        C.OrderStatus.PartiallyShipped,
+        C.OrderStatus.Shipped,
+        C.OrderStatus.PaidConfirming,
+      ],
+      danger: [C.OrderStatus.CreateFailed],
+    },
+    payments: { success: [C.PaymentStatus.Succeeded], pending: [C.PaymentStatus.Pending] },
+    fulfillment: {
+      success: [C.FulfillmentStatus.Delivered, C.FulfillmentStatus.Inspected],
+      pending: [C.FulfillmentStatus.Ready, C.FulfillmentStatus.CancelRequested],
+      processing: [
+        C.FulfillmentStatus.Dispatching,
+        C.FulfillmentStatus.Partial,
+        C.FulfillmentStatus.Dispatched,
+        C.FulfillmentStatus.Inspecting,
+      ],
+    },
+    aftersales: {
+      success: [C.AftersaleStatus.Completed, C.AftersaleStatus.Exchanged],
+      pending: [C.AftersaleStatus.Requested],
+      processing: [
+        C.AftersaleStatus.Approved,
+        C.AftersaleStatus.Returning,
+        C.AftersaleStatus.Refunding,
+        C.AftersaleStatus.Exchanging,
+      ],
+      danger: [C.AftersaleStatus.Rejected],
+    },
+    refunds: {
+      success: [C.RefundStatus.Succeeded],
+      pending: [C.RefundStatus.Pending],
+      processing: [C.RefundStatus.Processing],
+    },
+    invoices: {
+      success: [C.InvoiceStatus.Issued],
+      pending: [C.InvoiceStatus.Requested, C.InvoiceStatus.ReversalPending],
+      processing: [C.InvoiceStatus.Adjusted],
+    },
+  };
+  const badge = (key, value) => {
+    const tone = Object.entries(tones[key] || {}).find(([, values]) => values.includes(value))?.[0] || 'neutral';
+    return `<span class="admin-state ${tone}">${esc(statusText(key, value))}</span>`;
+  };
   function lines(row) {
     const value = parse(row.lines_json) || row.lines || row.items;
     return Array.isArray(value) ? value : [];

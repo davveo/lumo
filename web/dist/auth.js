@@ -46,7 +46,9 @@
   let verified = false,
     refreshPromise = null;
   // Draft credentials live only in this closure, never in model/storage/HTML.
-  const loginDraft = { username: '', password: '' };
+  const defaultCredentials = Object.freeze({ username: 'demo', password: 'Lumo@2026' });
+  // null is an untouched field; an empty string is an intentional clear.
+  const loginDraft = { username: null, password: null };
   const ui = {
     tab: 'password',
     methods: [{ id: 'password', name: '账号密码' }],
@@ -133,8 +135,8 @@
     } catch (_) {}
   }
   function clearSession(reason = '', broadcast = false) {
-    loginDraft.username = '';
-    loginDraft.password = '';
+    loginDraft.username = null;
+    loginDraft.password = null;
     const previous = session;
     session = null;
     verified = false;
@@ -165,8 +167,8 @@
     emit('lumo:logout', { userId: previous?.userId, reason });
   }
   function persistSession(next, remember) {
-    loginDraft.username = '';
-    loginDraft.password = '';
+    loginDraft.username = null;
+    loginDraft.password = null;
     remove(localStorage, SESSION_KEY);
     remove(sessionStorage, SESSION_KEY);
     session = {
@@ -673,8 +675,8 @@
   window.addEventListener('hashchange', closeMenu);
   window.addEventListener('hashchange', () => {
     if (location.hash !== '#/login') {
-      loginDraft.username = '';
-      loginDraft.password = '';
+      loginDraft.username = null;
+      loginDraft.password = null;
     }
   });
   window.addEventListener('lumo:session-expired', () => {
@@ -737,7 +739,8 @@
       if (location.hash === '#/login') {
         for (const name of ['username', 'password']) {
           const input = document.getElementById('auth-' + name);
-          if (input && !input.value) input.value = loginDraft[name];
+          if (input && !input.value)
+            input.value = loginDraft[name] ?? (ui.registrationName ? '' : defaultCredentials[name]);
         }
       }
       if (

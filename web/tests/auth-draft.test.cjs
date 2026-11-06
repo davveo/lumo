@@ -24,6 +24,11 @@ test('background rendering preserves login input without exposing it through sta
     name.value = '';
     password.value = '';
     h.ctx.LumoAuth.afterRender();
+    assert.equal(password.value, 'Lumo@2026');
+    assert.equal(name.value, 'demo');
+    await h.input('auth-username', '');
+    await h.input('auth-password', '');
+    h.ctx.LumoAuth.afterRender();
     assert.equal(password.value, '');
     assert.equal(name.value, '');
   } finally {

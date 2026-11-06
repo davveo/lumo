@@ -1,8 +1,10 @@
 const { test, expect } = require('@playwright/test');
 
-async function adminLogin(page) {
+const { adminToken } = require('./admin-session.cjs');
+async function adminLogin(page, request) {
+  const token = await adminToken(request);
+  await page.addInitScript((token) => sessionStorage.setItem('lumo-admin-session-v1', token), token);
   await page.goto('/admin.html');
-  await page.locator('#admin-login button[type="submit"]').click();
   await expect(page.locator('#admin-session')).toBeVisible();
 }
 async function navigate(page, tab) {
@@ -56,14 +58,16 @@ test('admin action rows have breathing room on desktop and narrow screens', asyn
   });
   expect(created.ok()).toBe(true);
   const id = (await created.json()).data.id;
-  await adminLogin(page);
+  await adminLogin(page, request);
   for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await navigate(page, 'staff');
+    await page.locator('#staff-admin-root [data-admin-section="editor"]').click();
     await checkActions(page, '#staff-save-form');
     await navigate(page, 'catalogImport');
     await checkActions(page, '#catalog-import-form');
     await navigate(page, 'procurement');
+    await page.locator('#procurement-admin-root [data-admin-section="create"]').click();
     await checkActions(page, '#procurement-create-form');
     await navigate(page, 'interactions');
     await page.locator(`[data-operation="interaction.moderate"][data-id="${id}"]`).click();

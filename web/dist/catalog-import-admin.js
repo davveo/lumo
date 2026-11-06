@@ -77,7 +77,7 @@
         'lumo-import-report.csv',
       );
     if (b.hasAttribute('data-import-commit')) {
-      if (!confirm('确认导入已校验的商品资料？导入不会修改库存。')) return;
+      if (!(await U.feedback.confirm('确认导入已校验的商品资料？导入不会修改库存。'))) return;
       await m.run(async () => {
         await m.adapter.call('catalog', 'import_commit', { id: m.state.jobID });
       });

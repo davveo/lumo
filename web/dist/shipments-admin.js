@@ -17,6 +17,8 @@
       data: null,
       tracking: null,
       trackingID: '',
+      manual: { tracking_id: '', status: 'CREATED', occurred_at: '', location: '', description: '' },
+      updateKey: '',
       status: C.DeliveryExceptionStatus.Open,
       page: 1,
       busy: false,
@@ -36,16 +38,43 @@
       const s = module.state;
       return (
         U.heading('物流轨迹与异常件', '查看配送进展，跟进超时揽收、停滞与渠道异常。') +
-        `<section class="admin-section"><form id="shipment-query-form" class="admin-query-form"><label class="field">运单、订单或履约编号<input name="tracking_ref" required></label><button class="primary">查询轨迹</button></form>${(s.tracking?.shipments || []).map((row) => `<h3>${U.esc(row.tracking_id)} · ${names[row.status] || U.esc(row.status)}</h3><ol>${row.events.map((e) => `<li><strong>${names[e.status]}</strong> ${U.esc(e.occurred_at)} ${U.esc(e.location)} ${U.esc(e.description)} · ${U.esc(e.source)}</li>`).join('')}</ol>`).join('')}</section><section class="admin-section"><h2>异常件</h2><div class="admin-list-toolbar shipment-filters"><label class="admin-status-filter">状态<select data-shipment-filter><option value="${C.DeliveryExceptionStatus.Open}" ${s.status === C.DeliveryExceptionStatus.Open ? 'selected' : ''}>待处理</option><option value="${C.DeliveryExceptionStatus.Resolved}" ${s.status === C.DeliveryExceptionStatus.Resolved ? 'selected' : ''}>已处理</option><option value="" ${!s.status ? 'selected' : ''}>全部</option></select></label></div><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>运单 / 异常</th><th>内容</th><th>处理结果</th><th>操作</th></tr></thead><tbody>${(s.data?.items || []).map((row) => `<tr><td>${U.esc(row.tracking_id)}<br>${kinds[row.kind] || U.esc(row.kind)}</td><td>${U.esc(row.details)}</td><td>${U.esc(row.resolution || '待处理')}<br>${U.esc(row.resolved_by)}</td><td>${row.status === C.DeliveryExceptionStatus.Open ? `<button class="outline" data-shipment-resolve="${U.esc(row.id)}">登记处理结果</button>` : ''}</td></tr>`).join('')}</tbody></table></div><div class="admin-pagination"><button class="outline" data-shipment-page="${s.page - 1}" ${s.page <= 1 ? 'disabled' : ''}>上一页</button><span>共 ${s.data?.total || 0} 条</span><button class="outline" data-shipment-page="${s.page + 1}" ${s.page * 20 >= Number(s.data?.total || 0) ? 'disabled' : ''}>下一页</button></div></section><section class="admin-section"><h2>人工记录轨迹</h2><form id="shipment-update-form" class="admin-form"><label class="field">运单号<input name="tracking_id" required maxlength="100"></label><label class="field">状态<select name="status">${Object.entries(
-          names,
+        module.tabs(
+          [
+            ['tracking', '轨迹查询'],
+            ['exceptions', '异常件处理'],
+            ['manual', '人工记录'],
+          ],
+          '物流与异常件功能',
+        ) +
+        module.panel(
+          'tracking',
+          `<section class="admin-section"><form id="shipment-query-form" class="admin-query-form"><label class="field">运单、订单或履约编号<input name="tracking_ref" value="${U.esc(s.trackingID)}" required></label><button class="primary">查询轨迹</button></form>${(s.tracking?.shipments || []).map((row) => `<h3>${U.esc(row.tracking_id)} · ${names[row.status] || U.esc(row.status)}</h3><ol>${row.events.map((e) => `<li><strong>${names[e.status]}</strong> ${U.esc(e.occurred_at)} ${U.esc(e.location)} ${U.esc(e.description)} · ${U.esc(e.source)}</li>`).join('')}</ol>`).join('')}</section>`,
+        ) +
+        module.panel(
+          'exceptions',
+          `<section class="admin-section"><h2>异常件</h2><div class="admin-list-toolbar shipment-filters"><label class="admin-status-filter">状态<select data-shipment-filter><option value="${C.DeliveryExceptionStatus.Open}" ${s.status === C.DeliveryExceptionStatus.Open ? 'selected' : ''}>待处理</option><option value="${C.DeliveryExceptionStatus.Resolved}" ${s.status === C.DeliveryExceptionStatus.Resolved ? 'selected' : ''}>已处理</option><option value="" ${!s.status ? 'selected' : ''}>全部</option></select></label></div><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>运单 / 异常</th><th>内容</th><th>处理结果</th><th>操作</th></tr></thead><tbody>${(s.data?.items || []).map((row) => `<tr><td>${U.esc(row.tracking_id)}<br>${kinds[row.kind] || U.esc(row.kind)}</td><td>${U.esc(row.details)}</td><td>${U.esc(row.resolution || '待处理')}<br>${U.esc(row.resolved_by)}</td><td>${row.status === C.DeliveryExceptionStatus.Open ? `<button class="outline" data-shipment-resolve="${U.esc(row.id)}">登记处理结果</button>` : ''}</td></tr>`).join('')}</tbody></table></div><div class="admin-pagination"><button class="outline" data-shipment-page="${s.page - 1}" ${s.page <= 1 ? 'disabled' : ''}>上一页</button><span>共 ${s.data?.total || 0} 条</span><button class="outline" data-shipment-page="${s.page + 1}" ${s.page * 20 >= Number(s.data?.total || 0) ? 'disabled' : ''}>下一页</button></div></section>`,
+        ) +
+        module.panel(
+          'manual',
+          `<section class="admin-section"><h2>人工记录轨迹</h2><form id="shipment-update-form" class="admin-form"><label class="field">运单号<input name="tracking_id" value="${U.esc(s.manual.tracking_id)}" required maxlength="100"></label><label class="field">状态<select name="status">${Object.entries(
+            names,
+          )
+            .map(
+              ([key, label]) => `<option value="${key}" ${s.manual.status === key ? 'selected' : ''}>${label}</option>`,
+            )
+            .join(
+              '',
+            )}</select></label><label class="field">发生时间<input name="occurred_at" value="${U.esc(s.manual.occurred_at)}" type="datetime-local" step="1" required></label><label class="field">所在地<input name="location" value="${U.esc(s.manual.location)}" maxlength="160"></label><label class="field">进展说明<input name="description" value="${U.esc(s.manual.description)}" required maxlength="500"></label><div class="admin-form-actions wide"><button class="primary" ${s.busy ? 'disabled' : ''}>保存人工记录</button></div></form></section>`,
         )
-          .map(([key, label]) => `<option value="${key}">${label}</option>`)
-          .join(
-            '',
-          )}</select></label><label class="field">发生时间<input name="occurred_at" type="datetime-local" step="1" required></label><label class="field">所在地<input name="location" maxlength="160"></label><label class="field">进展说明<input name="description" required maxlength="500"></label><button class="primary">保存人工记录</button></form></section>`
       );
     },
   );
+  const remember = (event) => {
+    if (m.active() && event.target.closest('#shipment-update-form') && event.target.name in m.state.manual)
+      m.state.manual[event.target.name] = event.target.value;
+  };
+  document.addEventListener('input', remember);
+  document.addEventListener('change', remember);
   document.addEventListener('change', async (event) => {
     if (event.target.matches('[data-shipment-filter]') && m.active()) {
       m.state.status = event.target.value;
@@ -63,7 +92,7 @@
       return;
     }
     const row = m.state.data.items.find((r) => r.id === b.dataset.shipmentResolve),
-      resolution = prompt('请填写已经采取的处理措施');
+      resolution = await U.feedback.prompt('请填写已经采取的处理措施');
     if (!row || !resolution) return;
     const ok = await m.run(() =>
       m.adapter.call('logistics', 'exception_resolve', {
@@ -84,15 +113,21 @@
       return;
     }
     const ok = await m.run(async () => {
-      form.dataset.key ||= crypto.randomUUID();
+      m.state.updateKey ||= crypto.randomUUID();
       data.occurred_at = new Date(data.occurred_at).toISOString();
-      await m.adapter.call('logistics', 'tracking_update', { id: form.dataset.key, data });
-      m.state.trackingID = data.tracking_id;
+      await m.adapter.call('logistics', 'tracking_update', { id: m.state.updateKey, data });
+      return {
+        trackingID: data.tracking_id,
+        manual: { tracking_id: '', status: 'CREATED', occurred_at: '', location: '', description: '' },
+        updateKey: '',
+        sectionTab: 'tracking',
+      };
     });
     if (ok) await m.refresh();
   });
   m.openDetail = async (id) => {
     m.state.trackingID = id;
+    m.state.sectionTab = 'tracking';
     await m.refresh();
   };
   window.LumoShipmentsAdmin = m;

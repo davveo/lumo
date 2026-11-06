@@ -830,41 +830,43 @@ function render() {
     window.LumoSidebars?.afterRender();
     return;
   }
-  if (['login', 'register'].includes(name) && !window.LumoAuthView) {
+  if ((['login', 'register'].includes(name) || (name === 'preview' && route[1] === 'login')) && !window.LumoAuthView) {
     drawAppContent('<main id="main" class="container auth-loading" role="status">正在打开登录页面…</main>');
     return;
   }
   let content =
-    name === 'compare' && window.LumoDiscovery
-      ? window.LumoDiscovery.page()
-      : ['login', 'register'].includes(name) && window.LumoAuthView
-        ? window.LumoAuthView.page()
-        : name === 'member' && window.LumoMemberView
-          ? window.LumoMemberView.page(route[1] || 'overview', route[2] || 'all')
-          : name === 'orders' && window.LumoMemberView
-            ? window.LumoMemberView.page('orders', 'all')
-            : name === 'editor' && window.LumoStudio
-              ? window.LumoStudio.renderEditor()
-              : name === 'coupons' && window.LumoCouponCenter
-                ? window.LumoCouponCenter.page()
-                : name === 'promotions' && window.LumoPromoView
-                  ? window.LumoPromoView.page(
-                      route[1] || CommerceEnums.PromotionType.Flash,
-                      route[2] || CommerceEnums.PromotionSession.Today,
-                    )
-                  : name === 'product'
-                    ? detailPage(route[1])
-                    : name === 'cart'
-                      ? cartPage()
-                      : name === 'checkout'
-                        ? checkoutPage()
-                        : name === 'payment'
-                          ? paymentPage()
-                          : name === 'success'
-                            ? successPage()
-                            : name === 'orders'
-                              ? ordersPage()
-                              : catalog();
+    name === 'preview' && window.LumoChannelPreview
+      ? window.LumoChannelPreview.page(route[1] || 'login')
+      : name === 'compare' && window.LumoDiscovery
+        ? window.LumoDiscovery.page()
+        : ['login', 'register'].includes(name) && window.LumoAuthView
+          ? window.LumoAuthView.page()
+          : name === 'member' && window.LumoMemberView
+            ? window.LumoMemberView.page(route[1] || 'overview', route[2] || 'all')
+            : name === 'orders' && window.LumoMemberView
+              ? window.LumoMemberView.page('orders', 'all')
+              : name === 'editor' && window.LumoStudio
+                ? window.LumoStudio.renderEditor()
+                : name === 'coupons' && window.LumoCouponCenter
+                  ? window.LumoCouponCenter.page()
+                  : name === 'promotions' && window.LumoPromoView
+                    ? window.LumoPromoView.page(
+                        route[1] || CommerceEnums.PromotionType.Flash,
+                        route[2] || CommerceEnums.PromotionSession.Today,
+                      )
+                    : name === 'product'
+                      ? detailPage(route[1])
+                      : name === 'cart'
+                        ? cartPage()
+                        : name === 'checkout'
+                          ? checkoutPage()
+                          : name === 'payment'
+                            ? paymentPage()
+                            : name === 'success'
+                              ? successPage()
+                              : name === 'orders'
+                                ? ordersPage()
+                                : catalog();
   drawAppContent(
     content +
       (window.LumoDiscovery?.compareBar() || '') +
